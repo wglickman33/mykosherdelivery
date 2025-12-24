@@ -1,0 +1,299 @@
+.chart-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  position: relative;
+  z-index: 1;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.chart-title {
+  h3 {
+    margin: 0 0 4px 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #111827;
+  }
+  
+  p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: #6b7280;
+  }
+}
+
+.chart-controls {
+  display: flex;
+  gap: 4px;
+  background: #f3f4f6;
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.chart-type-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #6b7280;
+
+  &:hover {
+    background: #e5e7eb;
+    color: #374151;
+  }
+
+  &.active {
+    background: white;
+    color: #3b82f6;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.chart-content {
+  position: relative;
+  height: 300px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-container {
+  flex: 1;
+  position: relative;
+  min-height: 0;
+}
+
+// Bar Chart Styles
+.chart-bars {
+  display: flex;
+  align-items: end;
+  height: 100%;
+  gap: 8px;
+  padding: 0 8px;
+}
+
+.chart-bar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+}
+
+.bar {
+  width: 100%;
+  min-height: 4px;
+  border-radius: 4px 4px 0 0;
+  transition: all 0.3s ease;
+  cursor: pointer;
+
+  &.revenue-bar {
+    background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
+    
+    &:hover {
+      background: linear-gradient(180deg, #2563eb 0%, #1e40af 100%);
+    }
+  }
+
+  &.orders-bar {
+    background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+    
+    &:hover {
+      background: linear-gradient(180deg, #059669 0%, #047857 100%);
+    }
+  }
+}
+
+.bar-label {
+  margin-top: 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #6b7280;
+  text-align: center;
+}
+
+// Line Chart Styles
+.line-chart {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.chart-line {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+  
+  &.revenue-line {
+    stroke: url(#revenueGradient);
+  }
+  
+  &.orders-line {
+    stroke: url(#ordersGradient);
+  }
+}
+
+.chart-point {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+}
+
+.chart-point-inner {
+  cursor: pointer;
+  fill: white;
+  stroke-width: 2;
+  transition: all 0.3s ease;
+}
+
+.chart-area {
+  opacity: 0.1;
+  transition: opacity 0.3s ease;
+}
+
+// Enhanced line chart animations - removed all hover effects
+
+// Smooth transitions for all line chart elements
+.chart-line,
+.chart-point,
+.chart-point-inner,
+.chart-area {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.chart-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding: 0 8px;
+  flex-shrink: 0;
+  height: 20px;
+}
+
+.chart-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #6b7280;
+  text-align: center;
+  flex: 1;
+}
+
+// Tooltip Styles
+.chart-tooltip {
+  position: fixed;
+  background: #1f2937;
+  color: white;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  z-index: 999999;
+  pointer-events: none;
+  min-width: 200px;
+
+  &.tooltip-above::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: #1f2937;
+  }
+
+  &.tooltip-below::after {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-bottom-color: #1f2937;
+  }
+}
+
+.tooltip-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: #f9fafb;
+}
+
+.tooltip-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #60a5fa;
+}
+
+.tooltip-details {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #374151;
+
+  .tooltip-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+    font-size: 0.75rem;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    .label {
+      color: #9ca3af;
+    }
+
+    .value {
+      color: #f9fafb;
+      font-weight: 500;
+    }
+  }
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .chart-card {
+    padding: 16px;
+  }
+
+  .chart-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .chart-controls {
+    align-self: flex-end;
+  }
+
+  .chart-content {
+    height: 160px;
+  }
+
+  .chart-tooltip {
+    min-width: 150px;
+    font-size: 0.75rem;
+  }
+}

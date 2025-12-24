@@ -1,0 +1,702 @@
+.address-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease-out;
+  overflow: hidden;
+  z-index: 20000; // Higher than AddressManagementModal and below delete confirm
+  
+  // Ensure centering regardless of sidebar - use viewport units
+  box-sizing: border-box;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.address-modal {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 500px;
+  max-height: calc(100vh - 40px);
+  overflow: hidden;
+  animation: slideUp 0.3s ease-out;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  
+  // Ensure modal stays within viewport and doesn't overlap
+  box-sizing: border-box;
+  
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+}
+
+.address-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #e9ecef;
+  flex-shrink: 0;
+  position: relative; // Ensure close button positioning
+  
+  h2 {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #061757;
+    flex: 1;
+    min-width: 0;
+    margin-right: 16px;
+    line-height: 1.2;
+    word-wrap: break-word; // Prevent text overflow
+  }
+  
+  .close-button {
+    background: none;
+    border: none;
+    padding: 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+    min-width: 40px; // Ensure consistent sizing
+    min-height: 40px;
+    
+    &:hover {
+      background-color: #f8f9fa;
+    }
+    
+    &:focus {
+      outline: 2px solid #5fb4f9;
+      outline-offset: 2px;
+    }
+    
+    svg {
+      width: 24px;
+      height: 24px;
+      flex-shrink: 0; // Prevent icon from shrinking
+    }
+  }
+}
+
+.address-form {
+  padding: 24px;
+  flex: 1;
+  overflow-y: auto;
+  max-height: calc(100vh - 140px);
+  
+  .error-message {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background-color: #ffeaea;
+    border: 1px solid #ffcdd2;
+    border-radius: 8px;
+    color: #d32f2f;
+    font-size: 14px;
+    margin-bottom: 20px;
+    word-wrap: break-word; // Prevent text overflow
+    
+    svg {
+      flex-shrink: 0;
+    }
+  }
+  
+  .form-group {
+    margin-bottom: 16px;
+    
+    label {
+      display: block;
+      margin-bottom: 4px;
+      font-weight: 600;
+      color: #061757;
+      font-size: 13px;
+      word-wrap: break-word; // Prevent text overflow
+    }
+    
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      font-size: 15px;
+      transition: all 0.3s ease;
+      background-color: white;
+      box-sizing: border-box; // Ensure padding doesn't affect width
+      
+      &:focus {
+        outline: none;
+        border-color: #5fb4f9;
+        box-shadow: 0 0 0 3px rgba(95, 180, 249, 0.1);
+      }
+      
+      &::placeholder {
+        color: #6c757d;
+      }
+    }
+    
+    select {
+      cursor: pointer;
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+      background-position: right 12px center;
+      background-repeat: no-repeat;
+      background-size: 16px;
+      padding-right: 40px;
+      appearance: none;
+    }
+    
+    textarea {
+      resize: none;
+      min-height: 60px;
+      font-family: inherit;
+    }
+    
+    input:invalid,
+    select:invalid,
+    textarea:invalid {
+      border-color: #e9ecef;
+    }
+    
+    input.error,
+    select.error,
+    textarea.error {
+      border-color: #dc3545;
+      background-color: #fff5f5;
+    }
+    
+    .field-error {
+      color: #dc3545;
+      font-size: 12px;
+      margin-top: 4px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      word-wrap: break-word; // Prevent text overflow
+    }
+  }
+  
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 120px 120px;
+    gap: 12px;
+    
+    @media (max-width: 480px) {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+  }
+  
+  .form-actions {
+    margin-top: 20px;
+    
+    .secondary-actions {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #e9ecef;
+      flex-wrap: wrap; // Allow wrapping on small screens
+      
+      .set-primary-button {
+        background-color: #f8f9fa;
+        color: #061757;
+        border: 2px solid #e9ecef;
+        padding: 10px 16px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        white-space: nowrap; // Prevent text wrapping
+        flex-shrink: 0; // Prevent button from shrinking
+        
+        &:hover:not(:disabled) {
+          background-color: #e9ecef;
+          border-color: #5fb4f9;
+        }
+        
+        &:focus {
+          outline: 2px solid #5fb4f9;
+          outline-offset: 2px;
+        }
+        
+        &:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+      }
+      
+      .delete-button {
+        background-color: #fff5f5;
+        color: #dc3545;
+        border: 2px solid #ffcdd2;
+        padding: 10px 16px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        white-space: nowrap; // Prevent text wrapping
+        flex-shrink: 0; // Prevent button from shrinking
+        
+        &:hover:not(:disabled) {
+          background-color: #dc3545;
+          color: white;
+          border-color: #dc3545;
+        }
+        
+        &:focus {
+          outline: 2px solid #dc3545;
+          outline-offset: 2px;
+        }
+        
+        &:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+      }
+    }
+    
+    .primary-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      flex-wrap: wrap; // Allow wrapping on small screens
+      
+      .cancel-button {
+        background-color: transparent;
+        color: #6c757d;
+        border: 2px solid #e9ecef;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        white-space: nowrap; // Prevent text wrapping
+        flex-shrink: 0; // Prevent button from shrinking
+        
+        &:hover:not(:disabled) {
+          background-color: #f8f9fa;
+          color: #061757;
+        }
+        
+        &:focus {
+          outline: 2px solid #5fb4f9;
+          outline-offset: 2px;
+        }
+        
+        &:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+      }
+      
+      .save-button {
+        background-color: #5fb4f9;
+        color: white;
+        border: 2px solid #5fb4f9;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        white-space: nowrap; // Prevent text wrapping
+        flex-shrink: 0; // Prevent button from shrinking
+        
+        &:hover:not(:disabled) {
+          background-color: #061757;
+          border-color: #061757;
+        }
+        
+        &:focus {
+          outline: 2px solid #5fb4f9;
+          outline-offset: 2px;
+        }
+        
+        &:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+          background-color: #6c757d;
+          border-color: #6c757d;
+        }
+      }
+    }
+  }
+  
+  .limit-message {
+    margin-top: 16px;
+    padding: 12px 16px;
+    background-color: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 8px;
+    color: #856404;
+    font-size: 14px;
+    text-align: center;
+    word-wrap: break-word; // Prevent text overflow
+  }
+}
+
+// Tablet and mobile responsiveness
+@media (max-width: 768px) {
+  .address-modal-overlay {
+    padding: 16px;
+    align-items: center;
+  }
+  
+  .address-modal {
+    max-width: none;
+    width: 100%;
+    max-height: calc(100vh - 32px);
+    min-height: 350px;
+    border-radius: 16px;
+  }
+  
+  .address-modal-header {
+    padding: 16px 20px 12px;
+    
+    h2 {
+      font-size: 1.25rem;
+      margin-right: 12px; // Ensure space for close button
+    }
+    
+    .close-button {
+      padding: 6px;
+      min-width: 36px; // Adjust for smaller screens
+      min-height: 36px;
+      
+      svg {
+        width: 22px;
+        height: 22px;
+      }
+    }
+  }
+  
+  .address-form {
+    padding: 20px;
+    
+    .form-group {
+      margin-bottom: 14px;
+      
+      label {
+        font-size: 14px;
+      }
+      
+      input, select, textarea {
+        padding: 12px 14px;
+        font-size: 16px; // Prevent zoom on iOS
+      }
+    }
+    
+    .form-row {
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+    
+    .form-actions {
+      margin-top: 16px;
+      
+      .primary-actions {
+        flex-direction: column-reverse;
+        gap: 12px;
+        
+        .cancel-button,
+        .save-button {
+          width: 100%;
+          justify-content: center;
+          padding: 14px 20px;
+          font-size: 16px;
+        }
+      }
+      
+      .secondary-actions {
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 16px;
+        padding-bottom: 16px;
+        
+        .set-primary-button,
+        .delete-button {
+          width: 100%;
+          justify-content: center;
+          padding: 12px 16px;
+          font-size: 14px;
+        }
+      }
+    }
+  }
+}
+
+// Small mobile devices
+@media (max-width: 480px) {
+  .address-modal-overlay {
+    padding: 12px;
+  }
+  
+  .address-modal {
+    max-height: calc(100vh - 24px);
+    min-height: 320px;
+    border-radius: 12px;
+  }
+  
+  .address-modal-header {
+    padding: 14px 16px 10px;
+    
+    h2 {
+      font-size: 1.1rem;
+      margin-right: 10px; // Ensure space for close button
+    }
+    
+    .close-button {
+      padding: 4px;
+      min-width: 32px; // Adjust for smaller screens
+      min-height: 32px;
+      
+      svg {
+        width: 20px;
+        height: 20px;
+      }
+    }
+  }
+  
+  .address-form {
+    padding: 16px;
+    
+    .form-group {
+      margin-bottom: 12px;
+      
+      label {
+        font-size: 13px;
+        margin-bottom: 6px;
+      }
+      
+      input, select, textarea {
+        padding: 10px 12px;
+        font-size: 16px;
+        border-radius: 6px;
+      }
+      
+      textarea {
+        min-height: 50px;
+      }
+    }
+    
+    .form-actions {
+      margin-top: 16px;
+      
+      .primary-actions {
+        gap: 10px;
+        
+        .cancel-button,
+        .save-button {
+          padding: 12px 16px;
+          font-size: 15px;
+          border-radius: 6px;
+        }
+      }
+      
+      .secondary-actions {
+        gap: 8px;
+        margin-bottom: 12px;
+        padding-bottom: 12px;
+        
+        .set-primary-button,
+        .delete-button {
+          padding: 10px 12px;
+          font-size: 13px;
+          border-radius: 6px;
+        }
+      }
+    }
+  }
+}
+
+// Extra small devices
+@media (max-width: 360px) {
+  .address-modal-overlay {
+    padding: 8px;
+  }
+  
+  .address-modal {
+    max-height: calc(100vh - 16px);
+    min-height: 300px;
+  }
+  
+  .address-modal-header {
+    padding: 12px 14px 8px;
+    
+    h2 {
+      font-size: 1rem;
+      margin-right: 8px; // Ensure space for close button
+    }
+    
+    .close-button {
+      min-width: 28px; // Adjust for smaller screens
+      min-height: 28px;
+      
+      svg {
+        width: 18px;
+        height: 18px;
+      }
+    }
+  }
+  
+  .address-form {
+    padding: 14px;
+    
+    .form-group {
+      margin-bottom: 10px;
+      
+      label {
+        font-size: 12px;
+        margin-bottom: 4px;
+      }
+      
+      input, select, textarea {
+        padding: 9px 10px;
+        font-size: 16px;
+      }
+    }
+    
+    .form-actions {
+      margin-top: 14px;
+      
+      .primary-actions {
+        gap: 8px;
+        
+        .cancel-button,
+        .save-button {
+          padding: 10px 14px;
+          font-size: 14px;
+        }
+      }
+      
+      .secondary-actions {
+        gap: 6px;
+        margin-bottom: 10px;
+        padding-bottom: 10px;
+        
+        .set-primary-button,
+        .delete-button {
+          padding: 8px 10px;
+          font-size: 12px;
+        }
+      }
+    }
+  }
+}
+
+// Landscape orientation on mobile
+@media (max-height: 500px) and (orientation: landscape) {
+  .address-modal-overlay {
+    padding: 8px;
+    align-items: flex-start;
+  }
+  
+  .address-modal {
+    max-height: calc(100vh - 16px);
+    min-height: 280px;
+  }
+  
+  .address-modal-header {
+    padding: 12px 20px 8px;
+    
+    h2 {
+      font-size: 1.1rem;
+    }
+  }
+  
+  .address-form {
+    padding: 16px 20px;
+    
+    .form-group {
+      margin-bottom: 10px;
+    }
+    
+    .form-actions {
+      margin-top: 12px;
+      
+      .primary-actions {
+        gap: 8px;
+        
+        .cancel-button,
+        .save-button {
+          padding: 10px 16px;
+          font-size: 14px;
+        }
+      }
+    }
+  }
+}
+
+// High contrast mode support
+@media (prefers-contrast: high) {
+  .address-modal {
+    border: 2px solid #000;
+  }
+  
+  .address-form {
+    .form-group {
+      input, select, textarea {
+        border-color: #000;
+        
+        &:focus {
+          border-color: #0066cc;
+          box-shadow: 0 0 0 2px #0066cc;
+        }
+      }
+    }
+  }
+}
+
+// Reduced motion support
+@media (prefers-reduced-motion: reduce) {
+  .address-modal-overlay {
+    animation: none;
+  }
+  
+  .address-modal {
+    animation: none;
+  }
+  
+  .address-form .form-group input,
+  .address-form .form-group select,
+  .address-form .form-group textarea,
+  .address-form .form-actions button {
+    transition: none;
+  }
+} 

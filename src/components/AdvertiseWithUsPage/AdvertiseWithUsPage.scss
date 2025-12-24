@@ -1,0 +1,436 @@
+.advertise-with-us-page {
+  min-height: 100vh;
+  padding-top: 80px; // Account for fixed header
+  padding-left: 0;
+  background: linear-gradient(135deg, #5fb4f9 0%, #4a9eff 100%); // Back to project blue gradient
+  color: #061757;
+  transition: padding-left 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  
+  // Match sidebar responsiveness breakpoints exactly
+  @media screen and (min-width: 1111px) {
+    padding-left: 240px; // Full sidebar width
+  }
+  
+  @media screen and (min-width: 641px) and (max-width: 1110px) {
+    padding-left: 60px; // Icon sidebar width
+  }
+  
+  @media screen and (max-width: 640px) {
+    padding-left: 0; // No sidebar on mobile
+  }
+}
+
+.advertise-with-us-container {
+  max-width: none; // Remove max-width constraint to fill available space
+  margin: 0;
+  padding: 2rem;
+  flex: 1; // Take up available space, pushing footer to bottom
+  
+  // Responsive padding management - match PartnerWithUsPage exactly
+  @media screen and (min-width: 1111px) {
+    max-width: 900px; // Centered with max-width only on desktop
+    margin: 0 auto;
+    padding: 2rem;
+  }
+  
+  @media screen and (min-width: 641px) and (max-width: 1110px) {
+    // Fill the available space on tablet with icon sidebar
+    max-width: none;
+    margin: 0;
+    padding: 2rem 3rem; // More padding to use the space better
+  }
+  
+  @media screen and (max-width: 640px) {
+    // Mobile - no sidebar
+    padding: 1rem;
+  }
+  
+  @media screen and (max-width: 480px) {
+    padding: 0.75rem;
+  }
+}
+
+.advertise-with-us-content {
+  background: rgba(255, 255, 255, 0.98);
+  padding: 3rem;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  margin-bottom: 2rem; // Space before footer
+  
+  @media screen and (min-width: 641px) and (max-width: 1110px) {
+    // Tablet with icon sidebar - adjust padding
+    padding: 2.5rem;
+  }
+  
+  @media screen and (max-width: 640px) {
+    // Mobile - no sidebar
+    padding: 2rem 1.5rem;
+    border-radius: 15px;
+    margin-bottom: 1.5rem;
+  }
+  
+  @media screen and (max-width: 480px) {
+    padding: 1.25rem 0.875rem;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+  }
+  
+  h1 {
+    font-size: 3rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: #061757; // Back to project navy
+    text-align: center;
+    
+    @media screen and (min-width: 641px) and (max-width: 1110px) {
+      font-size: 2.75rem;
+    }
+    
+    @media screen and (max-width: 640px) {
+      font-size: 2.5rem;
+    }
+    
+    @media screen and (max-width: 480px) {
+      font-size: 2rem;
+    }
+  }
+  
+  .subtitle {
+    font-size: 1.75rem; // Made bigger from 1.5rem
+    font-weight: 500;
+    margin-bottom: 2rem;
+    color: #5fb4f9; // Project light blue for subtitle
+    text-align: center;
+    
+    @media screen and (min-width: 641px) and (max-width: 1110px) {
+      font-size: 1.5rem;
+    }
+    
+    @media screen and (max-width: 640px) {
+      font-size: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    @media screen and (max-width: 480px) {
+      font-size: 1.1rem;
+    }
+  }
+}
+
+.animated-text-container {
+  margin-bottom: 2rem;
+  
+  .animation-controls {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1rem;
+    
+    .animation-toggle {
+      background: white;
+      border: 2px solid #5fb4f9;
+      color: #5fb4f9;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      
+      &:hover {
+        background: #5fb4f9;
+        color: white;
+      }
+      
+      .icon {
+        width: 16px;
+        height: 16px;
+        fill: currentColor;
+      }
+      
+      @media screen and (max-width: 640px) {
+        font-size: 0.8rem;
+        padding: 0.4rem 0.8rem;
+        
+        .icon {
+          width: 14px;
+          height: 14px;
+        }
+      }
+    }
+  }
+  
+  .animated-text {
+    overflow: hidden;
+    white-space: nowrap;
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #061757;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    
+    &.animate span {
+      display: inline-block;
+      animation: scroll-text-seamless 25s linear infinite;
+    }
+    
+    &.paused span {
+      animation-play-state: paused;
+    }
+    
+    @media screen and (max-width: 640px) {
+      font-size: 1rem;
+      height: 1.5rem;
+    }
+  }
+}
+
+@keyframes scroll-text-seamless {
+  0% {
+    transform: translateX(100vw);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.required-notice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2rem;
+  padding: 0.75rem 1rem;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #6c757d;
+  
+  .asterisk {
+    color: #dc3545;
+    font-weight: 600;
+    margin-right: 0.5rem;
+  }
+  
+  @media screen and (max-width: 640px) {
+    font-size: 0.85rem;
+    padding: 0.625rem 0.875rem;
+    margin-bottom: 1.5rem;
+  }
+}
+
+.advertise-form {
+  .form-group {
+    margin-bottom: 2rem;
+    
+    @media screen and (max-width: 640px) {
+      margin-bottom: 1.5rem;
+    }
+    
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      color: #061757;
+      font-size: 1rem;
+      
+      .asterisk {
+        color: #dc3545;
+        margin-left: 0.25rem;
+        font-weight: 600;
+      }
+      
+      @media screen and (max-width: 640px) {
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+      }
+    }
+    
+    input, textarea {
+      width: 100%;
+      padding: 1rem;
+      border: 2px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 1rem;
+      background: white;
+      transition: all 0.3s ease;
+      color: #061757;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      
+      &:focus {
+        outline: none;
+        border-color: #5fb4f9;
+        box-shadow: 0 0 0 3px rgba(95, 180, 249, 0.1), 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
+      
+      &::placeholder {
+        color: #9ca3af;
+      }
+      
+      &.error {
+        border-color: #dc3545;
+        box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1), 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
+      
+      @media screen and (max-width: 640px) {
+        padding: 0.875rem;
+        font-size: 0.9rem;
+      }
+    }
+    
+    textarea {
+      resize: none; // Remove resize ability
+      min-height: 120px;
+      font-family: inherit;
+      line-height: 1.5;
+    }
+  }
+  
+  .name-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    
+    @media screen and (max-width: 600px) {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+    
+    .name-field {
+      .field-label {
+        font-size: 0.9rem;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        color: #6b7280;
+        
+        @media screen and (max-width: 640px) {
+          font-size: 0.85rem;
+        }
+      }
+    }
+  }
+  
+  .date-input-container {
+    display: flex;
+    gap: 0.75rem;
+    align-items: stretch; // Changed from flex-start to stretch
+    
+    input[type="date"] {
+      flex: 1;
+    }
+    
+    .today-button {
+      background: #061757;
+      color: white;
+      border: none;
+      padding: 0 1.5rem; // Removed top/bottom padding
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100%; // Ensure it takes full height of container
+      
+      &:hover {
+        background: #0a1f6b;
+      }
+      
+      @media screen and (max-width: 640px) {
+        padding: 0 1rem;
+        font-size: 0.9rem;
+      }
+    }
+  }
+}
+
+.error-message {
+  display: block;
+  color: #dc3545;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  font-weight: 500;
+  
+  @media screen and (max-width: 640px) {
+    font-size: 0.8rem;
+  }
+}
+
+.submit-button {
+  background: #061757;
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 150px;
+  box-shadow: 0 2px 8px rgba(6, 23, 87, 0.2);
+  
+  &:hover:not(:disabled) {
+    background: #0a1f6b;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(6, 23, 87, 0.3);
+  }
+  
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+  
+  &:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: 0 2px 8px rgba(156, 163, 175, 0.2);
+  }
+  
+  @media screen and (max-width: 640px) {
+    width: 100%;
+    padding: 1rem;
+    font-size: 1rem;
+  }
+}
+
+.success-message {
+  text-align: center;
+  padding: 2rem;
+  
+  h1 {
+    color: #10b981;
+    margin-bottom: 1rem;
+  }
+  
+  p {
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+    color: #061757;
+  }
+  
+  @media screen and (max-width: 640px) {
+    padding: 1.5rem;
+    
+    p {
+      font-size: 1rem;
+    }
+  }
+}
+
+// Footer override for advertise page to ensure it doesn't have left margin
+.advertise-with-us-page .footer {
+  margin-left: 0 !important;
+  width: 100%;
+} 

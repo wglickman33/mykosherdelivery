@@ -1,0 +1,618 @@
+.temp-address-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 19500; // Above AddressManagement (19000), below AddressModal (20000) and DeleteConfirm (21000)
+  animation: fadeIn 0.2s ease-out;
+  overflow: hidden; // Prevent background scroll
+  padding: 20px; // Add padding for consistent spacing
+  
+  // Ensure centering regardless of sidebar - use viewport units
+  box-sizing: border-box;
+}
+
+.temp-address-modal {
+  background: white;
+  border-radius: 12px;
+  padding: 0;
+  max-width: 500px;
+  width: calc(100% - 40px); // Account for overlay padding
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  animation: slideIn 0.2s ease-out;
+  max-height: calc(100vh - 40px); // Account for overlay padding
+  min-height: 300px; // Add minimum height
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  
+  // Ensure modal stays within viewport and doesn't overlap
+  box-sizing: border-box;
+}
+
+.temp-address-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid #e9ecef;
+  flex-shrink: 0;
+  position: relative; // Ensure close button positioning
+  
+  h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #061757;
+    flex: 1;
+    min-width: 0;
+    margin-right: 16px;
+    padding-top: 4px;
+    word-wrap: break-word; // Prevent text overflow
+  }
+  
+  .close-button {
+    background: none;
+    border: none;
+    padding: 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+    margin-top: -4px;
+    min-width: 40px; // Ensure consistent sizing
+    min-height: 40px;
+    
+    &:hover {
+      background-color: #f8f9fa;
+    }
+    
+    &:focus {
+      outline: 2px solid #5fb4f9;
+      outline-offset: 2px;
+    }
+    
+    svg {
+      width: 24px;
+      height: 24px;
+      flex-shrink: 0; // Prevent icon from shrinking
+    }
+  }
+}
+
+.temp-address-form {
+  padding: 24px;
+  flex: 1;
+  overflow-y: auto;
+  max-height: calc(100vh - 140px); // Account for header and padding
+  
+  .form-group {
+    margin-bottom: 24px;
+    
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #374151;
+      font-size: 14px;
+      word-wrap: break-word; // Prevent text overflow
+    }
+    
+    .address-input-container {
+      position: relative;
+      
+      .address-input {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+        box-sizing: border-box;
+        
+        &:focus {
+          outline: none;
+          border-color: #5fb4f9;
+          box-shadow: 0 0 0 3px rgba(95, 180, 249, 0.1);
+        }
+        
+        &::placeholder {
+          color: #9ca3af;
+        }
+      }
+      
+      .loading-indicator {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 1; // Ensure it appears above input
+        
+        // LoadingSpinner component handles the spinner styling
+      }
+      
+      .suggestions-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 2px solid #e9ecef;
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 1001;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        
+        .suggestion-item {
+          padding: 12px 16px;
+          cursor: pointer;
+          border-bottom: 1px solid #f3f4f6;
+          transition: background-color 0.3s ease;
+          
+          &:last-child {
+            border-bottom: none;
+          }
+          
+          &:hover {
+            background-color: #f8f9fa;
+          }
+          
+          .suggestion-main {
+            font-weight: 600;
+            color: #111827;
+            font-size: 14px;
+            margin-bottom: 2px;
+            word-wrap: break-word; // Prevent text overflow
+          }
+          
+          .suggestion-secondary {
+            color: #6b7280;
+            font-size: 12px;
+            word-wrap: break-word; // Prevent text overflow
+          }
+        }
+      }
+    }
+    
+    .address-error {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+      padding: 12px 16px;
+      background-color: rgba(220, 53, 69, 0.1);
+      border: 1px solid rgba(220, 53, 69, 0.3);
+      border-radius: 8px;
+      color: #dc3545;
+      font-size: 14px;
+      font-weight: 500;
+      word-wrap: break-word; // Prevent text overflow
+
+      svg {
+        flex-shrink: 0;
+        color: #dc3545;
+      }
+    }
+  }
+  
+  .form-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 32px;
+    flex-wrap: wrap; // Allow wrapping on small screens
+    
+    .cancel-button {
+      background-color: transparent;
+      color: #6c757d;
+      border: 2px solid #e9ecef;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      white-space: nowrap; // Prevent text wrapping
+      flex-shrink: 0; // Prevent button from shrinking
+      
+      &:hover {
+        background-color: #f8f9fa;
+        color: #061757;
+      }
+      
+      &:focus {
+        outline: 2px solid #5fb4f9;
+        outline-offset: 2px;
+      }
+    }
+    
+    .save-button {
+      background-color: #5fb4f9;
+      color: white;
+      border: 2px solid #5fb4f9;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      white-space: nowrap; // Prevent text wrapping
+      flex-shrink: 0; // Prevent button from shrinking
+      
+      &:hover:not(:disabled) {
+        background-color: #061757;
+        border-color: #061757;
+      }
+      
+      &:focus {
+        outline: 2px solid #5fb4f9;
+        outline-offset: 2px;
+      }
+      
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        background-color: #6c757d;
+        border-color: #6c757d;
+      }
+    }
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+// Mobile responsiveness
+@media (max-width: 768px) {
+  .temp-address-modal-overlay {
+    padding: 16px;
+      align-items: center;
+  }
+  
+  .temp-address-modal {
+    max-width: none;
+    width: calc(100% - 32px); // Account for overlay padding
+    max-height: calc(100vh - 32px);
+    min-height: 280px;
+      border-radius: 16px;
+  }
+  
+  .temp-address-modal-header {
+    padding: 20px 20px 12px;
+    
+    h2 {
+      font-size: 1.3rem;
+      margin-right: 12px; // Ensure space for close button
+    }
+    
+    .close-button {
+      min-width: 36px; // Adjust for smaller screens
+      min-height: 36px;
+      
+      svg {
+        width: 22px;
+        height: 22px;
+      }
+    }
+  }
+  
+  .temp-address-form {
+    padding: 20px;
+    
+    .form-actions {
+      flex-direction: column-reverse;
+      gap: 10px;
+      
+      .cancel-button,
+      .save-button {
+        width: 100%;
+        justify-content: center;
+        padding: 14px 20px;
+        font-size: 16px;
+      }
+    }
+  }
+}
+
+// Small mobile devices
+@media (max-width: 480px) {
+  .temp-address-modal-overlay {
+    padding: 12px;
+  }
+  
+  .temp-address-modal {
+    width: calc(100% - 24px); // Account for overlay padding
+    max-height: calc(100vh - 24px);
+    min-height: 260px;
+    border-radius: 12px;
+  }
+  
+  .temp-address-modal-header {
+    padding: 16px 16px 10px;
+    
+    h2 {
+      font-size: 1.1rem;
+      margin-right: 10px; // Ensure space for close button
+    }
+    
+    .close-button {
+      padding: 6px;
+      min-width: 32px; // Adjust for smaller screens
+      min-height: 32px;
+      
+      svg {
+        width: 20px;
+        height: 20px;
+      }
+    }
+  }
+  
+  .temp-address-form {
+    padding: 16px;
+    
+    .form-group {
+      margin-bottom: 20px;
+      
+      label {
+        font-size: 13px;
+        margin-bottom: 6px;
+      }
+      
+      .address-input-container {
+        .address-input {
+          padding: 10px 12px;
+          font-size: 16px; // Prevent zoom on iOS
+          border-radius: 6px;
+        }
+        
+        .suggestions-dropdown {
+          max-height: 150px; // Reduce height on small screens
+          
+          .suggestion-item {
+            padding: 10px 12px;
+            
+            .suggestion-main {
+              font-size: 13px;
+            }
+            
+            .suggestion-secondary {
+              font-size: 11px;
+            }
+          }
+        }
+      }
+      
+      .address-error {
+        padding: 10px 12px;
+        font-size: 13px;
+        border-radius: 6px;
+      }
+    }
+    
+    .form-actions {
+      margin-top: 24px;
+      gap: 8px;
+      
+      .cancel-button,
+      .save-button {
+        padding: 12px 16px;
+        font-size: 15px;
+        border-radius: 6px;
+      }
+    }
+  }
+}
+
+// Extra small devices
+@media (max-width: 360px) {
+  .temp-address-modal-overlay {
+    padding: 8px;
+  }
+  
+  .temp-address-modal {
+    width: calc(100% - 16px); // Account for overlay padding
+    max-height: calc(100vh - 16px);
+    min-height: 240px;
+  }
+  
+  .temp-address-modal-header {
+    padding: 14px 14px 8px;
+    
+    h2 {
+      font-size: 1rem;
+      margin-right: 8px; // Ensure space for close button
+    }
+    
+    .close-button {
+      padding: 4px;
+      min-width: 28px; // Adjust for smaller screens
+      min-height: 28px;
+      
+      svg {
+        width: 18px;
+        height: 18px;
+      }
+    }
+  }
+  
+  .temp-address-form {
+    padding: 14px;
+    
+    .form-group {
+      margin-bottom: 16px;
+      
+      label {
+        font-size: 12px;
+        margin-bottom: 4px;
+      }
+      
+      .address-input-container {
+        .address-input {
+          padding: 9px 10px;
+          font-size: 16px;
+          border-radius: 4px;
+        }
+        
+        .suggestions-dropdown {
+          max-height: 120px; // Further reduce height
+          
+          .suggestion-item {
+            padding: 8px 10px;
+            
+            .suggestion-main {
+              font-size: 12px;
+            }
+            
+            .suggestion-secondary {
+              font-size: 10px;
+            }
+          }
+        }
+      }
+      
+      .address-error {
+        padding: 8px 10px;
+        font-size: 12px;
+        border-radius: 4px;
+      }
+    }
+    
+    .form-actions {
+      margin-top: 20px;
+      gap: 6px;
+      
+      .cancel-button,
+      .save-button {
+        padding: 10px 14px;
+        font-size: 14px;
+        border-radius: 4px;
+      }
+    }
+  }
+}
+
+// Landscape orientation on mobile
+@media (max-height: 500px) and (orientation: landscape) {
+  .temp-address-modal-overlay {
+    padding: 8px;
+    align-items: flex-start;
+  }
+  
+  .temp-address-modal {
+    max-height: calc(100vh - 16px);
+    min-height: 220px;
+  }
+  
+  .temp-address-modal-header {
+    padding: 12px 20px 8px;
+    
+    h2 {
+      font-size: 1.1rem;
+    }
+  }
+  
+  .temp-address-form {
+    padding: 16px 20px;
+    
+    .form-group {
+      margin-bottom: 16px;
+      
+      label {
+        font-size: 13px;
+        margin-bottom: 6px;
+      }
+      
+      .address-input-container {
+        .address-input {
+          padding: 10px 14px;
+        }
+        
+        .suggestions-dropdown {
+          max-height: 120px;
+        }
+      }
+    }
+    
+    .form-actions {
+      margin-top: 20px;
+      gap: 8px;
+      
+      .cancel-button,
+      .save-button {
+        padding: 10px 16px;
+        font-size: 14px;
+      }
+    }
+  }
+}
+
+// High contrast mode support
+@media (prefers-contrast: high) {
+  .temp-address-modal {
+    border: 2px solid #000;
+  }
+  
+  .temp-address-form {
+    .form-group {
+      .address-input-container {
+        .address-input {
+          border-color: #000;
+          
+          &:focus {
+            border-color: #0066cc;
+            box-shadow: 0 0 0 2px #0066cc;
+          }
+        }
+        
+        .suggestions-dropdown {
+          border-color: #000;
+        }
+      }
+    }
+  }
+}
+
+// Reduced motion support
+@media (prefers-reduced-motion: reduce) {
+  .temp-address-modal-overlay {
+    animation: none;
+  }
+  
+  .temp-address-modal {
+    animation: none;
+  }
+  
+  .temp-address-form .form-group .address-input-container .loading-indicator .spinner {
+    animation: none;
+  }
+} 

@@ -1,0 +1,670 @@
+.restaurant-detail-page {
+  margin-top: 60px;
+  margin-left: 240px;
+  min-height: calc(100vh - 60px);
+  background-color: #f8f9fa;
+  transition: margin-left 0.3s ease;
+  display: flex;
+  flex-direction: column;
+
+  // Match sidebar responsiveness breakpoints exactly
+  @media screen and (min-width: 1111px) {
+    margin-left: 240px; // Full sidebar width
+  }
+
+  @media screen and (min-width: 641px) and (max-width: 1110px) {
+    margin-left: 60px; // Icon sidebar width
+  }
+
+  @media screen and (max-width: 640px) {
+    margin-left: 0; // No sidebar on mobile
+  }
+
+  &__content {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    flex: 1;
+    width: 100%;
+
+    @media screen and (min-width: 641px) and (max-width: 1110px) {
+      padding: 20px 16px;
+    }
+
+    @media screen and (max-width: 640px) {
+      padding: 15px;
+    }
+  }
+
+  .not-found {
+    text-align: center;
+    padding: 60px 20px;
+    color: #061757;
+    font-size: 1.2rem;
+  }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    color: #5fb4f9;
+    text-decoration: none;
+    font-weight: 600;
+    margin-bottom: 20px;
+    transition: color 0.3s ease;
+
+    &:hover {
+      color: #061757;
+    }
+  }
+}
+
+.restaurant-header {
+  margin-bottom: 40px;
+
+  .restaurant-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+    background: white;
+    padding: 32px;
+    border-radius: 18px;
+    box-shadow: 0 4px 24px rgba(6, 23, 87, 0.10);
+    border: 1px solid #e8e8e8;
+
+    @media (max-width: 768px) {
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 24px;
+    }
+  }
+
+  .restaurant-logo {
+    width: 120px;
+    height: 120px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      
+      // Special styling for placeholder images (MKD icon)
+      &.placeholder-image {
+        object-fit: contain;
+        padding: 1.5rem;
+        background: #f8f9fa;
+        opacity: 0.7;
+      }
+    }
+
+    .logo-fallback {
+      font-size: 3rem;
+      color: #6c757d;
+    }
+  }
+
+  .restaurant-details {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto auto;
+    gap: 8px 16px;
+    align-content: space-between;
+    height: 120px;
+
+    // Handle problematic width ranges where content overflows
+    @media (min-width: 769px) and (max-width: 969px) {
+      grid-template-columns: 1fr;
+      height: auto;
+      gap: 6px;
+    }
+
+    @media (min-width: 1111px) and (max-width: 1158px) {
+      grid-template-columns: 1fr;
+      height: auto;
+      gap: 6px;
+    }
+
+    .restaurant-name {
+      grid-column: 1;
+      grid-row: 1;
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: #061757;
+      margin: 0;
+      line-height: 1.2;
+
+      // Reduce font size in problematic ranges
+      @media (min-width: 769px) and (max-width: 969px) {
+        font-size: 2rem;
+      }
+
+      @media (min-width: 1111px) and (max-width: 1158px) {
+        font-size: 2.2rem;
+      }
+
+      @media (max-width: 768px) {
+        font-size: 2rem;
+      }
+    }
+
+    .restaurant-certification {
+      grid-column: 2;
+      grid-row: 1;
+      color: #28a745;
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 0;
+      align-self: start;
+      text-align: right;
+
+      // Adjust positioning in problematic ranges
+      @media (min-width: 769px) and (max-width: 969px) {
+        grid-column: 1;
+        grid-row: 2;
+        text-align: left;
+      }
+
+      @media (min-width: 1111px) and (max-width: 1158px) {
+        grid-column: 1;
+        grid-row: 2;
+        text-align: left;
+      }
+    }
+
+    .restaurant-type {
+      grid-column: 1;
+      grid-row: 2;
+      color: #5fb4f9;
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin: 0;
+
+      // Adjust positioning in problematic ranges
+      @media (min-width: 769px) and (max-width: 969px) {
+        grid-row: 3;
+      }
+
+      @media (min-width: 1111px) and (max-width: 1158px) {
+        grid-row: 3;
+      }
+    }
+
+    .restaurant-phone {
+      grid-column: 1;
+      grid-row: 3;
+      color: #6c757d;
+      font-size: 1rem;
+      margin: 0;
+      line-height: 1.4;
+
+      // Adjust positioning in problematic ranges
+      @media (min-width: 769px) and (max-width: 969px) {
+        grid-row: 4;
+      }
+
+      @media (min-width: 1111px) and (max-width: 1158px) {
+        grid-row: 4;
+      }
+    }
+
+    .restaurant-address {
+      grid-column: 2;
+      grid-row: 3;
+      color: #6c757d;
+      font-size: 1rem;
+      margin: 0;
+      line-height: 1.4;
+      text-align: right;
+
+      // Adjust positioning in problematic ranges
+      @media (min-width: 769px) and (max-width: 969px) {
+        grid-column: 1;
+        grid-row: 5;
+        text-align: left;
+      }
+
+      @media (min-width: 1111px) and (max-width: 1158px) {
+        grid-column: 1;
+        grid-row: 5;
+        text-align: left;
+      }
+    }
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto auto auto;
+      text-align: center;
+      gap: 8px;
+
+      .restaurant-name {
+        grid-column: 1;
+        grid-row: 1;
+      }
+
+      .restaurant-certification {
+        grid-column: 1;
+        grid-row: 2;
+        text-align: center;
+      }
+
+      .restaurant-type {
+        grid-column: 1;
+        grid-row: 3;
+      }
+
+      .restaurant-phone {
+        grid-column: 1;
+        grid-row: 4;
+      }
+
+      .restaurant-address {
+        grid-column: 1;
+        grid-row: 5;
+        text-align: center;
+      }
+    }
+  }
+}
+
+.menu-section {
+  .menu-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #061757;
+    margin-bottom: 30px;
+    text-align: center;
+  }
+
+  .menu-controls {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 24px;
+    align-items: stretch;
+    flex-wrap: wrap;
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(6, 23, 87, 0.08);
+    border: 1px solid #f1f5f9;
+
+    @media (max-width: 768px) {
+      flex-direction: column;
+      gap: 16px;
+      padding: 16px;
+    }
+
+    .search-container {
+      position: relative;
+      flex: 1;
+      min-width: 280px;
+
+      .search-input {
+        width: 100%;
+        padding: 14px 18px 14px 50px;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        font-size: 15px;
+        background-color: #f8fafc;
+        color: #061757;
+        transition: all 0.3s ease;
+        font-weight: 500;
+
+        &:focus {
+          outline: none;
+          border-color: #5fb4f9;
+          background-color: white;
+          box-shadow: 0 0 0 4px rgba(95, 180, 249, 0.12);
+          transform: translateY(-1px);
+        }
+
+        &:hover {
+          border-color: #cbd5e1;
+          background-color: white;
+        }
+
+        &::placeholder {
+          color: #94a3b8;
+          font-weight: 400;
+        }
+      }
+
+      .search-icon {
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+        pointer-events: none;
+        transition: color 0.3s ease;
+      }
+
+      &:focus-within .search-icon {
+        color: #5fb4f9;
+      }
+    }
+
+    .filter-container {
+      .category-filter {
+        padding: 14px 18px;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        font-size: 15px;
+        background-color: #f8fafc;
+        color: #061757;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        min-width: 200px;
+        font-weight: 500;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 12px center;
+        background-repeat: no-repeat;
+        background-size: 16px;
+        padding-right: 40px;
+
+        &:focus {
+          outline: none;
+          border-color: #5fb4f9;
+          background-color: white;
+          box-shadow: 0 0 0 4px rgba(95, 180, 249, 0.12);
+          transform: translateY(-1px);
+        }
+
+        &:hover {
+          border-color: #cbd5e1;
+          background-color: white;
+        }
+
+        option {
+          padding: 8px;
+          background-color: white;
+          color: #061757;
+        }
+      }
+    }
+  }
+
+  .results-info {
+    margin-bottom: 24px;
+    padding: 16px 20px;
+    background-color: #f8fafc;
+    border-radius: 10px;
+    border-left: 4px solid #5fb4f9;
+    border: 1px solid #e2e8f0;
+
+    p {
+      margin: 0;
+      color: #475569;
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+  }
+
+  .menu-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 2.5rem;
+    margin-bottom: 40px;
+    justify-content: center;
+
+    @media (max-width: 811px) {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+      justify-items: center;
+    }
+  }
+}
+
+.menu-card {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 4px 24px rgba(6, 23, 87, 0.10);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e8e8e8;
+  position: relative;
+  transition: all 0.3s ease;
+  max-width: 455px;
+
+  &:hover {
+    box-shadow: 0 8px 32px rgba(6, 23, 87, 0.18);
+    transform: translateY(-2px);
+  }
+
+  &__clickable {
+    cursor: pointer;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+  }
+
+  &__image-wrapper {
+    width: 100%;
+    aspect-ratio: 4/2.2;
+    background: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  &__image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    border-bottom: 1px solid #e8e8e8;
+    
+    // Special styling for placeholder images (MKD icon)
+    &.placeholder-image {
+      object-fit: contain;
+      padding: 2rem;
+      background: #f8f9fa;
+    }
+  }
+
+  &__content {
+    padding: 1.7rem 1.4rem 1.4rem 1.4rem;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+
+  &__name {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #061757;
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.2px;
+    line-height: 1.2;
+  }
+
+  &__desc {
+    font-size: 1.05rem;
+    color: #333;
+    margin-bottom: 1.1rem;
+    min-height: 48px;
+    line-height: 1.5;
+  }
+
+  &__labels {
+    display: flex;
+    gap: 0.6rem;
+    margin-bottom: 1.1rem;
+    flex-wrap: wrap;
+  }
+
+  &__label {
+    background: #5fb4f9;
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 500;
+    border-radius: 20px;
+    padding: 0.28rem 1.1rem;
+    letter-spacing: 0.5px;
+    display: inline-block;
+    position: relative;
+    cursor: default;
+    transition: all 0.3s ease;
+
+    // Different colors for different dietary tags
+    &[title*="Meat"],
+    &[title*="meat"] {
+      background: #dc3545; // Red for meat
+      
+      &:hover {
+        background: #c82333; // Darker red on hover
+      }
+      
+      &:hover::after {
+        background: #c82333; // Tooltip matches hover color
+      }
+    }
+
+    &[title*="Dairy"],
+    &[title*="dairy"] {
+      background: #5fb4f9; // Brand blue for dairy
+      
+      &:hover {
+        background: #061757; // Navy on hover
+      }
+      
+      &:hover::after {
+        background: #061757; // Tooltip matches hover color
+      }
+    }
+
+    &[title*="Gluten Free"],
+    &[title*="gluten"],
+    &[title*="Nut Free"],
+    &[title*="nut"] {
+      background: #ffc107; // Yellow for gluten free and nut free
+      color: #212529; // Dark text for better contrast on yellow
+      
+      &:hover {
+        background: #e0a800; // Darker yellow on hover
+        color: #212529; // Maintain dark text
+      }
+      
+      &:hover::after {
+        background: #e0a800; // Tooltip matches hover color
+        color: #212529; // Dark text in tooltip
+      }
+    }
+
+    &[title*="Vegetarian"],
+    &[title*="vegetarian"],
+    &[title*="Vegan"],
+    &[title*="vegan"] {
+      background: #28a745; // Green for vegetarian and vegan
+      
+      &:hover {
+        background: #1e7e34; // Darker green on hover
+      }
+      
+      &:hover::after {
+        background: #1e7e34; // Tooltip matches hover color
+      }
+    }
+
+    // Default fallback for any other labels
+    &:not([title*="Meat"]):not([title*="Dairy"]):not([title*="Gluten Free"]):not([title*="Vegetarian"]):not([title*="Vegan"]):not([title*="Nut Free"]):not([title*="meat"]):not([title*="dairy"]):not([title*="gluten"]):not([title*="vegetarian"]):not([title*="vegan"]):not([title*="nut"]) {
+      background: #5fb4f9; // Default blue
+
+    &:hover {
+        background: #061757; // Darker blue on hover
+      }
+      
+      &:hover::after {
+        background: #061757; // Tooltip matches hover color
+      }
+    }
+
+    &:hover::after {
+      content: attr(title);
+      position: absolute;
+      left: 50%;
+      bottom: 120%;
+      transform: translateX(-50%);
+      color: #fff;
+      padding: 0.45rem 1rem;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      white-space: nowrap;
+      box-shadow: 0 2px 8px rgba(6, 23, 87, 0.12);
+      z-index: 10;
+    }
+  }
+
+  &__price {
+    font-size: 1.18rem;
+    font-weight: 700;
+    color: #061757;
+    margin-top: auto;
+  }
+
+  &__actions {
+    padding: 1rem 1.4rem;
+    border-top: 1px solid #e8e8e8;
+  }
+
+  .add-to-cart-btn {
+    width: 100%;
+    background: #5fb4f9;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+
+    &:hover {
+      background: #061757;
+    }
+
+    &:focus {
+      outline: none;
+    }
+
+    &:focus-visible {
+      outline: 2px solid #5fb4f9;
+      outline-offset: 2px;
+    }
+
+    // Added state styling
+    &.added {
+      background: #28a745; // Green background for added state
+      color: white;
+      cursor: default;
+      transform: scale(1.02);
+      box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+      
+      &:hover {
+        background: #28a745; // Keep green on hover when added
+        transform: scale(1.02);
+      }
+    }
+
+    // Disabled state styling
+    &:disabled {
+      cursor: default;
+      opacity: 1; // Keep full opacity for added state
+    }
+
+    // Customize variant for variable/configurable items inherits all styles from .add-to-cart-btn
+  }
+} 

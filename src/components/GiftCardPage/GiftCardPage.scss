@@ -1,0 +1,404 @@
+$primary-color: #5fb4f9;
+$navy-color: #061757;
+$white: #ffffff;
+$light-gray: #f8f9fa;
+$border-color: #e8e8e8;
+$success-color: #28a745;
+$text-color: #333;
+$secondary-text: #6c757d;
+
+.gift-card-page {
+  margin-top: 60px;
+  margin-left: 240px;
+  min-height: calc(100vh - 60px);
+  background-color: $light-gray;
+  transition: margin-left 0.3s ease;
+  display: flex;
+  flex-direction: column;
+
+  // Match sidebar responsiveness breakpoints exactly
+  @media screen and (min-width: 1111px) {
+    margin-left: 240px; // Full sidebar width
+  }
+  
+  @media screen and (min-width: 641px) and (max-width: 1110px) {
+    margin-left: 60px; // Icon sidebar width
+  }
+  
+  @media screen and (max-width: 640px) {
+    margin-left: 0; // No sidebar on mobile
+  }
+
+  &__content {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    flex: 1;
+    width: 100%;
+
+    @media screen and (min-width: 641px) and (max-width: 1110px) {
+      padding: 20px 16px;
+    }
+
+    @media screen and (max-width: 640px) {
+      padding: 15px;
+    }
+  }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    color: $primary-color;
+    text-decoration: none;
+    font-weight: 600;
+    margin-bottom: 20px;
+    transition: color 0.3s ease;
+
+    &:hover {
+      color: $navy-color;
+    }
+  }
+}
+
+.gift-card-header {
+  margin-bottom: 40px;
+
+  .gift-card-hero {
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+    background: $white;
+    padding: 32px;
+    border-radius: 18px;
+    box-shadow: 0 4px 24px rgba(6, 23, 87, 0.10);
+    border: 1px solid $border-color;
+
+    @media screen and (min-width: 641px) and (max-width: 1110px) {
+      padding: 28px;
+    }
+
+    @media screen and (max-width: 640px) {
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 20px;
+    }
+  }
+
+  .gift-card-logo {
+    width: 120px;
+    height: 120px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: $light-gray;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    img {
+      width: 70px;
+      height: 70px;
+      object-fit: contain;
+      display: block;
+      margin: auto;
+    }
+
+    .logo-fallback {
+      font-size: 3rem;
+      color: $secondary-text;
+    }
+  }
+
+  .gift-card-details {
+    flex: 1;
+
+    .gift-card-title {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: $navy-color;
+      margin-bottom: 8px;
+      line-height: 1.2;
+
+      @media screen and (min-width: 641px) and (max-width: 1110px) {
+        font-size: 2.2rem;
+      }
+
+      @media screen and (max-width: 640px) {
+        font-size: 2rem;
+      }
+    }
+
+    .gift-card-subtitle {
+      color: $primary-color;
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .gift-card-description {
+      color: $text-color;
+      font-size: 1rem;
+      line-height: 1.5;
+      margin-bottom: 0;
+    }
+  }
+}
+
+.gift-card-section {
+  margin-bottom: 40px;
+
+  .section-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: $navy-color;
+    margin-bottom: 24px;
+    text-align: center;
+  }
+
+  .gift-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 32px;
+
+    @media screen and (min-width: 641px) and (max-width: 1110px) {
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.25rem;
+    }
+
+    @media screen and (max-width: 640px) {
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+    }
+
+    @media screen and (max-width: 480px) {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+.gift-card-option {
+  background: $white;
+  border-radius: 18px;
+  box-shadow: 0 4px 24px rgba(6, 23, 87, 0.10);
+  overflow: hidden;
+  border: 2px solid $border-color;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+
+  &:hover {
+    box-shadow: 0 8px 32px rgba(6, 23, 87, 0.18);
+    transform: translateY(-2px);
+  }
+
+  &.selected {
+    border-color: $primary-color;
+    box-shadow: 0 8px 32px rgba(95, 180, 249, 0.25);
+    transform: translateY(-2px);
+  }
+
+  &__content {
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+  }
+
+  &__image {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1rem auto;
+    border-radius: 12px;
+    overflow: hidden;
+    background: $light-gray;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    img {
+      width: 55px;
+      height: 55px;
+      object-fit: contain;
+      display: block;
+      margin: auto;
+    }
+  }
+
+  &__details {
+    text-align: center;
+  }
+
+  &__name {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: $navy-color;
+    margin-bottom: 0.5rem;
+  }
+
+  &__desc {
+    font-size: 0.9rem;
+    color: $secondary-text;
+    margin-bottom: 1rem;
+    line-height: 1.4;
+  }
+
+  &__price {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: $primary-color;
+  }
+
+  &__selected-indicator {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: $success-color;
+    color: $white;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+}
+
+.gift-card-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  background: $white;
+  padding: 2rem;
+  border-radius: 18px;
+  box-shadow: 0 4px 24px rgba(6, 23, 87, 0.10);
+  border: 1px solid $border-color;
+
+  @media screen and (min-width: 641px) and (max-width: 1110px) {
+    padding: 1.75rem;
+  }
+
+  @media screen and (max-width: 640px) {
+    padding: 1.5rem;
+    gap: 1.25rem;
+  }
+
+  .selected-value {
+    font-size: 1.2rem;
+    color: $text-color;
+    font-weight: 600;
+
+    .selected-amount {
+      color: $primary-color;
+      font-weight: 800;
+      font-size: 1.4rem;
+    }
+  }
+
+  .add-to-cart-btn {
+    background: $primary-color;
+    color: $white;
+    border: none;
+    border-radius: 8px;
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(6, 23, 87, 0.2);
+    max-width: 220px;
+
+    &:hover:not(:disabled) {
+      background: $navy-color;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(6, 23, 87, 0.3);
+    }
+
+    &:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    &:focus {
+      outline: none;
+    }
+
+    &:focus-visible {
+      outline: 2px solid $primary-color;
+      outline-offset: 2px;
+    }
+
+    &.added {
+      background: $success-color;
+      box-shadow: 0 4px 16px rgba(40, 167, 69, 0.3);
+      
+      &:hover {
+        background: $success-color;
+        transform: translateY(-1px);
+      }
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.9;
+      transform: none;
+    }
+
+    @media screen and (max-width: 640px) {
+      padding: 0.75rem 1.25rem;
+      font-size: 0.95rem;
+    }
+  }
+}
+
+.gift-card-info {
+  background: $white;
+  padding: 2rem;
+  border-radius: 18px;
+  box-shadow: 0 4px 24px rgba(6, 23, 87, 0.10);
+  border: 1px solid $border-color;
+
+  @media screen and (min-width: 641px) and (max-width: 1110px) {
+    padding: 1.75rem;
+  }
+
+  @media screen and (max-width: 640px) {
+    padding: 1.5rem;
+  }
+
+  h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: $navy-color;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+
+    li {
+      color: $text-color;
+      font-size: 1rem;
+      line-height: 1.6;
+      margin-bottom: 0.8rem;
+      padding-left: 1.5rem;
+      position: relative;
+
+      &:before {
+        content: "✓";
+        position: absolute;
+        left: 0;
+        color: $success-color;
+        font-weight: bold;
+      }
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+} 

@@ -1,0 +1,182 @@
+.icon-sidebar {
+    width: 60px;
+    height: calc(100vh - 60px);
+    background-color: white;
+    border-right: 1px solid #e8e9eb;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: fixed;
+    top: 60px;
+    left: 0;
+    z-index: 95;
+    transition: transform 0.3s ease, width 0.3s ease, opacity 0.3s ease, visibility 0.3s ease;
+    
+    .icon-sidebar-nav {
+      flex-grow: 1;
+      padding-top: 12px;
+      overflow-y: auto;
+      transition: padding-top 0.3s ease;
+    }
+    
+    .icon-sidebar-menu {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      
+      .icon-sidebar-menu-item {
+        margin-bottom: 4px;
+        transition: margin 0.3s ease;
+        
+        &.active {
+          .icon-sidebar-menu-link {
+            background-color: rgba(95, 180, 249, 0.1);
+            transition: background-color 0.3s ease;
+            
+            .icon-sidebar-icon {
+              svg {
+                path {
+                  fill: #5fb4f9;
+                  transition: fill 0.3s ease;
+                }
+              }
+            }
+          }
+        }
+        
+        .icon-sidebar-menu-link {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 12px;
+          color: #061757;
+          font-size: 14px;
+          font-weight: 500;
+          text-decoration: none;
+          border-radius: 8px;
+          margin: 0 auto;
+          width: 44px;
+          height: 44px;
+          transition: all 0.3s ease, background-color 0.3s ease, width 0.3s ease, height 0.3s ease;
+          
+          &:hover {
+            background-color: #f6f7f8;
+          }
+          
+          .icon-sidebar-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            flex-shrink: 0;
+            transition: margin 0.3s ease;
+            
+            svg {
+              width: 24px;
+              height: 24px;
+              transition: fill 0.3s ease;
+              
+              path {
+                transition: fill 0.3s ease;
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    .icon-sidebar-footer {
+      padding: 16px 8px;
+      border-top: 1px solid #e8e9eb;
+      display: flex;
+      justify-content: center;
+      transition: padding 0.3s ease, justify-content 0.3s ease;
+      
+      .icon-sidebar-login-link {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 12px;
+        color: #061757;
+        font-size: 14px;
+        font-weight: 500;
+        text-decoration: none;
+        border-radius: 8px;
+        width: 44px;
+        height: 44px;
+        margin: 0 auto;
+        transition: all 0.3s ease, padding 0.3s ease, width 0.3s ease, height 0.3s ease;
+        
+        &:hover {
+          background-color: #f6f7f8;
+        }
+        
+        /* Add active state styling */
+        &.active {
+          background-color: rgba(95, 180, 249, 0.1);
+          
+          .icon-sidebar-icon {
+            svg {
+              path {
+                fill: #5fb4f9;
+              }
+            }
+          }
+        }
+        
+        .icon-sidebar-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 24px;
+          height: 24px;
+          flex-shrink: 0;
+          transition: margin 0.3s ease;
+          
+          svg {
+            width: 24px;
+            height: 24px;
+            transition: fill 0.3s ease;
+            
+            path {
+              transition: fill 0.3s ease;
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  // Display rules for the icon sidebar
+  .icon-sidebar {
+    display: none; // Hidden by default for all screen sizes
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
+  }
+  
+  // Show on tablet only (641px-1110px)
+  @media screen and (min-width: 641px) and (max-width: 1110px) {
+    .icon-sidebar {
+      display: flex; // Show on tablet
+      opacity: 1;
+      visibility: visible;
+      transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
+    }
+    
+    // Hide when mobile menu is open
+    body.menu-open .icon-sidebar {
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+  }
+  
+  // Update main container margin for tablet view
+  @media screen and (min-width: 641px) and (max-width: 1110px) {
+    .main-container {
+      margin-left: 60px !important; // Override and add margin for icon sidebar
+      transition: margin-left 0.3s ease;
+    }
+  }

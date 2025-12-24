@@ -1,0 +1,391 @@
+// Order Confirmation Page Styles
+.order-confirmation-page {
+  min-height: 100vh;
+  background: #ffffff;
+  
+  // Account for fixed header (60px) and sidebar
+  margin-top: 60px;
+  margin-left: 240px;
+  
+  @media (max-width: 1111px) {
+    margin-left: 60px; // Icon sidebar width
+  }
+  
+  @media (max-width: 768px) {
+    margin-left: 0; // No sidebar on mobile
+  }
+  
+  .loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 50vh;
+    
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #f3f4f6;
+      border-top: 3px solid #5fb4f9;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 1rem;
+    }
+    
+    p {
+      color: #6b7280;
+      font-size: 1rem;
+    }
+  }
+  
+  .order-confirmation-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+    
+    @media (max-width: 768px) {
+      padding: 1rem;
+    }
+  }
+  
+  // Success Header
+  .success-header {
+    text-align: center;
+    margin-bottom: 3rem;
+    
+    .success-icon {
+      width: 80px;
+      height: 80px;
+      background: #5fb4f9;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.5rem;
+      
+      .check-icon {
+        width: 40px;
+        height: 40px;
+        color: white;
+      }
+    }
+    
+    .success-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: #061757;
+      margin: 0 0 1rem 0;
+      
+      @media (max-width: 768px) {
+        font-size: 2rem;
+      }
+    }
+    
+    .success-subtitle {
+      font-size: 1.125rem;
+      color: #6b7280;
+      margin: 0 0 1.5rem 0;
+      line-height: 1.6;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    
+    .order-number {
+      display: inline-block;
+      background: #f3f4f6;
+      color: #061757;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      font-size: 1.125rem;
+    }
+  }
+  
+  // Order Details Grid
+  .order-details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+    
+    .detail-card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      
+      .card-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+        
+        .card-icon {
+          width: 1.5rem;
+          height: 1.5rem;
+          color: #5fb4f9;
+        }
+        
+        h3 {
+          font-size: 1.125rem;
+          font-weight: 600;
+          color: #061757;
+          margin: 0;
+        }
+      }
+      
+      .card-content {
+        .address-text {
+          color: #374151;
+          margin: 0 0 0.5rem 0;
+          line-height: 1.5;
+        }
+        
+        .delivery-instructions {
+          color: #6b7280;
+          font-size: 0.875rem;
+          margin: 0;
+          
+          strong {
+            color: #374151;
+          }
+        }
+        
+        .payment-status {
+          color: #5fb4f9;
+          font-weight: 500;
+          margin: 0.5rem 0 0 0;
+        }
+        
+        .delivery-time {
+          font-size: 1.125rem;
+          font-weight: 600;
+          color: #061757;
+          margin: 0 0 0.5rem 0;
+        }
+        
+        .delivery-note {
+          color: #6b7280;
+          font-size: 0.875rem;
+          margin: 0;
+        }
+        
+        p {
+          margin: 0 0 0.5rem 0;
+          color: #374151;
+          
+          &:last-child {
+            margin-bottom: 0;
+          }
+        }
+      }
+    }
+  }
+  
+  // Order Items Section
+  .order-items-section {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #061757;
+      margin: 0 0 1.5rem 0;
+    }
+    
+    .order-items-list {
+      .order-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem 0;
+        border-bottom: 1px solid #f3f4f6;
+        
+        &:last-child {
+          border-bottom: none;
+        }
+        
+        .item-image {
+          width: 60px;
+          height: 60px;
+          border-radius: 0.5rem;
+          overflow: hidden;
+          flex-shrink: 0;
+          
+          img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          }
+          
+          .item-placeholder {
+            width: 100%;
+            height: 100%;
+            background: #f3f4f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+          }
+        }
+        
+        .item-details {
+          flex: 1;
+          
+          .item-name {
+            font-weight: 600;
+            color: #061757;
+            margin: 0 0 0.25rem 0;
+          }
+          
+          .item-customizations {
+            color: #6b7280;
+            font-size: 0.875rem;
+            margin: 0 0 0.25rem 0;
+          }
+          
+          .item-quantity {
+            color: #6b7280;
+            font-size: 0.875rem;
+            margin: 0;
+          }
+        }
+        
+        .item-price {
+          font-weight: 600;
+          color: #061757;
+          font-size: 1.125rem;
+        }
+      }
+    }
+    
+      .order-total-summary {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 2px solid #e5e7eb;
+    
+    h3 {
+      color: #061757;
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 0 0 1rem 0;
+    }
+    
+    .breakdown-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid #f3f4f6;
+      
+      span {
+        font-size: 1rem;
+        color: #374151;
+        
+        &:first-child {
+          color: #6b7280;
+        }
+        
+        &:last-child {
+          font-weight: 500;
+          color: #061757;
+        }
+      }
+      
+      &.discount-line {
+        .discount-value {
+          color: #059669 !important; // Green color for discount
+          font-weight: 600;
+        }
+      }
+    }
+    
+    .total-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 2px solid #061757;
+      
+      span {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #061757;
+      }
+      
+      .total-amount {
+        color: #061757;
+      }
+    }
+  }
+  }
+  
+  // Action Buttons
+  .action-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-bottom: 2rem;
+    
+    @media (max-width: 640px) {
+      flex-direction: column;
+    }
+    
+    .primary-button,
+    .secondary-button {
+      padding: 1rem 2rem;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s;
+      border: none;
+      min-width: 180px;
+      
+      @media (max-width: 640px) {
+        min-width: auto;
+        width: 100%;
+      }
+    }
+    
+    .primary-button {
+      background: #5fb4f9;
+      color: white;
+      
+      &:hover {
+        background: #061757;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(6, 23, 87, 0.2);
+      }
+    }
+    
+    .secondary-button {
+      background: transparent;
+      color: #061757;
+      border: 2px solid #e5e7eb;
+      
+      &:hover {
+        background: #061757;
+        color: white;
+        border-color: #061757;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(6, 23, 87, 0.2);
+      }
+    }
+  }
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+} 

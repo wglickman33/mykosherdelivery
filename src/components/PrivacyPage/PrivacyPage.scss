@@ -1,0 +1,605 @@
+// Variables to match the site's design system
+$primary-color: #5fb4f9;
+$primary-dark: #061757;
+$white: #FFFFFF;
+$gray-100: #F8F8F8;
+$gray-200: #E8E8E8;
+$gray-300: #D4D4D4;
+$gray-500: #919191;
+$gray-700: #5C5C5C;
+$gray-900: #333333;
+$border-radius: 8px;
+$box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+.privacy-page {
+  // Account for fixed header and sidebar positioning - matches other pages
+  margin-top: 60px; // Height of the fixed header
+  margin-left: 240px; // Width of the desktop sidebar
+  min-height: calc(100vh - 60px);
+  background-color: #f8f9fa;
+  transition: margin-left 0.3s ease;
+
+  // Match sidebar responsiveness breakpoints exactly
+  @media screen and (min-width: 641px) and (max-width: 1110px) {
+    margin-left: 60px; // Icon sidebar width
+  }
+
+  @media screen and (max-width: 640px) {
+    margin-left: 0; // No sidebar on mobile
+  }
+  
+  // Simple link styling for all Stripe links in the privacy page
+  a {
+    color: $primary-color;
+    text-decoration: underline;
+    transition: color 0.3s ease;
+    
+    &:hover {
+      color: #1e3a8a; // Navy blue
+    }
+  }
+}
+
+.privacy-container {
+  max-width: none; // Remove max-width constraint to fill available space
+  margin: 0;
+  padding: 2rem;
+  
+  // Responsive padding management - match other pages exactly
+  @media screen and (min-width: 1111px) {
+    max-width: 1000px; // Centered with max-width only on desktop
+    margin: 0 auto;
+    padding: 2rem;
+  }
+  
+  @media screen and (min-width: 641px) and (max-width: 1110px) {
+    // Fill the available space on tablet with icon sidebar
+    max-width: none;
+    margin: 0;
+    padding: 2rem 3rem; // More padding to use the space better
+  }
+  
+  @media screen and (max-width: 640px) {
+    // Mobile - no sidebar
+    padding: 1rem;
+  }
+  
+  @media screen and (max-width: 480px) {
+    padding: 0.75rem;
+  }
+}
+
+.privacy-content {
+  background: $white;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  margin-bottom: 2rem; // Space before footer
+  overflow: hidden;
+  
+  @media screen and (max-width: 640px) {
+    border-radius: 15px;
+    margin-bottom: 1.5rem;
+  }
+  
+  @media screen and (max-width: 480px) {
+    border-radius: 12px;
+    margin-bottom: 1rem;
+  }
+}
+
+// Header Section
+.privacy-header {
+  background: linear-gradient(135deg, $primary-color 0%, #4a9eff 100%);
+  color: $white;
+  padding: 3rem;
+  text-align: center;
+  
+  h1 {
+    font-size: 3rem;
+    font-weight: 800;
+    margin-bottom: 1.5rem;
+    line-height: 1.2;
+    letter-spacing: 0.5px;
+    
+    @media screen and (max-width: 768px) {
+      font-size: 2.5rem;
+    }
+    
+    @media screen and (max-width: 480px) {
+      font-size: 2rem;
+    }
+  }
+  
+  .privacy-intro {
+    font-size: 1.2rem;
+    line-height: 1.6;
+    max-width: 700px;
+    margin: 0 auto;
+    opacity: 0.95;
+    
+    @media screen and (max-width: 768px) {
+      font-size: 1.1rem;
+    }
+    
+    @media screen and (max-width: 480px) {
+      font-size: 1rem;
+    }
+  }
+  
+  @media screen and (max-width: 768px) {
+    padding: 2.5rem;
+  }
+  
+  @media screen and (max-width: 640px) {
+    padding: 2rem 1.5rem;
+  }
+  
+  @media screen and (max-width: 480px) {
+    padding: 1.5rem 1rem;
+  }
+}
+
+.stripe-notice {
+  background: $white;
+  border-radius: 12px;
+  padding: 2rem;
+  margin: 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid $primary-color;
+  
+  h2 {
+    color: $primary-dark;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+  }
+  
+  .stripe-intro {
+    font-weight: 600;
+    color: $gray-900;
+    margin-bottom: 1rem;
+  }
+  
+  .stripe-content p {
+    margin-bottom: 1rem;
+    line-height: 1.6;
+    color: $gray-700;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+    
+    a {
+      color: $primary-color;
+      text-decoration: underline;
+      transition: color 0.3s ease;
+      
+      &:hover {
+        color: #1e3a8a; // Navy blue
+      }
+    }
+  }
+  
+  @media screen and (max-width: 640px) {
+    margin: 1.5rem;
+    padding: 1.5rem;
+  }
+  
+  @media screen and (max-width: 480px) {
+    margin: 1rem;
+    padding: 1rem;
+  }
+}
+
+.privacy-sections {
+  padding: 2rem;
+  
+  @media screen and (max-width: 640px) {
+    padding: 1.5rem;
+  }
+  
+  @media screen and (max-width: 480px) {
+    padding: 1rem;
+  }
+  
+  .privacy-section {
+    background: $white;
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+    
+    @media screen and (max-width: 768px) {
+      padding: 1.5rem;
+    }
+    
+    @media screen and (max-width: 480px) {
+      padding: 1rem;
+    }
+    
+    h2 {
+      color: $primary-dark;
+      font-size: 1.8rem;
+      margin-bottom: 1.5rem;
+      font-weight: 600;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid $gray-200;
+      
+      @media screen and (max-width: 768px) {
+        font-size: 1.5rem;
+      }
+    }
+    
+    h3 {
+      color: $gray-900;
+      font-size: 1.3rem;
+      margin-bottom: 1rem;
+      font-weight: 600;
+    }
+    
+    h4 {
+      color: $primary-dark;
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+    }
+    
+          p {
+        line-height: 1.6;
+        color: $gray-700;
+        margin-bottom: 1rem;
+        
+        &:last-child {
+          margin-bottom: 0;
+        }
+        
+        a {
+          color: $primary-color;
+          text-decoration: underline;
+          transition: color 0.3s ease;
+          
+          &:hover {
+            color: #1e3a8a; // Navy blue
+          }
+        }
+      }
+    
+    ul {
+      margin: 1rem 0;
+      padding-left: 1.5rem;
+      
+      li {
+        margin-bottom: 0.5rem;
+        line-height: 1.6;
+        color: $gray-700;
+        
+        strong {
+          color: $gray-900;
+        }
+      }
+    }
+    
+    .subsection {
+      margin-bottom: 2rem;
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+}
+
+.use-cases {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+  
+  .use-case {
+    background: $gray-100;
+    padding: 1.5rem;
+    border-radius: $border-radius;
+    border-left: 3px solid $primary-color;
+    
+    h4 {
+      color: $primary-dark;
+      margin-bottom: 0.5rem;
+    }
+    
+    p {
+      margin: 0;
+      font-size: 0.95rem;
+    }
+  }
+}
+
+.sharing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+  
+  .sharing-item {
+    background: $gray-100;
+    padding: 1.5rem;
+    border-radius: $border-radius;
+    text-align: center;
+    
+    h4 {
+      color: $primary-dark;
+      margin-bottom: 0.5rem;
+    }
+    
+    p {
+      margin: 0;
+      font-size: 0.95rem;
+    }
+  }
+}
+
+.security-notice {
+  background: $gray-100;
+  padding: 1.5rem;
+  border-radius: $border-radius;
+  margin-top: 1rem;
+  
+  h3 {
+    color: $primary-dark;
+    margin-bottom: 1rem;
+  }
+  
+  .security-features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+    
+    .security-feature {
+      background: $white;
+      padding: 1rem;
+      border-radius: $border-radius;
+      text-align: center;
+      box-shadow: $box-shadow;
+      
+      h4 {
+        color: $primary-dark;
+        margin-bottom: 0.5rem;
+        font-size: 1rem;
+      }
+      
+      p {
+        margin: 0;
+        font-size: 0.9rem;
+        color: $gray-700;
+      }
+    }
+  }
+}
+
+.rights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+  
+  .right-item {
+    background: $gray-100;
+    padding: 1rem;
+    border-radius: $border-radius;
+    text-align: center;
+    
+    h4 {
+      color: $primary-dark;
+      margin-bottom: 0.5rem;
+    }
+    
+    p {
+      margin: 0;
+      font-size: 0.95rem;
+    }
+  }
+}
+
+.cookie-types {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+  
+  .cookie-type {
+    background: $gray-100;
+    padding: 1rem;
+    border-radius: $border-radius;
+    
+    h4 {
+      color: $primary-dark;
+      margin-bottom: 0.5rem;
+    }
+    
+    p {
+      margin: 0;
+      font-size: 0.95rem;
+    }
+  }
+}
+
+.privacy-footer {
+  background: $primary-dark;
+  color: $white;
+  padding: 2rem;
+  margin: 2rem;
+  border-radius: 12px;
+  text-align: center;
+  
+  @media screen and (max-width: 640px) {
+    margin: 1.5rem;
+    padding: 1.5rem;
+  }
+  
+  @media screen and (max-width: 480px) {
+    margin: 1rem;
+    padding: 1rem;
+  }
+  
+  .privacy-footer-content {
+    h3 {
+      font-size: 1.8rem;
+      margin-bottom: 1rem;
+      font-weight: 600;
+      
+      @media screen and (max-width: 768px) {
+        font-size: 1.5rem;
+      }
+    }
+    
+    p {
+      font-size: 1.1rem;
+      line-height: 1.6;
+      margin-bottom: 2rem;
+      opacity: 0.9;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+      
+      @media screen and (max-width: 768px) {
+        font-size: 1rem;
+      }
+    }
+    
+    .privacy-contact-actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      
+      .contact-btn,
+      .email-btn {
+        padding: 0.75rem 2rem;
+        border-radius: $border-radius;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid transparent;
+        
+        @media screen and (max-width: 480px) {
+          padding: 0.5rem 1.5rem;
+          font-size: 0.95rem;
+        }
+      }
+      
+      .contact-btn {
+        background: $primary-color;
+        color: $white;
+        border-color: $primary-color;
+        
+        &:hover {
+          background: #4a9de8;
+          transform: translateY(-2px);
+        }
+      }
+      
+      .email-btn {
+        background: transparent;
+        color: $white;
+        border: 2px solid $primary-color;
+        
+        &:hover {
+          background: $primary-color;
+          transform: translateY(-2px);
+        }
+      }
+    }
+  }
+}
+
+.privacy-legal {
+  background: $white;
+  padding: 2rem;
+  margin: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  
+  @media screen and (max-width: 640px) {
+    margin: 1.5rem;
+    padding: 1.5rem;
+  }
+  
+  @media screen and (max-width: 480px) {
+    margin: 1rem;
+    padding: 1rem;
+  }
+  
+  .stripe-reference {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid $gray-200;
+    
+    h4 {
+      color: $primary-dark;
+      margin-bottom: 0.5rem;
+      font-size: 1.2rem;
+    }
+    
+    p {
+      margin: 0;
+      line-height: 1.6;
+      color: $gray-700;
+      
+      a {
+        color: $primary-color;
+        text-decoration: underline;
+        transition: color 0.3s ease;
+        
+        &:hover {
+          color: #1e3a8a; // Navy blue
+        }
+      }
+    }
+  }
+  
+  .policy-updates {
+    .last-updated {
+      color: $gray-900;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    
+    .legal-notice {
+      color: $gray-700;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      margin: 0;
+      
+      a {
+        color: $primary-color;
+        text-decoration: underline;
+        transition: color 0.3s ease;
+        
+        &:hover {
+          color: #1e3a8a; // Navy blue
+        }
+      }
+    }
+  }
+}
+
+// Override footer link styling to match other pages
+.footer {
+  a {
+    text-decoration: none !important;
+    
+    // Preserve original hover effects
+    &:hover {
+      color: $white !important;
+      opacity: 1 !important;
+    }
+  }
+}

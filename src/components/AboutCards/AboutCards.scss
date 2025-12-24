@@ -1,0 +1,248 @@
+$primary-color: #5fb4f9;
+$primary-light: #061757;
+$white: #FFFFFF;
+$card-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+
+.about-cards-container {
+  background-color: $white;
+  padding: 3rem 2rem;
+  width: 100%;
+}
+
+.about-cards-wrapper {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 1.5rem;
+  justify-items: center;
+  align-items: stretch;
+}
+
+.about-card {
+  background-color: $primary-color;
+  color: $white;
+  padding: 2.5rem 2rem;
+  border-radius: 12px;
+  box-shadow: $card-shadow;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  max-width: 450px;
+  width: 100%;
+  min-height: 280px;
+  
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.about-card__title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  color: $primary-light;
+  line-height: 1.2;
+  word-wrap: break-word;
+  hyphens: auto;
+}
+
+.about-card__content {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: $primary-light;
+  margin: 0;
+  flex-grow: 1;
+  word-wrap: break-word;
+  hyphens: auto;
+}
+
+/* Specific layout fixes for problematic ranges */
+
+/* 3+1 T-shape layout (1132px to 1199px) */
+@media (min-width: 1132px) and (max-width: 1199px) {
+  .about-cards-wrapper {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: auto auto;
+    gap: 1.5rem;
+    max-width: 1150px;
+  }
+  
+  .about-card {
+    max-width: 350px;
+  }
+  
+  /* Position the 4th card in the center of the second row */
+  .about-card:nth-child(4) {
+    grid-column: 2;
+    grid-row: 2;
+  }
+}
+
+/* 2x2 grid layout (990px to 1131px) */
+@media (min-width: 990px) and (max-width: 1131px) {
+  .about-cards-wrapper {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, auto);
+    gap: 1.8rem;
+    max-width: 800px;
+    justify-content: center;
+  }
+  
+  .about-card {
+    max-width: 380px;
+    width: 100%;
+  }
+}
+
+/* Tablet styles */
+@media (max-width: 989px) and (min-width: 769px) {
+  .about-cards-container {
+    padding: 2.5rem 1.5rem;
+  }
+  
+  .about-cards-wrapper {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.3rem;
+    max-width: 700px;
+  }
+  
+  .about-card {
+    padding: 2.2rem 1.8rem;
+    max-width: 400px;
+    min-height: 260px;
+  }
+  
+  .about-card__title {
+    font-size: 1.6rem;
+    margin-bottom: 1.3rem;
+  }
+  
+  .about-card__content {
+    font-size: 0.95rem;
+    line-height: 1.55;
+  }
+}
+
+/* Mobile styles */
+@media (max-width: 768px) and (min-width: 481px) {
+  .about-cards-container {
+    padding: 2.5rem 1.5rem;
+  }
+  
+  .about-cards-wrapper {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.3rem;
+  }
+  
+  .about-card {
+    padding: 2.2rem 1.8rem;
+    max-width: 400px;
+    min-height: 260px;
+  }
+  
+  .about-card__title {
+    font-size: 1.6rem;
+    margin-bottom: 1.3rem;
+  }
+  
+  .about-card__content {
+    font-size: 0.95rem;
+    line-height: 1.55;
+  }
+}
+
+@media (max-width: 480px) {
+  .about-cards-container {
+    padding: 2rem 1rem;
+  }
+  
+  .about-cards-wrapper {
+    grid-template-columns: 1fr;
+    gap: 1.2rem;
+  }
+  
+  .about-card {
+    padding: 2rem 1.5rem;
+    max-width: none;
+    min-height: 240px;
+  }
+  
+  .about-card__title {
+    font-size: 1.45rem;
+    margin-bottom: 1.2rem;
+  }
+  
+  .about-card__content {
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+}
+
+/* Small mobile adjustments */
+@media (max-width: 360px) {
+  .about-cards-wrapper {
+    grid-template-columns: 1fr;
+  }
+  
+  .about-card {
+    padding: 1.8rem 1.3rem;
+  }
+  
+  .about-card__title {
+    font-size: 1.35rem;
+  }
+  
+  .about-card__content {
+    font-size: 0.85rem;
+  }
+}
+
+/* Large desktop styles */
+@media (min-width: 1200px) {
+  .about-cards-wrapper {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.8rem;
+  }
+  
+  .about-card {
+    padding: 3rem 2.5rem;
+    min-height: 300px;
+  }
+  
+  .about-card__title {
+    font-size: 1.72rem;
+    margin-bottom: 1.8rem;
+  }
+  
+  .about-card__content {
+    font-size: 1.05rem;
+    line-height: 1.65;
+  }
+}
+
+/* Extra large screens */
+@media (min-width: 1600px) {
+  .about-cards-wrapper {
+    max-width: 1600px;
+    gap: 2rem;
+  }
+  
+  .about-card {
+    padding: 3.5rem 3rem;
+    min-height: 320px;
+  }
+  
+  .about-card__title {
+    font-size: 2rem;
+    margin-bottom: 2rem;
+  }
+  
+  .about-card__content {
+    font-size: 1.1rem;
+    line-height: 1.7;
+  }
+}

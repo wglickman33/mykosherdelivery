@@ -1,0 +1,462 @@
+const logger = require('../utils/logger');
+const axios = require('axios');
+
+const SHIPDAY_API_KEY = process.env.SHIPDAY_API_KEY;
+const SHIPDAY_BASE_URL = process.env.SHIPDAY_BASE_URL || 'https://api.shipday.com';
+
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+const retryWithBackoff = async (fn, maxRetries = 3, baseDelay = 1000) => {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (attempt === maxRetries - 1) {
+        throw error;
+      }
+      const delay = baseDelay * Math.pow(2, attempt);
+      const errorMessage = error.response?.data?.message || error.message || 'Unknown error';
+      logger.warn(`Shipday API call failed, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries}):`, errorMessage);
+      await sleep(delay);
+    }
+  }
+};
+
+const mapOrderToShipdayFormat = (order) => {
+  try {
+    const orderData = order.toJSON ? order.toJSON() : order;
+    const customer = orderData.user || {};
+
+    let customerName = 'Customer';
+    if (customer.firstName && customer.lastName) {
+      customerName = `${customer.firstName} ${customer.lastName}`.trim();
+    } else if (customer.firstName) {
+      customerName = customer.firstName;
+    } else if (customer.first_name && customer.last_name) {
+      customerName = `${customer.first_name} ${customer.last_name}`.trim();
+    } else if (customer.first_name) {
+      customerName = customer.first_name;
+    } else if (customer.name) {
+      customerName = customer.name;
+    }
+    
+    const deliveryAddress = orderData.deliveryAddress || {};
+    const addressLine1 = deliveryAddress.address || deliveryAddress.street || deliveryAddress.addressLine1 || '';
+    const addressLine2 = deliveryAddress.addressLine2 || deliveryAddress.apt || deliveryAddress.unit || '';
+    const city = deliveryAddress.city || '';
+    const state = deliveryAddress.state || '';
+    const zipCode = deliveryAddress.zipCode || deliveryAddress.zip || deliveryAddress.postalCode || '';
+    let phoneNumber = customer.phone || customer.phoneNumber || deliveryAddress.phone || '';
+    phoneNumber = phoneNumber.replace(/\D/g, '');
+    
+    const email = customer.email || '';
+    let orderItems = [];
+    
+    if (orderData.restaurantGroups && Object.keys(orderData.restaurantGroups).length > 0) {
+      Object.values(orderData.restaurantGroups).forEach((group) => {
+        const items = Array.isArray(group.items) ? group.items : Object.values(group.items || {});
+        items.forEach(item => {
+          orderItems.push({
+            name: item.name || item.title || 'Item',
+            quantity: item.quantity || 1,
+            price: parseFloat(item.price || 0),
+            specialInstructions: item.specialInstructions || item.notes || ''
+          });
+        });
+      });
+    } else if (Array.isArray(orderData.items)) {
+      orderItems = orderData.items.map(item => ({
+        name: item.name || item.title || 'Item',
+        quantity: item.quantity || 1,
+        price: parseFloat(item.price || 0),
+        specialInstructions: item.specialInstructions || item.notes || ''
+      }));
+    }
+    
+    // Build order notes/instructions
+    const orderNotes = [
+      orderData.deliveryInstructions,
+      orderData.appliedPromo ? `Promo Code: ${orderData.appliedPromo.code || ''}` : null
+    ].filter(Boolean).join(' | ');
+    
+    // Format order placed time in EST
+    const orderPlacedTime = orderData.createdAt || orderData.created_at || new Date();
+    const orderDate = new Date(orderPlacedTime);
+    
+    // Get EST time components
+    const estFormatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+    
+    const estParts = estFormatter.formatToParts(orderDate);
+    const estObj = {};
+    estParts.forEach(part => { estObj[part.type] = part.value; });
+    
+    // Determine EST/EDT offset (-05:00 for EST, -04:00 for EDT)
+    // DST in US: 2nd Sunday in March to 1st Sunday in November
+    const month = parseInt(estObj.month);
+    const day = parseInt(estObj.day);
+    const year = parseInt(estObj.year);
+    let offsetHours = -5; // Default to EST
+    
+    // Simple DST check: April-October are always EDT
+    if (month >= 4 && month <= 10) {
+      offsetHours = -4; // EDT
+    } else if (month === 3) {
+      // March: DST starts 2nd Sunday (approximately day 8-14)
+      // Calculate 2nd Sunday of March
+      const firstOfMarch = new Date(year, 2, 1); // Month is 0-indexed
+      const firstSunday = 1 + (7 - firstOfMarch.getDay()) % 7;
+      const secondSunday = firstSunday + 7;
+      if (day >= secondSunday) offsetHours = -4; // EDT
+    } else if (month === 11) {
+      // November: DST ends 1st Sunday (approximately day 1-7)
+      const firstOfNovember = new Date(year, 10, 1); // Month is 0-indexed
+      const firstSunday = 1 + (7 - firstOfNovember.getDay()) % 7;
+      if (day < firstSunday) offsetHours = -4; // EDT
+    }
+    
+    const offsetStr = `${offsetHours >= 0 ? '+' : ''}${String(offsetHours).padStart(2, '0')}:00`;
+    
+    // Format as ISO 8601: YYYY-MM-DDTHH:mm:ss±HH:00
+    const orderPlacedISO = `${estObj.year}-${estObj.month}-${estObj.day}T${estObj.hour}:${estObj.minute}:${estObj.second}${offsetStr}`;
+    
+    // Ensure customer name is never null or empty
+    if (!customerName || customerName.trim() === '' || customerName === 'Customer') {
+      customerName = `Customer ${orderData.orderNumber}`;
+    }
+    customerName = String(customerName).trim();
+    if (!customerName || customerName === '') {
+      customerName = `Customer ${orderData.orderNumber}`;
+    }
+    
+    // Ensure phone number is never null or empty
+    if (!phoneNumber || phoneNumber.trim() === '') {
+      phoneNumber = '0000000000';
+    }
+    phoneNumber = String(phoneNumber).trim();
+    
+    if (!addressLine1 || !city || !state || !zipCode) {
+      throw new Error(`Missing required delivery address fields: street=${!!addressLine1}, city=${!!city}, state=${!!state}, zip=${!!zipCode}`);
+    }
+    
+    // Build full address string for Shipday (required format: "Street, Apt, City, State ZIP, Country")
+    let fullAddress = addressLine1;
+    if (addressLine2) {
+      fullAddress += `, ${addressLine2}`;
+    }
+    fullAddress += `, ${city}, ${state} ${zipCode}, USA`;
+    
+    // Shipday API expects customerAddress as a full string and totalOrderCost for amount
+    const shipdayOrder = {
+      orderNumber: orderData.orderNumber,
+      customerName: customerName,
+      customerPhoneNumber: phoneNumber, // Shipday expects customerPhoneNumber, not customerPhone
+      customerEmail: email || undefined,
+      customerAddress: fullAddress, // Required: Full address as string, not nested object
+      items: orderItems.map(item => ({
+        name: item.name,
+        quantity: item.quantity || 1,
+        unitPrice: parseFloat(item.price || 0)
+      })),
+      totalOrderCost: parseFloat(orderData.total || 0), // Required: Amount field name is totalOrderCost
+      tips: parseFloat(orderData.tip || 0) || undefined, // Optional: Tip amount
+      specialInstructions: orderNotes || undefined,
+      orderPlaced: orderPlacedISO || undefined
+    };
+    
+    // Remove undefined fields
+    Object.keys(shipdayOrder).forEach(key => {
+      if (shipdayOrder[key] === undefined) {
+        delete shipdayOrder[key];
+      }
+    });
+    
+    return shipdayOrder;
+  } catch (error) {
+    logger.error('Error mapping order to Shipday format:', error);
+    throw new Error(`Failed to map order to Shipday format: ${error.message}`);
+  }
+};
+
+/**
+ * Sends order to Shipday API
+ */
+const sendOrderToShipday = async (order) => {
+  if (!SHIPDAY_API_KEY) {
+    logger.warn('Shipday API key not configured, skipping order send');
+    return { success: false, error: 'Shipday API key not configured' };
+  }
+  
+  try {
+    const shipdayOrder = mapOrderToShipdayFormat(order);
+    
+    // Make API call with retry logic
+    let response;
+    let responseData;
+    let shipdayOrderId = null;
+    
+    try {
+      response = await retryWithBackoff(async () => {
+        const apiResponse = await axios.post(`${SHIPDAY_BASE_URL}/orders`, shipdayOrder, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Basic ${SHIPDAY_API_KEY}`,
+            'Accept': 'application/json'
+          }
+        });
+        return apiResponse;
+      });
+      
+      responseData = response.data;
+      
+      // Check if Shipday returned an error (success: false)
+      if (responseData && typeof responseData === 'object' && !Array.isArray(responseData) && responseData.success === false) {
+        const errorMessage = responseData.response || responseData.message || responseData.error || 'Shipday insert failed';
+        logger.error('Shipday API returned error:', {
+          orderId: order.id || order.orderId,
+          orderNumber: order.orderNumber,
+          error: errorMessage
+        });
+        return { 
+          success: false, 
+          error: errorMessage, 
+          responseData: responseData
+        };
+      }
+      
+      // Handle string responses (e.g., "Order inserted with id 12345")
+      if (typeof responseData === 'string') {
+        const idMatch = responseData.match(/\bid\s+(\d+)\b/i);
+        if (idMatch && idMatch[1]) {
+          shipdayOrderId = idMatch[1];
+        } else {
+          return { 
+            success: false, 
+            error: 'Shipday response missing orderId (string response could not be parsed)', 
+            responseData: responseData
+          };
+        }
+      } else {
+        // Extract in strict priority order: id > orderId > data.id > data.orderId
+        shipdayOrderId = responseData?.id || responseData?.orderId || responseData?.data?.id || responseData?.data?.orderId;
+      }
+      
+      // Validate that we got an order ID
+      if (!shipdayOrderId) {
+        logger.error('Shipday API response missing order ID:', {
+          orderId: order.id || order.orderId,
+          orderNumber: order.orderNumber,
+          responseData: responseData
+        });
+        return { 
+          success: false, 
+          error: 'Shipday response missing orderId', 
+          responseData: responseData
+        };
+      }
+      
+      // Defensive success check
+      if (responseData && typeof responseData === 'object' && !Array.isArray(responseData) && 'success' in responseData && responseData.success === false) {
+        return { 
+          success: false, 
+          error: responseData.response || 'Shipday insert failed despite returning orderId', 
+          responseData: responseData,
+          shipdayOrderId: shipdayOrderId
+        };
+      }
+    } catch (apiError) {
+      logger.error('Shipday API call failed:', {
+        orderId: order.id || order.orderId,
+        orderNumber: order.orderNumber,
+        error: apiError.message,
+        response: apiError.response?.data
+      });
+      throw apiError;
+    }
+    
+    logger.info('Order sent to Shipday successfully', {
+      orderId: order.id || order.orderId,
+      orderNumber: order.orderNumber,
+      shipdayOrderId: shipdayOrderId
+    });
+    
+    return {
+      success: true,
+      shipdayOrderId: shipdayOrderId,
+      data: responseData
+    };
+  } catch (error) {
+    const errorDetails = {
+      orderId: order.id || order.orderId,
+      orderNumber: order.orderNumber,
+      errorMessage: error.message,
+      errorResponse: error.response?.data ? JSON.stringify(error.response.data, null, 2) : null,
+      errorStatus: error.response?.status,
+      errorHeaders: error.response?.headers,
+      apiUrl: `${SHIPDAY_BASE_URL}/orders`
+    };
+    
+    logger.error('Failed to send order to Shipday:', error, errorDetails);
+    
+    const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Unknown error';
+    return {
+      success: false,
+      error: errorMessage,
+      details: error.response?.data || error,
+      statusCode: error.response?.status
+    };
+  }
+};
+
+/**
+ * Updates order status in Shipday (if needed)
+ * Note: Shipday may not support direct status updates via API.
+ * Status changes should come from Shipday dashboard actions (which trigger webhooks).
+ * This function is kept for potential future use or specific Shipday API support.
+ */
+const updateShipdayOrderStatus = async (shipdayOrderId, status) => {
+  if (!SHIPDAY_API_KEY || !shipdayOrderId) {
+    return { success: false, error: 'Missing Shipday API key or order ID' };
+  }
+  
+  // For cancelled status, use the cancel endpoint instead
+  if (status === 'cancelled' || status === 'canceled') {
+    return await cancelShipdayOrder(shipdayOrderId);
+  }
+  
+  try {
+    // Try using the Order Status Update endpoint: PUT /orders/{orderId}/status
+    // If that doesn't work, Shipday may not support direct status updates
+    const response = await retryWithBackoff(async () => {
+      const apiResponse = await axios.put(`${SHIPDAY_BASE_URL}/orders/${shipdayOrderId}/status`, { status }, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${SHIPDAY_API_KEY}`,
+          'Accept': 'application/json'
+        }
+      });
+      
+      return apiResponse;
+    });
+    
+    const responseData = response.data;
+    
+    logger.info('Shipday order status updated', {
+      shipdayOrderId,
+      status
+    });
+    
+    return {
+      success: true,
+      data: responseData
+    };
+  } catch (error) {
+    // If status update fails, it's non-blocking - status changes should come via webhooks from Shipday
+    logger.warn('Shipday status update not supported or failed (this is expected - use Shipday dashboard for status changes):', {
+      shipdayOrderId,
+      status,
+      error: error.message,
+      statusCode: error.response?.status
+    });
+    return {
+      success: false,
+      error: 'Shipday may not support direct status updates via API. Use Shipday dashboard - changes will sync via webhook.',
+      details: error.response?.data || error.message
+    };
+  }
+};
+
+/**
+ * Cancels order in Shipday
+ */
+const cancelShipdayOrder = async (shipdayOrderId) => {
+  if (!SHIPDAY_API_KEY || !shipdayOrderId) {
+    return { success: false, error: 'Missing Shipday API key or order ID' };
+  }
+  
+  try {
+    const response = await retryWithBackoff(async () => {
+      const apiResponse = await axios.delete(`${SHIPDAY_BASE_URL}/orders/${shipdayOrderId}`, {
+        headers: {
+          'Authorization': `Basic ${SHIPDAY_API_KEY}`,
+          'Accept': 'application/json'
+        }
+      });
+      
+      return apiResponse;
+    });
+    
+    const responseData = response.data || {};
+    
+    logger.info('Shipday order cancelled', {
+      shipdayOrderId
+    });
+    
+    return {
+      success: true,
+      data: responseData
+    };
+  } catch (error) {
+    logger.error('Failed to cancel Shipday order:', error, {
+      shipdayOrderId
+    });
+    return {
+      success: false,
+      error: error.message || 'Unknown error'
+    };
+  }
+};
+
+/**
+ * Retrieves order details from Shipday
+ */
+const getShipdayOrder = async (shipdayOrderId) => {
+  if (!SHIPDAY_API_KEY || !shipdayOrderId) {
+    return { success: false, error: 'Missing Shipday API key or order ID' };
+  }
+  
+  try {
+    const response = await retryWithBackoff(async () => {
+      const apiResponse = await axios.get(`${SHIPDAY_BASE_URL}/orders/${shipdayOrderId}`, {
+        headers: {
+          'Authorization': `Basic ${SHIPDAY_API_KEY}`,
+          'Accept': 'application/json'
+        }
+      });
+      
+      return apiResponse;
+    });
+    
+    const responseData = response.data;
+    
+    return {
+      success: true,
+      data: responseData
+    };
+  } catch (error) {
+    logger.error('Failed to get Shipday order:', error, {
+      shipdayOrderId
+    });
+    return {
+      success: false,
+      error: error.message || 'Unknown error'
+    };
+  }
+};
+
+module.exports = {
+  sendOrderToShipday,
+  updateShipdayOrderStatus,
+  cancelShipdayOrder,
+  getShipdayOrder,
+  mapOrderToShipdayFormat
+};
+

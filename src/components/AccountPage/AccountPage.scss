@@ -1,0 +1,1808 @@
+@use "sass:color";
+
+$primary-color: #5fb4f9;
+$navy-color: #061757;
+$white: #ffffff;
+$light-gray: #f8f9fa;
+$border-color: #e8e8e8;
+$text-color: #333;
+$secondary-text: #6c757d;
+
+.account-page {
+  margin-top: 60px;
+  margin-left: 240px;
+  min-height: calc(100vh - 60px);
+  background-color: $light-gray;
+  transition: margin-left 0.3s ease;
+  display: flex;
+  flex-direction: column;
+
+  // Match sidebar responsiveness breakpoints exactly
+  @media screen and (min-width: 1111px) {
+    margin-left: 240px; // Full sidebar width
+  }
+
+  @media screen and (min-width: 641px) and (max-width: 1110px) {
+    margin-left: 60px; // Icon sidebar width
+  }
+
+  @media screen and (max-width: 640px) {
+    margin-left: 0; // No sidebar on mobile
+  }
+
+  &__content {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    flex: 1;
+    width: 100%;
+
+    @media screen and (min-width: 641px) and (max-width: 1110px) {
+      padding: 20px 16px;
+    }
+
+    @media screen and (max-width: 640px) {
+      padding: 15px;
+    }
+  }
+}
+
+// Loading states are now handled by LoadingSpinner component
+
+// Dashboard Header
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  margin-top: 2rem;
+  gap: 2rem;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+}
+
+.user-welcome {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+
+  .user-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #5fb4f9 0%, #4a9ce8 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 3px solid $navy-color;
+
+    svg {
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+    }
+  }
+
+  .user-info {
+    .user-name {
+      font-size: 1.8rem;
+      color: $navy-color;
+      margin: 0 0 0.25rem 0;
+      font-weight: 600;
+    }
+
+    .user-subtitle {
+      color: $text-color;
+      opacity: 0.8;
+      margin: 0;
+      font-size: 0.95rem;
+    }
+  }
+}
+
+.quick-stats {
+  display: flex;
+  gap: 1rem;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  @media (max-width: 480px) {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+}
+
+.stat-card {
+  background: $white;
+  border-radius: 12px;
+  padding: 1.25rem;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(6, 23, 87, 0.1);
+  min-width: 120px;
+
+  @media (max-width: 768px) {
+    flex: 1;
+    min-width: auto;
+  }
+
+  .stat-number {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: $navy-color;
+    margin-bottom: 0.25rem;
+  }
+
+  .stat-label {
+    font-size: 0.85rem;
+    color: $text-color;
+    opacity: 0.8;
+  }
+}
+
+// Dashboard Navigation (Sticky)
+.dashboard-nav {
+  position: sticky;
+  top: 60px;
+  z-index: 100;
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  background: $white;
+  border-radius: 12px;
+  padding: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(6, 23, 87, 0.1);
+
+  @media (max-width: 640px) {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+}
+
+.nav-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  color: $text-color;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex: 1;
+  justify-content: center;
+  position: relative;
+  min-width: 0; // Allow flex shrinking
+  min-height: 44px; // Ensure consistent height
+
+  // Specific breakpoint for tablet range to prevent shrinking
+  @media (min-width: 641px) and (max-width: 680px) {
+    min-width: 120px; // Ensure minimum width to prevent excessive shrinking
+    font-size: 0.85rem; // Slightly smaller font to fit better
+    padding: 0.7rem 0.8rem; // Adjust padding for better fit
+  }
+
+  @media (max-width: 640px) {
+    flex: 1 1 calc(50% - 0.125rem);
+    font-size: 0.8rem;
+    padding: 0.6rem 0.75rem;
+    min-height: 40px; // Slightly smaller on mobile
+  }
+
+  @media (max-width: 480px) {
+    flex: 1 1 100%;
+    min-height: 44px; // Back to normal height on very small screens
+  }
+
+  svg {
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+    width: 20px; // Ensure consistent icon size
+    height: 20px;
+    flex-shrink: 0; // Prevent icon from shrinking
+  }
+
+  &:hover {
+    background: rgba(6, 23, 87, 0.1);
+    color: $navy-color;
+
+    svg {
+      opacity: 1;
+    }
+  }
+
+  &.active {
+    background: $navy-color;
+    color: $white;
+
+    svg {
+      opacity: 1;
+    }
+  }
+
+  // Notification indicator
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 6px;
+    height: 6px;
+    background: #ef4444;
+    border-radius: 50%;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  &.has-notification::after {
+    opacity: 1;
+  }
+}
+
+// Dashboard Content
+.dashboard-content {
+  background: $white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  border: 1px solid rgba(6, 23, 87, 0.1);
+}
+
+// Section Headers
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+
+  h2 {
+    color: $navy-color;
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  @media (max-width: 640px) {
+    padding: 1.5rem 1.5rem 1rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+}
+
+// Profile Section
+.profile-section {
+  .edit-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: transparent;
+    border: 2px solid $navy-color;
+    border-radius: 8px;
+    color: $navy-color;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+
+    &:hover {
+      background: $navy-color;
+      color: $white;
+    }
+  }
+}
+
+.profile-form {
+  padding: 1rem 2rem 2rem;
+
+  @media (max-width: 640px) {
+    padding: 1rem 1.5rem 1.5rem;
+  }
+
+  small {
+    color: $secondary-text;
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+    display: block;
+  }
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+
+  label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: $navy-color;
+    font-size: 0.9rem;
+  }
+
+  input,
+  textarea,
+  select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    background: $light-gray;
+    color: $text-color;
+    transition: border-color 0.3s ease;
+
+    &:focus {
+      outline: none;
+      border-color: $navy-color;
+    }
+
+    &::placeholder {
+      color: rgba(0, 0, 0, 0.4);
+    }
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 80px;
+  }
+
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: normal;
+    margin-bottom: 0;
+
+    input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+    }
+  }
+
+  .address-display {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+
+    textarea {
+      flex: 1;
+    }
+
+    .manage-addresses-btn {
+      background: $primary-color;
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      align-self: flex-start;
+
+      &:hover {
+        background: color.adjust($primary-color, $lightness: -10%);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(95, 180, 249, 0.3);
+      }
+
+      &:focus {
+        outline: 2px solid $primary-color;
+        outline-offset: 2px;
+      }
+    }
+  }
+}
+
+// Orders Section
+.orders-section {
+  .filter-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+
+    @media (max-width: 640px) {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.5rem;
+    }
+  }
+
+  .filter-buttons {
+    display: flex;
+    gap: 0.5rem;
+
+    @media (max-width: 640px) {
+      width: 100%;
+    }
+  }
+
+  .filter-btn {
+    padding: 0.5rem 1rem;
+    border: 2px solid rgba(0, 0, 0, 0.1);
+    background: transparent;
+    border-radius: 8px;
+    color: $text-color;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+
+    @media (max-width: 640px) {
+      flex: 1;
+      text-align: center;
+    }
+
+    &:hover {
+      border-color: $navy-color;
+      color: $navy-color;
+    }
+
+    &.active {
+      background: $navy-color;
+      border-color: $navy-color;
+      color: $white;
+    }
+  }
+
+  .date-filters {
+    select {
+      padding: 0.5rem 1rem;
+      border: 2px solid rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+      background: $white;
+      color: $text-color;
+      font-size: 0.85rem;
+      cursor: pointer;
+
+      &:focus {
+        outline: none;
+        border-color: $navy-color;
+      }
+    }
+  }
+}
+
+.orders-list {
+  padding: 1rem 2rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+
+  @media (max-width: 640px) {
+    padding: 1rem 1.5rem 1.5rem;
+  }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: $secondary-text;
+
+  p {
+    font-size: 1.1rem;
+    margin: 0;
+  }
+}
+
+.order-card {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: rgba(6, 23, 87, 0.3);
+  }
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+
+  .order-id {
+    font-weight: 600;
+    color: $navy-color;
+    font-size: 1.1rem;
+  }
+
+  .order-status {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+
+    &.delivered {
+      background: rgba(34, 197, 94, 0.1);
+      color: #22c55e;
+    }
+
+    &.in-progress,
+    &.pending,
+    &.confirmed,
+    &.preparing,
+    &.out-for-delivery {
+      background: rgba(249, 115, 22, 0.1);
+      color: #f97316;
+    }
+
+    &.cancelled {
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+    }
+  }
+}
+
+.order-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+
+  @media (max-width: 480px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .order-restaurant {
+    font-weight: 600;
+    color: $text-color;
+  }
+
+  .order-date {
+    color: $text-color;
+    opacity: 0.7;
+    font-size: 0.9rem;
+  }
+}
+
+.order-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+
+  .order-items {
+    color: $text-color;
+    opacity: 0.8;
+    font-size: 0.9rem;
+  }
+
+  .order-total {
+    font-weight: 700;
+    color: $navy-color;
+    font-size: 1.1rem;
+  }
+}
+
+.order-actions {
+  display: flex;
+  gap: 0.5rem;
+
+  @media (max-width: 480px) {
+    flex-direction: column;
+  }
+}
+
+.action-btn {
+  padding: 0.5rem 1rem;
+  border: 2px solid $navy-color;
+  background: $navy-color;
+  color: $white;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex: 1;
+
+  &:hover {
+    background: color.adjust($navy-color, $lightness: -10%);
+    border-color: color.adjust($navy-color, $lightness: -10%);
+  }
+
+  &.secondary {
+    background: transparent;
+    color: $navy-color;
+
+    &:hover {
+      background: $navy-color;
+      color: $white;
+    }
+  }
+}
+
+// Preferences Section
+.preferences-section {
+  padding: 0 2rem 2rem;
+
+  @media (max-width: 640px) {
+    padding: 0 1.5rem 1.5rem;
+  }
+}
+
+.preferences-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.preference-card {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  padding: 1.5rem;
+
+  .preference-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+
+    h3 {
+      color: $navy-color;
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    svg {
+      flex-shrink: 0;
+    }
+  }
+
+  .preference-options {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .option-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    span {
+      color: $text-color;
+      font-size: 0.9rem;
+    }
+
+    select,
+    input[type="text"] {
+      max-width: 150px;
+      padding: 0.5rem;
+      border: 1px solid rgba(0, 0, 0, 0.2);
+      border-radius: 6px;
+      font-size: 0.85rem;
+
+      &:focus {
+        outline: none;
+        border-color: $navy-color;
+      }
+    }
+  }
+}
+
+// Toggle Switch
+.toggle {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+
+  input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: 0.4s;
+    border-radius: 24px;
+
+    &:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: 0.4s;
+      border-radius: 50%;
+    }
+  }
+
+  input:checked + .slider {
+    background-color: $navy-color;
+  }
+
+  input:checked + .slider:before {
+    transform: translateX(26px);
+  }
+}
+
+// Security Section
+.security-section {
+  padding: 0 2rem 2rem;
+
+  @media (max-width: 640px) {
+    padding: 0 1.5rem 1.5rem;
+  }
+}
+
+.security-options {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.security-card {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  padding: 1.5rem;
+
+  &.danger {
+    border-color: rgba(239, 68, 68, 0.3);
+    background: rgba(239, 68, 68, 0.02);
+  }
+
+  .security-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    @media (max-width: 640px) {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+
+    .security-info {
+      h3 {
+        color: $navy-color;
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin: 0 0 0.25rem 0;
+      }
+
+      p {
+        color: $secondary-text;
+        font-size: 0.9rem;
+        margin: 0;
+      }
+    }
+  }
+}
+
+.security-btn {
+  padding: 0.5rem 1rem;
+  border: 2px solid $navy-color;
+  background: transparent;
+  color: $navy-color;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: $navy-color;
+    color: $white;
+  }
+
+  &.secondary {
+    border-color: rgba(0, 0, 0, 0.2);
+    color: $text-color;
+
+    &:hover {
+      border-color: $navy-color;
+      background: $navy-color;
+      color: $white;
+    }
+  }
+
+  &.danger {
+    border-color: #ef4444;
+    color: #ef4444;
+
+    &:hover {
+      background: #ef4444;
+      color: $white;
+    }
+  }
+}
+
+// Payment Methods List
+.payment-methods-list {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.payment-method-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  background: $light-gray;
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .payment-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+
+    .card-brand {
+      font-weight: 600;
+      color: $navy-color;
+      font-size: 0.8rem;
+    }
+
+    .card-number {
+      color: $text-color;
+      font-size: 0.9rem;
+    }
+
+    .default-badge {
+      background: rgba(34, 197, 94, 0.1);
+      color: #22c55e;
+      padding: 0.2rem 0.5rem;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+  }
+
+  .payment-actions {
+    display: flex;
+    gap: 0.5rem;
+
+    button {
+      padding: 0.25rem 0.75rem;
+      border: 1px solid rgba(0, 0, 0, 0.2);
+      background: transparent;
+      color: $text-color;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+
+      &:hover {
+        border-color: $navy-color;
+        color: $navy-color;
+      }
+
+      &.remove-btn {
+        border-color: #ef4444;
+        color: #ef4444;
+
+        &:hover {
+          background: #ef4444;
+          color: $white;
+        }
+      }
+    }
+  }
+}
+
+// Login Activity List
+.login-activity-list {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.login-activity-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  background: $light-gray;
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .activity-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+
+    .device {
+      font-weight: 600;
+      color: $navy-color;
+      font-size: 0.9rem;
+    }
+
+    .location {
+      color: $secondary-text;
+      font-size: 0.8rem;
+    }
+  }
+
+  .activity-time {
+    color: $text-color;
+    font-size: 0.85rem;
+  }
+}
+
+// Account Modal Styles (BEM Methodology)
+.account-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  z-index: 20000;
+  padding: 1rem;
+  padding-top: calc(60px + 1rem);
+
+  @media (min-width: 1111px) {
+    left: 240px;
+  }
+  @media (min-width: 641px) and (max-width: 1110px) {
+    left: 60px;
+  }
+  @media (max-width: 640px) {
+    left: 0;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    padding-bottom: 1rem;
+  }
+}
+
+.account-modal {
+  background: $white;
+  border-radius: 18px;
+  max-width: 500px;
+  width: 100%;
+  max-height: 87.5vh;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 8px 32px rgba(6, 23, 87, 0.18);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+  padding: 0;
+  margin: auto;
+  margin-bottom: 2rem;
+  box-sizing: border-box;
+
+  @media (max-width: 640px) {
+    max-width: 95vw;
+    min-width: 0;
+    max-height: 90vh;
+    font-size: 0.93rem;
+  }
+
+  &--order-details {
+    max-width: 600px;
+  }
+
+  &--delete-account {
+    max-width: 400px;
+  }
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 2rem 2rem 1.5rem 2rem;
+    border-bottom: 1px solid #e8e8e8;
+    width: 100%;
+    position: relative;
+
+    @media (max-width: 640px) {
+      padding: 1.25rem 1rem 1rem 1rem;
+    }
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: $navy-color;
+    flex: 1;
+    text-align: left;
+    line-height: 1.2;
+    margin-bottom: 0.5rem; // Added spacing to prevent overlap with close button
+
+    @media (max-width: 640px) {
+      font-size: 1.2rem;
+    }
+  }
+
+  &__close-btn {
+    font-size: 2.2rem;
+    width: 44px;
+    height: 44px;
+    margin-left: auto;
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    z-index: 2;
+    background: $white;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+    color: $secondary-text;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.08);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      color: $navy-color;
+    }
+
+    &:focus {
+      outline: none;
+    }
+
+    &:focus-visible {
+      outline: 2px solid #5fb4f9;
+      outline-offset: 2px;
+    }
+
+    @media (max-width: 640px) {
+      font-size: 1.7rem;
+      width: 36px;
+      height: 36px;
+      top: 1rem;
+      right: 1rem;
+    }
+  }
+
+  &__content {
+    padding: 1.5rem 2rem;
+    overflow-y: auto;
+    flex: 1;
+    max-height: calc(87.5vh - 120px); // Subtract header height
+    scrollbar-width: thin;
+    scrollbar-color: rgba(6, 23, 87, 0.2) transparent;
+
+    @media (max-width: 640px) {
+      padding: 1rem 1.5rem;
+      max-height: calc(90vh - 100px);
+    }
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(6, 23, 87, 0.2);
+      border-radius: 3px;
+      
+      &:hover {
+        background: rgba(6, 23, 87, 0.3);
+      }
+    }
+  }
+
+  &__form {
+    padding: 2rem;
+
+    @media (max-width: 640px) {
+      padding: 1rem;
+    }
+  }
+
+  &__form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+
+    @media (max-width: 640px) {
+      gap: 1rem;
+    }
+
+    @media (max-width: 480px) {
+      gap: 0.7rem;
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &__form-group {
+    margin-bottom: 1.5rem;
+
+    @media (max-width: 640px) {
+      margin-bottom: 1rem;
+    }
+
+    @media (max-width: 480px) {
+      margin-bottom: 0.7rem;
+    }
+  }
+
+  &__label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: $navy-color;
+    font-size: 0.9rem;
+  }
+
+  &__input,
+  &__textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    background: $light-gray;
+    color: $text-color;
+    transition: border-color 0.3s ease;
+
+    &:focus {
+      outline: none;
+      border-color: $navy-color;
+    }
+
+    &::placeholder {
+      color: rgba(0, 0, 0, 0.4);
+    }
+  }
+
+  &__textarea {
+    resize: vertical;
+    min-height: 80px;
+  }
+
+  &__error {
+    color: #ef4444;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    background: rgba(239, 68, 68, 0.1);
+    border-radius: 4px;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+  }
+
+  &__warning {
+    padding: 1.5rem 2rem;
+    background: rgba(239, 68, 68, 0.05);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    margin: 1.5rem 2rem;
+    border-radius: 8px;
+
+    p {
+      color: $text-color;
+      font-size: 0.9rem;
+      margin: 0.5rem 0;
+
+      &:first-child {
+        font-weight: 600;
+        color: #ef4444;
+      }
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: 0.75rem;
+    padding: 1.5rem 2rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+
+    @media (max-width: 640px) {
+      padding: 1rem;
+    }
+
+    @media (max-width: 480px) {
+      flex-direction: column;
+    }
+  }
+
+  &__btn {
+    flex: 1;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+
+    &--cancel {
+      background: transparent;
+      border: 2px solid rgba(0, 0, 0, 0.2);
+      color: $text-color;
+
+      &:hover {
+        border-color: rgba(0, 0, 0, 0.4);
+        background: rgba(0, 0, 0, 0.05);
+      }
+    }
+
+    &--save {
+      background: $navy-color;
+      border: 2px solid $navy-color;
+      color: $white;
+
+      &:hover:not(:disabled) {
+        background: color.adjust($navy-color, $lightness: -10%);
+        border-color: color.adjust($navy-color, $lightness: -10%);
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    }
+
+    &--delete {
+      background: #ef4444;
+      border: 2px solid #ef4444;
+      color: $white;
+
+      &:hover:not(:disabled) {
+        background: color.adjust(#ef4444, $lightness: -10%);
+        border-color: color.adjust(#ef4444, $lightness: -10%);
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    }
+  }
+}
+
+// Order Details Modal Specific Styles (using BEM)
+.account-modal__content {
+  .order-info {
+    .order-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid $border-color;
+
+      h3 {
+        color: $navy-color;
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin: 0;
+        flex: 1;
+      }
+
+      .order-status {
+        margin-left: 1rem;
+      }
+
+      @media (max-width: 640px) {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+
+        .order-status {
+          margin-left: 0;
+        }
+      }
+    }
+
+    .order-meta {
+      margin-bottom: 2rem;
+
+      p {
+        color: $secondary-text;
+        font-size: 0.9rem;
+        margin: 0.25rem 0;
+      }
+    }
+
+    .price-breakdown {
+      margin: 1.5rem 0;
+      padding: 1rem;
+      background-color: $light-gray;
+      border-radius: 8px;
+      border: 1px solid $border-color;
+
+      h4 {
+        color: $navy-color;
+        font-size: 1rem;
+        font-weight: 600;
+        margin: 0 0 1rem 0;
+      }
+
+      .breakdown-line {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid rgba($border-color, 0.5);
+
+        &:last-child {
+          border-bottom: none;
+        }
+
+        &.discount-line {
+          .discount-value {
+            color: #059669 !important; // Green color for discount
+            font-weight: 600;
+          }
+        }
+
+        &.total-line {
+          margin-top: 0.5rem;
+          padding-top: 1rem;
+          border-top: 2px solid $border-color;
+          border-bottom: none;
+          font-size: 1.1rem;
+        }
+
+        span {
+          font-size: 0.9rem;
+          color: $text-color;
+
+          &:first-child {
+            color: $secondary-text;
+          }
+
+          &:last-child {
+            font-weight: 500;
+            color: $navy-color;
+          }
+        }
+      }
+    }
+  }
+
+  .order-progress {
+    margin-bottom: 2rem;
+
+    h4 {
+      color: $navy-color;
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 0 0 1rem 0;
+    }
+
+    .progress-steps {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      overflow-x: auto;
+      padding: 1rem 0;
+
+      @media (max-width: 640px) {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+
+    .progress-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      min-width: 80px;
+      position: relative;
+
+      @media (max-width: 640px) {
+        flex-direction: row;
+        align-items: center;
+        width: 100%;
+        min-width: auto;
+        text-align: left;
+      }
+
+      .step-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #e5e7eb;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        margin-bottom: 0.5rem;
+        transition: all 0.3s ease;
+
+        @media (max-width: 640px) {
+          margin-bottom: 0;
+          margin-right: 1rem;
+        }
+      }
+
+      .step-label {
+        font-size: 0.8rem;
+        color: $secondary-text;
+        font-weight: 500;
+      }
+
+      .step-line {
+        position: absolute;
+        top: 20px;
+        left: 100%;
+        width: 1rem;
+        height: 2px;
+        background: #e5e7eb;
+
+        @media (max-width: 640px) {
+          display: none;
+        }
+      }
+
+      &.completed {
+        .step-icon {
+          background: rgba(34, 197, 94, 0.1);
+          color: #22c55e;
+        }
+
+        .step-label {
+          color: #22c55e;
+        }
+
+        .step-line {
+          background: #22c55e;
+        }
+      }
+
+      &.active {
+        .step-icon {
+          background: $navy-color;
+          color: $white;
+        }
+
+        .step-label {
+          color: $navy-color;
+          font-weight: 600;
+        }
+      }
+    }
+  }
+
+  .order-items {
+    margin-bottom: 2rem;
+
+    h4 {
+      color: $navy-color;
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 0 0 1rem 0;
+    }
+
+    .order-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      .item-name {
+        color: $text-color;
+        font-weight: 500;
+        flex: 1;
+      }
+
+      .item-quantity {
+        color: $secondary-text;
+        font-size: 0.9rem;
+        margin: 0 1rem;
+      }
+
+      .item-price {
+        color: $navy-color;
+        font-weight: 600;
+      }
+    }
+
+    .restaurant-order-group {
+      margin-bottom: 20px;
+      padding: 15px;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      border-left: 4px solid $navy-color;
+
+      .restaurant-name {
+        color: $navy-color;
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 10px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #e8e8e8;
+      }
+
+      .restaurant-subtotal {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid #e8e8e8;
+        text-align: right;
+        color: $navy-color;
+        font-weight: 600;
+      }
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+
+  .order-total {
+    text-align: right;
+    color: $navy-color;
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 2px solid rgba(0, 0, 0, 0.1);
+  }
+}
+
+// Favorites Section
+.favorites-section {
+  .section-header {
+    margin-bottom: 2rem;
+    
+    h2 {
+      color: $navy-color;
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin: 0 0 0.5rem 0;
+    }
+    
+    .section-subtitle {
+      color: $secondary-text;
+      font-size: 1rem;
+      margin: 0;
+    }
+  }
+  
+  .empty-favorites {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: $white;
+    border-radius: 16px;
+    border: 1px solid $border-color;
+    
+    .empty-icon {
+      margin-bottom: 1.5rem;
+      opacity: 0.6;
+    }
+    
+    h3 {
+      color: $navy-color;
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin: 0 0 0.5rem 0;
+    }
+    
+    p {
+      color: $secondary-text;
+      font-size: 1rem;
+      margin: 0 0 2rem 0;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    
+    .browse-restaurants-btn {
+      background-color: $primary-color;
+      color: $white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      
+      &:hover {
+        background-color: $navy-color;
+        transform: translateY(-1px);
+      }
+      
+      &:focus {
+        outline: 2px solid $primary-color;
+        outline-offset: 2px;
+      }
+    }
+  }
+  
+  .favorites-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 320px));
+    gap: 1.5rem;
+    justify-content: center;
+    
+    @media (max-width: 768px) {
+      grid-template-columns: repeat(auto-fit, minmax(280px, 320px));
+      gap: 1rem;
+    }
+    
+    @media (max-width: 640px) {
+      grid-template-columns: 1fr;
+      max-width: 320px;
+      margin: 0 auto;
+    }
+  }
+  
+  .favorite-restaurant-card {
+    background: $white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(6, 23, 87, 0.08);
+    transition: all 0.3s ease;
+    border: 1px solid $border-color;
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto;
+    
+    &:hover {
+      box-shadow: 0 8px 32px rgba(6, 23, 87, 0.15);
+      transform: translateY(-2px);
+    }
+    
+    .restaurant-image {
+      height: 160px;
+      position: relative;
+      overflow: hidden;
+      background: $light-gray;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .fallback-icon {
+        font-size: 2.5rem;
+        color: $secondary-text;
+      }
+    }
+    
+    .restaurant-info {
+      padding: 20px;
+      
+      h4 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: $navy-color;
+        margin: 0 0 6px 0;
+        line-height: 1.3;
+      }
+      
+      .restaurant-type {
+        color: $primary-color;
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin: 0 0 4px 0;
+      }
+      
+      .restaurant-certification {
+        color: #28a745;
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin: 0 0 6px 0;
+      }
+      
+      .restaurant-location {
+        color: $secondary-text;
+        font-size: 0.8rem;
+        margin: 0 0 8px 0;
+      }
+      
+      .favorited-date {
+        color: $secondary-text;
+        font-size: 0.75rem;
+        font-style: italic;
+        margin: 0;
+      }
+    }
+    
+    .restaurant-actions {
+      padding: 16px 20px 20px;
+      display: flex;
+      gap: 10px;
+      
+      .view-menu-btn {
+        flex: 1;
+        background-color: $primary-color;
+        color: $white;
+        border: none;
+        padding: 10px 16px;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        
+        &:hover {
+          background-color: $navy-color;
+        }
+        
+        &:focus {
+          outline: 2px solid $primary-color;
+          outline-offset: 2px;
+        }
+      }
+      
+      .remove-favorite-btn {
+        background-color: transparent;
+        color: #dc3545;
+        border: 1px solid #dc3545;
+        padding: 10px 16px;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        
+        &:hover {
+          background-color: #dc3545;
+          color: $white;
+        }
+        
+        &:focus {
+          outline: 2px solid #dc3545;
+          outline-offset: 2px;
+        }
+      }
+    }
+  }
+}

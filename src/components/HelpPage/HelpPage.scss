@@ -1,0 +1,690 @@
+// Variables to match the site's design system
+$primary-color: #5fb4f9;
+$primary-dark: #061757;
+$white: #FFFFFF;
+$gray-100: #F8F8F8;
+$gray-200: #E8E8E8;
+$gray-300: #D4D4D4;
+$gray-500: #919191;
+$gray-700: #5C5C5C;
+$gray-900: #333333;
+$border-radius: 8px;
+$box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+.help-page {
+  // Account for fixed header and sidebar positioning - matches other pages
+  margin-top: 60px; // Height of the fixed header
+  margin-left: 240px; // Width of the desktop sidebar
+  min-height: calc(100vh - 60px);
+  background-color: #f8f9fa;
+  transition: margin-left 0.3s ease;
+
+  // Match sidebar responsiveness breakpoints exactly
+  @media screen and (min-width: 641px) and (max-width: 1110px) {
+    margin-left: 60px; // Icon sidebar width
+  }
+
+  @media screen and (max-width: 640px) {
+    margin-left: 0; // No sidebar on mobile
+  }
+}
+
+.help-page__container {
+  max-width: none; // Remove max-width constraint to fill available space
+  margin: 0;
+  padding: 2rem;
+  
+  // Responsive padding management - match other pages exactly
+  @media screen and (min-width: 1111px) {
+    max-width: 1200px; // Centered with max-width only on desktop
+    margin: 0 auto;
+    padding: 2rem;
+  }
+  
+  @media screen and (min-width: 641px) and (max-width: 1110px) {
+    // Fill the available space on tablet with icon sidebar
+    max-width: none;
+    margin: 0;
+    padding: 2rem 3rem; // More padding to use the space better
+  }
+  
+  @media screen and (max-width: 640px) {
+    // Mobile - no sidebar
+    padding: 1rem;
+  }
+  
+  @media screen and (max-width: 480px) {
+    padding: 0.75rem;
+  }
+}
+
+.help-page__content {
+  margin-bottom: 2rem; // Space before footer
+  
+  @media screen and (max-width: 640px) {
+    margin-bottom: 1.5rem;
+  }
+  
+  @media screen and (max-width: 480px) {
+    margin-bottom: 1rem;
+  }
+}
+
+// Help Header Section
+.help-page__header {
+  text-align: center;
+  margin-bottom: 3rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid $gray-200; // Add border after header
+  
+  .help-page__header-title {
+    font-size: 3rem;
+    font-weight: 800;
+    color: $primary-dark;
+    margin-bottom: 1.5rem;
+    line-height: 1.2;
+    letter-spacing: 0.5px;
+    
+    @media screen and (max-width: 768px) {
+      font-size: 2.5rem;
+    }
+    
+    @media screen and (max-width: 480px) {
+      font-size: 2rem;
+    }
+  }
+  
+  .help-page__header-description {
+    font-size: 1.2rem;
+    color: $gray-700;
+    max-width: 700px;
+    margin: 0 auto 2rem;
+    line-height: 1.6;
+    
+    @media screen and (max-width: 768px) {
+      font-size: 1.1rem;
+      margin-bottom: 1.5rem;
+    }
+  }
+  
+  .help-page__header-actions {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+  }
+}
+
+.help-page__faq-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: $primary-color;
+  color: $white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 24px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.3s ease, background-color 0.3s ease, color 0.3s ease;
+  box-shadow: 0 2px 8px rgba(95, 180, 249, 0.2);
+  
+  &:hover {
+    background-color: $primary-dark;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(95, 180, 249, 0.3);
+  }
+  
+  .help-page__faq-link-icon {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+// Tutorial Sections
+.help-page__tutorial-sections {
+  margin-bottom: 4rem;
+}
+
+.help-page__tutorial-section {
+  margin-bottom: 2.5rem;
+  padding-bottom: 2.5rem;
+  border-bottom: 1px solid $gray-200; // Add thin border between sections
+  
+  &:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none; // Remove border from last section
+  }
+}
+
+.help-page__section-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+  
+  @media screen and (max-width: 768px) {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+}
+
+.help-page__section-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, $primary-color 0%, #4a9ce8 100%);
+  border-radius: 16px;
+  color: $white;
+  flex-shrink: 0;
+  box-shadow: 0 4px 16px rgba(95, 180, 249, 0.2);
+  transition: background 0.3s ease, color 0.3s ease;
+  
+  .help-page__section-icon-svg {
+    width: 28px;
+    height: 28px;
+  }
+  
+  @media screen and (max-width: 768px) {
+    width: 50px;
+    height: 50px;
+    
+    .help-page__section-icon-svg {
+      width: 24px;
+      height: 24px;
+    }
+  }
+}
+
+.help-page__section-info {
+  .help-page__section-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: $primary-dark;
+    margin: 0 0 0.5rem 0;
+    line-height: 1.3;
+    
+    @media screen and (max-width: 768px) {
+      font-size: 1.6rem;
+    }
+  }
+  
+  .help-page__section-description {
+    font-size: 1.1rem;
+    color: $gray-700;
+    margin: 0;
+    line-height: 1.5;
+    
+    @media screen and (max-width: 768px) {
+      font-size: 1rem;
+    }
+  }
+}
+
+// Video Grid
+.help-page__video-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  max-width: 1200px; // Prevent videos from getting too wide
+  
+  @media screen and (min-width: 641px) {
+    grid-template-columns: repeat(auto-fit, minmax(320px, 400px)); // More controlled sizing on desktop
+    justify-content: center; // Center the grid items
+  }
+  
+  @media screen and (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    max-width: none; // Full width on mobile
+  }
+}
+
+.help-page__video-card {
+  background: $white;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(6, 23, 87, 0.08);
+  border: 1px solid $gray-200;
+  cursor: pointer;
+  transition: all 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
+  width: 100%; // Ensure full width within grid cell
+  max-width: 400px; // Prevent cards from getting too wide
+  margin: 0 auto; // Center cards in their grid cells
+  
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(6, 23, 87, 0.15);
+    
+    .help-page__video-play-button {
+      background-color: $primary-dark !important; // Force navy color on hover
+      transform: translate(-50%, -50%) scale(1.1);
+    }
+  }
+}
+
+.help-page__video-thumbnail {
+  position: relative;
+  width: 100%;
+  height: 180px;
+  background-color: $gray-200;
+  overflow: hidden;
+  
+  .help-page__video-thumbnail-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.help-page__video-play-button {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 64px;
+  height: 64px;
+  background-color: rgba(95, 180, 249, 0.9);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $white;
+  transition: all 0.3s ease, background-color 0.3s ease, transform 0.3s ease;
+  backdrop-filter: blur(4px);
+  
+  .help-page__video-play-button-icon {
+    margin-left: 4px; // Center the play icon
+  }
+}
+
+.help-page__video-duration {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: $white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.help-page__video-info {
+  padding: 1.5rem;
+  
+  .help-page__video-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: $primary-dark;
+    margin: 0 0 0.75rem 0;
+    line-height: 1.3;
+  }
+  
+  .help-page__video-description {
+    font-size: 0.95rem;
+    color: $gray-700;
+    margin: 0;
+    line-height: 1.5;
+  }
+}
+
+// Help Resources Section
+.help-page__resources {
+  text-align: center;
+  margin-top: 4rem;
+  padding-top: 3rem;
+  border-top: 1px solid $gray-200;
+  
+  .help-page__resources-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: $primary-dark;
+    margin-bottom: 3rem;
+    
+    @media screen and (max-width: 768px) {
+      font-size: 1.8rem;
+    }
+  }
+}
+
+.help-page__resource-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  max-width: 800px;
+  margin: 0 auto;
+  
+  @media screen and (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+.help-page__resource-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 2rem 1.5rem;
+  background: $white;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(6, 23, 87, 0.08);
+  border: 1px solid $gray-200;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(6, 23, 87, 0.15);
+    
+    .help-page__resource-icon {
+      background: linear-gradient(135deg, $primary-color 0%, #4a9ce8 100%);
+      transform: scale(1.05);
+    }
+  }
+}
+
+.help-page__resource-icon {
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, $gray-300 0%, $gray-500 100%);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $white;
+  margin-bottom: 1rem;
+  transition: all 0.3s ease, background 0.3s ease, transform 0.3s ease;
+  
+  .help-page__resource-icon-svg {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+.help-page__resource-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: $primary-dark;
+  margin: 0 0 0.75rem 0;
+  line-height: 1.3;
+}
+
+.help-page__resource-description {
+  font-size: 0.95rem;
+  color: $gray-700;
+  margin: 0;
+  line-height: 1.5;
+}
+
+// Video Modal
+.help-page__video-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 1rem;
+  
+  // Account for sidebar positioning
+  @media screen and (min-width: 1111px) {
+    left: 240px; // Full sidebar width
+  }
+  
+  @media screen and (min-width: 641px) and (max-width: 1110px) {
+    left: 60px; // Icon sidebar width
+  }
+  
+  @media screen and (max-width: 640px) {
+    left: 0; // No sidebar on mobile
+    padding: 0.5rem;
+  }
+}
+
+.help-page__video-modal {
+  background: $white;
+  border-radius: 20px;
+  max-width: 95vw;
+  max-height: 95vh;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  border: 1px solid $gray-200;
+  
+  // Larger modal on desktop
+  @media screen and (min-width: 768px) {
+    max-width: 90vw;
+    max-height: 90vh;
+    min-width: 600px;
+    min-height: 400px;
+  }
+  
+  @media screen and (max-width: 767px) {
+    max-width: 95vw;
+    max-height: 95vh;
+    border-radius: 16px;
+  }
+}
+
+.help-page__video-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2rem 2.5rem;
+  border-bottom: 1px solid $gray-200;
+  background-color: $gray-100;
+  
+  @media screen and (max-width: 768px) {
+    padding: 1.5rem 2rem;
+  }
+  
+  @media screen and (max-width: 480px) {
+    padding: 1rem 1.5rem;
+  }
+}
+
+.help-page__video-modal-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: $primary-dark;
+  margin: 0;
+  line-height: 1.3;
+  
+  @media screen and (max-width: 768px) {
+    font-size: 1.3rem;
+  }
+  
+  @media screen and (max-width: 480px) {
+    font-size: 1.2rem;
+  }
+}
+
+.help-page__video-modal-close {
+  background: none;
+  border: none;
+  color: $gray-500;
+  cursor: pointer;
+  padding: 0.75rem;
+  border-radius: 12px;
+  transition: all 0.3s ease, background-color 0.3s ease, color 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  
+  &:hover {
+    background-color: $gray-200;
+    color: $gray-700;
+    transform: scale(1.05);
+  }
+  
+  &:active {
+    transform: scale(0.95);
+  }
+  
+  .help-page__video-modal-close-icon {
+    width: 24px;
+    height: 24px;
+  }
+  
+  @media screen and (max-width: 480px) {
+    padding: 0.5rem;
+    min-width: 40px;
+    min-height: 40px;
+    
+    .help-page__video-modal-close-icon {
+      width: 20px;
+      height: 20px;
+    }
+  }
+}
+
+.help-page__video-player {
+  width: 100%;
+  background-color: $gray-900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  .help-page__video-player-element {
+    width: 100%;
+    height: auto;
+    max-height: 70vh;
+    display: block;
+    
+    @media screen and (max-width: 768px) {
+      max-height: 60vh;
+    }
+    
+    @media screen and (max-width: 480px) {
+      max-height: 50vh;
+    }
+  }
+}
+
+.help-page__video-modal-description {
+  padding: 2rem 2.5rem;
+  border-top: 1px solid $gray-200;
+  background-color: $white;
+  
+  @media screen and (max-width: 768px) {
+    padding: 1.5rem 2rem;
+  }
+  
+  @media screen and (max-width: 480px) {
+    padding: 1rem 1.5rem;
+  }
+  
+  .help-page__video-modal-description-text {
+    font-size: 1.1rem;
+    color: $gray-700;
+    margin: 0;
+    line-height: 1.6;
+    
+    @media screen and (max-width: 768px) {
+      font-size: 1rem;
+    }
+    
+    @media screen and (max-width: 480px) {
+      font-size: 0.95rem;
+    }
+  }
+}
+
+// Responsive adjustments
+@media screen and (max-width: 640px) {
+  .help-page__header {
+    margin-bottom: 3rem;
+    
+    .help-page__header-title {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+    
+    .help-page__header-description {
+      font-size: 1rem;
+      margin-bottom: 1.5rem;
+    }
+  }
+  
+  .help-page__tutorial-section {
+    margin-bottom: 2rem;
+  }
+  
+  .help-page__section-header {
+    margin-bottom: 1rem;
+    
+    .help-page__section-icon {
+      width: 45px;
+      height: 45px;
+      
+      .help-page__section-icon-svg {
+        width: 22px;
+        height: 22px;
+      }
+    }
+    
+    .help-page__section-info {
+      .help-page__section-title {
+        font-size: 1.5rem;
+      }
+      
+      .help-page__section-description {
+        font-size: 0.95rem;
+      }
+    }
+  }
+  
+  .help-page__video-card {
+    .help-page__video-thumbnail {
+      height: 160px;
+    }
+    
+    .help-page__video-info {
+      padding: 1.25rem;
+      
+      .help-page__video-title {
+        font-size: 1.1rem;
+      }
+      
+      .help-page__video-description {
+        font-size: 0.9rem;
+      }
+    }
+  }
+  
+  .help-page__resources {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    
+    .help-page__resources-title {
+      font-size: 1.6rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .help-page__resource-card {
+      padding: 1.5rem 1rem;
+      
+      .help-page__resource-icon {
+        width: 50px;
+        height: 50px;
+        
+        .help-page__resource-icon-svg {
+          width: 24px;
+          height: 24px;
+        }
+      }
+    }
+  }
+} 

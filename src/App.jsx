@@ -1,0 +1,248 @@
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import Header from "./components/Header/HeaderAuth";
+import Sidebar from "./components/Sidebar/Sidebar";
+import IconSidebar from "./components/Sidebar/IconSidebar";
+import HomePage from "./components/HomePage/HomePage";
+import Landing from "./components/Landing/Landing";
+import AuthPage from "./components/AuthPage/AuthPage";
+import RestaurantsPage from "./components/RestaurantsPage/RestaurantsPage";
+import RestaurantDetailPage from "./components/RestaurantDetailPage/RestaurantDetailPage";
+import CartPage from "./components/CartPage/CartPage";
+import FaqPage from "./components/FaqPage/FaqPage";
+import ContactPage from "./components/ContactPage/ContactPage";
+import PartnerWithUsPage from "./components/PartnerWithUsPage/PartnerWithUsPage";
+import AdvertiseWithUsPage from "./components/AdvertiseWithUsPage/AdvertiseWithUsPage";
+import BlogPage from "./components/BlogPage/BlogPage";
+import TermsAndConditionsPage from "./components/TermsAndConditionsPage/TermsAndConditionsPage";
+import PrivacyPage from "./components/PrivacyPage/PrivacyPage";
+import GiftCardPage from "./components/GiftCardPage/GiftCardPage";
+import AccountPage from "./components/AccountPage/AccountPage";
+import CheckoutPage from "./components/CheckoutPage/CheckoutPage";
+import OrderConfirmationPage from "./components/OrderConfirmationPage/OrderConfirmationPage";
+import LoadingSpinner from "./components/LoadingSpinner/LoadingSpinner";
+import AdminLogin from "./components/AdminLogin/AdminLogin";
+import AdminLayout from "./components/AdminLayout/AdminLayout";
+import AdminDashboard from "./components/AdminDashboard/AdminDashboard";
+import AdminOrders from "./components/AdminOrders/AdminOrders";
+import AdminOrderEdit from "./components/AdminOrderEdit/AdminOrderEdit";
+import AdminUsers from "./components/AdminUsers/AdminUsers";
+import AdminRestaurants from "./components/AdminRestaurants/AdminRestaurants";
+import AdminAnalytics from "./components/AdminAnalytics/AdminAnalytics";
+import AdminAnalyticsOverview from "./components/AdminAnalytics/AdminAnalyticsOverview";
+import AdminAnalyticsRevenue from "./components/AdminAnalytics/AdminAnalyticsRevenue";
+import AdminAnalyticsOrders from "./components/AdminAnalytics/AdminAnalyticsOrders";
+import AdminAnalyticsUsers from "./components/AdminAnalytics/AdminAnalyticsUsers";
+import AdminAnalyticsRestaurants from "./components/AdminAnalytics/AdminAnalyticsRestaurants";
+import AdminSettings from "./components/AdminSettings/AdminSettings";
+import AdminRequests from "./components/AdminRequests/AdminRequests";
+import AdminCampaigns from "./components/AdminCampaigns/AdminCampaigns";
+import AdminNotFoundPage from "./components/AdminNotFoundPage/AdminNotFoundPage";
+import NotFoundPage from "./components/NotFoundPage/NotFoundPage";
+import ErrorBoundary from "./components/ErrorBoundary/ErrorBoundary";
+import OrdersClosedBanner from "./components/OrdersClosedBanner/OrdersClosedBanner";
+import { MenuProvider } from "./context/MenuContext";
+import { AuthProvider } from "./context/AuthContextProvider";
+import { CartProvider } from "./context/CartProvider";
+import { useAuth } from "./hooks/useAuth";
+import { useScrollToTop } from "./hooks/useScrollToTop";
+import logger from "./utils/logger";
+import "./App.scss";
+
+// Import the actual HelpPage component
+import HelpPage from "./components/HelpPage/HelpPage";
+
+// Component to handle authenticated routing logic
+function AuthenticatedApp() {
+  const { user, loading, tempAddress } = useAuth();
+  const location = useLocation();
+  const [initialLoad, setInitialLoad] = useState(true);
+  
+  // Scroll to top on route changes
+  useScrollToTop();
+
+  // Track when initial authentication check is complete
+  useEffect(() => {
+    if (!loading && initialLoad) {
+      setInitialLoad(false);
+    }
+  }, [loading, initialLoad]);
+
+  // Add debugging for state changes
+  useEffect(() => {
+    logger.debug('App.jsx - State changed:', {
+      user: !!user,
+      userId: user?.id,
+      tempAddress: !!tempAddress,
+      isGuest: !user && !tempAddress,
+      pathname: location.pathname
+    });
+  }, [user, tempAddress, location.pathname]);
+
+  logger.debug('App.jsx - Current state:', {
+    user: !!user,
+    userId: user?.id,
+    loading,
+    tempAddress: !!tempAddress,
+    pathname: location.pathname,
+    userObject: user ? { id: user.id, email: user.email } : null
+  });
+
+  // Show loading spinner while checking authentication (only on initial load)
+  if (loading && initialLoad) {
+    return (
+      <div className="app-loading">
+        <LoadingSpinner 
+          size="large" 
+          text="Loading application..." 
+          variant="primary"
+        />
+      </div>
+    );
+  }
+
+  const pathname = location.pathname;
+
+  // Define public routes that don't require authentication
+  const publicRoutes = ["/landing", "/signin", "/signup", "/blog", "/faq", "/contact", "/partner", "/advertise", "/help", "/terms", "/privacy", "/admin"];
+  const isPublicRoute = publicRoutes.some(route => pathname === route || pathname.startsWith(route + "/"));
+
+  // Define app routes that require some form of access (auth or temp address)
+  const appRoutes = ["/home", "/restaurants", "/restaurant", "/cart", "/checkout", "/order-confirmation", "/gift-card", "/account"];
+  const isAppRoute = appRoutes.some(route => pathname === route || pathname.startsWith(route + "/"));
+
+  // ROOT PATH: Only redirect from root, preserve all other routes
+  if (pathname === "/") {
+    if (user) {
+      logger.debug('App.jsx - Authenticated user, redirecting to /home');
+      return <Navigate to="/home" replace />;
+    } else if (tempAddress) {
+      logger.debug('App.jsx - Guest with address, redirecting to /home');
+      return <Navigate to="/home" replace />;
+    } else {
+      logger.debug('App.jsx - No auth/address, redirecting to /landing');
+      return <Navigate to="/landing" replace />;
+    }
+  }
+
+  // AUTHENTICATED USER: Only redirect from landing/auth pages, preserve all other routes
+  if (user) {
+    if (pathname === "/landing" || pathname === "/signin" || pathname === "/signup") {
+      logger.debug('App.jsx - Authenticated user on landing/auth, redirecting to /home');
+      return <Navigate to="/home" replace />;
+    }
+    // Allow authenticated users to access any route - no redirects
+    return renderApp();
+  }
+
+  // GUEST WITH ADDRESS: Allow access to app and public routes
+  if (tempAddress) {
+    if (isAppRoute || isPublicRoute) {
+      return renderApp();
+    } else {
+      // Unknown route, render app to show 404 page
+      logger.debug('App.jsx - Guest accessing unknown route, showing 404 page');
+      return renderApp();
+    }
+  }
+
+  // NO AUTH, NO ADDRESS: Allow public routes, redirect app routes to landing
+  if (isPublicRoute) {
+    return renderApp();
+  } else if (isAppRoute) {
+    logger.debug('App.jsx - No auth/address accessing app route, redirecting to /landing');
+    return <Navigate to="/landing" replace />;
+  } else {
+    // Unknown route, render app to show 404 page
+    logger.debug('App.jsx - No auth/address accessing unknown route, showing 404 page');
+    return renderApp();
+  }
+
+  function renderApp() {
+    const isAuthRoute = ["/signin", "/signup"].includes(pathname);
+    const isLandingRoute = pathname === "/landing";
+    const isAdminRoute = pathname.startsWith("/admin");
+    
+    // Admin routes - completely separate layout
+    if (isAdminRoute) {
+      return (
+        <Routes>
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
+          <Route path="/admin/*" element={<AdminLayout />}>
+            <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="orders" element={<AdminOrders />} />
+            <Route path="orders/:orderId" element={<AdminOrderEdit />} />
+            <Route path="users" element={<AdminUsers />} />
+            <Route path="restaurants" element={<AdminRestaurants />} />
+            <Route path="analytics" element={<AdminAnalytics />} />
+            <Route path="analytics/overview" element={<AdminAnalyticsOverview />} />
+            <Route path="analytics/revenue" element={<AdminAnalyticsRevenue />} />
+            <Route path="analytics/orders" element={<AdminAnalyticsOrders />} />
+            <Route path="analytics/users" element={<AdminAnalyticsUsers />} />
+            <Route path="analytics/restaurants" element={<AdminAnalyticsRestaurants />} />
+            <Route path="requests" element={<AdminRequests />} />
+            <Route path="campaigns" element={<AdminCampaigns />} />
+            <Route path="settings" element={<AdminSettings />} />
+            <Route path="" element={<Navigate to="/admin/dashboard" replace />} />
+            <Route path="*" element={<AdminNotFoundPage />} />
+          </Route>
+        </Routes>
+      );
+    }
+    
+    return (
+      <div className="app-container">
+        {!isAuthRoute && !isLandingRoute && <Header />}
+        {!isAuthRoute && !isLandingRoute && <OrdersClosedBanner />}
+        {!isAuthRoute && !isLandingRoute && <Sidebar />}
+        {!isAuthRoute && !isLandingRoute && <IconSidebar />}
+        <main className="main-content">
+          <Routes>
+            <Route path="/landing" element={<Landing />} />
+            <Route path="/home" element={<HomePage />} />
+            <Route path="/restaurants" element={<RestaurantsPage />} />
+            <Route path="/restaurant/:id" element={<RestaurantDetailPage />} />
+            <Route path="/cart" element={<CartPage />} />
+            <Route path="/checkout" element={<CheckoutPage />} />
+            <Route path="/order-confirmation" element={<OrderConfirmationPage />} />
+            <Route path="/blog" element={<BlogPage />} />
+            <Route path="/blog/:slug" element={<BlogPage />} />
+            <Route path="/contact" element={<ContactPage />} />
+            <Route path="/partner" element={<PartnerWithUsPage />} />
+            <Route path="/advertise" element={<AdvertiseWithUsPage />} />
+            <Route path="/help" element={<HelpPage />} />
+            <Route path="/faq" element={<FaqPage />} />
+            <Route path="/terms" element={<TermsAndConditionsPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/gift-card" element={<GiftCardPage />} />
+            <Route path="/account" element={<AccountPage />} />
+            <Route path="/signin" element={<AuthPage />} />
+            <Route path="/signup" element={<AuthPage />} />
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
+        </main>
+      </div>
+    );
+  }
+}
+
+function App() {
+  return (
+    <ErrorBoundary>
+      <AuthProvider>
+        <CartProvider>
+          <MenuProvider>
+            <Router>
+              <ErrorBoundary>
+                <AuthenticatedApp />
+              </ErrorBoundary>
+            </Router>
+          </MenuProvider>
+        </CartProvider>
+      </AuthProvider>
+    </ErrorBoundary>
+  );
+}
+
+export default App;

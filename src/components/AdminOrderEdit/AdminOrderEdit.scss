@@ -1,0 +1,895 @@
+.admin-order-edit {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+
+  .loading-container,
+  .error-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    gap: 16px;
+
+    p {
+      color: #64748b;
+      font-size: 1rem;
+    }
+
+    .back-btn {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: #2563eb;
+        transform: translateY(-1px);
+      }
+    }
+  }
+
+  .order-edit-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 32px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e2e8f0;
+    gap: 20px;
+    flex-wrap: wrap;
+
+    .header-content {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+
+      .back-btn {
+        background: #6b7280;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        align-self: flex-start;
+
+        &:hover {
+          background: #4b5563;
+        }
+      }
+
+      h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0;
+      }
+
+      .order-status {
+        .status-badge {
+          padding: 6px 12px;
+          border-radius: 6px;
+          font-size: 0.8rem;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+
+          &.pending { background: #fef3c7; color: #92400e; }
+          &.confirmed { background: #dbeafe; color: #1e40af; }
+          &.preparing { background: #e0e7ff; color: #3730a3; }
+          &.out_for_delivery { background: #dcfce7; color: #166534; }
+          &.delivered { background: #dcfce7; color: #166534; }
+          &.cancelled { background: #fee2e2; color: #991b1b; }
+        }
+      }
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+
+      .saving-indicator {
+        color: #3b82f6;
+        font-size: 0.9rem;
+        font-weight: 500;
+      }
+
+      .price-difference {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 4px;
+
+        .difference-label {
+          font-size: 0.8rem;
+          color: #64748b;
+          font-weight: 500;
+        }
+
+        .difference-amount {
+          font-size: 1.2rem;
+          font-weight: 700;
+
+          &.positive {
+            color: #059669;
+          }
+
+          &.negative {
+            color: #dc2626;
+          }
+        }
+      }
+
+      .save-btn {
+        background: #10b981;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:hover:not(:disabled) {
+          background: #059669;
+          transform: translateY(-1px);
+        }
+
+        &:disabled {
+          background: #9ca3af;
+          cursor: not-allowed;
+          transform: none;
+        }
+      }
+    }
+  }
+
+  .order-overview {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #f1f5f9;
+
+    .overview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+
+      .overview-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+
+        label {
+          font-size: 0.8rem;
+          color: #64748b;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        span {
+          font-size: 1rem;
+          color: #1e293b;
+          font-weight: 500;
+
+          &.new-total {
+            color: #059669;
+            font-weight: 700;
+          }
+        }
+      }
+    }
+  }
+
+  .unified-content {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+
+    .content-section {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      border: 1px solid #f1f5f9;
+
+      .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    margin-bottom: 24px;
+        padding-bottom: 16px;
+    border-bottom: 1px solid #e2e8f0;
+
+        h3 {
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: #1e293b;
+          margin: 0;
+        }
+
+        .add-item-btn {
+          background: #3b82f6;
+          color: white;
+      border: none;
+          padding: 10px 20px;
+          border-radius: 6px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+          }
+        }
+      }
+    }
+
+    .items-section {
+      .items-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+
+        h3 {
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: #1e293b;
+          margin: 0;
+        }
+
+        .add-item-btn {
+          background: #3b82f6;
+          color: white;
+          border: none;
+          padding: 10px 20px;
+          border-radius: 6px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+
+          &:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+          }
+        }
+      }
+
+      .restaurant-group {
+        margin-bottom: 32px;
+        padding: 20px;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        background: #f8fafc;
+
+        .restaurant-name {
+          font-size: 1.2rem;
+          font-weight: 700;
+          color: #1e293b;
+          margin: 0 0 16px 0;
+        }
+
+        .items-list {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          margin-bottom: 16px;
+
+          .order-item {
+            display: grid;
+            grid-template-columns: 80px 1fr 80px;
+            align-items: center;
+            gap: 16px;
+            padding: 12px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+
+            .item-price-left {
+              color: #64748b;
+              font-size: 0.9rem;
+              text-align: left;
+
+              .price-input {
+                width: 80px;
+                padding: 4px 8px;
+                border: 1px solid #d1d5db;
+                border-radius: 4px;
+                font-size: 0.9rem;
+                background: white;
+                transition: all 0.2s ease;
+
+                &:hover {
+                  border-color: #3b82f6;
+                }
+
+                &:focus {
+                  outline: none;
+                  border-color: #3b82f6;
+                  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+                }
+              }
+            }
+
+            .item-info-controls {
+              display: flex;
+              flex-direction: column;
+              gap: 8px;
+
+              .item-name {
+                font-weight: 500;
+                color: #1e293b;
+            }
+
+              .item-customization {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+                font-size: 0.85rem;
+                color: #64748b;
+                margin-top: 4px;
+
+                .customization-label {
+                  font-weight: 600;
+                  color: #475569;
+                }
+
+                .customization-value {
+                  color: #64748b;
+                }
+
+                .customization-list {
+                  display: flex;
+                  flex-direction: column;
+                  gap: 2px;
+                  margin-left: 8px;
+                }
+
+                .customization-item,
+                .customization-category {
+                  color: #64748b;
+                  font-size: 0.8rem;
+                }
+              }
+
+            .item-controls {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+
+              .quantity-btn {
+                background: #f1f5f9;
+                border: 1px solid #d1d5db;
+                width: 32px;
+                height: 32px;
+                border-radius: 4px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                transition: all 0.2s ease;
+
+                &:hover {
+                  background: #e2e8f0;
+                }
+              }
+
+              .quantity {
+                min-width: 24px;
+                text-align: center;
+                font-weight: 500;
+              }
+
+              .remove-btn {
+                background: #fee2e2;
+                color: #991b1b;
+                border: none;
+                padding: 6px 12px;
+                border-radius: 4px;
+                font-size: 0.8rem;
+                cursor: pointer;
+                transition: all 0.2s ease;
+
+                &:hover {
+                  background: #fecaca;
+                  }
+                }
+              }
+            }
+
+            .item-total-right {
+              font-weight: 600;
+              color: #1e293b;
+              text-align: right;
+            }
+          }
+        }
+
+        .group-subtotal {
+          font-size: 1.1rem;
+          font-weight: 700;
+          color: #1e293b;
+          text-align: right;
+          padding-top: 12px;
+          border-top: 1px solid #e2e8f0;
+        }
+      }
+    }
+
+    .pricing-section {
+      .pricing-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+
+        .pricing-item {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+
+          label {
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.9rem;
+          }
+
+          input {
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+
+            &:focus {
+              outline: none;
+              border-color: #3b82f6;
+              box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            }
+          }
+        }
+      }
+    }
+
+    .refunds-section {
+
+      h4 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #374151;
+        margin: 24px 0 16px 0;
+      }
+
+      .refund-summary {
+        background: #f8fafc;
+        padding: 20px;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        margin-bottom: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+
+        .refund-summary-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+
+          .label {
+            font-weight: 500;
+            color: #64748b;
+          }
+
+          .value {
+            font-weight: 600;
+            color: #1e293b;
+            font-size: 1.125rem;
+          }
+        }
+      }
+
+      .existing-refunds {
+        margin-bottom: 24px;
+
+        .refunds-list {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+
+          .refund-item {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+
+            .refund-header {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 12px;
+
+              .refund-amount {
+                font-size: 1.25rem;
+                font-weight: 700;
+                color: #1e293b;
+              }
+
+              .refund-status {
+                padding: 4px 12px;
+                border-radius: 12px;
+                font-size: 0.875rem;
+                font-weight: 600;
+
+                &.refund-status-processed {
+                  background: #d1fae5;
+                  color: #065f46;
+                }
+
+                &.refund-status-pending {
+                  background: #fef3c7;
+                  color: #92400e;
+                }
+
+                &.refund-status-failed {
+                  background: #fee2e2;
+                  color: #991b1b;
+                }
+              }
+            }
+
+            .refund-details {
+              p {
+                margin: 4px 0;
+                color: #64748b;
+                font-size: 0.875rem;
+
+                strong {
+                  color: #374151;
+                  font-weight: 600;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      .refund-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+
+        .refund-btn {
+          background: #dc2626;
+          color: white;
+          border: none;
+          padding: 12px 24px;
+          border-radius: 8px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          align-self: flex-start;
+
+          &:hover:not(:disabled) {
+            background: #b91c1c;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(220, 38, 38, 0.3);
+          }
+
+          &:disabled {
+            background: #cbd5e1;
+            color: #94a3b8;
+            cursor: not-allowed;
+            opacity: 0.6;
+          }
+
+          &.full-refund {
+            background: #dc2626;
+
+            &:hover:not(:disabled) {
+              background: #b91c1c;
+            }
+          }
+
+          &.partial-refund {
+            background: #f59e0b;
+
+            &:hover:not(:disabled) {
+              background: #d97706;
+            }
+          }
+        }
+
+        .refund-warning {
+          color: #dc2626;
+          font-size: 0.875rem;
+          margin: 8px 0 0 0;
+          padding: 8px 12px;
+          background: #fee2e2;
+          border-radius: 6px;
+          border: 1px solid #fecaca;
+        }
+      }
+    }
+  }
+
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+
+    .modal {
+      background: white;
+      border-radius: 12px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+
+      &.refund-modal {
+        max-width: 600px;
+      }
+
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 24px;
+        border-bottom: 1px solid #e2e8f0;
+
+        h3 {
+          font-size: 1.2rem;
+          font-weight: 700;
+          color: #1e293b;
+          margin: 0;
+        }
+
+        button {
+          background: none;
+          border: none;
+          font-size: 1.5rem;
+          cursor: pointer;
+          color: #64748b;
+          padding: 0;
+          width: 24px;
+          height: 24px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          &:hover {
+            color: #374151;
+          }
+        }
+      }
+
+      .modal-content {
+        padding: 24px;
+
+        p {
+          margin: 0 0 16px 0;
+          color: #374151;
+        }
+
+        button {
+          background: #3b82f6;
+          color: white;
+          border: none;
+          padding: 10px 20px;
+          border-radius: 6px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+
+          &:hover {
+            background: #2563eb;
+          }
+        }
+
+        .refund-modal-content {
+          .refund-order-info {
+            background: #f8fafc;
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 24px;
+
+            p {
+              margin: 8px 0;
+              color: #374151;
+
+              strong {
+                font-weight: 600;
+                color: #1e293b;
+              }
+            }
+          }
+
+          .refund-form {
+            .form-group {
+              margin-bottom: 20px;
+
+              label {
+                display: block;
+                font-weight: 600;
+                color: #374151;
+                margin-bottom: 8px;
+                font-size: 0.875rem;
+
+                .required {
+                  color: #dc2626;
+                }
+              }
+
+              .refund-type-buttons {
+                display: flex;
+                gap: 12px;
+
+                .type-btn {
+                  flex: 1;
+                  padding: 10px 16px;
+                  border: 2px solid #e2e8f0;
+                  border-radius: 8px;
+                  background: white;
+                  color: #64748b;
+                  font-weight: 600;
+                  cursor: pointer;
+                  transition: all 0.2s ease;
+
+                  &:hover:not(:disabled) {
+                    border-color: #5fb4f9;
+                    color: #5fb4f9;
+                  }
+
+                  &.active {
+                    background: #5fb4f9;
+                    border-color: #5fb4f9;
+                    color: white;
+                  }
+
+                  &:disabled {
+                    opacity: 0.5;
+                    cursor: not-allowed;
+                  }
+                }
+              }
+
+              input[type="number"],
+              textarea {
+                width: 100%;
+                padding: 10px 12px;
+                border: 1px solid #d1d5db;
+                border-radius: 6px;
+                font-size: 0.95rem;
+                color: #1e293b;
+                transition: all 0.2s ease;
+
+                &:focus {
+                  outline: none;
+                  border-color: #5fb4f9;
+                  box-shadow: 0 0 0 3px rgba(95, 180, 249, 0.1);
+                }
+
+                &:disabled {
+                  background: #f3f4f6;
+                  color: #9ca3af;
+                  cursor: not-allowed;
+                }
+              }
+
+              textarea {
+                resize: vertical;
+                min-height: 80px;
+                font-family: inherit;
+              }
+
+              .input-hint {
+                display: block;
+                margin-top: 4px;
+                font-size: 0.75rem;
+                color: #64748b;
+              }
+            }
+
+            .modal-actions {
+              display: flex;
+              gap: 12px;
+              justify-content: flex-end;
+              margin-top: 24px;
+              padding-top: 24px;
+              border-top: 1px solid #e2e8f0;
+
+              .cancel-btn,
+              .confirm-btn {
+                padding: 10px 24px;
+                border-radius: 6px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                border: none;
+
+                &:disabled {
+                  opacity: 0.5;
+                  cursor: not-allowed;
+                }
+              }
+
+              .cancel-btn {
+                background: #f3f4f6;
+                color: #374151;
+
+                &:hover:not(:disabled) {
+                  background: #e5e7eb;
+                }
+              }
+
+              .confirm-btn {
+                background: #dc2626;
+                color: white;
+
+                &:hover:not(:disabled) {
+                  background: #b91c1c;
+                  transform: translateY(-1px);
+                  box-shadow: 0 4px 8px rgba(220, 38, 38, 0.3);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  @media (max-width: 768px) {
+    padding: 16px;
+
+    .order-edit-header {
+      flex-direction: column;
+      align-items: stretch;
+
+      .header-actions {
+        justify-content: space-between;
+      }
+    }
+
+    .order-overview .overview-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .unified-content .content-section.items-section .restaurant-group .items-list .order-item {
+      grid-template-columns: 1fr;
+      gap: 12px;
+
+      .item-controls {
+        justify-content: center;
+      }
+
+      .item-total {
+        text-align: center;
+      }
+    }
+
+    .unified-content .content-section.pricing-section .pricing-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+}

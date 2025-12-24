@@ -1,0 +1,872 @@
+.header {
+  width: 100%;
+  height: 60px;
+  border-bottom: 1px solid #e8e9eb;
+  background-color: white;
+  position: fixed; /* Added fixed positioning */
+  top: 0; /* Added to ensure it's at the top */
+  left: 0; /* Added to ensure it spans full width */
+  z-index: 100; /* Ensure header is above sidebar */
+  
+  .header-container {
+    height: 100%;
+    margin: 0 auto;
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 0; // Allow flex items to shrink
+  }
+  
+  .hamburger-menu {
+    display: none;
+    margin-right: 16px;
+    position: relative;
+    z-index: 101; /* Always on top */
+    
+    .hamburger-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border: none;
+      background-color: transparent;
+      border-radius: 50%;
+      cursor: pointer;
+      padding: 0;
+      transition: background-color 0.3s ease; /* Added transition */
+      
+      &:hover {
+        background-color: #f6f7f8;
+      }
+      
+      &.active {
+        background-color: #f6f7f8;
+        
+        svg {
+          path {
+            fill: #5fb4f9; // Use accent blue for active state
+            transition: fill 0.3s ease; /* Added transition */
+          }
+        }
+      }
+      
+      svg {
+        path {
+          transition: fill 0.3s ease; /* Added transition */
+        }
+      }
+    }
+  }
+  
+  .header-left {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 101; /* Always on top */
+    
+    .logo {
+      margin-right: 24px;
+      cursor: pointer; /* Added cursor pointer */
+      transition: opacity 0.3s ease; /* Added transition */
+      
+      .logo-full {
+        height: 28px;
+        width: auto;
+        display: block;
+        transition: opacity 0.3s ease; /* Added transition */
+      }
+      
+      .logo-icon {
+        height: 28px;
+        width: auto;
+        display: none;
+        transition: opacity 0.3s ease; /* Added transition */
+      }
+    }
+  }
+  
+  .search-container {
+    position: relative;
+    flex: 1 1 auto;
+    margin: 0 16px;
+    min-width: 200px; // Minimum width to prevent collapse
+    overflow: visible; // Ensure dropdown can extend beyond container
+    
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    
+    input {
+      width: 100%;
+      height: 40px;
+      padding: 0 16px 0 44px;
+      border-radius: 20px;
+      border: none;
+      background-color: #f6f7f8;
+      font-size: 16px;
+      transition: box-shadow 0.3s ease; /* Added transition */
+      
+      &:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(95, 180, 249, 0.5);
+      }
+      
+      &::placeholder {
+        color: #767676;
+      }
+    }
+
+    // Search dropdown styles
+    .search-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #e8e8e8;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(6, 23, 87, 0.15);
+      z-index: 9999;
+      max-height: 400px;
+      overflow-y: auto;
+      margin-top: 8px;
+      
+      .search-result {
+        width: 100%;
+        padding: 12px 16px;
+        cursor: pointer;
+        border: none;
+        background: none;
+        text-align: left;
+        border-bottom: 1px solid #f0f0f0;
+        transition: background-color 0.2s ease;
+        font-family: inherit;
+        font-size: inherit;
+        
+        &:hover {
+          background-color: #f8f9fa;
+        }
+        
+        &:last-child {
+          border-bottom: none;
+        }
+        
+        &:focus {
+          outline: 2px solid #5fb4f9;
+          outline-offset: -2px;
+        }
+        
+        .search-result-header {
+          display: flex;
+          align-items: center;
+          margin-bottom: 4px;
+          
+          .search-result-title {
+            font-weight: 600;
+            color: #061757;
+            line-height: 1.3;
+            flex: 1;
+          }
+        }
+        
+        .search-result-subtitle {
+          font-size: 0.85rem;
+          color: #6c757d;
+          line-height: 1.4;
+          margin-left: 0;
+        }
+      }
+      
+      // Responsive adjustments
+      @media (max-width: 768px) {
+        position: fixed;
+        top: 60px;
+        left: 0;
+        right: 0;
+        border-radius: 0;
+        max-height: calc(100vh - 60px);
+        margin-top: 0;
+      }
+    }
+  }
+  
+  .header-right {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0; // Prevent header-right from shrinking
+    gap: 8px; // Add consistent spacing between items
+    
+    .location-button {
+      display: flex;
+      align-items: center;
+      padding: 8px 12px;
+      border-radius: 20px;
+      cursor: pointer;
+      position: relative;
+      transition: background-color 0.3s ease; /* Added transition */
+      min-width: 0; // Allow content to shrink
+      max-width: 250px; // Limit maximum width
+      
+      &:hover {
+        background-color: #f6f7f8;
+      }
+      
+      .location-icon {
+        margin-right: 8px;
+      }
+      
+      span {
+        color: #061757;
+        font-size: 14px;
+        font-weight: 500;
+        margin-right: 4px;
+      }
+
+      .address-text {
+        color: #061757;
+        font-size: 14px;
+        font-weight: 500;
+        margin-right: 4px;
+        max-width: 150px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        flex-shrink: 1; // Allow address to shrink first
+      }
+    }
+    
+    .location-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+      min-width: 320px;
+      max-width: 400px;
+      animation: fadeInDown 0.2s ease-out;
+
+      @keyframes fadeInDown {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .dropdown-header {
+        padding: 16px 20px 12px;
+        border-bottom: 1px solid #e2e8f0;
+
+        h3 {
+          margin: 0;
+          font-size: 16px;
+          font-weight: 600;
+          color: #061757;
+        }
+      }
+
+      .dropdown-content {
+        padding: 16px 20px 20px;
+        max-height: 400px;
+        overflow-y: auto;
+
+        .current-location {
+          display: flex;
+          align-items: flex-start;
+          padding: 12px 16px;
+          background-color: #f8fafc;
+          border-radius: 8px;
+          margin-bottom: 16px;
+
+          .location-marker {
+            margin-right: 12px;
+            flex-shrink: 0;
+            margin-top: 2px;
+          }
+
+          .address-details {
+            flex: 1;
+            min-width: 0;
+
+            .address-label {
+              font-size: 12px;
+              font-weight: 500;
+              color: #5fb4f9;
+              margin-bottom: 4px;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            }
+
+            .address-line {
+              font-size: 14px;
+              font-weight: 600;
+              color: #061757;
+              margin: 0 0 2px 0;
+              line-height: 1.3;
+            }
+
+            .address-city {
+              font-size: 13px;
+              color: #6c757d;
+              margin: 0;
+              line-height: 1.3;
+            }
+          }
+        }
+
+        .no-address {
+          padding: 12px 0;
+          text-align: center;
+          
+          p {
+            margin: 0;
+            color: #6c757d;
+            font-size: 14px;
+          }
+        }
+
+        .saved-addresses {
+          margin-top: 16px;
+          padding-top: 16px;
+          border-top: 1px solid #e2e8f0;
+
+          h4 {
+            margin: 0 0 12px 0;
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+          }
+        }
+
+        .saved-address-item {
+          display: flex;
+          align-items: center;
+          padding: 12px 16px;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          border: 1px solid transparent;
+          margin-bottom: 8px;
+
+          &:last-child {
+            margin-bottom: 0;
+          }
+
+          &:hover {
+            background-color: #f8fafc;
+            border-color: #e2e8f0;
+          }
+
+          &.currently-selected {
+            background-color: #f0f9ff;
+            border-color: #5fb4f9;
+            
+            .address-label {
+              color: #0ea5e9;
+              font-weight: 600;
+            }
+          }
+
+          .address-info {
+            flex: 1;
+            min-width: 0;
+
+            .address-label {
+              font-weight: 600;
+              color: #061757;
+              font-size: 14px;
+              margin-bottom: 2px;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+            
+            .address-text {
+              color: #6c757d;
+              font-size: 12px;
+              line-height: 1.3;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+          }
+
+          .selected-indicator {
+            margin-left: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+          }
+        }
+
+        .add-address-btn,
+        .manage-address-btn,
+        .edit-address-btn {
+          width: 100%;
+          padding: 12px 0;
+          margin-top: 12px;
+          border: none;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          text-decoration: none;
+          text-align: center;
+          display: block;
+        }
+
+        .add-address-btn {
+          background-color: #f6f7f8;
+          color: #061757;
+          
+          &:hover {
+            background-color: #e8e9eb;
+          }
+        }
+
+        .edit-address-btn {
+          background-color: #6c757d;
+          color: white;
+          margin-top: 8px;
+          
+          &:hover {
+            background-color: #5a6268;
+          }
+        }
+
+        .manage-address-btn {
+          background-color: #5fb4f9;
+          color: white;
+          
+          &:hover {
+            background-color: #4aa3e8;
+          }
+        }
+      }
+    }
+    
+    .cart-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: background-color 0.3s ease; /* Added transition */
+      flex-shrink: 0; // Never shrink cart button
+      
+      &:hover {
+        background-color: #f6f7f8;
+      }
+      
+      .cart-count {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #5fb4f9;
+        color: white;
+        font-size: 12px;
+        font-weight: 700;
+        border-radius: 50%;
+        transition: background-color 0.3s ease; /* Added transition */
+      }
+    }
+    
+    .sign-in-button, .sign-up-button, .login-button {
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.3s ease, border-color 0.3s ease; /* Added transition */
+      display: inline-block; /* Added for Link component */
+      text-align: center; /* Added for Link component */
+      text-decoration: none; /* Added for Link component */
+      white-space: nowrap; // Prevent text wrapping
+      flex-shrink: 0; // Never shrink buttons
+      min-width: fit-content; // Ensure buttons maintain their size
+    }
+    
+    .sign-in-button {
+      background-color: white;
+      color: #061757;
+      border: 1px solid #e8e9eb;
+      
+      &:hover {
+        background-color: #f6f7f8;
+      }
+    }
+    
+    .sign-up-button {
+      background-color: #5fb4f9;
+      color: white;
+      border: none;
+      
+      &:hover {
+        background-color: #4aa3e8;
+      }
+    }
+
+    .sign-out-button {
+      background-color: #5fb4f9;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      white-space: nowrap; // Prevent text wrapping
+      flex-shrink: 0; // Never shrink button
+      
+      &:hover {
+        background-color: #061757;
+      }
+    }
+    
+    .login-button {
+      display: none;
+      background-color: #5fb4f9;
+      color: white;
+      border: none;
+      
+      &:hover {
+        background-color: #4aa3e8;
+      }
+    }
+
+    .user-actions {
+      display: flex;
+      align-items: center;
+      
+      .user-greeting {
+        color: #061757;
+        font-size: 14px;
+        font-weight: 600;
+        white-space: nowrap;
+        padding: 8px 12px;
+        background-color: #f8f9fa;
+        border-radius: 20px;
+        border: 1px solid #e9ecef;
+      }
+    }
+  }
+  
+  /* When mobile menu is open, hide everything except hamburger and logo */
+  &.menu-open {
+    .search-container,
+    .header-right {
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+  }
+}
+
+/* Media query for screens 1200px and below */
+@media screen and (max-width: 1200px) {
+  .header {
+    .search-container {
+      margin: 0 12px;
+    }
+    
+    .header-right {
+      .location-button {
+        .address-text {
+          max-width: 120px; // Further reduce address width
+        }
+      }
+    }
+  }
+}
+
+/* Media query for screens 1110px and below */
+@media screen and (max-width: 1110px) {
+  .header {
+    .header-container {
+      padding: 0 16px;
+    }
+    
+    .hamburger-menu {
+      display: block;
+    }
+    
+    .header-left {
+      .logo {
+        .logo-full {
+          display: none;
+        }
+        
+        .logo-icon {
+          display: block;
+        }
+      }
+    }
+    
+    .search-container {
+      margin: 0 8px;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+    
+    .header-right {
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+      gap: 6px; // Reduce gap on smaller screens
+      
+      .location-button {
+        padding: 6px 8px;
+        
+        .address-text {
+          max-width: 100px; // Even smaller on mobile
+          font-size: 14px; // Accessibility compliant minimum
+        }
+      }
+      
+      .sign-in-button, .sign-up-button, .sign-out-button {
+        padding: 6px 12px;
+        font-size: 14px; // Accessibility compliant minimum
+      }
+    }
+  }
+}
+
+/* Media query for screens 840px and below */
+@media screen and (max-width: 840px) {
+  .header {
+    .header-container {
+      padding: 0 12px;
+    }
+    
+    .search-container {
+      margin: 0 12px;
+      
+      input {
+        font-size: 16px; // Accessibility compliant for input fields
+      }
+    }
+    
+    .header-right {
+      gap: 4px; // Even smaller gap
+      
+      .location-button {
+        padding: 6px 8px;
+        
+        .address-text {
+          max-width: 80px;
+          font-size: 14px; // Accessibility compliant minimum
+        }
+        
+        span {
+          font-size: 14px; // Accessibility compliant minimum
+        }
+      }
+      
+      .location-dropdown {
+        width: 300px;
+        left: -150px; // Center better on smaller screens
+      }
+      
+      .sign-in-button, .sign-up-button {
+        display: none !important;
+      }
+      
+      .login-button {
+        display: block;
+        padding: 8px 12px;
+        font-size: 14px; // Accessibility compliant minimum
+      }
+    }
+  }
+}
+
+@media screen and (max-width: 640px) {
+  .header {
+    .header-container {
+      padding: 0 8px; // Tighter padding for more space
+    }
+    
+    .hamburger-menu {
+      margin-right: 6px;
+      flex-shrink: 0;
+    }
+    
+    .header-left {
+      flex-shrink: 0;
+      
+      .logo {
+        margin-right: 0;
+      }
+    }
+    
+    .search-container {
+      display: none; // Hide search to prioritize address and cart
+    }
+    
+    .header-right {
+      flex-shrink: 0;
+      margin-left: auto;
+      gap: 6px;
+      
+      .location-button {
+        padding: 6px 8px;
+        
+        .address-text {
+          max-width: 70px; // Compact but still visible
+          font-size: 14px; // Accessibility compliant
+        }
+        
+        span {
+          font-size: 14px; // Accessibility compliant
+        }
+      }
+      
+      .location-dropdown {
+        width: 280px;
+        left: -180px; // Adjust for smaller screens
+      }
+      
+      .cart-button {
+        // Cart button stays fully visible
+        width: 36px;
+        height: 36px;
+      }
+      
+      .sign-in-button, .sign-up-button {
+        display: none !important; // Hide auth buttons to save space
+      }
+      
+      .login-button {
+        display: block;
+        padding: 6px 10px;
+        font-size: 14px; // Accessibility compliant
+      }
+      
+      .sign-out-button {
+        padding: 6px 10px;
+        font-size: 14px; // Accessibility compliant
+      }
+    }
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .header {
+    .header-container {
+      padding: 0 6px; // Even tighter for very small screens
+    }
+    
+    .header-right {
+      gap: 4px;
+      
+      .location-button {
+        padding: 4px 6px;
+        
+        // Show only location icon on very small screens but keep clickable
+        .address-text {
+          display: none; // Hide text but keep button functional
+        }
+        
+        span {
+          display: none; // Hide "Deliver to" text
+        }
+        
+        // Ensure location icon is visible and accessible
+        .location-icon {
+          margin-right: 0;
+        }
+        
+        // Add tooltip-like behavior with title attribute (handled in component)
+        // Only show tooltip when dropdown is NOT open
+        &:not(.dropdown-open) {
+          &::after {
+            content: attr(data-address);
+            position: absolute;
+            bottom: -35px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 14px; // Accessibility compliant
+            font-weight: 500;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 1000;
+            max-width: 200px;
+            text-overflow: ellipsis;
+            overflow: hidden;
+          }
+          
+          &:hover::after {
+            opacity: 1;
+          }
+          
+          // Add small arrow pointing up to the button
+          &::before {
+            content: '';
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-bottom: 5px solid rgba(0, 0, 0, 0.9);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 1001;
+          }
+          
+          &:hover::before {
+            opacity: 1;
+          }
+        }
+      }
+      
+      .location-dropdown {
+        width: 260px;
+        left: -200px; // Adjust for very small screens
+        right: 16px; // Ensure it doesn't go off screen
+      }
+      
+      .cart-button {
+        width: 32px;
+        height: 32px; // Slightly smaller but still accessible
+      }
+      
+      .login-button, .sign-out-button {
+        padding: 4px 8px;
+        font-size: 14px; // Keep accessibility compliant
+      }
+    }
+  }
+}
+
+// Remove the old breakpoint that hides address completely
+// @media screen and (max-width: 410px) - DELETED to ensure address is always accessible

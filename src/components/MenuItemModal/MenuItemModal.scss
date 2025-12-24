@@ -1,0 +1,564 @@
+.menu-item-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-start; // Changed from center to flex-start
+  justify-content: center;
+  z-index: 10000;
+  padding: 1rem;
+
+  // Account for sidebar on desktop, but overlay covers full screen including header
+  // Calculate exact top position for symmetrical spacing
+  @media (min-width: 1111px) {
+    left: 240px; // Full sidebar width
+    padding-top: calc(60px + 1rem); // Header height + desired spacing
+    // Equal spacing at bottom
+  }
+
+  @media (min-width: 641px) and (max-width: 1110px) {
+    left: 60px; // Icon sidebar width
+    padding-top: calc(60px + 1rem); // Header height + desired spacing
+    // Equal spacing at bottom
+  }
+
+  @media (max-width: 640px) {
+    left: 0;
+    padding-top: calc(60px + 1rem); // Header height + desired spacing
+    // Equal spacing at bottom
+  }
+}
+
+.menu-item-modal {
+  background: white;
+  border-radius: 18px;
+  max-width: 500px;
+  width: 100%;
+  max-height: 87.5vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 8px 32px rgba(6, 23, 87, 0.18);
+  
+  @media (max-width: 640px) {
+    max-width: 95vw;
+    max-height: 87.5vh;
+  }
+}
+
+.menu-item-close-button {
+  position: sticky;
+  top: 1rem;
+  right: 1rem;
+  float: right;
+  margin-bottom: -40px; // Negative margin to not take up space
+  background: rgba(255, 255, 255, 0.95);
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  
+  &:hover {
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transform: scale(1.05);
+  }
+  
+  &:focus {
+    outline: none;
+  }
+  
+  &:focus-visible {
+    outline: 2px solid #5fb4f9;
+    outline-offset: 2px;
+  }
+}
+
+.modal-image {
+  width: 100%;
+  aspect-ratio: 4/2.5;
+  overflow: hidden;
+  border-radius: 18px 18px 0 0;
+  position: relative;
+  
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    
+    // Special styling for placeholder images (MKD icon)
+    &.placeholder-image {
+      object-fit: contain;
+      padding: 3rem;
+      background: #f8f9fa;
+    }
+  }
+}
+
+.modal-content {
+  padding: 2rem;
+  
+  @media (max-width: 640px) {
+    padding: 1.5rem;
+  }
+}
+
+.modal-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #061757;
+  margin-bottom: 1rem;
+  line-height: 1.2;
+  
+  @media (max-width: 640px) {
+    font-size: 1.5rem;
+  }
+}
+
+.modal-labels {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.modal-label {
+  background: #5fb4f9;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 16px;
+  padding: 0.25rem 0.75rem;
+  display: inline-block;
+  position: relative;
+  cursor: default;
+  transition: all 0.3s ease;
+
+  // Different colors for different dietary tags
+  &[title*="Meat"],
+  &[title*="meat"] {
+    background: #dc3545; // Red for meat
+    
+    &:hover {
+      background: #c82333; // Darker red on hover
+    }
+    
+    &:hover::after {
+      background: #c82333; // Tooltip matches hover color
+    }
+  }
+
+  &[title*="Dairy"],
+  &[title*="dairy"] {
+    background: #5fb4f9; // Brand blue for dairy
+    
+    &:hover {
+      background: #061757; // Navy on hover
+    }
+    
+    &:hover::after {
+      background: #061757; // Tooltip matches hover color
+    }
+  }
+
+  &[title*="Gluten Free"],
+  &[title*="gluten"],
+  &[title*="Nut Free"],
+  &[title*="nut"] {
+    background: #ffc107; // Yellow for gluten free and nut free
+    color: #212529; // Dark text for better contrast on yellow
+    
+    &:hover {
+      background: #e0a800; // Darker yellow on hover
+      color: #212529; // Maintain dark text
+    }
+    
+    &:hover::after {
+      background: #e0a800; // Tooltip matches hover color
+      color: #212529; // Dark text in tooltip
+    }
+  }
+
+  &[title*="Vegetarian"],
+  &[title*="vegetarian"],
+  &[title*="Vegan"],
+  &[title*="vegan"] {
+    background: #28a745; // Green for vegetarian and vegan
+    
+    &:hover {
+      background: #1e7e34; // Darker green on hover
+    }
+    
+    &:hover::after {
+      background: #1e7e34; // Tooltip matches hover color
+    }
+  }
+
+  // Default fallback for any other labels
+  &:not([title*="Meat"]):not([title*="Dairy"]):not([title*="Gluten Free"]):not([title*="Vegetarian"]):not([title*="Vegan"]):not([title*="Nut Free"]):not([title*="meat"]):not([title*="dairy"]):not([title*="gluten"]):not([title*="vegetarian"]):not([title*="vegan"]):not([title*="nut"]) {
+    &:hover {
+      background: #061757; // Darker blue on hover
+    }
+    
+    &:hover::after {
+      background: #061757; // Tooltip matches hover color
+    }
+  }
+
+  &:hover::after {
+    content: attr(title);
+    position: absolute;
+    left: 50%;
+    bottom: 120%;
+    transform: translateX(-50%);
+    color: #fff;
+    padding: 0.45rem 1rem;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(6, 23, 87, 0.12);
+    z-index: 10;
+  }
+}
+
+.modal-description {
+  font-size: 1.1rem;
+  color: #333;
+  line-height: 1.5;
+  margin-bottom: 1.5rem;
+}
+
+.modal-price {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  
+  .price-label {
+    font-size: 1rem;
+    color: #6c757d;
+    font-weight: 500;
+  }
+  
+  .price-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #061757;
+  }
+}
+
+.quantity-section {
+  margin-bottom: 1.5rem;
+  
+  .quantity-label {
+    display: block;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #061757;
+    margin-bottom: 0.75rem;
+  }
+}
+
+.quantity-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  
+  .quantity-btn {
+    width: 40px;
+    height: 40px;
+    border: 2px solid #5fb4f9;
+    background: white;
+    color: #5fb4f9;
+    border-radius: 50%;
+    font-size: 1.25rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    
+    &:hover:not(:disabled) {
+      background: #5fb4f9;
+      color: white;
+    }
+    
+    &:focus {
+      outline: none;
+    }
+    
+    &:focus-visible {
+      outline: 2px solid #5fb4f9;
+      outline-offset: 2px;
+    }
+    
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+  
+  .quantity-display {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #061757;
+    min-width: 2rem;
+    text-align: center;
+  }
+}
+
+.total-price {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 0;
+  border-top: 1px solid #e8e8e8;
+  margin-bottom: 1.5rem;
+  
+  .total-label {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #061757;
+  }
+  
+  .total-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #061757;
+  }
+}
+
+.add-to-cart-btn {
+  width: 100%;
+  background: #5fb4f9;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 1rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background: #061757;
+  }
+  
+  &:focus {
+    outline: none;
+  }
+  
+  &:focus-visible {
+    outline: 2px solid #5fb4f9;
+    outline-offset: 2px;
+  }
+
+  // Added state styling
+  &.added {
+    background: #28a745; // Green background for added state
+    color: white;
+    cursor: default;
+    transform: scale(1.02);
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+    
+    &:hover {
+      background: #28a745; // Keep green on hover when added
+      transform: scale(1.02);
+    }
+  }
+
+  // Disabled state styling
+  &:disabled {
+    cursor: default;
+    opacity: 1; // Keep full opacity for added state
+  }
+}
+
+// Variant Selection Styling
+.modal-variants {
+  margin: 1.5rem 0;
+  
+  .variants-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #061757;
+    margin: 0 0 1rem 0;
+  }
+  
+  .variants-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .variant-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: #ffffff;
+    
+    &:hover {
+      border-color: #5fb4f9;
+      background: #f8f9fa;
+    }
+    
+    &.selected {
+      border-color: #5fb4f9;
+      background: #eff6ff;
+      box-shadow: 0 0 0 3px rgba(95, 180, 249, 0.15);
+    }
+    
+    .variant-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      
+      .variant-name {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #061757;
+      }
+      
+      .variant-price-modifier {
+        font-size: 0.875rem;
+        color: #5fb4f9;
+        font-weight: 500;
+      }
+    }
+    
+    .variant-total-price {
+      font-size: 1.125rem;
+      font-weight: 700;
+      color: #061757;
+    }
+  }
+}
+
+// Builder Configuration Styling
+.modal-configurations {
+  margin: 1.5rem 0;
+  
+  .configurations-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #061757;
+    margin: 0 0 1rem 0;
+  }
+  
+  .configuration-category {
+    margin-bottom: 1.5rem;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+    
+    .category-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+      
+      .category-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #061757;
+        margin: 0;
+        
+        .required-indicator {
+          color: #ef4444;
+          margin-left: 0.25rem;
+        }
+      }
+      
+      .category-limit {
+        font-size: 0.875rem;
+        color: #64748b;
+        font-weight: 500;
+      }
+    }
+    
+    .category-options {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    
+    .configuration-option {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.875rem 1rem;
+      border: 2px solid #e2e8f0;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: #ffffff;
+      position: relative;
+      
+      &:hover:not(.disabled) {
+        border-color: #5fb4f9;
+        background: #f8f9fa;
+      }
+      
+      &.selected {
+        border-color: #5fb4f9;
+        background: #eff6ff;
+        box-shadow: 0 0 0 3px rgba(95, 180, 249, 0.15);
+      }
+      
+      &.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background: #f8f9fa;
+      }
+      
+      .option-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        
+        .option-name {
+          font-size: 0.95rem;
+          font-weight: 500;
+          color: #061757;
+        }
+        
+        .option-price-modifier {
+          font-size: 0.8rem;
+          color: #5fb4f9;
+          font-weight: 500;
+        }
+      }
+      
+      .option-selected-indicator {
+        font-size: 1.25rem;
+        color: #5fb4f9;
+        font-weight: bold;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #eff6ff;
+        border-radius: 50%;
+        border: 2px solid #5fb4f9;
+      }
+    }
+  }
+} 

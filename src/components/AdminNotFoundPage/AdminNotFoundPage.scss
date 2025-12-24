@@ -1,0 +1,246 @@
+.admin-not-found {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8fafc;
+  padding: 2rem;
+  min-height: calc(100vh - 80px); // Account for header height
+}
+
+.admin-not-found__container {
+  max-width: 500px;
+  width: 100%;
+  text-align: center;
+}
+
+.admin-not-found__content {
+  background: white;
+  border-radius: 16px;
+  padding: 2.5rem 2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
+}
+
+.admin-not-found__illustration {
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+.admin-not-found__number {
+  font-size: 6rem;
+  font-weight: 900;
+  color: #5fb4f9;
+  line-height: 1;
+  margin-bottom: 0.75rem;
+  text-shadow: 0 2px 4px rgba(95, 180, 249, 0.2);
+  animation: adminBounce 2s ease-in-out infinite;
+}
+
+.admin-not-found__icon {
+  color: #64748b;
+  opacity: 0.6;
+  animation: adminFloat 3s ease-in-out infinite;
+}
+
+.admin-not-found__text {
+  margin-bottom: 2rem;
+}
+
+.admin-not-found__text h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 0.75rem 0;
+  line-height: 1.2;
+}
+
+.admin-not-found__subtitle {
+  font-size: 1.125rem;
+  color: #475569;
+  margin: 0 0 0.75rem 0;
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+.admin-not-found__description {
+  font-size: 0.95rem;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.admin-not-found__actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.admin-not-found__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  min-width: 120px;
+  justify-content: center;
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  &--primary {
+    background: #5fb4f9;
+    color: white;
+    box-shadow: 0 2px 8px rgba(95, 180, 249, 0.3);
+
+    &:hover {
+      background: #3b82f6;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(95, 180, 249, 0.4);
+    }
+  }
+
+  &--secondary {
+    background: #f8fafc;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+
+    &:hover {
+      background: #e2e8f0;
+      border-color: #cbd5e1;
+      transform: translateY(-1px);
+    }
+  }
+}
+
+.admin-not-found__suggestions {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 1.5rem;
+}
+
+.admin-not-found__suggestions h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 1rem 0;
+}
+
+.admin-not-found__links {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+.admin-not-found__link {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: center;
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  &:hover {
+    background: #e2e8f0;
+    border-color: #cbd5e1;
+    transform: translateY(-1px);
+  }
+}
+
+// Animations
+@keyframes adminBounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-8px);
+  }
+  60% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes adminFloat {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .admin-not-found {
+    padding: 1rem;
+  }
+
+  .admin-not-found__content {
+    padding: 2rem 1.5rem;
+  }
+
+  .admin-not-found__number {
+    font-size: 4rem;
+  }
+
+  .admin-not-found__text h1 {
+    font-size: 1.75rem;
+  }
+
+  .admin-not-found__subtitle {
+    font-size: 1rem;
+  }
+
+  .admin-not-found__actions {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .admin-not-found__btn {
+    width: 100%;
+    max-width: 180px;
+  }
+
+  .admin-not-found__links {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-not-found__number {
+    font-size: 3rem;
+  }
+
+  .admin-not-found__text h1 {
+    font-size: 1.5rem;
+  }
+
+  .admin-not-found__subtitle {
+    font-size: 0.9rem;
+  }
+}

@@ -1,0 +1,620 @@
+.admin-analytics {
+  padding: 24px;
+  background: #f8fafc;
+  min-height: 100vh;
+
+  .analytics-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 32px;
+    padding: 24px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(6, 23, 87, 0.06);
+    border: 1px solid rgba(6, 23, 87, 0.08);
+
+    .header-content {
+      h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #061757;
+        margin: 0 0 8px 0;
+      }
+
+      p {
+        color: #64748b;
+        margin: 0;
+        font-size: 1rem;
+      }
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .time-range-selector {
+        padding: 10px 16px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        background: white;
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:focus {
+          outline: none;
+          border-color: #5fb4f9;
+          box-shadow: 0 0 0 3px rgba(95, 180, 249, 0.1);
+        }
+      }
+
+      .back-to-hub-btn {
+        &:hover {
+          border-color: #5fb4f9 !important;
+          color: #5fb4f9 !important;
+        }
+      }
+    }
+  }
+
+  .analytics-tabs {
+    display: flex;
+    border-bottom: 1px solid #e2e8f0;
+    margin-bottom: 32px;
+    background: white;
+    border-radius: 12px 12px 0 0;
+    padding: 0 24px;
+    box-shadow: 0 2px 8px rgba(6, 23, 87, 0.06);
+    border: 1px solid rgba(6, 23, 87, 0.08);
+    border-bottom: none;
+
+    .tab-button {
+      padding: 16px 24px;
+      border: none;
+      background: none;
+      font-size: 1rem;
+      font-weight: 500;
+      color: #64748b;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s ease;
+
+      &:hover {
+        color: #5fb4f9;
+      }
+
+      &.active {
+        color: #5fb4f9;
+        border-bottom-color: #5fb4f9;
+      }
+    }
+  }
+
+
+  .analytics-content {
+    background: white;
+    border-radius: 0 0 12px 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(6, 23, 87, 0.06);
+    border: 1px solid rgba(6, 23, 87, 0.08);
+    border-top: none;
+  }
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    margin-bottom: 32px;
+
+    .metric-card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      border: 1px solid rgba(6, 23, 87, 0.08);
+      box-shadow: 0 2px 8px rgba(6, 23, 87, 0.06);
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+
+      &:hover {
+        box-shadow: 0 4px 16px rgba(6, 23, 87, 0.12);
+        transform: translateY(-2px);
+      }
+
+      // Order Status Card Colors
+      &.pending {
+        border-left: 4px solid #f59e0b;
+        .metric-icon {
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+          color: white;
+        }
+      }
+
+      &.confirmed {
+        border-left: 4px solid #3b82f6;
+        .metric-icon {
+          background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+          color: white;
+        }
+      }
+
+      &.preparing {
+        border-left: 4px solid #8b5cf6;
+        .metric-icon {
+          background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+          color: white;
+        }
+      }
+
+      &.out-for-delivery {
+        border-left: 4px solid #10b981;
+        .metric-icon {
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          color: white;
+        }
+      }
+
+      &.delivered {
+        border-left: 4px solid #059669;
+        .metric-icon {
+          background: linear-gradient(135deg, #059669 0%, #047857 100%);
+          color: white;
+        }
+      }
+
+      &.cancelled {
+        border-left: 4px solid #ef4444;
+        .metric-icon {
+          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+          color: white;
+        }
+      }
+
+      .metric-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+
+        svg {
+          width: 24px;
+          height: 24px;
+        }
+      }
+
+      .metric-content {
+        flex: 1;
+
+        h3 {
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: #64748b;
+          margin: 0 0 8px 0;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .metric-value {
+          font-size: 1.875rem;
+          font-weight: 700;
+          color: #061757;
+          margin: 0 0 4px 0;
+          line-height: 1.2;
+        }
+
+        .metric-change {
+          font-size: 0.75rem;
+          font-weight: 600;
+          padding: 2px 8px;
+          border-radius: 12px;
+          display: inline-block;
+
+          &.positive {
+            background: rgba(16, 185, 129, 0.1);
+            color: #059669;
+          }
+
+          &.negative {
+            background: rgba(239, 68, 68, 0.1);
+            color: #dc2626;
+          }
+
+          &.neutral {
+            background: rgba(107, 114, 128, 0.1);
+            color: #6b7280;
+          }
+        }
+      }
+
+      // Card type specific colors
+      &.revenue .metric-icon {
+        background: rgba(16, 185, 129, 0.1);
+        color: #059669;
+      }
+
+      &.orders .metric-icon {
+        background: rgba(59, 130, 246, 0.1);
+        color: #2563eb;
+      }
+
+      &.users .metric-icon {
+        background: rgba(139, 92, 246, 0.1);
+        color: #7c3aed;
+      }
+
+      &.restaurants .metric-icon {
+        background: rgba(245, 158, 11, 0.1);
+        color: #d97706;
+      }
+    }
+  }
+
+  .charts-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    margin-bottom: 32px;
+  }
+
+  .chart-section {
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+
+      h3 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #061757;
+        margin: 0;
+      }
+
+      .chart-controls {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+
+        .chart-subtitle {
+          font-size: 0.875rem;
+          color: #6b7280;
+          font-weight: 400;
+        }
+
+        .period-selector {
+          padding: 6px 10px;
+          border: 1px solid #d1d5db;
+          border-radius: 6px;
+          font-size: 0.85rem;
+          background: white;
+          cursor: pointer;
+
+          &:focus {
+            outline: none;
+            border-color: #5fb4f9;
+          }
+        }
+
+        .chart-type-toggle {
+          display: flex;
+          background: #f1f5f9;
+          border-radius: 6px;
+          padding: 2px;
+
+          button {
+            padding: 6px 12px;
+            border: none;
+            background: none;
+            font-size: 0.9rem;
+            color: #64748b;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+
+            &.active {
+              background: white;
+              color: #5fb4f9;
+              box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            }
+          }
+        }
+      }
+    }
+
+    // Ensure chart content fills available space
+    > div:not(.chart-header) {
+      flex: 1;
+    }
+  }
+
+  .status-section {
+    margin-bottom: 32px;
+
+    h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #061757;
+      margin: 0 0 20px 0;
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+
+      .status-card {
+        display: flex;
+        align-items: center;
+        padding: 16px;
+        background: #f8fafc;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+
+        .status-indicator {
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          margin-right: 12px;
+        }
+
+        .status-info {
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+
+          .status-name {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #061757;
+            margin-bottom: 4px;
+          }
+
+          .status-count {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #061757;
+          }
+
+          .status-percentage {
+            font-size: 0.8rem;
+            color: #64748b;
+            margin-top: 2px;
+          }
+        }
+      }
+    }
+  }
+
+  .top-restaurants-section {
+    margin-bottom: 32px;
+
+    .restaurants-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+
+      h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #061757;
+        margin: 0;
+      }
+
+      .restaurants-sort {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        label {
+          font-size: 0.875rem;
+          font-weight: 500;
+          color: #6b7280;
+        }
+
+        .sort-selector {
+          padding: 6px 12px;
+          border: 1px solid #d1d5db;
+          border-radius: 6px;
+          background: white;
+          font-size: 0.875rem;
+          color: #374151;
+          cursor: pointer;
+          transition: border-color 0.2s ease;
+
+          &:hover {
+            border-color: #9ca3af;
+          }
+
+          &:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+          }
+        }
+      }
+    }
+
+    .restaurants-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+
+      .restaurant-item {
+        display: flex;
+        align-items: center;
+        padding: 16px;
+        background: #f8fafc;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+
+        .restaurant-rank {
+          width: 40px;
+          height: 40px;
+          background: #5fb4f9;
+          color: white;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+          margin-right: 16px;
+        }
+
+        .restaurant-info {
+          flex: 1;
+
+          h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #061757;
+            margin: 0 0 8px 0;
+          }
+
+          .restaurant-stats {
+            display: flex;
+            gap: 16px;
+            font-size: 0.9rem;
+            color: #64748b;
+
+            span {
+              font-weight: 500;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Tab-specific sections
+  .revenue-overview,
+  .orders-overview,
+  .users-overview,
+  .restaurants-overview {
+    margin-bottom: 32px;
+
+    h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #061757;
+      margin: 0 0 20px 0;
+    }
+
+    .revenue-metrics,
+    .orders-metrics,
+    .users-metrics,
+    .restaurants-metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+
+      .revenue-metric,
+      .order-metric,
+      .user-metric,
+      .restaurant-metric {
+        padding: 20px;
+        background: #f8fafc;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+
+        .metric-label {
+          display: block;
+          font-size: 0.9rem;
+          color: #64748b;
+          margin-bottom: 8px;
+        }
+
+        .metric-value {
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: #061757;
+        }
+      }
+    }
+  }
+
+  // Loading and Error States
+  .admin-analytics-loading,
+  .admin-analytics-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(6, 23, 87, 0.06);
+    border: 1px solid rgba(6, 23, 87, 0.08);
+
+    p {
+      margin-top: 16px;
+      color: #64748b;
+      font-size: 1rem;
+    }
+  }
+
+  .admin-analytics-error {
+    p {
+      color: #ef4444;
+    }
+  }
+
+  // Responsive Design
+  @media (max-width: 768px) {
+    padding: 16px;
+
+    .charts-grid {
+      gap: 24px;
+    }
+
+    .analytics-header {
+      flex-direction: column;
+      gap: 16px;
+      align-items: stretch;
+
+      .header-content h1 {
+        font-size: 1.5rem;
+      }
+    }
+
+    .analytics-tabs {
+      padding: 0 16px;
+      overflow-x: auto;
+
+      .tab-button {
+        padding: 12px 16px;
+        font-size: 0.9rem;
+        white-space: nowrap;
+      }
+    }
+
+    .analytics-content {
+      padding: 16px;
+    }
+
+    .metrics-grid {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    .status-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .chart-controls {
+      flex-direction: column;
+      gap: 8px;
+      align-items: stretch;
+    }
+  }
+}

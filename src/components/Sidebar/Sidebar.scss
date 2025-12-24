@@ -1,0 +1,410 @@
+// Desktop sidebar styles (1111px and above)
+.sidebar {
+  width: 240px;
+  height: calc(100vh - 60px);
+  background-color: white;
+  border-right: 1px solid #e8e9eb;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: fixed;
+  top: 60px;
+  left: 0;
+  z-index: 95;
+  transition: transform 0.3s ease, width 0.3s ease, opacity 0.3s ease, visibility 0.3s ease;
+  
+  // Close button container (hidden on desktop)
+  .sidebar-header {
+    display: none;
+    position: relative;
+    height: 40px;
+    margin-bottom: 10px;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    
+    .close-button {
+      position: absolute;
+      top: -10px;
+      right: 8px;
+      width: 40px;
+      height: 40px;
+      border: none;
+      background-color: transparent;
+      border-radius: 50%;
+      cursor: pointer;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.3s ease;
+      
+      &:hover {
+        background-color: #f6f7f8;
+      }
+      
+      svg {
+        width: 24px;
+        height: 24px;
+        transition: fill 0.3s ease;
+      }
+    }
+  }
+  
+  .sidebar-nav {
+    flex-grow: 1;
+    padding-top: 12px;
+    overflow-y: auto;
+  }
+  
+  .sidebar-menu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    
+    .sidebar-menu-item {
+      margin-bottom: 4px;
+      transition: margin 0.3s ease;
+      
+      &.active {
+        .sidebar-menu-link {
+          background-color: rgba(95, 180, 249, 0.1);
+          color: #5fb4f9;
+          
+          .sidebar-icon {
+            svg {
+              path {
+                fill: #5fb4f9;
+                transition: fill 0.3s ease;
+              }
+            }
+          }
+        }
+      }
+      
+      .sidebar-menu-link {
+        display: flex;
+        align-items: center;
+        padding: 12px 16px;
+        color: #061757;
+        font-size: 14px;
+        font-weight: 500;
+        text-decoration: none;
+        border-radius: 8px;
+        margin: 0 8px;
+        transition: all 0.3s ease, background-color 0.3s ease, color 0.3s ease, padding 0.3s ease, margin 0.3s ease;
+        
+        &:hover {
+          background-color: #f6f7f8;
+        }
+        
+        .sidebar-icon {
+          margin-right: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 24px;
+          height: 24px;
+          flex-shrink: 0;
+          transition: margin-right 0.3s ease;
+          
+          svg {
+            width: 24px;
+            height: 24px;
+            transition: fill 0.3s ease;
+            
+            path {
+              transition: fill 0.3s ease;
+            }
+          }
+        }
+        
+        span {
+          flex-grow: 1;
+          transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+      }
+    }
+  }
+  
+  .sidebar-footer {
+    padding: 16px;
+    border-top: 1px solid #e8e9eb;
+    transition: padding 0.3s ease, justify-content 0.3s ease;
+    
+    .sidebar-user-section {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-radius: 8px;
+      background-color: #f8f9fa;
+      border: 1px solid #e9ecef;
+      
+      .sidebar-user-info {
+        display: flex;
+        align-items: center;
+        flex: 1;
+        
+        .sidebar-icon {
+          margin-right: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 24px;
+          height: 24px;
+          flex-shrink: 0;
+          
+          svg {
+            width: 24px;
+            height: 24px;
+            
+            path {
+              fill: #061757;
+            }
+          }
+        }
+        
+        .user-text {
+          display: flex;
+          flex-direction: column;
+          line-height: 1.2;
+          
+          .welcome-text {
+            font-size: 12px;
+            color: #6c757d;
+            font-weight: 400;
+          }
+          
+          .user-name {
+            font-size: 14px;
+            color: #061757;
+            font-weight: 600;
+          }
+        }
+      }
+      
+      .sidebar-signout-button {
+        background: none;
+        border: none;
+        padding: 6px;
+        border-radius: 4px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        
+        &:hover {
+          background-color: #e9ecef;
+          
+          svg path {
+            fill: #5fb4f9;
+          }
+        }
+        
+        &:focus {
+          outline: 2px solid #5fb4f9;
+          outline-offset: 2px;
+        }
+        
+        svg {
+          width: 20px;
+          height: 20px;
+          
+          path {
+            transition: fill 0.3s ease;
+          }
+        }
+      }
+    }
+    
+    .sidebar-login-link {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      color: #061757;
+      font-size: 14px;
+      font-weight: 500;
+      text-decoration: none;
+      border-radius: 8px;
+      transition: all 0.3s ease, padding 0.3s ease, margin 0.3s ease, width 0.3s ease, height 0.3s ease;
+      
+      &:hover {
+        background-color: #f6f7f8;
+      }
+      
+      /* Add active style for the login link */
+      &.active {
+        background-color: rgba(95, 180, 249, 0.1);
+        color: #5fb4f9;
+        
+        .sidebar-icon {
+          svg {
+            path {
+              fill: #5fb4f9;
+            }
+          }
+        }
+      }
+      
+      .sidebar-icon {
+        margin-right: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        flex-shrink: 0;
+        transition: margin-right 0.3s ease;
+        
+        svg {
+          width: 24px;
+          height: 24px;
+          transition: fill 0.3s ease;
+          
+          path {
+            transition: fill 0.3s ease;
+          }
+        }
+      }
+      
+      span {
+        flex-grow: 1;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+      }
+    }
+  }
+  
+  // Background overlay (for mobile/tablet menu)
+  .mobile-overlay {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background-color: rgba(0, 0, 0, 0.2); /* Lighter overlay */
+    z-index: -1;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+  }
+}
+
+// Add this to your App.scss or main container styles
+.main-container {
+  margin-left: 240px;
+  transition: margin-left 0.3s ease, width 0.3s ease;
+
+  @media screen and (max-width: 1110px) {
+    margin-left: 0; // No margin on tablet and mobile
+  }
+}
+
+/* Media query for screens 1110px and below (tablet and mobile) */
+@media screen and (max-width: 1110px) {
+  .sidebar {
+    // Default state (hidden off-screen)
+    position: fixed;
+    top: 0; // Start from the top of the viewport
+    left: 0;
+    width: 280px; // Full width for slide-in menu
+    height: 100vh; // Full height
+    transform: translateX(-100%); // Hide off-screen
+    z-index: 2000; // Above everything
+    padding-top: 20px; // Space at the top
+    border-right: none; // No border
+    background-color: white;
+    transition: transform 0.3s ease, width 0.3s ease, opacity 0.3s ease, visibility 0.3s ease;
+    
+    // Show header with close button
+    .sidebar-header {
+      display: block;
+    }
+    
+    // When menu is open
+    &.mobile-open {
+      transform: translateX(0); // Slide in
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1); // Add shadow
+      
+      // Show overlay
+      .mobile-overlay {
+        opacity: 1;
+        visibility: visible;
+      }
+    }
+    
+    // Exactly the same menu styling as desktop
+    .sidebar-menu {
+      .sidebar-menu-item {
+        .sidebar-menu-link {
+          // Same as desktop styling
+          padding: 12px 16px;
+          justify-content: flex-start;
+          width: auto;
+          height: auto;
+          margin: 0 8px;
+          transition: all 0.3s ease;
+          
+          .sidebar-icon {
+            margin-right: 12px;
+            transition: margin-right 0.3s ease;
+          }
+          
+          span {
+            display: block;
+            opacity: 1;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+          }
+        }
+      }
+    }
+    
+    // Keep footer styling consistent
+    .sidebar-footer {
+      padding: 16px;
+      transition: padding 0.3s ease;
+      
+      .sidebar-login-link {
+        padding: 12px 16px;
+        justify-content: flex-start;
+        width: auto;
+        height: auto;
+        margin: 0;
+        transition: all 0.3s ease;
+        
+        .sidebar-icon {
+          margin-right: 12px;
+          transition: margin-right 0.3s ease;
+        }
+        
+        span {
+          display: block;
+          opacity: 1;
+          transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+      }
+    }
+    
+    // Make the overlay cover everything
+    .mobile-overlay {
+      z-index: -1;
+      left: 280px; // Width of the sidebar
+      width: calc(100vw - 280px);
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+  }
+  
+  // When menu is open, blur the background
+  body.menu-open:before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.2); /* Lighter overlay */
+    backdrop-filter: blur(2px); /* Reduced blur */
+    -webkit-backdrop-filter: blur(2px);
+    z-index: 1500; // Below sidebar but above everything else
+    transition: opacity 0.3s ease, backdrop-filter 0.3s ease;
+  }
+}

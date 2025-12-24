@@ -1,0 +1,72 @@
+/* Icon set container */
+.icon-set {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 30px;
+  
+  /* For positioning on its own page/component */
+  &.standalone {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  
+  /* Horizontal layout */
+  &.horizontal {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 16px;
+    padding: 24px;
+    border-radius: 16px;
+    max-width: 900px;
+    margin: 0 auto;
+    
+    /* We don't need special hover effects here as they're defined in IconStyle.scss */
+  }
+}
+
+/* Media queries for responsive design */
+@media (max-width: 768px) {
+  .icon-set {
+    gap: 8px;
+    padding: 12px;
+    
+    &.horizontal {
+      gap: 12px;
+      padding: 16px;
+    }
+  }
+}
+
+.icon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 20px;
+  padding: 20px;
+  width: 100%;
+}
+
+.icon-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.icon-display {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.icon-name {
+  font-size: 12px;
+  color: #666;
+}

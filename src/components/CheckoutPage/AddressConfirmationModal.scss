@@ -1,0 +1,207 @@
+// Address Confirmation Modal Styles
+.address-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20000;
+  padding: 1rem;
+
+  @media (min-width: 1111px) {
+    left: 120px;
+  }
+
+  @media (min-width: 769px) and (max-width: 1110px) {
+    left: 30px;
+  }
+
+  @media (min-width: 641px) and (max-width: 768px) {
+    left: 30px;
+  }
+}
+
+.address-modal {
+  background: white;
+  border-radius: 0.75rem;
+  max-width: 500px;
+  width: 100%;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding: 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    
+    h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #061757;
+      margin: 0;
+    }
+    
+    .close-button {
+      position: absolute;
+      right: 1.5rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      color: #6b7280;
+      cursor: pointer;
+      padding: 0.25rem;
+      transition: color 0.3s;
+      
+      &:hover {
+        color: #061757;
+      }
+    }
+  }
+  
+  .modal-content {
+    padding: 1.5rem;
+    
+    .address-preview {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1rem;
+      background: #f8f9fa;
+      border-radius: 0.5rem;
+      margin-bottom: 1rem;
+      
+      .address-icon {
+        width: 1.25rem;
+        height: 1.25rem;
+        color: #5fb4f9;
+        flex-shrink: 0;
+      }
+      
+      .address-details {
+        flex: 1;
+        
+        .address-label-row {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          margin-bottom: 0.25rem;
+          
+          .address-type {
+            font-weight: 600;
+            color: #061757;
+          }
+          
+          .primary-badge {
+            font-size: 0.75rem;
+            background: rgba(95, 180, 249, 0.1);
+            color: #5fb4f9;
+            padding: 0.125rem 0.5rem;
+            border-radius: 9999px;
+          }
+        }
+        
+        .address-text {
+          color: rgba(6, 23, 87, 0.7);
+          font-size: 0.875rem;
+          margin: 0 0 0.25rem 0;
+        }
+        
+        .address-notes {
+          color: rgba(6, 23, 87, 0.6);
+          font-size: 0.75rem;
+          margin: 0;
+        }
+      }
+    }
+    
+    .confirmation-text {
+      color: #6b7280;
+      font-size: 0.875rem;
+      margin: 0;
+      text-align: center;
+    }
+  }
+  
+  .modal-actions {
+    display: flex;
+    gap: 0.75rem;
+    padding: 1.5rem;
+    border-top: 1px solid #e5e7eb;
+    
+    .cancel-button {
+      flex: 1;
+      background: transparent;
+      color: #6b7280;
+      border: 2px solid #e5e7eb;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      
+      &:hover {
+        color: #061757;
+        border-color: #061757;
+      }
+    }
+    
+    .confirm-button {
+      flex: 1;
+      background: #5fb4f9;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      
+      &:hover {
+        background: #061757;
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .address-modal {
+    margin: 1rem;
+    
+    .modal-header,
+    .modal-content,
+    .modal-actions {
+      padding: 1rem;
+    }
+    
+    .modal-actions {
+      flex-direction: column;
+    }
+  }
+}
+
+@media (max-width: 420px) {
+  .address-modal {
+    .modal-header {
+      padding: 1rem 3rem 1rem 1rem; // Extra right padding to prevent close icon overlap
+      
+      h3 {
+        font-size: 1.125rem; // Slightly smaller title
+        max-width: calc(100% - 2rem); // Ensure title doesn't extend into close button area
+      }
+      
+      .close-button {
+        right: 1rem; // Reduce right positioning slightly
+        font-size: 1.25rem; // Slightly smaller close icon
+      }
+    }
+  }
+} 

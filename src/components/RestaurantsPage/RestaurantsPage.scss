@@ -1,0 +1,355 @@
+$primary-color: #5fb4f9;
+$navy-color: #061757;
+$white: #ffffff;
+$light-gray: #f8f9fa;
+$border-color: #e8e8e8;
+$text-color: #333;
+$secondary-text: #6c757d;
+
+.restaurants-page {
+  margin-top: 60px;
+  margin-left: 240px;
+  min-height: calc(100vh - 60px);
+  background-color: $light-gray;
+  transition: margin-left 0.3s ease;
+
+  // Match sidebar responsiveness breakpoints exactly
+  @media screen and (min-width: 1111px) {
+    margin-left: 240px; // Full sidebar width
+  }
+
+  @media screen and (min-width: 641px) and (max-width: 1110px) {
+    margin-left: 60px; // Icon sidebar width
+  }
+
+  @media screen and (max-width: 640px) {
+    margin-left: 0; // No sidebar on mobile
+  }
+
+  &__content {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+
+    @media screen and (min-width: 641px) and (max-width: 1110px) {
+      padding: 20px 16px;
+    }
+
+    @media screen and (max-width: 640px) {
+      padding: 15px;
+    }
+  }
+
+  &__title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #061757;
+    margin-bottom: 2rem;
+    text-align: center;
+
+    @media (max-width: 768px) {
+      font-size: 2rem;
+    }
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 2rem;
+    margin-bottom: 40px;
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+  }
+}
+
+// Loading states are now handled by LoadingSpinner component
+
+// Header
+.restaurants-header {
+  text-align: center;
+  margin-bottom: 3rem;
+
+  h1 {
+    color: $navy-color;
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0 0 1rem 0;
+
+    @media (max-width: 768px) {
+      font-size: 2rem;
+    }
+  }
+
+  p {
+    color: $secondary-text;
+    font-size: 1.1rem;
+    margin: 0;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+}
+
+// Controls
+.restaurants-controls {
+  margin-bottom: 2rem;
+
+  .search-bar {
+    margin-bottom: 1.5rem;
+
+    input {
+      width: 100%;
+      max-width: 500px;
+      padding: 1rem 1.5rem;
+      border: 2px solid rgba(6, 23, 87, 0.1);
+      border-radius: 50px;
+      font-size: 1rem;
+      background: $white;
+      color: $text-color;
+      transition: all 0.3s ease;
+      display: block;
+      margin: 0 auto;
+
+      &:focus {
+        outline: none;
+        border-color: $navy-color;
+        box-shadow: 0 0 0 3px rgba(6, 23, 87, 0.1);
+      }
+
+      &::placeholder {
+        color: $secondary-text;
+      }
+    }
+  }
+
+  .filter-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+
+    button {
+      padding: 0.75rem 1.5rem;
+      border: 2px solid rgba(6, 23, 87, 0.1);
+      background: $white;
+      color: $text-color;
+      border-radius: 25px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      white-space: nowrap;
+
+      &:hover {
+        border-color: $navy-color;
+        color: $navy-color;
+      }
+
+      &.active {
+        background: $navy-color;
+        border-color: $navy-color;
+        color: $white;
+      }
+    }
+  }
+}
+
+// Grid
+.restaurants-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 320px));
+  gap: 2rem;
+  margin-bottom: 2rem;
+  max-width: 1200px;
+  margin: 0 auto 2rem auto;
+  justify-content: center;
+
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 320px));
+    gap: 1.5rem;
+    max-width: 100%;
+  }
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    max-width: 320px;
+  }
+}
+
+// Restaurant Card Wrapper (for positioning heart icon)
+.restaurant-card-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto;
+}
+
+// Restaurant Card (matching HomePage exactly)
+.restaurant-card {
+  background: white;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(6, 23, 87, 0.1);
+  transition: all 0.3s ease;
+  border: 1px solid #e8e8e8;
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  width: 100%;
+  max-width: 320px;
+
+  &:hover {
+    box-shadow: 0 8px 32px rgba(6, 23, 87, 0.18);
+    transform: scale(1.01);
+  }
+
+  .restaurant-image {
+    height: 180px;
+    position: relative;
+    overflow: hidden;
+    background: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      
+      // Special styling for placeholder images (MKD icon)
+      &.placeholder-image {
+        object-fit: contain;
+        padding: 2rem;
+        background: #f8f9fa;
+      }
+    }
+
+    .fallback-icon {
+      font-size: 3rem;
+      color: #6c757d;
+    }
+  }
+
+  .restaurant-info {
+    padding: 24px;
+
+    h4 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #061757;
+      margin-bottom: 8px;
+      line-height: 1.3;
+    }
+
+    .restaurant-type {
+      color: #5fb4f9;
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .restaurant-certification {
+      color: #28a745;
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .restaurant-location {
+      color: #6c757d;
+      font-size: 0.9rem;
+      margin: 0;
+    }
+  }
+}
+
+// Heart Icon for Favorites
+.favorite-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: $secondary-text;
+  z-index: 10;
+
+  &:hover {
+    background: $white;
+    transform: scale(1.1);
+  }
+
+  &.favorited {
+    color: #ef4444;
+    background: $white;
+  }
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+// Empty State
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: $secondary-text;
+
+  h3 {
+    color: $navy-color;
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+  }
+
+  p {
+    font-size: 1rem;
+    margin: 0;
+  }
+}
+
+// Footer override for app pages
+.restaurants-page > .footer {
+  margin-left: 0;
+  border-radius: 0 0 0 0;
+  background: #061757;
+  color: #5fb4f9;
+  width: 100%;
+  box-shadow: 0 -2px 8px rgba(6, 23, 87, 0.04);
+}
+
+@media (max-width: 1110px) {
+  .restaurants-page {
+    margin-left: 60px; // Icon sidebar width
+  }
+}
+
+@media (max-width: 640px) {
+  .restaurants-page {
+    margin-left: 0;
+    margin-top: 60px;
+    min-height: calc(100vh - 60px);
+  }
+  .restaurants-page__title {
+    font-size: 2rem;
+    padding: 0 12px;
+  }
+  .restaurants-page__grid {
+    grid-template-columns: 1fr;
+    gap: 1.2rem;
+    padding: 0 8px;
+  }
+}

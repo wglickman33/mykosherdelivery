@@ -1,0 +1,858 @@
+.address-management-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 19000; // Lower than AddressModal overlay (20000)
+  padding: 20px;
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease-out;
+  overflow: hidden;
+  
+  // Ensure centering regardless of sidebar - use viewport units
+  box-sizing: border-box;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.address-management-modal {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  max-width: 650px;
+  max-height: calc(100vh - 40px);
+  min-height: 400px;
+  overflow: hidden;
+  animation: slideUp 0.3s ease-out;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  
+  // Ensure modal stays within viewport and doesn't overlap
+  box-sizing: border-box;
+  
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+}
+
+.address-management-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #e9ecef;
+  flex-shrink: 0;
+  position: relative; // Ensure close button positioning
+  
+  h2 {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #061757;
+    flex: 1;
+    min-width: 0;
+    margin-right: 16px;
+    line-height: 1.2;
+    word-wrap: break-word; // Prevent text overflow
+  }
+  
+  .close-button {
+    background: none;
+    border: none;
+    padding: 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+    min-width: 40px; // Ensure consistent sizing
+    min-height: 40px;
+    
+    &:hover {
+      background-color: #f8f9fa;
+    }
+    
+    &:focus {
+      outline: 2px solid #5fb4f9;
+      outline-offset: 2px;
+    }
+    
+    svg {
+      width: 24px;
+      height: 24px;
+      flex-shrink: 0; // Prevent icon from shrinking
+    }
+  }
+}
+
+.address-management-content {
+  padding: 24px;
+  flex: 1;
+  overflow-y: auto;
+  max-height: calc(100vh - 140px);
+  
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    
+    .empty-icon {
+      margin-bottom: 16px;
+      opacity: 0.6;
+      
+      svg {
+        width: 48px;
+        height: 48px;
+        flex-shrink: 0; // Prevent icon from shrinking
+      }
+    }
+    
+    h3 {
+      margin: 0 0 8px;
+      font-size: 1.25rem;
+      color: #061757;
+      font-weight: 600;
+      word-wrap: break-word; // Prevent text overflow
+    }
+    
+    p {
+      margin: 0 0 24px;
+      color: #6c757d;
+      font-size: 16px;
+      word-wrap: break-word; // Prevent text overflow
+    }
+    
+    .add-first-address-button {
+      background-color: #5fb4f9;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      white-space: nowrap; // Prevent text wrapping
+      flex-shrink: 0; // Prevent button from shrinking
+      
+      &:hover {
+        background-color: #061757;
+      }
+      
+      &:focus {
+        outline: 2px solid #5fb4f9;
+        outline-offset: 2px;
+      }
+    }
+  }
+  
+  .addresses-list {
+    margin-bottom: 20px;
+  }
+  
+  .address-item {
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    background-color: white;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    
+    &:hover {
+      border-color: #5fb4f9;
+      box-shadow: 0 4px 12px rgba(95, 180, 249, 0.1);
+    }
+    
+    &.primary {
+      border-color: #5fb4f9;
+      background-color: #f8fcff;
+    }
+    
+    .address-main {
+      display: flex;
+      align-items: center;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      
+      &:hover {
+        background-color: #f0f9ff;
+      }
+      
+      &:active {
+        background-color: #e0f2fe;
+      }
+      
+      &::after {
+        content: "Click to select";
+        position: absolute;
+        top: 50%;
+        right: 50px;
+        transform: translateY(-50%);
+        background-color: #5fb4f9;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 500;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+        white-space: nowrap;
+        z-index: 1; // Ensure tooltip appears above other elements
+      }
+      
+      &:hover::after {
+        opacity: 1;
+      }
+      
+      .address-icon {
+        font-size: 20px;
+        margin-right: 12px;
+        flex-shrink: 0;
+      }
+      
+      .address-details {
+        flex: 1;
+        min-width: 0;
+        
+        .address-label {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 4px;
+          font-weight: 600;
+          color: #061757;
+          font-size: 16px;
+          flex-wrap: wrap; // Allow wrapping on small screens
+          
+          .primary-badge {
+            background-color: #5fb4f9;
+            color: white;
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 500;
+            white-space: nowrap; // Prevent badge text wrapping
+            flex-shrink: 0; // Prevent badge from shrinking
+          }
+        }
+        
+        .address-text {
+          color: #6c757d;
+          font-size: 14px;
+          line-height: 1.4;
+          margin-bottom: 4px;
+          word-wrap: break-word; // Prevent text overflow
+        }
+        
+        .delivery-instructions {
+          color: #6c757d;
+          font-size: 13px;
+          font-style: italic;
+          margin-top: 4px;
+          word-wrap: break-word; // Prevent text overflow
+        }
+      }
+      
+      .select-indicator {
+        opacity: 0.3;
+        transition: all 0.3s ease;
+        color: #5fb4f9;
+        flex-shrink: 0; // Prevent indicator from shrinking
+        
+        svg {
+          width: 20px;
+          height: 20px;
+        }
+      }
+      
+      &:hover .select-indicator {
+        opacity: 1;
+        transform: scale(1.1);
+      }
+    }
+    
+    .address-actions {
+      display: flex;
+      gap: 8px;
+      padding: 12px 16px;
+      border-top: 1px solid #e9ecef;
+      background-color: #f8f9fa;
+      flex-wrap: wrap; // Allow wrapping on small screens
+      
+      .action-button {
+        background: none;
+        border: 1px solid #e9ecef;
+        padding: 8px;
+        border-radius: 6px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        flex-shrink: 0; // Prevent buttons from shrinking
+        min-width: 32px; // Ensure consistent sizing
+        min-height: 32px;
+        
+        &:hover:not(:disabled) {
+          background-color: white;
+        }
+        
+        &:focus {
+          outline: 2px solid #5fb4f9;
+          outline-offset: 2px;
+        }
+        
+        &:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+        
+        &.set-primary {
+          color: #5fb4f9;
+          
+          &:hover:not(:disabled) {
+            background-color: #5fb4f9;
+            color: white;
+            border-color: #5fb4f9;
+          }
+        }
+        
+        &.edit {
+          color: #6c757d;
+          
+          &:hover:not(:disabled) {
+            color: #061757;
+            border-color: #061757;
+          }
+        }
+        
+        &.delete {
+          color: #dc3545;
+          
+          &:hover:not(:disabled) {
+            background-color: #dc3545;
+            color: white;
+            border-color: #dc3545;
+          }
+        }
+        
+        svg {
+          width: 16px;
+          height: 16px;
+          flex-shrink: 0; // Prevent icon from shrinking
+        }
+      }
+    }
+  }
+  
+  .add-address-button {
+    width: 100%;
+    background-color: #f8f9fa;
+    color: #5fb4f9;
+    border: 2px dashed #5fb4f9;
+    padding: 16px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    margin-bottom: 16px;
+    white-space: nowrap; // Prevent text wrapping
+    flex-shrink: 0; // Prevent button from shrinking
+    
+    &:hover {
+      background-color: #5fb4f9;
+      color: white;
+      border-style: solid;
+    }
+    
+    &:focus {
+      outline: 2px solid #5fb4f9;
+      outline-offset: 2px;
+    }
+    
+    svg {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0; // Prevent icon from shrinking
+    }
+  }
+  
+  .limit-notice {
+    padding: 12px 16px;
+    background-color: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 8px;
+    color: #856404;
+    font-size: 14px;
+    text-align: center;
+    word-wrap: break-word; // Prevent text overflow
+  }
+}
+
+// Tablet and mobile responsiveness
+@media (max-width: 768px) {
+  .address-management-overlay {
+    padding: 16px;
+      align-items: center;
+  }
+  
+  .address-management-modal {
+    max-width: none;
+    width: 100%;
+    max-height: calc(100vh - 32px);
+    min-height: 350px;
+      border-radius: 16px;
+  }
+  
+  .address-management-header {
+    padding: 16px 20px 12px;
+    
+    h2 {
+      font-size: 1.25rem;
+      margin-right: 12px; // Ensure space for close button
+    }
+    
+    .close-button {
+      padding: 6px;
+      min-width: 36px; // Adjust for smaller screens
+      min-height: 36px;
+      
+      svg {
+        width: 22px;
+        height: 22px;
+      }
+    }
+  }
+  
+  .address-management-content {
+    padding: 20px;
+    
+    .empty-state {
+      padding: 30px 16px;
+      
+      h3 {
+        font-size: 1.1rem;
+      }
+      
+      p {
+        font-size: 15px;
+      }
+      
+      .add-first-address-button {
+        padding: 12px 20px;
+        font-size: 15px;
+      }
+    }
+    
+    .address-item {
+      .address-main {
+        padding: 14px;
+        
+        &::after {
+          display: none; // Hide tooltip on mobile
+        }
+        
+        .address-icon {
+          font-size: 18px;
+          margin-right: 10px;
+        }
+        
+        .address-details {
+          .address-label {
+            font-size: 15px;
+            
+            .primary-badge {
+              font-size: 11px;
+              padding: 1px 6px;
+            }
+          }
+          
+          .address-text {
+            font-size: 13px;
+          }
+          
+          .delivery-instructions {
+            font-size: 12px;
+          }
+        }
+        
+        .select-indicator {
+          svg {
+            width: 18px;
+            height: 18px;
+          }
+        }
+      }
+      
+      .address-actions {
+        padding: 10px 14px;
+        gap: 8px;
+        
+        .action-button {
+          padding: 8px;
+          min-width: 28px; // Adjust for smaller screens
+          min-height: 28px;
+          
+          svg {
+            width: 14px;
+            height: 14px;
+          }
+        }
+      }
+    }
+    
+    .add-address-button {
+      padding: 14px;
+      font-size: 15px;
+      
+      svg {
+        width: 18px;
+        height: 18px;
+      }
+    }
+  }
+}
+
+// Small mobile devices
+@media (max-width: 480px) {
+  .address-management-overlay {
+    padding: 12px;
+  }
+  
+  .address-management-modal {
+    max-height: calc(100vh - 24px);
+    min-height: 320px;
+    border-radius: 12px;
+  }
+  
+  .address-management-header {
+    padding: 14px 16px 10px;
+    
+    h2 {
+      font-size: 1.1rem;
+      margin-right: 10px; // Ensure space for close button
+    }
+    
+    .close-button {
+      padding: 4px;
+      min-width: 32px; // Adjust for smaller screens
+      min-height: 32px;
+      
+      svg {
+        width: 20px;
+        height: 20px;
+      }
+    }
+  }
+  
+  .address-management-content {
+    padding: 16px;
+    
+    .empty-state {
+      padding: 24px 12px;
+      
+      .empty-icon svg {
+        width: 40px;
+        height: 40px;
+      }
+      
+      h3 {
+        font-size: 1rem;
+        margin-bottom: 6px;
+      }
+      
+      p {
+        font-size: 14px;
+        margin-bottom: 20px;
+      }
+      
+      .add-first-address-button {
+        padding: 10px 18px;
+        font-size: 14px;
+      }
+    }
+    
+    .address-item {
+      margin-bottom: 10px;
+      border-radius: 10px;
+      
+      .address-main {
+        padding: 12px;
+        
+        .address-icon {
+          font-size: 16px;
+          margin-right: 8px;
+        }
+        
+        .address-details {
+          .address-label {
+            font-size: 14px;
+            margin-bottom: 3px;
+            
+            .primary-badge {
+              font-size: 10px;
+              padding: 1px 5px;
+            }
+          }
+          
+          .address-text {
+            font-size: 12px;
+            margin-bottom: 3px;
+          }
+          
+          .delivery-instructions {
+            font-size: 11px;
+          }
+        }
+        
+        .select-indicator {
+          svg {
+            width: 16px;
+            height: 16px;
+          }
+        }
+      }
+      
+      .address-actions {
+        padding: 8px 12px;
+        gap: 6px;
+        
+        .action-button {
+          padding: 6px;
+          border-radius: 4px;
+          min-width: 24px; // Adjust for smaller screens
+          min-height: 24px;
+          
+          svg {
+            width: 12px;
+            height: 12px;
+        }
+      }
+      }
+    }
+    
+    .add-address-button {
+      padding: 12px;
+      font-size: 14px;
+      border-radius: 10px;
+      margin-bottom: 12px;
+      
+      svg {
+        width: 16px;
+        height: 16px;
+      }
+    }
+    
+    .limit-notice {
+      padding: 10px 12px;
+      font-size: 13px;
+      border-radius: 6px;
+    }
+  }
+}
+
+// Extra small devices
+@media (max-width: 360px) {
+  .address-management-overlay {
+    padding: 8px;
+  }
+  
+  .address-management-modal {
+    max-height: calc(100vh - 16px);
+    min-height: 300px;
+  }
+  
+  .address-management-header {
+    padding: 12px 14px 8px;
+    
+    h2 {
+      font-size: 1rem;
+      margin-right: 8px; // Ensure space for close button
+    }
+    
+    .close-button {
+      min-width: 28px; // Adjust for smaller screens
+      min-height: 28px;
+      
+      svg {
+        width: 18px;
+        height: 18px;
+      }
+    }
+  }
+  
+  .address-management-content {
+    padding: 14px;
+    
+    .address-item {
+      .address-main {
+        padding: 10px;
+        
+        .address-details {
+          .address-label {
+            font-size: 13px;
+          }
+          
+          .address-text {
+            font-size: 11px;
+          }
+        }
+      }
+      
+      .address-actions {
+        padding: 6px 10px;
+        gap: 4px;
+        
+        .action-button {
+          padding: 4px;
+          min-width: 20px; // Adjust for smaller screens
+          min-height: 20px;
+          
+          svg {
+            width: 10px;
+            height: 10px;
+          }
+        }
+      }
+    }
+    
+    .add-address-button {
+      padding: 10px;
+      font-size: 13px;
+    }
+  }
+}
+
+// Landscape orientation on mobile
+@media (max-height: 500px) and (orientation: landscape) {
+  .address-management-overlay {
+    padding: 8px;
+    align-items: flex-start;
+  }
+  
+  .address-management-modal {
+    max-height: calc(100vh - 16px);
+    min-height: 280px;
+  }
+  
+  .address-management-header {
+    padding: 12px 20px 8px;
+    
+    h2 {
+      font-size: 1.1rem;
+    }
+  }
+  
+  .address-management-content {
+    padding: 16px 20px;
+    
+    .empty-state {
+      padding: 20px 16px;
+      
+      .empty-icon svg {
+        width: 32px;
+        height: 32px;
+      }
+      
+      h3 {
+        font-size: 1rem;
+        margin-bottom: 4px;
+      }
+      
+      p {
+        font-size: 14px;
+        margin-bottom: 16px;
+      }
+      
+      .add-first-address-button {
+        padding: 8px 16px;
+        font-size: 14px;
+      }
+    }
+    
+    .address-item {
+      margin-bottom: 8px;
+      
+      .address-main {
+        padding: 10px;
+      }
+      
+      .address-actions {
+        padding: 8px 12px;
+        gap: 6px;
+      }
+    }
+    
+    .add-address-button {
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+  }
+}
+
+// High contrast mode support
+@media (prefers-contrast: high) {
+  .address-management-modal {
+    border: 2px solid #000;
+  }
+  
+  .address-item {
+    border-color: #000;
+    
+    &.primary {
+      background-color: #e6f3ff;
+    }
+  }
+}
+
+// Reduced motion support
+@media (prefers-reduced-motion: reduce) {
+  .address-management-overlay {
+    animation: none;
+  }
+  
+  .address-management-modal {
+    animation: none;
+  }
+  
+  .address-item,
+  .address-main,
+  .action-button,
+  .add-address-button {
+    transition: none;
+  }
+} 

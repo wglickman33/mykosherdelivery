@@ -1,0 +1,440 @@
+.home-page {
+  // Account for fixed header and sidebar positioning
+  margin-top: 60px; // Height of the fixed header
+  margin-left: 240px; // Width of the desktop sidebar
+  min-height: calc(100vh - 60px);
+  background-color: #f8f9fa;
+  transition: margin-left 0.3s ease;
+
+  .home-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  .hero-section {
+    padding: 60px 0 80px;
+    text-align: center;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    margin: 0 -24px 60px;
+    border-radius: 0 0 24px 24px;
+    box-shadow: 0 4px 24px rgba(6, 23, 87, 0.08);
+
+    .hero-content {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 0 24px;
+
+      h1 {
+        font-size: 2.8rem;
+        font-weight: 800;
+        color: #061757;
+        margin-bottom: 20px;
+        line-height: 1.2;
+        letter-spacing: 0.5px;
+      }
+
+      p {
+        font-size: 1.2rem;
+        color: #6c757d;
+        margin-bottom: 40px;
+        line-height: 1.6;
+      }
+
+      .hero-actions {
+        display: flex;
+        gap: 18px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 10px;
+      }
+    }
+  }
+
+  .primary-button {
+    background-color: #5fb4f9;
+    color: white;
+    border: none;
+    padding: 14px 32px;
+    border-radius: 24px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(95, 180, 249, 0.10);
+    text-decoration: none;
+    display: inline-block;
+
+    &:hover {
+      background-color: #061757;
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(95, 180, 249, 0.18);
+    }
+  }
+
+  .secondary-button {
+    background-color: transparent;
+    color: #061757;
+    border: 2px solid #e9ecef;
+    padding: 12px 28px;
+    border-radius: 24px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+
+    &:hover {
+      border-color: #5fb4f9;
+      color: #5fb4f9;
+      background: #f8f9fa;
+    }
+  }
+
+  .countdown-section {
+    margin-bottom: 60px;
+    
+    // Ensure countdown blends well with HomePage design
+    .countdown-container.homepage {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+  }
+
+  .features-section {
+    margin-bottom: 80px;
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 2.5rem;
+      margin-top: 40px;
+    }
+
+    .feature-card {
+      background: white;
+      padding: 36px 28px;
+      border-radius: 18px;
+      text-align: center;
+      box-shadow: 0 4px 24px rgba(6, 23, 87, 0.10);
+      transition: all 0.3s ease;
+      border: 1px solid #e8e8e8;
+      position: relative;
+
+      &:hover {
+        box-shadow: 0 8px 32px rgba(6, 23, 87, 0.18);
+      }
+
+      .feature-icon {
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: center;
+      }
+
+      h3 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #061757;
+        margin-bottom: 12px;
+      }
+
+      p {
+        color: #6c757d;
+        line-height: 1.6;
+        font-size: 1.05rem;
+      }
+    }
+  }
+
+  .popular-restaurants {
+    margin-bottom: 80px;
+
+    h2 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: #061757;
+      text-align: center;
+      margin-bottom: 3rem;
+      letter-spacing: -0.5px;
+    }
+
+    .restaurant-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 320px));
+      gap: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+      justify-content: center;
+      
+      @media (max-width: 768px) {
+        grid-template-columns: repeat(auto-fit, minmax(280px, 320px));
+        gap: 1.5rem;
+      }
+      
+      @media (max-width: 640px) {
+        grid-template-columns: 1fr;
+        max-width: 320px;
+      }
+    }
+
+    .restaurant-card-wrapper {
+      position: relative;
+      width: 100%;
+      max-width: 320px;
+      margin: 0 auto;
+    }
+
+    .restaurant-card {
+      background: white;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(6, 23, 87, 0.10);
+      transition: all 0.3s ease;
+      border: 1px solid #e8e8e8;
+      text-decoration: none;
+      color: inherit;
+      width: 100%;
+      max-width: 320px;
+
+      &:hover {
+        box-shadow: 0 8px 32px rgba(6, 23, 87, 0.18);
+        transform: scale(1.01);
+      }
+
+      .restaurant-image {
+        height: 180px;
+        position: relative;
+        overflow: hidden;
+        background: #f8f9fa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .fallback-icon {
+          font-size: 3rem;
+          color: #6c757d;
+        }
+      }
+
+      .restaurant-info {
+        padding: 24px;
+
+        h4 {
+          font-size: 1.4rem;
+          font-weight: 700;
+          color: #061757;
+          margin-bottom: 8px;
+          line-height: 1.3;
+        }
+
+        .restaurant-type {
+          color: #5fb4f9;
+          font-size: 1rem;
+          font-weight: 600;
+          margin-bottom: 6px;
+        }
+
+        .restaurant-certification {
+          color: #28a745;
+          font-size: 0.9rem;
+          font-weight: 600;
+          margin-bottom: 8px;
+        }
+
+        .restaurant-location {
+          color: #6c757d;
+          font-size: 0.9rem;
+          margin: 0;
+        }
+      }
+    }
+
+    .favorite-btn {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.9);
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      color: #6c757d;
+      z-index: 10;
+      
+      &:hover {
+        background: #ffffff;
+        transform: scale(1.1);
+      }
+      
+      &.favorited {
+        color: #ef4444;
+        background: #ffffff;
+      }
+      
+      svg {
+        width: 20px;
+        height: 20px;
+      }
+    }
+  }
+
+  .cta-section {
+    background: linear-gradient(135deg, #5fb4f9 0%, #4aa3e8 100%);
+    margin: 0 -24px 0;
+    padding: 60px 24px;
+    text-align: center;
+    color: white;
+    border-radius: 24px;
+    box-shadow: 0 4px 24px rgba(6, 23, 87, 0.08);
+
+    .cta-content {
+      max-width: 600px;
+      margin: 0 auto;
+
+      h2 {
+        font-size: 2.2rem;
+        font-weight: 800;
+        margin-bottom: 16px;
+      }
+
+      p {
+        font-size: 1.15rem;
+        margin-bottom: 32px;
+        opacity: 0.9;
+      }
+
+      .primary-button {
+        background-color: white;
+        color: #5fb4f9;
+
+        &:hover {
+          background-color: #f8f9fa;
+          box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
+        }
+      }
+    }
+  }
+}
+
+// Responsive adjustments for tablet view (icon sidebar visible)
+@media screen and (min-width: 641px) and (max-width: 1110px) {
+  .home-page {
+    margin-left: 60px; // Width of the icon sidebar
+  }
+}
+
+// Mobile view adjustments
+@media screen and (max-width: 640px) {
+  .home-page {
+    margin-left: 0; // No sidebar on mobile
+
+    .home-content {
+      padding: 0 12px;
+    }
+
+    .hero-section {
+      padding: 40px 0 60px;
+      margin: 0 -12px 40px;
+      border-radius: 0 0 18px 18px;
+
+      .hero-content {
+        h1 {
+          font-size: 2rem;
+        }
+
+        p {
+          font-size: 1rem;
+        }
+
+        .hero-actions {
+          flex-direction: column;
+          align-items: center;
+
+          .primary-button,
+          .secondary-button {
+            width: 100%;
+            max-width: 280px;
+          }
+        }
+      }
+    }
+
+    .countdown-section {
+      margin-bottom: 40px;
+      
+      .countdown-container.homepage {
+        padding: 2rem 1rem;
+        margin: 1rem 0;
+      }
+    }
+
+    .features-section {
+      margin-bottom: 60px;
+
+      .features-grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+    }
+
+    .popular-restaurants {
+      margin-bottom: 60px;
+
+      h2 {
+        font-size: 1.3rem;
+      }
+
+      .restaurant-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+    }
+
+    .cta-section {
+      padding: 40px 12px;
+      margin: 0 -12px 0;
+      border-radius: 18px;
+
+      .cta-content {
+        h2 {
+          font-size: 1.3rem;
+        }
+
+        p {
+          font-size: 1rem;
+        }
+      }
+    }
+  }
+}
+
+// Very small mobile adjustments
+@media screen and (max-width: 410px) {
+  .home-page {
+    .hero-section {
+      .hero-content {
+        h1 {
+          font-size: 28px;
+        }
+      }
+    }
+
+    .features-section {
+      .feature-card {
+        padding: 24px 20px;
+      }
+    }
+  }
+}
