@@ -282,6 +282,13 @@
                 &:hover {
                   transform: scale(1.05);
                 }
+                
+                // Special styling for placeholder images (MKD icon)
+                &.placeholder-image {
+                  object-fit: contain;
+                  padding: 1rem;
+                  background: #f8f9fa;
+                }
               }
             }
 

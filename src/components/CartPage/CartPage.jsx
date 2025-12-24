@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import Footer from "../Footer/Footer";
 import { useCart } from "../../context/CartContext";
+import navyMKDIcon from '../../assets/navyMKDIcon.png';
 import "./CartPage.scss";
 
 const CartPage = () => {
@@ -51,7 +52,15 @@ const CartPage = () => {
                     {group.items.map((item) => (
                       <div key={item.cartItemId} className="cart-item">
                         <div className="item-image">
-                          <img src={item.image} alt={item.name} />
+                          <img 
+                            src={item.image || navyMKDIcon} 
+                            alt={item.name}
+                            className={!item.image ? 'placeholder-image' : ''}
+                            onError={(e) => {
+                              e.target.src = navyMKDIcon;
+                              e.target.classList.add('placeholder-image');
+                            }}
+                          />
                         </div>
                         <div className="item-details">
                           <h4 className="item-name">{item.name}</h4>
