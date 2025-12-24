@@ -721,8 +721,8 @@ router.post('/webhooks/shipday', async (req, res) => {
     const webhookData = req.body;
     
     logger.info('✅ Shipday webhook authenticated, processing:');
-    logger.info('Webhook payload keys:', Object.keys(webhookData));
-    logger.info('Webhook full body:', JSON.stringify(webhookData, null, 2));
+    console.log('🔍 DEBUG: Webhook payload keys:', Object.keys(webhookData));
+    console.log('🔍 DEBUG: Webhook full body:', JSON.stringify(webhookData, null, 2));
 
     // Extract Shipday order ID and status from webhook payload
     // The exact structure may vary - adjust based on Shipday's webhook format
