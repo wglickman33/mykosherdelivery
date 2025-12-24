@@ -781,6 +781,7 @@ router.post('/webhooks/shipday', async (req, res) => {
       'picked_up': 'preparing',
       'ready_to_deliver': 'out_for_delivery', // Driver marked "on the way"
       'on_the_way': 'out_for_delivery',
+      'already_delivered': 'delivered', // Driver marked "complete order"
       'delivered': 'delivered',
       'cancelled': 'cancelled',
       'canceled': 'cancelled',
