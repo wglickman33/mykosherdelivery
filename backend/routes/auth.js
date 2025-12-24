@@ -66,7 +66,13 @@ async function createGlobalAdminNotification(payload) {
 // Sign Up Route
 router.post('/signup', [
   body('email').isEmail().normalizeEmail(),
-  body('password').isLength({ min: 6 }),
+  body('password')
+    .isLength({ min: 8, max: 128 })
+    .withMessage('Password must be between 8 and 128 characters')
+    .matches(/^(?=.*\d)/)
+    .withMessage('Password must contain at least one number')
+    .matches(/^(?=.*[!@#$%^&*(),.?":{}|<>])/)
+    .withMessage('Password must contain at least one special character'),
   body('firstName').notEmpty().trim(),
   body('lastName').notEmpty().trim()
 ], async (req, res) => {

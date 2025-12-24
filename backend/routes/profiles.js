@@ -840,7 +840,13 @@ router.patch(
   authenticateToken,
   [
     body("currentPassword").notEmpty(),
-    body("newPassword").isLength({ min: 6 }),
+    body("newPassword")
+      .isLength({ min: 8, max: 128 })
+      .withMessage('Password must be between 8 and 128 characters')
+      .matches(/^(?=.*\d)/)
+      .withMessage('Password must contain at least one number')
+      .matches(/^(?=.*[!@#$%^&*(),.?":{}|<>])/)
+      .withMessage('Password must contain at least one special character'),
   ],
   async (req, res) => {
     try {
