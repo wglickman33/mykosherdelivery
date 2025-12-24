@@ -695,13 +695,13 @@ router.post('/webhooks/shipday', async (req, res) => {
       const tokenHeader = req.headers['x-shipday-token'] || req.headers['x-webhook-token'] || req.headers['token'];
       const providedToken = authHeader?.replace('Bearer ', '') || tokenHeader;
       
-      // Log all headers for debugging
-      logger.info('Shipday webhook headers:', {
-        authorization: req.headers['authorization'],
-        'x-shipday-token': req.headers['x-shipday-token'],
-        'x-webhook-token': req.headers['x-webhook-token'],
-        'token': req.headers['token'],
-        allHeaders: Object.keys(req.headers)
+      // Log header presence (not values) for debugging
+      logger.info('Shipday webhook headers received:', {
+        hasAuthorization: !!req.headers['authorization'],
+        hasXShipdayToken: !!req.headers['x-shipday-token'],
+        hasXWebhookToken: !!req.headers['x-webhook-token'],
+        hasToken: !!req.headers['token'],
+        allHeaderNames: Object.keys(req.headers)
       });
       
       if (!providedToken || providedToken !== webhookSecret) {
