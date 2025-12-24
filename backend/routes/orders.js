@@ -726,7 +726,6 @@ router.post('/webhooks/shipday', async (req, res) => {
       shipdayOrderId: webhookData.order?.id,
       orderNumber: webhookData.order?.order_number
     });
-    console.log('🔍 RAW STATUS:', webhookData.order_status, 'TYPE:', typeof webhookData.order_status);
 
     // Extract Shipday order ID and status from webhook payload
     // Shipday sends: { order: { id, order_number }, order_status, event }
@@ -780,6 +779,7 @@ router.post('/webhooks/shipday', async (req, res) => {
       'not_assigned': 'pending',
       'started': 'confirmed',           // Driver assigned and started
       'picked_up': 'preparing',
+      'ready_to_deliver': 'out_for_delivery', // Driver marked "on the way"
       'on_the_way': 'out_for_delivery',
       'delivered': 'delivered',
       'cancelled': 'cancelled',
