@@ -724,14 +724,18 @@ router.get('/analytics', requireAdmin, async (req, res) => {
 
     // Total active restaurants
     const totalRestaurants = await Restaurant.count({
-      where: { active: true }
+      where: { 
+        active: true,
+        deletedAt: null
+      }
     });
     
     // Featured restaurants (only active)
     const featuredRestaurants = await Restaurant.count({
       where: { 
         featured: true,
-        active: true
+        active: true,
+        deletedAt: null
       }
     });
 
@@ -2035,7 +2039,10 @@ router.get('/dashboard/stats', requireAdmin, async (req, res) => {
     // Get total counts
     const totalUsers = await Profile.count();
     const totalRestaurants = await Restaurant.count({
-      where: { active: true }
+      where: { 
+        active: true,
+        deletedAt: null
+      }
     });
 
     // Calculate growth (compare with previous period)
