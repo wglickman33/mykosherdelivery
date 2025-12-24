@@ -729,9 +729,9 @@ router.post('/webhooks/shipday', async (req, res) => {
 
     // Extract Shipday order ID and status from webhook payload
     // Shipday sends: { order: { id, order_number }, order_status, event }
-    const shipdayOrderId = webhookData.order?.id || webhookData.orderId || webhookData.id;
+    const shipdayOrderId = (webhookData.order?.id || webhookData.orderId || webhookData.id)?.toString();
     const shipdayStatus = webhookData.order_status || webhookData.status;
-    const referenceNumber = webhookData.order?.order_number || webhookData.referenceNumber;
+    const referenceNumber = (webhookData.order?.order_number || webhookData.referenceNumber)?.toString();
 
     if (!shipdayOrderId && !referenceNumber) {
       logger.warn('Shipday webhook missing order identifier:', webhookData);
