@@ -101,11 +101,11 @@ app.get('/api/health', async (req, res) => {
   } catch {
     // Still return 200 so Railway doesn't kill the deployment
     res.status(200).json({
-      status: 'OK',
-      timestamp: new Date().toISOString(),
+    status: 'OK',
+    timestamp: new Date().toISOString(),
       environment: process.env.NODE_ENV,
       database: 'checking'
-    });
+  });
   }
 });
 
