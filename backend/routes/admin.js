@@ -3467,7 +3467,7 @@ router.post('/orders/stream-token', requireAdmin, async (req, res) => {
     const token = jwt.sign(
       { userId: req.user.id, scope: 'orders_stream' },
       process.env.JWT_SECRET,
-      { expiresIn: '2m' }
+      { expiresIn: '1h' } // Extended to 1 hour for long-lived SSE connections
     );
     res.json({ token });
   } catch (error) {
@@ -3483,30 +3483,32 @@ router.get('/orders/stream', async (req, res) => {
   try {
     if (!token) {
       logger.warn('SSE stream: No token provided');
-      return res.status(401).end();
+      return res.status(401).json({ error: 'No token provided' });
     }
     
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
     if (decoded.scope !== 'orders_stream') {
       logger.warn('SSE stream: Invalid scope', { scope: decoded.scope, userId: decoded.userId });
-      return res.status(403).end();
+      return res.status(403).json({ error: 'Invalid token scope' });
     }
     
     const user = await Profile.findByPk(decoded.userId);
     if (!user || user.role !== 'admin') {
       logger.warn('SSE stream: User not found or not admin', { userId: decoded.userId, userExists: !!user, role: user?.role });
-      return res.status(403).end();
+      return res.status(403).json({ error: 'Unauthorized' });
     }
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
       logger.warn('SSE stream: Token expired', { expiredAt: error.expiredAt });
+      return res.status(401).json({ error: 'Token expired', expiredAt: error.expiredAt });
     } else if (error.name === 'JsonWebTokenError') {
       logger.warn('SSE stream: Invalid token', { error: error.message });
+      return res.status(401).json({ error: 'Invalid token', message: error.message });
     } else {
       logger.error('SSE stream: Authentication error', error);
+      return res.status(401).json({ error: 'Authentication failed' });
     }
-    return res.status(401).end();
   }
 
   res.setHeader('Content-Type', 'text/event-stream');
