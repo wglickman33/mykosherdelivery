@@ -726,6 +726,7 @@ router.post('/webhooks/shipday', async (req, res) => {
       shipdayOrderId: webhookData.order?.id,
       orderNumber: webhookData.order?.order_number
     });
+    console.log('🔍 RAW STATUS:', webhookData.order_status, 'TYPE:', typeof webhookData.order_status);
 
     // Extract Shipday order ID and status from webhook payload
     // Shipday sends: { order: { id, order_number }, order_status, event }
