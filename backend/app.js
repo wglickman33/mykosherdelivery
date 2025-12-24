@@ -98,7 +98,7 @@ app.get('/api/health', async (req, res) => {
       environment: process.env.NODE_ENV,
       database: dbStatus
     });
-  } catch (error) {
+  } catch {
     // Still return 200 so Railway doesn't kill the deployment
     res.status(200).json({
       status: 'OK',
