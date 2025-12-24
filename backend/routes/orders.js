@@ -720,15 +720,18 @@ router.post('/webhooks/shipday', async (req, res) => {
 
     const webhookData = req.body;
     
-    logger.info('✅ Shipday webhook authenticated, processing:');
-    console.log('🔍 DEBUG: Webhook payload keys:', Object.keys(webhookData));
-    console.log('🔍 DEBUG: Webhook full body:', JSON.stringify(webhookData, null, 2));
+    logger.info('✅ Shipday webhook authenticated, processing:', {
+      event: webhookData.event,
+      orderStatus: webhookData.order_status,
+      shipdayOrderId: webhookData.order?.id,
+      orderNumber: webhookData.order?.order_number
+    });
 
     // Extract Shipday order ID and status from webhook payload
-    // The exact structure may vary - adjust based on Shipday's webhook format
-    const shipdayOrderId = webhookData.orderId || webhookData.id || webhookData.data?.id;
-    const shipdayStatus = webhookData.status || webhookData.data?.status;
-    const referenceNumber = webhookData.referenceNumber || webhookData.data?.referenceNumber;
+    // Shipday sends: { order: { id, order_number }, order_status, event }
+    const shipdayOrderId = webhookData.order?.id || webhookData.orderId || webhookData.id;
+    const shipdayStatus = webhookData.order_status || webhookData.status;
+    const referenceNumber = webhookData.order?.order_number || webhookData.referenceNumber;
 
     if (!shipdayOrderId && !referenceNumber) {
       logger.warn('Shipday webhook missing order identifier:', webhookData);
@@ -772,21 +775,25 @@ router.post('/webhooks/shipday', async (req, res) => {
     }
 
     const STATUS_MAP = {
+      // Shipday order_status values
+      'not_assigned': 'pending',
+      'started': 'confirmed',           // Driver assigned and started
+      'picked_up': 'preparing',
+      'on_the_way': 'out_for_delivery',
+      'delivered': 'delivered',
+      'cancelled': 'cancelled',
+      'canceled': 'cancelled',
+      // Legacy/fallback mappings
       'pending': 'pending',
       'assigned': 'confirmed',
       'accepted': 'confirmed',
       'confirmed': 'confirmed',
-      'picked_up': 'preparing',
       'pickedup': 'preparing',
       'pickup': 'preparing',
-      'on_the_way': 'out_for_delivery',
       'on_the_way_to_customer': 'out_for_delivery',
       'in_transit': 'out_for_delivery',
       'out_for_delivery': 'out_for_delivery',
-      'delivered': 'delivered',
-      'completed': 'delivered',
-      'cancelled': 'cancelled',
-      'canceled': 'cancelled'
+      'completed': 'delivered'
     };
 
     const mappedStatus = STATUS_MAP[shipdayStatus.toLowerCase()] || shipdayStatus.toLowerCase();
