@@ -692,8 +692,17 @@ router.post('/webhooks/shipday', async (req, res) => {
     if (webhookSecret) {
       // Check for token in Authorization header or custom header
       const authHeader = req.headers['authorization'];
-      const tokenHeader = req.headers['x-shipday-token'] || req.headers['x-webhook-token'];
+      const tokenHeader = req.headers['x-shipday-token'] || req.headers['x-webhook-token'] || req.headers['token'];
       const providedToken = authHeader?.replace('Bearer ', '') || tokenHeader;
+      
+      // Log all headers for debugging
+      logger.info('Shipday webhook headers:', {
+        authorization: req.headers['authorization'],
+        'x-shipday-token': req.headers['x-shipday-token'],
+        'x-webhook-token': req.headers['x-webhook-token'],
+        'token': req.headers['token'],
+        allHeaders: Object.keys(req.headers)
+      });
       
       if (!providedToken || providedToken !== webhookSecret) {
         logger.warn('Shipday webhook authentication failed', {
