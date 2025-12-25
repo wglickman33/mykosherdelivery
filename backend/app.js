@@ -113,7 +113,7 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
-app.use((err, req, res) => {
+app.use((err, req, res, next) => {
   logger.error('Unhandled error:', err);
   
   res.status(err.status || 500).json({
