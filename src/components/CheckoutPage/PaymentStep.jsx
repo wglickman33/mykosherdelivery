@@ -12,7 +12,10 @@ import {
   useElements
 } from '@stripe/react-stripe-js';
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+console.log('Stripe key status:', stripeKey ? `Set (${stripeKey.substring(0, 7)}...)` : 'NOT SET');
+
+const stripePromise = stripeKey ? loadStripe(stripeKey) : null;
 
 const StripeCardForm = ({ onSuccess, onError, createPaymentIntent }) => {
   const stripe = useStripe();
@@ -480,6 +483,26 @@ const PaymentStep = ({
   const isFormValid = () => {
     return selectedMethod !== '' && selectedMethod !== 'new-card';
   };
+
+  // Check if Stripe is configured
+  if (!stripePromise) {
+    return (
+      <div className="payment-step">
+        <div className="step-header">
+          <h2 className="step-title">Payment Method</h2>
+          <p className="step-description">Payment system configuration required</p>
+        </div>
+        <div className="error-message">
+          <div className="error-content">
+            <span className="error-icon">⚠️</span>
+            <span className="error-text">
+              Payment processing is not available. Please check your environment configuration or contact support.
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="payment-step">
