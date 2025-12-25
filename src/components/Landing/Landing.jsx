@@ -25,48 +25,119 @@ const Landing = () => {
 
   useEffect(() => {
     const initializeGooglePlaces = () => {
+      console.log('[Google Places] Initializing...');
+      
       if (window.google && window.google.maps && window.google.maps.places) {
+        console.log('[Google Places] Already loaded, skipping initialization');
         return;
       }
 
       const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
       if (existingScript) {
+        console.log('[Google Places] Script already exists, waiting for load...');
+        
+        const checkLoaded = setInterval(() => {
+          if (window.google && window.google.maps && window.google.maps.places) {
+            console.log('[Google Places] API loaded after script check');
+            clearInterval(checkLoaded);
+          }
+        }, 500);
+        
+        setTimeout(() => clearInterval(checkLoaded), 10000);
         return;
       }
 
       const apiKey = import.meta.env.VITE_GOOGLE_PLACES_API_KEY;
       
+      console.log('[Google Places] API Key check:', {
+        hasKey: !!apiKey,
+        keyLength: apiKey?.length || 0,
+        keyPrefix: apiKey?.substring(0, 10) || 'none',
+        isPlaceholder: apiKey === 'your_api_key_here'
+      });
+      
       if (!apiKey || apiKey === 'your_api_key_here') {
-        console.warn('Google Places API key not configured');
+        console.error('[Google Places] API key not configured or is placeholder');
+        setAddressError("Address autocomplete is temporarily unavailable. Please enter your full address manually.");
         return;
       }
 
       window.gm_authFailure = () => {
-        console.error('Google Maps API authentication failed. The API key may not be configured correctly for this domain.');
-        setAddressError("Address autocomplete is temporarily unavailable. Please enter your full address manually.");
+        console.error('[Google Places] Authentication failure detected');
+        console.error('[Google Places] This usually means:');
+        console.error('  1. API key is invalid');
+        console.error('  2. API key restrictions are blocking this domain');
+        console.error('  3. Required APIs are not enabled in Google Cloud Console');
+        console.error('[Google Places] Current domain:', window.location.hostname);
+        console.error('[Google Places] Current origin:', window.location.origin);
+        console.error('[Google Places] Fix: Go to Google Cloud Console → APIs & Services → Credentials');
+        console.error('[Google Places] Add this domain to HTTP referrers:', window.location.origin);
+        console.error('[Google Places] Error message will only show when user tries to use autocomplete');
       };
 
+      const scriptUrl = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geocoding&loading=async&callback=initGoogleMaps`;
+      console.log('[Google Places] Loading script:', scriptUrl.replace(apiKey, 'API_KEY_HIDDEN'));
+      
       const script = document.createElement("script");
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geocoding&callback=initGoogleMaps`;
+      script.src = scriptUrl;
       script.async = true;
       script.defer = true;
       script.id = "google-maps-script";
+      script.setAttribute('loading', 'async');
       
       window.initGoogleMaps = () => {
-        if (window.google && window.google.maps && window.google.maps.places) {
-          console.log('Google Maps API loaded successfully');
+        console.log('[Google Places] Callback fired');
+        console.log('[Google Places] Checking API availability...');
+        
+        if (window.google) {
+          console.log('[Google Places] window.google exists');
+          if (window.google.maps) {
+            console.log('[Google Places] window.google.maps exists');
+            if (window.google.maps.places) {
+              console.log('[Google Places] window.google.maps.places exists');
+              if (window.google.maps.places.AutocompleteService) {
+                console.log('[Google Places] AutocompleteService available');
+                console.log('[Google Places] API fully loaded and ready');
+              } else {
+                console.error('[Google Places] AutocompleteService NOT available');
+                console.error('[Google Places] Available properties:', Object.keys(window.google.maps.places || {}));
+              }
+            } else {
+              console.error('[Google Places] Places library NOT loaded');
+              console.error('[Google Places] Available libraries:', Object.keys(window.google.maps || {}));
+            }
+          } else {
+            console.error('[Google Places] Maps object NOT available');
+          }
         } else {
-          console.warn('Google Maps API loaded but places library not available');
+          console.error('[Google Places] window.google NOT available');
         }
+        
         delete window.initGoogleMaps;
       };
       
       script.onerror = (error) => {
-        console.error("Failed to load Google Places API:", error);
-        setAddressError("Address autocomplete is temporarily unavailable. Please enter your full address manually.");
+        console.error('[Google Places] Script load error:', error);
+        console.error('[Google Places] Error details:', {
+          message: error.message,
+          filename: error.filename,
+          lineno: error.lineno,
+          colno: error.colno
+        });
+        console.error('[Google Places] This could mean:');
+        console.error('  1. Network connectivity issue');
+        console.error('  2. Invalid API key');
+        console.error('  3. API key restrictions blocking the request');
+        console.error('  4. Required APIs not enabled');
+        console.error('[Google Places] Users can still enter addresses manually - error will only show when autocomplete is attempted');
+      };
+      
+      script.onload = () => {
+        console.log('[Google Places] Script loaded successfully, waiting for callback...');
       };
       
       document.head.appendChild(script);
+      console.log('[Google Places] Script appended to document head');
     };
 
     initializeGooglePlaces();
@@ -84,54 +155,118 @@ const Landing = () => {
     }
 
     setIsLoading(true);
+    console.log('[Google Autocomplete] Input changed:', value);
 
-    if (window.google && window.google.maps && window.google.maps.places && window.google.maps.places.AutocompleteService) {
-      try {
-        const service = new window.google.maps.places.AutocompleteService();
-        
-        service.getPlacePredictions(
-          {
-            input: value,
-            types: ['address'],
-            componentRestrictions: { country: 'us' }
-          },
-          (predictions, status) => {
-            if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
-              const formattedSuggestions = predictions.slice(0, 10).map(prediction => ({
-                id: prediction.place_id,
-                description: prediction.description,
-                main_text: prediction.structured_formatting.main_text,
-                secondary_text: prediction.structured_formatting.secondary_text
-              }));
+    if (window.google) {
+      console.log('[Google Autocomplete] window.google exists');
+      if (window.google.maps) {
+        console.log('[Google Autocomplete] window.google.maps exists');
+        if (window.google.maps.places) {
+          console.log('[Google Autocomplete] window.google.maps.places exists');
+          if (window.google.maps.places.AutocompleteService) {
+            console.log('[Google Autocomplete] AutocompleteService available, making request...');
+            try {
+              const service = new window.google.maps.places.AutocompleteService();
+              console.log('[Google Autocomplete] Service created, calling getPlacePredictions...');
               
-              setSuggestions(formattedSuggestions);
-              setShowSuggestions(formattedSuggestions.length > 0);
-            } else if (status === window.google.maps.places.PlacesServiceStatus.REQUEST_DENIED) {
-              console.warn('Google Maps API request denied. The API key may not be configured correctly for this domain.');
-              setAddressError("Address autocomplete is temporarily unavailable. Please enter your full address manually.");
+              const request = {
+                input: value,
+                types: ['address'],
+                componentRestrictions: { country: 'us' }
+              };
+              console.log('[Google Autocomplete] Request:', request);
+              
+              service.getPlacePredictions(
+                request,
+                (predictions, status) => {
+                  console.log('[Google Autocomplete] Response received:', {
+                    status,
+                    statusName: Object.keys(window.google.maps.places.PlacesServiceStatus).find(
+                      key => window.google.maps.places.PlacesServiceStatus[key] === status
+                    ),
+                    predictionsCount: predictions?.length || 0,
+                    hasPredictions: !!predictions
+                  });
+                  
+                  if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
+                    console.log('[Google Autocomplete] Success! Processing', predictions.length, 'predictions');
+                    const formattedSuggestions = predictions.slice(0, 10).map(prediction => ({
+                      id: prediction.place_id,
+                      description: prediction.description,
+                      main_text: prediction.structured_formatting.main_text,
+                      secondary_text: prediction.structured_formatting.secondary_text
+                    }));
+                    
+                    console.log('[Google Autocomplete] Formatted suggestions:', formattedSuggestions);
+                    setSuggestions(formattedSuggestions);
+                    setShowSuggestions(formattedSuggestions.length > 0);
+                  } else if (status === window.google.maps.places.PlacesServiceStatus.REQUEST_DENIED) {
+                    console.error('[Google Autocomplete] REQUEST_DENIED');
+                    console.error('[Google Autocomplete] This means the API key is not authorized for this domain');
+                    console.error('[Google Autocomplete] Current domain:', window.location.hostname);
+                    console.error('[Google Autocomplete] Current origin:', window.location.origin);
+                    console.error('[Google Autocomplete] Fix: Go to Google Cloud Console → APIs & Services → Credentials');
+                    console.error('[Google Autocomplete] Edit your API key and add to HTTP referrers:');
+                    console.error('[Google Autocomplete]   - https://mykosherdelivery.netlify.app/*');
+                    console.error('[Google Autocomplete]   - https://*.netlify.app/*');
+                    console.error('[Google Autocomplete]   - http://localhost:* (for development)');
+                    setAddressError("Address autocomplete is temporarily unavailable. Please enter your full address manually.");
+                    setSuggestions([]);
+                    setShowSuggestions(false);
+                  } else if (status === window.google.maps.places.PlacesServiceStatus.OVER_QUERY_LIMIT) {
+                    console.warn('[Google Autocomplete] OVER_QUERY_LIMIT - API quota exceeded');
+                    setSuggestions([]);
+                    setShowSuggestions(false);
+                  } else if (status === window.google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+                    console.log('[Google Autocomplete] ZERO_RESULTS - No addresses found for:', value);
+                    setSuggestions([]);
+                    setShowSuggestions(false);
+                  } else if (status === window.google.maps.places.PlacesServiceStatus.INVALID_REQUEST) {
+                    console.error('[Google Autocomplete] INVALID_REQUEST - Request was malformed');
+                    console.error('[Google Autocomplete] Request was:', request);
+                    setSuggestions([]);
+                    setShowSuggestions(false);
+                  } else {
+                    console.warn('[Google Autocomplete] Unknown status:', status);
+                    console.warn('[Google Autocomplete] Available statuses:', Object.keys(window.google.maps.places.PlacesServiceStatus));
+                    setSuggestions([]);
+                    setShowSuggestions(false);
+                  }
+                  setIsLoading(false);
+                }
+              );
+            } catch (error) {
+              console.error('[Google Autocomplete] Exception caught:', error);
+              console.error('[Google Autocomplete] Error stack:', error.stack);
+              console.error('[Google Autocomplete] Error name:', error.name);
+              console.error('[Google Autocomplete] Error message:', error.message);
               setSuggestions([]);
               setShowSuggestions(false);
-            } else if (status === window.google.maps.places.PlacesServiceStatus.OVER_QUERY_LIMIT) {
-              console.warn('Google Maps API quota exceeded');
-              setSuggestions([]);
-              setShowSuggestions(false);
-            } else if (status === window.google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
-              setSuggestions([]);
-              setShowSuggestions(false);
-            } else {
-              setSuggestions([]);
-              setShowSuggestions(false);
+              setIsLoading(false);
             }
+          } else {
+            console.error('[Google Autocomplete] AutocompleteService NOT available');
+            console.error('[Google Autocomplete] Available places methods:', Object.keys(window.google.maps.places || {}));
+            setSuggestions([]);
+            setShowSuggestions(false);
             setIsLoading(false);
           }
-        );
-      } catch (error) {
-        console.error('Error using Google Places AutocompleteService:', error);
+        } else {
+          console.error('[Google Autocomplete] Places library NOT loaded');
+          console.error('[Google Autocomplete] Available maps properties:', Object.keys(window.google.maps || {}));
+          setSuggestions([]);
+          setShowSuggestions(false);
+          setIsLoading(false);
+        }
+      } else {
+        console.error('[Google Autocomplete] Maps object NOT available');
         setSuggestions([]);
         setShowSuggestions(false);
         setIsLoading(false);
       }
     } else {
+      console.error('[Google Autocomplete] window.google NOT available');
+      console.error('[Google Autocomplete] API may still be loading or failed to load');
       setSuggestions([]);
       setShowSuggestions(false);
       setIsLoading(false);
