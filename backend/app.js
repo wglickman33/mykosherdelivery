@@ -37,13 +37,11 @@ app.use(cors({
 }));
 
 app.use(validateRateLimit(15 * 60 * 1000, 500));
+
+app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
+
 app.use(express.json({ 
-  limit: '10mb',
-  verify: (req, res, buf) => {
-    if (req.originalUrl === '/api/payments/webhook') {
-      req.rawBody = buf;
-    }
-  }
+  limit: '10mb'
 }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
