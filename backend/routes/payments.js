@@ -382,7 +382,7 @@ router.post(
 
 router.post(
   "/webhook",
-  express.raw({ type: "application/json" }),
+  // Note: express.raw() is applied in app.js BEFORE express.json() to preserve raw body
   async (req, res) => {
     const sig = req.headers["stripe-signature"];
     let event;
