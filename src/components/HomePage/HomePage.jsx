@@ -140,7 +140,7 @@ const HomePage = () => {
                 </svg>
               </div>
               <h3>Reliable Delivery</h3>
-              <p>Food delivered on friday before shabbat guaranteed or your money back.</p>
+              <p>Food delivered on Friday before Shabbat guaranteed or your money back.</p>
             </div>
             
             <div className="feature-card">
