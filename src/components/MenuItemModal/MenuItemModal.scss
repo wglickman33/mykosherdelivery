@@ -24,6 +24,8 @@
   @media (max-width: 640px) {
     left: 0;
     padding-top: calc(60px + 1rem);
+    padding-bottom: 1rem;
+    align-items: center;
   }
 }
 
@@ -39,7 +41,8 @@
   
   @media (max-width: 640px) {
     max-width: 95vw;
-    max-height: 95vh;
+    max-height: calc(100dvh - 100px);
+    margin: auto;
   }
 }
 
@@ -103,6 +106,7 @@
   
   @media (max-width: 640px) {
     padding: 1.5rem;
+    padding-bottom: 4rem;
   }
 }
 
