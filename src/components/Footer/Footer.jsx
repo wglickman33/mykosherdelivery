@@ -56,7 +56,7 @@ const Footer = () => {
             <h3 className="footer__section-title">Follow Us</h3>
             <div className="footer__social">
               <a 
-                href="https://instagram.com" 
+                href="https://instagram.com/mykosherdelivery" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="footer__social-link"
@@ -68,7 +68,7 @@ const Footer = () => {
                 Instagram
               </a>
               <a 
-                href="https://yelp.com" 
+                href="https://www.yelp.com/biz/my-kosher-delivery-woodmere?utm_campaign=www_business_share_popup&utm_medium=copy_link&utm_source=(direct)" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="footer__social-link"

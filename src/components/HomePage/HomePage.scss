@@ -72,9 +72,9 @@
   }
 
   .secondary-button {
-    background-color: transparent;
-    color: #061757;
-    border: 2px solid #e9ecef;
+    background: #f8f9fa;
+    color: #5fb4f9;
+    border: 2px solid #5fb4f9;
     padding: 12px 28px;
     border-radius: 24px;
     font-size: 1.1rem;
@@ -85,9 +85,9 @@
     display: inline-block;
 
     &:hover {
-      border-color: #5fb4f9;
-      color: #5fb4f9;
       background: #f8f9fa;
+      color: #061757;
+      border-color: #e9ecef;
     }
   }
 
