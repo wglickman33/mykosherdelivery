@@ -1,16 +1,14 @@
 'use strict';
 
-/** @type {import('sequelize-cli').Migration} */
+
 module.exports = {
   async up(queryInterface, Sequelize) {
-    // First, update any existing 'customizable' values to 'simple'
     await queryInterface.sequelize.query(`
       UPDATE menu_items 
       SET item_type = 'simple' 
       WHERE item_type = 'customizable';
     `);
     
-    // Update the ENUM to remove 'customizable' and keep only 'simple', 'variety', 'builder'
     await queryInterface.sequelize.query(`
       ALTER TYPE "enum_menu_items_item_type" RENAME TO "enum_menu_items_item_type_old";
     `);
@@ -31,7 +29,6 @@ module.exports = {
   },
 
   async down(queryInterface, Sequelize) {
-    // Revert back to the old ENUM with 'customizable'
     await queryInterface.sequelize.query(`
       ALTER TYPE "enum_menu_items_item_type" RENAME TO "enum_menu_items_item_type_old";
     `);

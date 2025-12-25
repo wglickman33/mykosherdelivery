@@ -1,9 +1,7 @@
 import apiClient from '../lib/api';
 import { buildImageUrl } from './imageService';
 
-// ==================== ADMIN MENU ITEM SERVICES ====================
 
-// Normalize menu item data to include proper image URLs
 export const normalizeMenuItem = (item) => {
   const imageUrl = item.imageUrl || item.image;
   const image = imageUrl ? buildImageUrl(imageUrl) : null;
@@ -23,7 +21,6 @@ export const normalizeMenuItem = (item) => {
   };
 };
 
-// Get all menu items for a restaurant (admin)
 export const fetchRestaurantMenuItems = async (restaurantId, filters = {}) => {
   try {
     const params = new URLSearchParams();
@@ -54,7 +51,6 @@ export const fetchRestaurantMenuItems = async (restaurantId, filters = {}) => {
 
     const response = await apiClient.get(`/admin/restaurants/${restaurantId}/menu-items?${params.toString()}`);
     
-    // Normalize menu items to include proper image URLs
     const normalizedData = Array.isArray(response.data) 
       ? { ...response, data: response.data.map(normalizeMenuItem) }
       : response;
@@ -66,7 +62,6 @@ export const fetchRestaurantMenuItems = async (restaurantId, filters = {}) => {
   }
 };
 
-// Get single menu item (admin)
 export const fetchMenuItem = async (restaurantId, itemId) => {
   try {
     const response = await apiClient.get(`/admin/restaurants/${restaurantId}/menu-items/${itemId}`);
@@ -77,7 +72,6 @@ export const fetchMenuItem = async (restaurantId, itemId) => {
   }
 };
 
-// Create new menu item (admin)
 export const createMenuItem = async (restaurantId, menuItemData) => {
   try {
     const response = await apiClient.post(`/admin/restaurants/${restaurantId}/menu-items`, menuItemData);
@@ -88,7 +82,6 @@ export const createMenuItem = async (restaurantId, menuItemData) => {
   }
 };
 
-// Update menu item (admin)
 export const updateMenuItem = async (restaurantId, itemId, updateData) => {
   try {
     const response = await apiClient.put(`/admin/restaurants/${restaurantId}/menu-items/${itemId}`, updateData);
@@ -99,7 +92,6 @@ export const updateMenuItem = async (restaurantId, itemId, updateData) => {
   }
 };
 
-// Delete menu item (admin)
 export const deleteMenuItem = async (restaurantId, itemId) => {
   try {
     const response = await apiClient.delete(`/admin/restaurants/${restaurantId}/menu-items/${itemId}`);
@@ -110,12 +102,10 @@ export const deleteMenuItem = async (restaurantId, itemId) => {
   }
 };
 
-// Bulk update menu items (admin)
 export const bulkUpdateMenuItems = async (restaurantId, updates) => {
   try {
     const response = await apiClient.patch(`/admin/restaurants/${restaurantId}/menu-items/bulk`, { updates });
     
-    // Normalize all updated menu items
     if (response.data && Array.isArray(response.data)) {
       return { ...response, data: response.data.map(normalizeMenuItem) };
     }
@@ -127,9 +117,7 @@ export const bulkUpdateMenuItems = async (restaurantId, updates) => {
   }
 };
 
-// ==================== USER-FACING MENU SERVICES ====================
 
-// Get restaurant menu items (user-facing)
 export const fetchRestaurantMenu = async (restaurantId, filters = {}) => {
   try {
     const params = new URLSearchParams();
@@ -158,7 +146,6 @@ export const fetchRestaurantMenu = async (restaurantId, filters = {}) => {
   }
 };
 
-// Get menu categories for a restaurant
 export const fetchMenuCategories = async (restaurantId) => {
   try {
     const response = await apiClient.get(`/restaurants/${restaurantId}/menu/categories`);
@@ -169,7 +156,6 @@ export const fetchMenuCategories = async (restaurantId) => {
   }
 };
 
-// Get single menu item with full details (for item modals)
 export const fetchMenuItemDetails = async (restaurantId, itemId) => {
   try {
     const response = await apiClient.get(`/restaurants/${restaurantId}/menu/${itemId}`);
@@ -180,9 +166,7 @@ export const fetchMenuItemDetails = async (restaurantId, itemId) => {
   }
 };
 
-// ==================== REAL-TIME UPDATES ====================
 
-// Create SSE connection for admin menu updates
 export const createMenuUpdatesStream = (onMessage, onError) => {
   const eventSource = new EventSource(`${import.meta.env.VITE_API_BASE_URL}/admin/menu-updates/stream`);
   
@@ -204,7 +188,6 @@ export const createMenuUpdatesStream = (onMessage, onError) => {
   return eventSource;
 };
 
-// Create SSE connection for public menu updates (user-facing)
 export const createPublicMenuUpdatesStream = (restaurantId, onMessage, onError) => {
   const eventSource = new EventSource(`${import.meta.env.VITE_API_BASE_URL}/admin/public/menu-updates/stream?restaurantId=${restaurantId}`);
   
@@ -226,13 +209,10 @@ export const createPublicMenuUpdatesStream = (restaurantId, onMessage, onError) 
   return eventSource;
 };
 
-// ==================== MENU ITEM VALIDATION HELPERS ====================
 
-// Validate menu item data based on type
 export const validateMenuItemData = (data) => {
   const errors = [];
   
-  // Common validation
   if (!data.name || data.name.trim().length === 0) {
     errors.push('Item name is required');
   }
@@ -249,7 +229,6 @@ export const validateMenuItemData = (data) => {
     errors.push('Category is required');
   }
   
-  // Type-specific validation
   if (data.itemType === 'variety') {
     if (!data.options || !data.options.variants || !Array.isArray(data.options.variants)) {
       errors.push('Variants are required for variety items');
@@ -302,15 +281,12 @@ export const validateMenuItemData = (data) => {
   return errors;
 };
 
-// Normalize menu item data for API submission
 export const normalizeMenuItemData = (data) => {
-  // Convert labels to array if it's an object with numeric keys
   let normalizedLabels = [];
   if (data.labels) {
     if (Array.isArray(data.labels)) {
       normalizedLabels = data.labels;
     } else if (typeof data.labels === 'object') {
-      // Convert object with numeric keys to array
       normalizedLabels = Object.values(data.labels);
     }
   }
@@ -321,13 +297,12 @@ export const normalizeMenuItemData = (data) => {
     price: parseFloat(data.price),
     category: data.category?.trim(),
     imageUrl: data.imageUrl?.trim() || null,
-    available: data.available !== false, // default to true
+    available: data.available !== false,
     itemType: data.itemType,
     options: data.options || null,
     labels: normalizedLabels
   };
   
-  // Ensure options is properly structured for each type
   if (normalized.itemType === 'variety' && normalized.options) {
     normalized.options = {
       variants: normalized.options.variants || []
@@ -343,14 +318,11 @@ export const normalizeMenuItemData = (data) => {
   return normalized;
 };
 
-// ==================== PRICE CALCULATION HELPERS ====================
 
-// Calculate final price for a variety item with selected variant
 export const calculateVarietyItemPrice = (basePrice, variant) => {
   return basePrice + (variant?.priceModifier || 0);
 };
 
-// Calculate final price for a builder item with selected configurations
 export const calculateBuilderItemPrice = (basePrice, selections) => {
   let totalPrice = basePrice;
   
@@ -365,7 +337,6 @@ export const calculateBuilderItemPrice = (basePrice, selections) => {
   return totalPrice;
 };
 
-// Get price breakdown for builder items
 export const getBuilderItemPriceBreakdown = (basePrice, selections) => {
   const breakdown = [
     { name: 'Base Price', price: basePrice }
@@ -392,9 +363,7 @@ export const getBuilderItemPriceBreakdown = (basePrice, selections) => {
   };
 };
 
-// ==================== MENU ITEM TYPE HELPERS ====================
 
-// Get display name for item type
 export const getItemTypeDisplayName = (itemType) => {
   const typeMap = {
     'simple': 'Regular Item',
@@ -404,12 +373,10 @@ export const getItemTypeDisplayName = (itemType) => {
   return typeMap[itemType] || 'Unknown Type';
 };
 
-// Check if item type requires options
 export const requiresOptions = (itemType) => {
   return ['variety', 'builder'].includes(itemType);
 };
 
-// Get default options structure for item type
 export const getDefaultOptions = (itemType) => {
   switch (itemType) {
     case 'variety':
@@ -425,9 +392,7 @@ export const getDefaultOptions = (itemType) => {
   }
 };
 
-// ==================== CART INTEGRATION HELPERS ====================
 
-// Create cart item from menu item with selections
 export const createCartItem = (menuItem, selections = {}) => {
   const baseItem = {
     id: `cart-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -463,7 +428,6 @@ export const createCartItem = (menuItem, selections = {}) => {
     };
   }
 
-  // Simple item
   return {
     ...baseItem,
     totalPrice: menuItem.price

@@ -1,12 +1,8 @@
-// Menu Item Modal - Specific BEM naming to prevent conflicts
-// CSS Reset for this specific modal to prevent conflicts
 .menu-item-modal {
-  // Reset any inherited styles
   * {
     box-sizing: border-box;
   }
   
-  // Ensure proper isolation
   &.menu-item-modal {
     position: relative;
     z-index: 1000;
@@ -24,7 +20,6 @@
     z-index: 1000;
     padding: 20px;
     
-    // Ensure this modal is isolated from other modals
     &.menu-item-modal__overlay {
       z-index: 1000;
     }
@@ -42,7 +37,6 @@
     flex-direction: column;
     position: relative;
     
-    // Prevent conflicts with other modal styles
     &.menu-item-modal__container {
       background: #ffffff !important;
       border-radius: 16px !important;
@@ -65,7 +59,6 @@
       color: #061757;
       margin: 0;
       
-      // Prevent conflicts with other modal headers
       &.menu-item-modal__header-title {
         font-size: 1.5rem !important;
         font-weight: 700 !important;
@@ -101,7 +94,6 @@
     overflow-y: auto;
     flex: 1;
     
-    // Prevent conflicts with other modal content
     &.menu-item-modal__content {
       padding: 32px !important;
       overflow-y: auto !important;
@@ -185,7 +177,6 @@
     }
   }
 
-  // Type Selection Step
   &__type-selection {
     text-align: center;
 
@@ -266,7 +257,6 @@
     font-style: italic;
   }
 
-  // Details Form Step
   &__details-form {
     h3 {
       font-size: 1.5rem;
@@ -298,7 +288,6 @@
       border-bottom: 2px solid #e2e8f0;
     }
 
-    // Full width variant for type-specific options
     &--full-width {
       margin-top: 32px;
       margin-bottom: 0;
@@ -366,7 +355,6 @@
     line-height: 1.4;
   }
 
-  // Variety Editor
   &__variety-editor {
     h5 {
       font-size: 1rem;
@@ -455,7 +443,6 @@
     }
   }
 
-  // Builder Editor
   &__builder-editor {
     h5 {
       font-size: 1rem;
@@ -589,7 +576,6 @@
     }
   }
 
-  // Preview Step
   &__preview {
     h3 {
       font-size: 1.5rem;
@@ -690,7 +676,6 @@
     }
   }
 
-  // Form Actions
   &__form-actions {
     display: flex;
     justify-content: space-between;
@@ -699,7 +684,6 @@
     border-top: 1px solid #e2e8f0;
   }
 
-  // Buttons
   &__btn {
     padding: 12px 24px;
     border: none;
@@ -758,7 +742,6 @@
     }
   }
 
-  // Preview labels styling
   &__preview-labels {
     margin: 1rem 0;
     
@@ -787,30 +770,29 @@
     font-weight: 500;
     transition: all 0.3s ease;
 
-    // Different colors for different dietary tags
     &[title*="Meat"],
     &[title*="meat"] {
-      background: #dc3545; // Red for meat
+      background: #dc3545;
     }
 
     &[title*="Dairy"],
     &[title*="dairy"] {
-      background: #5fb4f9; // Brand blue for dairy
+      background: #5fb4f9;
     }
 
     &[title*="Gluten Free"],
     &[title*="gluten"],
     &[title*="Nut Free"],
     &[title*="nut"] {
-      background: #ffc107; // Yellow for gluten free and nut free
-      color: #212529; // Dark text for better contrast on yellow
+      background: #ffc107;
+      color: #212529;
     }
 
     &[title*="Vegetarian"],
     &[title*="vegetarian"],
     &[title*="Vegan"],
     &[title*="vegan"] {
-      background: #28a745; // Green for vegetarian and vegan
+      background: #28a745;
     }
   }
 }

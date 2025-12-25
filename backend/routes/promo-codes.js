@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const { sequelize } = require('../models');
 
-// Validate promo code (allow guest users)
 router.post('/validate', async (req, res) => {
   try {
     const { code } = req.body;
@@ -14,7 +13,6 @@ router.post('/validate', async (req, res) => {
       });
     }
 
-    // Use raw SQL query to find the promo code
     const [results] = await sequelize.query(
       'SELECT * FROM promo_codes WHERE code = :code LIMIT 1',
       {
@@ -30,7 +28,6 @@ router.post('/validate', async (req, res) => {
       });
     }
 
-    // Check if promo code is valid
     const now = new Date();
     if (!results.active) {
       return res.status(400).json({
@@ -53,7 +50,6 @@ router.post('/validate', async (req, res) => {
       });
     }
 
-    // Return valid promo code details
     res.status(200).json({
       success: true,
       data: {
@@ -74,7 +70,6 @@ router.post('/validate', async (req, res) => {
   }
 });
 
-// Apply promo code discount calculation (allow guest users)
 router.post('/calculate-discount', async (req, res) => {
   try {
     const { code, subtotal } = req.body;
@@ -86,7 +81,6 @@ router.post('/calculate-discount', async (req, res) => {
       });
     }
 
-    // Use raw SQL query to find the promo code
     const [results] = await sequelize.query(
       'SELECT * FROM promo_codes WHERE code = :code LIMIT 1',
       {
@@ -102,7 +96,6 @@ router.post('/calculate-discount', async (req, res) => {
       });
     }
 
-    // Check if promo code is valid
     const now = new Date();
     if (!results.active || 
         (results.expires_at && now > new Date(results.expires_at)) ||
@@ -113,7 +106,6 @@ router.post('/calculate-discount', async (req, res) => {
       });
     }
 
-    // Calculate discount
     let discountAmount = 0;
     const subtotalValue = parseFloat(subtotal);
     

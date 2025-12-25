@@ -31,7 +31,6 @@ const AdminSettings = () => {
   });
   const [totalCount, setTotalCount] = useState(0);
   
-  // Countdown timer settings state
   const [countdownSettings, setCountdownSettings] = useState({
     targetDay: 4,
     targetTime: '18:00',
@@ -44,7 +43,6 @@ const AdminSettings = () => {
   const [countdownLoading, setCountdownLoading] = useState(false);
   const [countdownMessage, setCountdownMessage] = useState('');
   
-  // Promo codes state
   const [promoCodes, setPromoCodes] = useState([]);
   const [promoLoading, setPromoLoading] = useState(false);
   const [promoFilters, setPromoFilters] = useState({
@@ -139,7 +137,6 @@ const AdminSettings = () => {
       const result = await resetCountdownSettings();
       
       if (result.success) {
-        // Fetch updated settings after reset
         await fetchCountdownSettings();
         setCountdownMessage('Settings reset to defaults successfully!');
         setTimeout(() => setCountdownMessage(''), 3000);
@@ -207,12 +204,10 @@ const AdminSettings = () => {
     }
   };
 
-  // Promo code functions
   const fetchPromoData = async () => {
     setPromoLoading(true);
     setPromoError('');
     
-    // Check if user is logged in and is an admin
     console.log('Current user:', user);
     
     if (!user) {
@@ -248,7 +243,6 @@ const AdminSettings = () => {
   const handlePromoSubmit = async (e) => {
     e.preventDefault();
     
-    // Validate form
     const errors = validatePromoForm();
     setPromoFormErrors(errors);
     
@@ -263,9 +257,7 @@ const AdminSettings = () => {
       const formData = {
         ...promoFormData,
         discountValue: parseFloat(promoFormData.discountValue),
-        // Only include usageLimit if it has a value (don't send null)
         ...(promoFormData.usageLimit && promoFormData.usageLimit.trim() ? { usageLimit: parseInt(promoFormData.usageLimit) } : {}),
-        // Only include expiresAt if it has a value (don't send null or empty string)
         ...(promoFormData.expiresAt && promoFormData.expiresAt.trim() ? { expiresAt: promoFormData.expiresAt } : {})
       };
 
@@ -337,7 +329,6 @@ const AdminSettings = () => {
   const validatePromoForm = () => {
     const errors = {};
 
-    // Code validation
     if (!promoFormData.code.trim()) {
       errors.code = 'Promo code is required';
     } else if (promoFormData.code.length < 3) {
@@ -346,7 +337,6 @@ const AdminSettings = () => {
       errors.code = 'Promo code can only contain letters and numbers';
     }
 
-    // Discount value validation
     if (!promoFormData.discountValue) {
       errors.discountValue = 'Discount value is required';
     } else {
@@ -358,7 +348,6 @@ const AdminSettings = () => {
       }
     }
 
-    // Usage limit validation
     if (promoFormData.usageLimit && promoFormData.usageLimit.trim()) {
       const limit = parseInt(promoFormData.usageLimit);
       if (isNaN(limit) || limit < 1) {
@@ -366,7 +355,6 @@ const AdminSettings = () => {
       }
     }
 
-    // Expiration date validation
     if (promoFormData.expiresAt) {
       const expirationDate = new Date(promoFormData.expiresAt);
       const today = new Date();
@@ -384,21 +372,18 @@ const AdminSettings = () => {
     
     const changes = [];
     if (log.oldValues && log.newValues) {
-      // Update operation - show what changed
       Object.keys(log.newValues).forEach(key => {
         if (log.oldValues[key] !== log.newValues[key]) {
           changes.push(`${key}: "${log.oldValues[key]}" → "${log.newValues[key]}"`);
         }
       });
     } else if (log.newValues) {
-      // Create operation - show new values
       Object.entries(log.newValues).forEach(([key, value]) => {
         if (value !== null && value !== undefined) {
           changes.push(`${key}: "${value}"`);
         }
       });
     } else if (log.oldValues) {
-      // Delete operation - show what was deleted
       Object.entries(log.oldValues).forEach(([key, value]) => {
         if (value !== null && value !== undefined) {
           changes.push(`${key}: "${value}"`);
@@ -654,7 +639,7 @@ const AdminSettings = () => {
                           <td>
                             {promo.discountType === 'percentage' 
                               ? `${promo.discountValue}%` 
-                              : `$${promo.discountValue}`}
+                              : `${promo.discountValue}`}
                           </td>
                           <td>
                             {promo.usageLimit 
@@ -720,7 +705,7 @@ const AdminSettings = () => {
               </>
             )}
 
-            {/* Promo Code Modal */}
+            {}
             {showPromoModal && (
               <div className="modal-overlay" onClick={() => setShowPromoModal(false)}>
                 <div className="modal-content" onClick={(e) => e.stopPropagation()}>

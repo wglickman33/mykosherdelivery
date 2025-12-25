@@ -1,12 +1,10 @@
 import { API_BASE_URL } from '../lib/api';
 
-// Get authentication token
 const getAuthToken = () => {
   const token = localStorage.getItem('mkd-auth-token');
   return token;
 };
 
-// Get all promo codes (admin)
 export const fetchPromoCodes = async (page = 1, limit = 20, search = '', active = '') => {
   try {
     const token = getAuthToken();
@@ -48,7 +46,6 @@ export const fetchPromoCodes = async (page = 1, limit = 20, search = '', active 
   }
 };
 
-// Get single promo code (admin)
 export const fetchPromoCodeById = async (id) => {
   try {
     const token = getAuthToken();
@@ -73,7 +70,6 @@ export const fetchPromoCodeById = async (id) => {
   }
 };
 
-// Create new promo code (admin)
 export const createPromoCode = async (promoCodeData) => {
   try {
     const token = getAuthToken();
@@ -99,14 +95,12 @@ export const createPromoCode = async (promoCodeData) => {
   }
 };
 
-// Update promo code (admin)
 export const updatePromoCode = async (id, promoCodeData) => {
   try {
     const token = getAuthToken();
     
-    // Ensure ID is a valid number/string (handle edge cases like composite keys "1:1")
     const promoId = typeof id === 'object' ? (id?.id || id) : id;
-    const cleanId = String(promoId).split(':')[0]; // Handle composite keys like "1:1" by taking first part
+    const cleanId = String(promoId).split(':')[0];
     
     const response = await fetch(`${API_BASE_URL}/admin/promo-codes/${encodeURIComponent(cleanId)}`, {
       method: 'PUT',
@@ -120,7 +114,6 @@ export const updatePromoCode = async (id, promoCodeData) => {
     const data = await response.json();
     
     if (!response.ok) {
-      // Log detailed error information for debugging
       console.error('Promo code update error:', {
         status: response.status,
         statusText: response.statusText,
@@ -140,7 +133,6 @@ export const updatePromoCode = async (id, promoCodeData) => {
   }
 };
 
-// Delete promo code (admin)
 export const deletePromoCode = async (id) => {
   try {
     const token = getAuthToken();
@@ -165,7 +157,6 @@ export const deletePromoCode = async (id) => {
   }
 };
 
-// Validate promo code (public)
 export const validatePromoCode = async (code) => {
   try {
     const response = await fetch(`${API_BASE_URL}/promo-codes/validate`, {
@@ -189,7 +180,6 @@ export const validatePromoCode = async (code) => {
   }
 };
 
-// Calculate discount (public)
 export const calculateDiscount = async (code, subtotal) => {
   try {
     const response = await fetch(`${API_BASE_URL}/promo-codes/calculate-discount`, {

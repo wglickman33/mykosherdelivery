@@ -1,4 +1,4 @@
-const { Profile, UserLoginActivity } = require('../models');
+const { Profile } = require('../models');
 const { sequelize } = require('../models');
 
 async function testUserAPI() {
@@ -6,16 +6,13 @@ async function testUserAPI() {
     await sequelize.authenticate();
     console.log('Database connected successfully.');
     
-    // Test the same query that the API uses
     const whereClause = {};
     const limitNum = 20;
     const offsetNum = 0;
     
-    // Get total count for pagination
     const total = await Profile.count({ where: whereClause });
     console.log(`Total users in database: ${total}`);
     
-    // Get users with last login information (same as API)
     const users = await Profile.findAll({
       where: whereClause,
       attributes: { 
@@ -40,7 +37,6 @@ async function testUserAPI() {
 
     console.log(`\nUsers found: ${users.length}`);
     
-    // Transform users to match frontend expectations
     const transformedUsers = users.map(user => {
       const userData = user.toJSON();
       return {

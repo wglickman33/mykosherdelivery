@@ -1,6 +1,5 @@
 import logger from "../utils/logger";
 
-// API Client for Express Backend with Enhanced Security
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:3001/api";
 
@@ -11,7 +10,6 @@ class ApiClient {
     this.requestCount = 0;
   }
 
-  // Securely get stored token
   getStoredToken() {
     try {
       return localStorage.getItem("mkd-auth-token");
@@ -21,7 +19,6 @@ class ApiClient {
     }
   }
 
-  // Set authentication token with error handling
   setToken(token) {
     try {
       this.token = token;
@@ -37,12 +34,10 @@ class ApiClient {
     }
   }
 
-  // Get authentication token
   getToken() {
     return this.token || this.getStoredToken();
   }
 
-  // Validate API configuration
   validateConfig() {
     if (!this.baseURL || this.baseURL.includes("placeholder")) {
       logger.warn("API base URL not properly configured");
@@ -51,13 +46,11 @@ class ApiClient {
     return true;
   }
 
-  // Make API request with enhanced security and logging
   async request(endpoint, options = {}) {
     const requestId = ++this.requestCount;
     const startTime = performance.now();
     const url = `${this.baseURL}${endpoint}`;
 
-    // Validate configuration
     if (!this.validateConfig()) {
       throw new Error(
         "API client not properly configured. Please check environment variables."
@@ -86,14 +79,11 @@ class ApiClient {
       const response = await fetch(url, config);
       const duration = Math.round(performance.now() - startTime);
 
-      // Log API call
       logger.api(config.method || "GET", endpoint, response.status, duration);
 
-      // Handle 401 Unauthorized
       if (response.status === 401) {
         const errorData = await response.json().catch(() => ({}));
         
-        // Only clear token if it's actually expired/invalid, not for other auth issues
         if (errorData.error === 'Token expired' || 
             errorData.error === 'Invalid token' || 
             errorData.error === 'Token revoked') {
@@ -106,31 +96,26 @@ class ApiClient {
         throw new Error(errorData.message || "Authentication required. Please sign in again.");
       }
 
-      // Handle 403 Forbidden
       if (response.status === 403) {
         logger.warn("Access forbidden for current user");
         throw new Error("You do not have permission to access this resource.");
       }
 
-      // Handle 404 Not Found
       if (response.status === 404) {
         logger.warn(`Resource not found: ${endpoint}`);
         throw new Error("The requested resource was not found.");
       }
 
-      // Handle 429 Too Many Requests with retry logic
       if (response.status === 429) {
         logger.warn("Rate limit exceeded");
         throw new Error("Too many requests. Please try again later.");
       }
 
-      // Handle 500+ Server Errors
       if (response.status >= 500) {
         logger.error(`Server error: ${response.status}`);
         throw new Error("Server error. Please try again later.");
       }
 
-      // Handle other client errors
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         const errorMessage =
@@ -143,7 +128,6 @@ class ApiClient {
         throw new Error(errorMessage);
       }
 
-      // Parse JSON response
       const data = await response.json();
       logger.debug(`API Success [${requestId}]`, {
         status: response.status,
@@ -174,14 +158,12 @@ class ApiClient {
     }
   }
 
-  // GET request
   async get(endpoint, params = {}) {
     const queryString = new URLSearchParams(params).toString();
     const url = queryString ? `${endpoint}?${queryString}` : endpoint;
     return this.request(url, { method: "GET" });
   }
 
-  // POST request
   async post(endpoint, data = {}) {
     return this.request(endpoint, {
       method: "POST",
@@ -189,7 +171,6 @@ class ApiClient {
     });
   }
 
-  // PUT request
   async put(endpoint, data = {}) {
     return this.request(endpoint, {
       method: "PUT",
@@ -197,7 +178,6 @@ class ApiClient {
     });
   }
 
-  // PATCH request
   async patch(endpoint, data = {}) {
     return this.request(endpoint, {
       method: "PATCH",
@@ -205,12 +185,10 @@ class ApiClient {
     });
   }
 
-  // DELETE request
   async delete(endpoint) {
     return this.request(endpoint, { method: "DELETE" });
   }
 
-  // Health check method
   async healthCheck() {
     try {
       const response = await this.get("/health");
@@ -222,7 +200,6 @@ class ApiClient {
     }
   }
 
-  // Promo Code API methods
   async validatePromoCode(code) {
     try {
       const response = await this.post('/promo-codes/validate', { code });
@@ -246,10 +223,8 @@ class ApiClient {
   }
 }
 
-// Create singleton instance
 const apiClient = new ApiClient();
 
-// Initialize with configuration check
 logger.debug("API Client initialized", {
   baseURL: API_BASE_URL,
   hasToken: !!apiClient.getToken(),

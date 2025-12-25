@@ -2,7 +2,6 @@ import apiClient from '../lib/api';
 import { buildImageUrl } from './imageService';
 import { normalizeMenuItem } from './menuItemService';
 
-// Simple rate limiter to prevent overwhelming the API
 class RateLimiter {
   constructor(maxRequests = 5, windowMs = 1000) {
     this.maxRequests = maxRequests;
@@ -13,27 +12,22 @@ class RateLimiter {
   async wait() {
     const now = Date.now();
     
-    // Remove old requests outside the window
     this.requests = this.requests.filter(time => now - time < this.windowMs);
     
-    // If we're at the limit, wait
     if (this.requests.length >= this.maxRequests) {
       const oldestRequest = Math.min(...this.requests);
       const waitTime = this.windowMs - (now - oldestRequest);
       await new Promise(resolve => setTimeout(resolve, waitTime));
-      return this.wait(); // Recursively check again
+      return this.wait();
     }
     
-    // Add this request to the queue
     this.requests.push(now);
   }
 }
 
-// Create a rate limiter for favorites API calls
-const favoritesRateLimiter = new RateLimiter(3, 1000); // 3 requests per second
+const favoritesRateLimiter = new RateLimiter(3, 1000);
 
 
-// Transform restaurant data to match frontend expectations
 const transformRestaurant = (dbRestaurant) => {
   const logo = dbRestaurant.logoUrl || null;
   const logoUrl = logo ? buildImageUrl(logo) : null;
@@ -60,7 +54,6 @@ export const fetchRestaurants = async (filters = {}) => {
 
     const response = await apiClient.get('/restaurants', params);
     
-    // Transform each restaurant
     const transformedRestaurants = response.map(transformRestaurant);
     
     return transformedRestaurants;
@@ -84,7 +77,6 @@ export const fetchFeaturedRestaurants = async () => {
   try {
     const response = await apiClient.get('/restaurants/featured/list');
     
-    // Transform each restaurant
     const transformedRestaurants = response.map(transformRestaurant);
     
     return transformedRestaurants;
@@ -98,7 +90,6 @@ export const fetchUserFavoriteRestaurants = async () => {
   try {
     const response = await apiClient.get('/favorites');
     
-    // Transform each restaurant
     const transformedRestaurants = response.map(restaurant => ({
       ...transformRestaurant(restaurant),
       isFavorite: true,
@@ -116,7 +107,7 @@ export const fetchUserFavoriteRestaurants = async () => {
 export const fetchUserFavorites = async () => {
   try {
     const response = await apiClient.get('/favorites/ids');
-    return response; // This returns just the restaurant IDs
+    return response;
   } catch (error) {
     console.error('Error fetching user favorites:', error);
     return [];

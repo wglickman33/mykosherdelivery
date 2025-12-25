@@ -22,7 +22,6 @@ const AdminLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Simple SSE connection tracking
   const sseConnectionRef = useRef(null);
   const sseSetupRef = useRef(false);
 
@@ -36,7 +35,6 @@ const AdminLayout = () => {
     setAuthLoading(false);
   }, [user, authContextLoading, navigate]);
 
-  // Responsive behavior: collapsed rail (769-1280), mobile drawer (<=768), full (>=1281)
   useEffect(() => {
     const applyResponsive = () => {
       const w = window.innerWidth;
@@ -53,12 +51,10 @@ const AdminLayout = () => {
     return () => window.removeEventListener('resize', applyResponsive);
   }, []);
 
-  // Close mobile sidebar on route change
   useEffect(() => {
     setMobileSidebarOpen(false);
   }, [location.pathname]);
 
-  // Load counts once on initial load only
   useEffect(() => {
     if (authLoading || !user) return;
     
@@ -72,7 +68,6 @@ const AdminLayout = () => {
     loadInitialCounts();
   }, [authLoading, user]);
 
-  // Event-driven orders badge updates (no polling)
   useEffect(() => {
     const onActiveOrders = (e) => {
       const count = typeof e?.detail?.count === 'number' ? e.detail.count : undefined;
@@ -84,7 +79,6 @@ const AdminLayout = () => {
     return () => window.removeEventListener('mkd-admin-active-orders', onActiveOrders);
   }, []);
 
-  // Event-driven requests badge updates (no polling)
   useEffect(() => {
     const onActiveRequests = (e) => {
       const count = typeof e?.detail?.count === 'number' ? e.detail.count : undefined;
@@ -96,7 +90,6 @@ const AdminLayout = () => {
     return () => window.removeEventListener('mkd-admin-active-requests', onActiveRequests);
   }, []);
 
-  // Load initial notifications once only
   useEffect(() => {
       if (authLoading || !user) return;
     
@@ -111,9 +104,7 @@ const AdminLayout = () => {
     loadInitialNotifications();
   }, [authLoading, user]);
 
-  // Simple SSE connection - one time setup only
   useEffect(() => {
-    // Only run once when user is authenticated
     if (authLoading || !user || sseSetupRef.current) {
       return;
     }
@@ -132,7 +123,6 @@ const AdminLayout = () => {
         const es = new EventSource(`${import.meta.env.VITE_API_BASE_URL}/admin/orders/stream?token=${tokenRes.token}`);
         sseConnectionRef.current = es;
         
-        // Handle admin notifications
         es.addEventListener('admin.notification.created', (e) => {
           try {
             const data = JSON.parse(e.data);
@@ -144,7 +134,6 @@ const AdminLayout = () => {
           }
         });
 
-        // Handle order events
         es.addEventListener('order.created', () => {
           console.log('Order created event received');
           window.dispatchEvent(new CustomEvent('mkd-refresh-counts'));
@@ -161,7 +150,6 @@ const AdminLayout = () => {
         
         es.onerror = () => {
           console.warn('❌ SSE connection error');
-          // Don't try to reconnect automatically to avoid loops
         };
 
         es.onclose = () => {
@@ -175,7 +163,6 @@ const AdminLayout = () => {
     
     setupSSE();
 
-    // Cleanup on unmount
     return () => {
       if (sseConnectionRef.current) {
         console.log('Cleaning up SSE connection');
@@ -183,14 +170,13 @@ const AdminLayout = () => {
           sseConnectionRef.current.close();
           sseConnectionRef.current = null;
         } catch {
-          // Ignore cleanup errors
+          void 0;
         }
       }
       sseSetupRef.current = false;
     };
   }, [authLoading, user]);
 
-  // Listen for count refresh events
   useEffect(() => {
     const handleRefreshCounts = async () => {
       const result = await fetchNotificationCounts();
@@ -203,10 +189,8 @@ const AdminLayout = () => {
     return () => window.removeEventListener('mkd-refresh-counts', handleRefreshCounts);
   }, []);
 
-  // Listen for notification refresh events (after create/edit/delete operations)
   useEffect(() => {
     const handleRefreshNotifications = async () => {
-      // Refresh both the notification list and counts
       const [notifRes, countsRes] = await Promise.all([
         fetchAdminNotifications(250),
         fetchNotificationCounts()
@@ -232,17 +216,14 @@ const AdminLayout = () => {
   };
 
   const handleNotifClick = async (n) => {
-    // mark read, update count, then navigate
     if (!n.read) {
       const res = await markNotificationRead(n.id, true);
       if (res?.success) setNotifUnread(res.unreadCount ?? Math.max(0, notifUnread - 1));
       setNotifList(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x));
     }
     
-    // Close notification dropdown first
     setNotifOpen(false);
     
-    // route to resource if present
     if (n.data?.kind === 'order' && n.data?.id) {
       navigate(`/admin/orders`);
     } else if (n.data?.kind === 'ticket' && n.data?.id) {
@@ -311,7 +292,7 @@ const AdminLayout = () => {
 
   return (
     <div className="admin-layout">
-      {/* Admin Sidebar */}
+      {}
       <aside className={`admin-sidebar ${sidebarCollapsed ? 'collapsed' : ''} ${mobileSidebarOpen ? 'open' : ''}`}>
         <div className="admin-sidebar__header">
           <div className="admin-logo">
@@ -374,10 +355,10 @@ const AdminLayout = () => {
         </div>
       </aside>
 
-      {/* Mobile overlay */}
+      {}
       {mobileSidebarOpen && <div className="admin-overlay" onClick={() => setMobileSidebarOpen(false)} />}
 
-      {/* Main Content Area */}
+      {}
       <main className="admin-main">
         <header className="admin-header">
           <div className="admin-header__title">
@@ -394,7 +375,6 @@ const AdminLayout = () => {
               <button 
                 className="notification-btn" 
                 onClick={async () => {
-                  // Refresh notifications when opening dropdown
                   if (!notifOpen) {
                     const res = await fetchAdminNotifications(250);
                     if (res?.success) {

@@ -19,7 +19,6 @@
         background: #5fb4f9; color: #fff; border: none; padding: 12px 20px; border-radius: 10px; font-size: 0.9rem; font-weight: 700; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(95, 180, 249, 0.25);
         &:hover { background: #061757; color: #fff; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(6, 23, 87, 0.3); }
         
-        // Smaller variant for menu items
         &--small {
           padding: 8px 16px; font-size: 0.85rem; font-weight: 600; border-radius: 8px; background: #f8f9fa; color: #061757; border: 2px solid #e2e8f0; box-shadow: none;
           &:hover { background: #e9ecef; border-color: #d1d5db; transform: none; box-shadow: none; }
@@ -28,7 +27,6 @@
     }
   }
 
-  // Specific styling for Add Menu Item button in menu items section (matches Add Variant styling)
   &__add-menu-item-btn {
     padding: 8px 16px;
     font-size: 0.85rem;
@@ -244,7 +242,6 @@
   }
   &__page-info { color: #061757; font-weight: 700; font-size: 0.9rem; }
 
-  // Modals
   &__overlay { 
     position: fixed; inset: 0; 
     background: rgba(6, 23, 87, 0.45); 
@@ -257,7 +254,7 @@
   &__modal { 
     background: #fff; border-radius: 16px; 
     width: 100%; max-height: 90vh; 
-    overflow: hidden; /* keep header/footer sticky visuals */
+    overflow: hidden; 
     box-shadow: 0 24px 60px rgba(6, 23, 87, 0.22);
     border: 1px solid rgba(6, 23, 87, 0.08);
     display: flex; flex-direction: column;
@@ -288,7 +285,6 @@
     padding: 22px 24px; overflow-y: auto; 
   }
 
-  // View details content blocks
   &__overview { 
     h3 { font-size: 1.35rem; font-weight: 800; color: #061757; margin: 0 0 8px 0; }
   }
@@ -302,7 +298,6 @@
     span { font-size: 1rem; font-weight: 700; color: #061757; }
   }
 
-  // Edit/Create form
   &__form-grid { 
     display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px 18px; margin-bottom: 18px; 
   }
@@ -340,7 +335,6 @@
     align-items: center;
   }
 
-  // Animations scoped to this component
   @keyframes admin-restaurants__fadeIn {
     from { opacity: 0; } to { opacity: 1; }
   }
@@ -348,7 +342,6 @@
     from { transform: translateY(8px); opacity: 0.96; } to { transform: translateY(0); opacity: 1; }
   }
 
-  // Responsive breakpoints
   @media (min-width: 1600px) { &__grid { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); } &__card { padding: 28px; } }
   @media (max-width: 1599px) and (min-width: 1200px) { &__grid { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); } }
   @media (max-width: 1199px) and (min-width: 768px) { &__grid { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); } }
@@ -364,7 +357,6 @@
   }
   @media (max-width: 360px) { &__card { padding: 14px; } &__card-header h3 { font-size: 1rem; } }
 
-  // Menu Items Section Styles
   &__menu-items-section {
     margin-top: 24px;
     padding: 20px;
@@ -599,7 +591,6 @@
     font-style: italic;
   }
 
-  // Menu Items Search and Pagination Controls
   &__menu-items-controls {
     display: flex;
     justify-content: space-between;

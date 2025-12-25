@@ -7,17 +7,16 @@
   display: flex;
   flex-direction: column;
 
-  // Match sidebar responsiveness breakpoints exactly
   @media screen and (min-width: 1111px) {
-    margin-left: 240px; // Full sidebar width
+    margin-left: 240px;
   }
 
   @media screen and (min-width: 641px) and (max-width: 1110px) {
-    margin-left: 60px; // Icon sidebar width
+    margin-left: 60px;
   }
 
   @media screen and (max-width: 640px) {
-    margin-left: 0; // No sidebar on mobile
+    margin-left: 0;
   }
 
   &__content {
@@ -95,7 +94,6 @@
       height: 100%;
       object-fit: cover;
       
-      // Special styling for placeholder images (MKD icon)
       &.placeholder-image {
         object-fit: contain;
         padding: 1.5rem;
@@ -119,7 +117,6 @@
     align-content: space-between;
     height: 120px;
 
-    // Handle problematic width ranges where content overflows
     @media (min-width: 769px) and (max-width: 969px) {
       grid-template-columns: 1fr;
       height: auto;
@@ -141,7 +138,6 @@
       margin: 0;
       line-height: 1.2;
 
-      // Reduce font size in problematic ranges
       @media (min-width: 769px) and (max-width: 969px) {
         font-size: 2rem;
       }
@@ -165,7 +161,6 @@
       align-self: start;
       text-align: right;
 
-      // Adjust positioning in problematic ranges
       @media (min-width: 769px) and (max-width: 969px) {
         grid-column: 1;
         grid-row: 2;
@@ -187,7 +182,6 @@
       font-weight: 600;
       margin: 0;
 
-      // Adjust positioning in problematic ranges
       @media (min-width: 769px) and (max-width: 969px) {
         grid-row: 3;
       }
@@ -205,7 +199,6 @@
       margin: 0;
       line-height: 1.4;
 
-      // Adjust positioning in problematic ranges
       @media (min-width: 769px) and (max-width: 969px) {
         grid-row: 4;
       }
@@ -224,7 +217,6 @@
       line-height: 1.4;
       text-align: right;
 
-      // Adjust positioning in problematic ranges
       @media (min-width: 769px) and (max-width: 969px) {
         grid-column: 1;
         grid-row: 5;
@@ -466,7 +458,6 @@
     display: block;
     border-bottom: 1px solid #e8e8e8;
     
-    // Special styling for placeholder images (MKD icon)
     &.placeholder-image {
       object-fit: contain;
       padding: 2rem;
@@ -518,30 +509,29 @@
     cursor: default;
     transition: all 0.3s ease;
 
-    // Different colors for different dietary tags
     &[title*="Meat"],
     &[title*="meat"] {
-      background: #dc3545; // Red for meat
+      background: #dc3545;
       
       &:hover {
-        background: #c82333; // Darker red on hover
+        background: #c82333;
       }
       
       &:hover::after {
-        background: #c82333; // Tooltip matches hover color
+        background: #c82333;
       }
     }
 
     &[title*="Dairy"],
     &[title*="dairy"] {
-      background: #5fb4f9; // Brand blue for dairy
+      background: #5fb4f9;
       
       &:hover {
-        background: #061757; // Navy on hover
+        background: #061757;
       }
       
       &:hover::after {
-        background: #061757; // Tooltip matches hover color
+        background: #061757;
       }
     }
 
@@ -549,17 +539,17 @@
     &[title*="gluten"],
     &[title*="Nut Free"],
     &[title*="nut"] {
-      background: #ffc107; // Yellow for gluten free and nut free
-      color: #212529; // Dark text for better contrast on yellow
+      background: #ffc107;
+      color: #212529;
       
       &:hover {
-        background: #e0a800; // Darker yellow on hover
-        color: #212529; // Maintain dark text
+        background: #e0a800;
+        color: #212529;
       }
       
       &:hover::after {
-        background: #e0a800; // Tooltip matches hover color
-        color: #212529; // Dark text in tooltip
+        background: #e0a800;
+        color: #212529;
       }
     }
 
@@ -567,27 +557,26 @@
     &[title*="vegetarian"],
     &[title*="Vegan"],
     &[title*="vegan"] {
-      background: #28a745; // Green for vegetarian and vegan
+      background: #28a745;
       
       &:hover {
-        background: #1e7e34; // Darker green on hover
+        background: #1e7e34;
       }
       
       &:hover::after {
-        background: #1e7e34; // Tooltip matches hover color
+        background: #1e7e34;
       }
     }
 
-    // Default fallback for any other labels
     &:not([title*="Meat"]):not([title*="Dairy"]):not([title*="Gluten Free"]):not([title*="Vegetarian"]):not([title*="Vegan"]):not([title*="Nut Free"]):not([title*="meat"]):not([title*="dairy"]):not([title*="gluten"]):not([title*="vegetarian"]):not([title*="vegan"]):not([title*="nut"]) {
-      background: #5fb4f9; // Default blue
+      background: #5fb4f9;
 
     &:hover {
-        background: #061757; // Darker blue on hover
+        background: #061757;
       }
       
       &:hover::after {
-        background: #061757; // Tooltip matches hover color
+        background: #061757;
       }
     }
 
@@ -645,26 +634,23 @@
       outline-offset: 2px;
     }
 
-    // Added state styling
     &.added {
-      background: #28a745; // Green background for added state
+      background: #28a745;
       color: white;
       cursor: default;
       transform: scale(1.02);
       box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
       
       &:hover {
-        background: #28a745; // Keep green on hover when added
+        background: #28a745;
         transform: scale(1.02);
       }
     }
 
-    // Disabled state styling
     &:disabled {
       cursor: default;
-      opacity: 1; // Keep full opacity for added state
+      opacity: 1;
     }
 
-    // Customize variant for variable/configurable items inherits all styles from .add-to-cart-btn
   }
 } 

@@ -14,7 +14,6 @@ const ContactStep = ({ onNext }) => {
 
   const [errors, setErrors] = useState({});
 
-  // Pre-fill with user data
   useEffect(() => {
     if (user && profile) {
       setFormData(prev => ({

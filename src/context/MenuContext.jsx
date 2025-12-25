@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { MenuStateContext } from "./menuContextShared";
 
-// Provider component
 export function MenuProvider({ children }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -14,7 +13,6 @@ export function MenuProvider({ children }) {
     setIsMobileMenuOpen(false);
   };
 
-  // Close mobile menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (
@@ -33,7 +31,6 @@ export function MenuProvider({ children }) {
     };
   }, [isMobileMenuOpen]);
 
-  // Close mobile menu on window resize (if window becomes larger)
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth > 1110 && isMobileMenuOpen) {
@@ -48,7 +45,6 @@ export function MenuProvider({ children }) {
     };
   }, [isMobileMenuOpen]);
 
-  // Add/remove body class and prevent scrolling when mobile menu is open
   useEffect(() => {
     if (isMobileMenuOpen) {
       document.body.classList.add("menu-open");

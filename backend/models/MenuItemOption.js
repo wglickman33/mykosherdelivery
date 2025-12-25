@@ -51,7 +51,6 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   MenuItemOption.associate = function(models) {
-    // MenuItemOption belongs to MenuItem
     MenuItemOption.belongsTo(models.MenuItem, {
       foreignKey: 'menuItemId',
       as: 'menuItem'

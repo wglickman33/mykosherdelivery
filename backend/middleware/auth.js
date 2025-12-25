@@ -2,15 +2,12 @@ const jwt = require('jsonwebtoken');
 const { Profile } = require('../models');
 const logger = require('../utils/logger');
 
-// In-memory token blacklist (in production, use Redis)
 const blacklistedTokens = new Set();
 
-// Rate limiting for authentication attempts
 const authAttempts = new Map();
 const MAX_AUTH_ATTEMPTS = process.env.NODE_ENV === 'production' ? 20 : 200;
 const AUTH_LOCKOUT_TIME = process.env.NODE_ENV === 'production' ? 5 * 60 * 1000 : 1 * 60 * 1000;
 
-// Check if IP is rate limited
 const checkRateLimit = (ip) => {
   const attempts = authAttempts.get(ip);
   if (!attempts) return true;
@@ -27,7 +24,6 @@ const checkRateLimit = (ip) => {
   return true;
 };
 
-// Record failed authentication attempt
 const recordFailedAttempt = (ip) => {
   const attempts = authAttempts.get(ip) || { count: 0, firstAttempt: Date.now() };
   attempts.count++;
@@ -37,19 +33,15 @@ const recordFailedAttempt = (ip) => {
   authAttempts.set(ip, attempts);
 };
 
-// Clear successful authentication attempts
 const clearFailedAttempts = (ip) => {
   authAttempts.delete(ip);
 };
 
-// Add token to blacklist
 const blacklistToken = (token) => {
   blacklistedTokens.add(token);
-  // In production, store in Redis with TTL equal to token expiry
   logger.info('Token blacklisted');
 };
 
-// Middleware to verify JWT token with enhanced security
 const authenticateToken = async (req, res, next) => {
   const clientIp = req.ip || req.connection.remoteAddress;
   
@@ -65,7 +57,7 @@ const authenticateToken = async (req, res, next) => {
     }
 
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+    const token = authHeader && authHeader.split(' ')[1];
 
     if (!token) {
       recordFailedAttempt(clientIp);
@@ -75,7 +67,6 @@ const authenticateToken = async (req, res, next) => {
       });
     }
 
-    // Check if token is blacklisted
     if (blacklistedTokens.has(token)) {
       recordFailedAttempt(clientIp);
       logger.warn('Blacklisted token used', { ip: clientIp });
@@ -94,7 +85,6 @@ const authenticateToken = async (req, res, next) => {
       tokenAge: Math.floor((Date.now() / 1000 - decoded.iat) / 3600) + ' hours'
     });
     
-    // Find the user in database
     const user = await Profile.findByPk(decoded.userId);
     if (!user) {
       recordFailedAttempt(clientIp);
@@ -105,7 +95,6 @@ const authenticateToken = async (req, res, next) => {
       });
     }
 
-    // Clear failed attempts on successful auth
     clearFailedAttempts(clientIp);
 
     req.user = user;
@@ -146,7 +135,6 @@ const authenticateToken = async (req, res, next) => {
   }
 };
 
-// Middleware to check if user is admin (includes authentication)
 const requireAdmin = async (req, res, next) => {
   try {
     await new Promise((resolve, reject) => {
@@ -156,8 +144,7 @@ const requireAdmin = async (req, res, next) => {
       });
     });
   } catch {
-    // Authentication failed, return the error from authenticateToken
-    return; // authenticateToken already sent the response
+    return;
   }
 
   if (!req.user) {
@@ -177,7 +164,6 @@ const requireAdmin = async (req, res, next) => {
   next();
 };
 
-// Middleware to check if user is restaurant owner or admin
 const requireRestaurantOwnerOrAdmin = (req, res, next) => {
   if (!req.user) {
     return res.status(401).json({ 
@@ -196,7 +182,6 @@ const requireRestaurantOwnerOrAdmin = (req, res, next) => {
   next();
 };
 
-// Optional authentication - doesn't fail if no token provided
 const optionalAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers['authorization'];
@@ -214,7 +199,6 @@ const optionalAuth = async (req, res, next) => {
     
     next();
   } catch {
-    // Continue without authentication
     next();
   }
 };

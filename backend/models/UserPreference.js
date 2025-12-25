@@ -41,7 +41,6 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   UserPreference.associate = function(models) {
-    // UserPreference belongs to Profile
     UserPreference.belongsTo(models.Profile, {
       foreignKey: 'userId',
       as: 'user'

@@ -79,13 +79,11 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   MenuItem.associate = function(models) {
-    // MenuItem belongs to Restaurant
     MenuItem.belongsTo(models.Restaurant, {
       foreignKey: 'restaurantId',
       as: 'restaurant'
     });
     
-    // MenuItem has many options
     MenuItem.hasMany(models.MenuItemOption, {
       foreignKey: 'menuItemId',
       as: 'itemOptions'

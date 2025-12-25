@@ -1,6 +1,5 @@
 import apiClient from '../lib/api';
 
-// ===== PROFILE SERVICES =====
 
 export const fetchUserProfile = async (userId) => {
   try {
@@ -22,31 +21,26 @@ export const updateUserProfile = async (userId, updates) => {
   }
 };
 
-// ===== ORDER SERVICES =====
 
 export const fetchUserOrders = async (userId, filters = {}) => {
   try {
     const params = {};
     
-    // Apply status filter
     if (filters.status && filters.status !== 'all') {
       if (filters.status === 'in_progress') {
-        // For in_progress, we'll need to handle this on the frontend
-        // since the backend doesn't have a combined status filter
-        params.status = 'pending'; // Default to pending, filter others on frontend
+        params.status = 'pending';
       } else {
         params.status = filters.status;
       }
     }
 
-    // Apply date filter
     if (filters.dateRange) {
       const now = new Date();
       let startDate;
       
       switch (filters.dateRange) {
         case 'recent':
-          startDate = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000)); // Last 7 days
+          startDate = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
           break;
         case '30_days':
           startDate = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
@@ -69,7 +63,6 @@ export const fetchUserOrders = async (userId, filters = {}) => {
       return orders.map(order => {
         if (!order) return order;
 
-        // Ensure restaurantGroups is an object with arrays
         let restaurantGroups = order.restaurantGroups || order.restaurant_groups || null;
         if (restaurantGroups && typeof restaurantGroups === 'object' && !Array.isArray(restaurantGroups)) {
           const normalizedGroups = {};
@@ -86,7 +79,6 @@ export const fetchUserOrders = async (userId, filters = {}) => {
           restaurantGroups = normalizedGroups;
         }
 
-        // Normalize restaurants array to include names/title-case fallback
         let restaurants = order.restaurants || [];
         if (restaurantGroups && (!restaurants || restaurants.length === 0)) {
           restaurants = Object.keys(restaurantGroups).map(id => ({
@@ -106,7 +98,6 @@ export const fetchUserOrders = async (userId, filters = {}) => {
       });
     };
     
-    // Filter in_progress orders on frontend if needed
     if (filters.status === 'in_progress') {
       return normalizeOrders(response.filter(order => 
         ['pending', 'confirmed', 'preparing', 'out_for_delivery'].includes(order.status)
@@ -155,7 +146,6 @@ export const fetchUserStats = async (userId) => {
 };
 
 export const fetchUserPreferences = async () => {
-  // Placeholder until backend support is implemented
   return {};
 };
 
@@ -202,7 +192,6 @@ export const setDefaultPaymentMethod = async (paymentMethodId) => {
 };
 
 export const fetchUserLoginActivity = async () => {
-  // Placeholder until backend support is implemented
   return [];
 };
 

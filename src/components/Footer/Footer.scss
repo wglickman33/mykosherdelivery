@@ -186,7 +186,7 @@ $gray-500: #919191;
   }
 }
 
-/* Large tablets and small desktops (769px to 1024px) */
+
 @media (max-width: 1024px) and (min-width: 769px) {
   .footer__content {
     grid-template-columns: 1fr 1fr;
@@ -203,7 +203,7 @@ $gray-500: #919191;
   }
 }
 
-/* Tablets (481px to 768px) */
+
 @media (max-width: 768px) and (min-width: 481px) {
   .footer__container {
     padding: 0 1.5rem;
@@ -255,7 +255,7 @@ $gray-500: #919191;
   }
 }
 
-/* Mobile (325px to 480px) */
+
 @media (max-width: 480px) {
   .footer__container {
     padding: 0 1rem;
@@ -339,7 +339,7 @@ $gray-500: #919191;
   }
 }
 
-/* Small mobile (320px and below) */
+
 @media (max-width: 320px) {
   .footer__container {
     padding: 0 0.75rem;
@@ -408,7 +408,7 @@ $gray-500: #919191;
   }
 }
 
-/* Large desktop styles */
+
 @media (min-width: 1200px) {
   .footer__container {
     max-width: 1500px;
@@ -454,7 +454,7 @@ $gray-500: #919191;
   }
 }
 
-/* Extra large screens */
+
 @media (min-width: 1600px) {
   .footer__container {
     max-width: 1600px;

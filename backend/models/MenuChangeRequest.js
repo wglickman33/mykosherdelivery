@@ -83,19 +83,16 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   MenuChangeRequest.associate = function(models) {
-    // MenuChangeRequest belongs to Restaurant
     MenuChangeRequest.belongsTo(models.Restaurant, {
       foreignKey: 'restaurantId',
       as: 'restaurant'
     });
     
-    // MenuChangeRequest belongs to Profile (requester)
     MenuChangeRequest.belongsTo(models.Profile, {
       foreignKey: 'requestedBy',
       as: 'requester'
     });
     
-    // MenuChangeRequest belongs to Profile (approver)
     MenuChangeRequest.belongsTo(models.Profile, {
       foreignKey: 'approvedBy',
       as: 'approver'

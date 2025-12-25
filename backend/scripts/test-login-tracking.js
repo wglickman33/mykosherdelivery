@@ -6,7 +6,6 @@ async function testLoginTracking() {
     await sequelize.authenticate();
     console.log('Database connected successfully.');
     
-    // Check current login activities
     const loginActivities = await UserLoginActivity.findAll({
       include: [{
         model: Profile,
@@ -33,7 +32,6 @@ async function testLoginTracking() {
       });
     }
     
-    // Check if we have any users
     const users = await Profile.findAll({
       attributes: ['id', 'email', 'firstName', 'lastName'],
       order: [['createdAt', 'ASC']]

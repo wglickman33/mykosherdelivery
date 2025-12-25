@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 require('dotenv').config();
 const { Sequelize } = require('sequelize');
 
@@ -9,7 +7,6 @@ async function addMissingColumns() {
   try {
     console.log('Adding missing columns to menu_items table...');
     
-    // Check if item_type column exists
     const [columns] = await sequelize.query(`
       SELECT column_name FROM information_schema.columns 
       WHERE table_name = 'menu_items' AND column_name = 'item_type';
@@ -18,7 +15,6 @@ async function addMissingColumns() {
     if (columns.length === 0) {
       console.log('Adding item_type column...');
       
-      // Create the enum type first (if it doesn't exist)
       try {
         await sequelize.query(`
           CREATE TYPE "enum_menu_items_item_type" AS ENUM('simple', 'variety', 'builder');
@@ -32,7 +28,6 @@ async function addMissingColumns() {
         }
       }
       
-      // Add the column
       await sequelize.query(`
         ALTER TABLE menu_items 
         ADD COLUMN item_type "enum_menu_items_item_type" DEFAULT 'simple';
@@ -43,7 +38,6 @@ async function addMissingColumns() {
       console.log('item_type column already exists');
     }
     
-    // Update all existing menu items to have item_type = 'simple'
     const [updateResult] = await sequelize.query(`
       UPDATE menu_items 
       SET item_type = 'simple' 
@@ -52,7 +46,6 @@ async function addMissingColumns() {
     
     console.log(`Updated ${updateResult.rowCount || 0} menu items with item_type`);
     
-    // Make the column NOT NULL
     await sequelize.query(`
       ALTER TABLE menu_items 
       ALTER COLUMN item_type SET NOT NULL;
@@ -60,7 +53,6 @@ async function addMissingColumns() {
     
     console.log('Made item_type column NOT NULL');
     
-    // Verify the final state
     const [finalColumns] = await sequelize.query(`
       SELECT column_name, data_type, is_nullable, column_default 
       FROM information_schema.columns 
@@ -69,7 +61,6 @@ async function addMissingColumns() {
     
     console.log('Final item_type column state:', finalColumns[0]);
     
-    // Check menu items
     const [menuItems] = await sequelize.query(`
       SELECT COUNT(*) as total, 
              COUNT(CASE WHEN item_type = 'simple' THEN 1 END) as simple_count,

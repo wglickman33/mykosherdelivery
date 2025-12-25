@@ -23,15 +23,12 @@ const Landing = () => {
   const inputRef = useRef(null);
   const suggestionsRef = useRef(null);
 
-  // Initialize Google Places API
   useEffect(() => {
     const initializeGooglePlaces = () => {
-      // Check if script is already loaded
       if (window.google && window.google.maps && window.google.maps.places) {
         return;
       }
 
-      // Check if script is already in the DOM
       const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
       if (existingScript) {
         return;
@@ -49,9 +46,8 @@ const Landing = () => {
       script.defer = true;
       script.id = "google-maps-script";
       
-      // Add global callback function
       window.initGoogleMaps = () => {
-        delete window.initGoogleMaps; // Clean up
+        delete window.initGoogleMaps;
       };
       
       script.onerror = () => {
@@ -64,11 +60,10 @@ const Landing = () => {
     initializeGooglePlaces();
   }, []);
 
-  // Handle address input changes
   const handleAddressChange = async (e) => {
     const value = e.target.value;
     setAddress(value);
-    setAddressError(""); // Clear any previous errors
+    setAddressError("");
 
     if (value.length < 3) {
       setSuggestions([]);
@@ -78,7 +73,6 @@ const Landing = () => {
 
     setIsLoading(true);
 
-    // Try Google Places API first
     if (window.google && window.google.maps && window.google.maps.places && window.google.maps.places.AutocompleteService) {
       const service = new window.google.maps.places.AutocompleteService();
       
@@ -97,7 +91,6 @@ const Landing = () => {
               secondary_text: prediction.structured_formatting.secondary_text
             }));
             
-            // Show all suggestions - validation happens on submission
             setSuggestions(formattedSuggestions);
             setShowSuggestions(formattedSuggestions.length > 0);
           } else {
@@ -114,13 +107,11 @@ const Landing = () => {
     }
   };
 
-  // Handle suggestion selection
   const handleSuggestionClick = (suggestion) => {
     setAddress(suggestion.description);
     setShowSuggestions(false);
   };
 
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -133,15 +124,12 @@ const Landing = () => {
     setAddressError("");
 
     try {
-      // Validate the address using Google Geocoding API (static delivery zones for landing page)
       const validation = await validateAddressWithGeocoding(address);
       
       if (validation.isValid) {
-        // Address is valid for delivery
         setTempAddressPersistent(validation.formattedAddress || address);
         navigate('/home');
       } else {
-        // Address is not in a valid delivery zone
         setAddressError("Sorry, we don't deliver to this area yet. Please try a different address.");
       }
     } catch (error) {
@@ -152,7 +140,6 @@ const Landing = () => {
     }
   };
 
-  // Close suggestions when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -235,7 +222,6 @@ const Landing = () => {
                       onChange={handleAddressChange}
                       autoComplete="off"
                       onKeyDown={(e) => {
-                        // Prevent Enter key from submitting without valid address
                         if (e.key === 'Enter' && !address.trim()) {
                           e.preventDefault();
                           setAddressError("Please enter a delivery address");

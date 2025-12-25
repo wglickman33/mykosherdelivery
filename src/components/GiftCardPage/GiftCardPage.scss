@@ -16,17 +16,16 @@ $secondary-text: #6c757d;
   display: flex;
   flex-direction: column;
 
-  // Match sidebar responsiveness breakpoints exactly
   @media screen and (min-width: 1111px) {
-    margin-left: 240px; // Full sidebar width
+    margin-left: 240px;
   }
   
   @media screen and (min-width: 641px) and (max-width: 1110px) {
-    margin-left: 60px; // Icon sidebar width
+    margin-left: 60px;
   }
   
   @media screen and (max-width: 640px) {
-    margin-left: 0; // No sidebar on mobile
+    margin-left: 0;
   }
 
   &__content {

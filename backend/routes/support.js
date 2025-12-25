@@ -19,10 +19,8 @@ router.post('/tickets', [
 
     const { requester_email, requester_name, subject, message } = req.body;
 
-    // Find existing user by email (if they have an account)
     const user = await Profile.findOne({ where: { email: requester_email } });
 
-    // Create support ticket with optional user association
     const ticketData = {
       subject,
       message,
@@ -30,24 +28,20 @@ router.post('/tickets', [
       priority: 'medium'
     };
 
-    // Only associate with user if they have an account
     if (user) {
       ticketData.userId = user.id;
     } else {
-      // For guest tickets, store requester info in the message
       ticketData.message = `From: ${requester_name || 'Guest'} (${requester_email})\n\n${message}`;
-      // userId will be null for guest tickets
     }
 
     const ticket = await SupportTicket.create(ticketData);
 
-    // Create global admin notification
     try {
       const notif = await AdminNotification.create({
         type: 'ticket.created',
         title: 'New Support Ticket',
         message: subject,
-        readBy: [], // Empty array means no admin has read it yet
+        readBy: [],
         data: { kind: 'ticket', id: ticket.id }
       });
       try { 

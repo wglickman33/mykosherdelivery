@@ -3,10 +3,10 @@
   height: 60px;
   border-bottom: 1px solid #e8e9eb;
   background-color: white;
-  position: fixed; /* Added fixed positioning */
-  top: 0; /* Added to ensure it's at the top */
-  left: 0; /* Added to ensure it spans full width */
-  z-index: 100; /* Ensure header is above sidebar */
+  position: fixed; 
+  top: 0;
+  left: 0;
+  z-index: 100;
   
   .header-container {
     height: 100%;
@@ -15,14 +15,14 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    min-width: 0; // Allow flex items to shrink
+    min-width: 0;
   }
   
   .hamburger-menu {
     display: none;
     margin-right: 16px;
     position: relative;
-    z-index: 101; /* Always on top */
+    z-index: 101;
     
     .hamburger-button {
       display: flex;
@@ -35,7 +35,7 @@
       border-radius: 50%;
       cursor: pointer;
       padding: 0;
-      transition: background-color 0.3s ease; /* Added transition */
+      transition: background-color 0.3s ease;
       
       &:hover {
         background-color: #f6f7f8;
@@ -46,15 +46,15 @@
         
         svg {
           path {
-            fill: #5fb4f9; // Use accent blue for active state
-            transition: fill 0.3s ease; /* Added transition */
+            fill: #5fb4f9;
+            transition: fill 0.3s ease;
           }
         }
       }
       
       svg {
         path {
-          transition: fill 0.3s ease; /* Added transition */
+          transition: fill 0.3s ease;
         }
       }
     }
@@ -65,25 +65,25 @@
     align-items: center;
     flex-shrink: 0;
     position: relative;
-    z-index: 101; /* Always on top */
+    z-index: 101;
     
     .logo {
       margin-right: 24px;
-      cursor: pointer; /* Added cursor pointer */
-      transition: opacity 0.3s ease; /* Added transition */
+      cursor: pointer;
+      transition: opacity 0.3s ease;
       
       .logo-full {
         height: 28px;
         width: auto;
         display: block;
-        transition: opacity 0.3s ease; /* Added transition */
+        transition: opacity 0.3s ease;
       }
       
       .logo-icon {
         height: 28px;
         width: auto;
         display: none;
-        transition: opacity 0.3s ease; /* Added transition */
+        transition: opacity 0.3s ease;
       }
     }
   }
@@ -92,8 +92,8 @@
     position: relative;
     flex: 1 1 auto;
     margin: 0 16px;
-    min-width: 200px; // Minimum width to prevent collapse
-    overflow: visible; // Ensure dropdown can extend beyond container
+    min-width: 200px;
+    overflow: visible;
     
     .search-icon {
       position: absolute;
@@ -110,7 +110,7 @@
       border: none;
       background-color: #f6f7f8;
       font-size: 16px;
-      transition: box-shadow 0.3s ease; /* Added transition */
+      transition: box-shadow 0.3s ease;
       
       &:focus {
         outline: none;
@@ -122,7 +122,6 @@
       }
     }
 
-    // Search dropdown styles
     .search-dropdown {
       position: absolute;
       top: 100%;
@@ -183,7 +182,6 @@
         }
       }
       
-      // Responsive adjustments
       @media (max-width: 768px) {
         position: fixed;
         top: 60px;
@@ -199,8 +197,8 @@
   .header-right {
     display: flex;
     align-items: center;
-    flex-shrink: 0; // Prevent header-right from shrinking
-    gap: 8px; // Add consistent spacing between items
+    flex-shrink: 0;
+    gap: 8px;
     
     .location-button {
       display: flex;
@@ -209,9 +207,9 @@
       border-radius: 20px;
       cursor: pointer;
       position: relative;
-      transition: background-color 0.3s ease; /* Added transition */
-      min-width: 0; // Allow content to shrink
-      max-width: 250px; // Limit maximum width
+      transition: background-color 0.3s ease;
+      min-width: 0;
+      max-width: 250px;
       
       &:hover {
         background-color: #f6f7f8;
@@ -237,7 +235,7 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        flex-shrink: 1; // Allow address to shrink first
+        flex-shrink: 1;
       }
     }
     
@@ -469,8 +467,8 @@
       height: 40px;
       border-radius: 50%;
       cursor: pointer;
-      transition: background-color 0.3s ease; /* Added transition */
-      flex-shrink: 0; // Never shrink cart button
+      transition: background-color 0.3s ease;
+      flex-shrink: 0;
       
       &:hover {
         background-color: #f6f7f8;
@@ -490,7 +488,7 @@
         font-size: 12px;
         font-weight: 700;
         border-radius: 50%;
-        transition: background-color 0.3s ease; /* Added transition */
+        transition: background-color 0.3s ease;
       }
     }
     
@@ -500,13 +498,13 @@
       font-size: 14px;
       font-weight: 500;
       cursor: pointer;
-      transition: background-color 0.3s ease, border-color 0.3s ease; /* Added transition */
-      display: inline-block; /* Added for Link component */
-      text-align: center; /* Added for Link component */
-      text-decoration: none; /* Added for Link component */
-      white-space: nowrap; // Prevent text wrapping
-      flex-shrink: 0; // Never shrink buttons
-      min-width: fit-content; // Ensure buttons maintain their size
+      transition: background-color 0.3s ease, border-color 0.3s ease;
+      display: inline-block;
+      text-align: center;
+      text-decoration: none;
+      white-space: nowrap;
+      flex-shrink: 0;
+      min-width: fit-content;
     }
     
     .sign-in-button {
@@ -539,8 +537,8 @@
       font-weight: 500;
       cursor: pointer;
       transition: background-color 0.3s ease;
-      white-space: nowrap; // Prevent text wrapping
-      flex-shrink: 0; // Never shrink button
+      white-space: nowrap;
+      flex-shrink: 0;
       
       &:hover {
         background-color: #061757;
@@ -575,7 +573,6 @@
     }
   }
   
-  /* When mobile menu is open, hide everything except hamburger and logo */
   &.menu-open {
     .search-container,
     .header-right {
@@ -586,7 +583,6 @@
   }
 }
 
-/* Media query for screens 1200px and below */
 @media screen and (max-width: 1200px) {
   .header {
     .search-container {
@@ -596,14 +592,13 @@
     .header-right {
       .location-button {
         .address-text {
-          max-width: 120px; // Further reduce address width
+          max-width: 120px;
         }
       }
     }
   }
 }
 
-/* Media query for screens 1110px and below */
 @media screen and (max-width: 1110px) {
   .header {
     .header-container {
@@ -633,26 +628,25 @@
     
     .header-right {
       transition: opacity 0.3s ease, visibility 0.3s ease;
-      gap: 6px; // Reduce gap on smaller screens
+      gap: 6px;
       
       .location-button {
         padding: 6px 8px;
         
         .address-text {
-          max-width: 100px; // Even smaller on mobile
-          font-size: 14px; // Accessibility compliant minimum
+          max-width: 100px;
+          font-size: 14px;
         }
       }
       
       .sign-in-button, .sign-up-button, .sign-out-button {
         padding: 6px 12px;
-        font-size: 14px; // Accessibility compliant minimum
+        font-size: 14px;
       }
     }
   }
 }
 
-/* Media query for screens 840px and below */
 @media screen and (max-width: 840px) {
   .header {
     .header-container {
@@ -663,29 +657,29 @@
       margin: 0 12px;
       
       input {
-        font-size: 16px; // Accessibility compliant for input fields
+        font-size: 16px;
       }
     }
     
     .header-right {
-      gap: 4px; // Even smaller gap
+      gap: 4px;
       
       .location-button {
         padding: 6px 8px;
         
         .address-text {
           max-width: 80px;
-          font-size: 14px; // Accessibility compliant minimum
+          font-size: 14px;
         }
         
         span {
-          font-size: 14px; // Accessibility compliant minimum
+          font-size: 14px;
         }
       }
       
       .location-dropdown {
         width: 300px;
-        left: -150px; // Center better on smaller screens
+        left: -150px;
       }
       
       .sign-in-button, .sign-up-button {
@@ -695,7 +689,7 @@
       .login-button {
         display: block;
         padding: 8px 12px;
-        font-size: 14px; // Accessibility compliant minimum
+        font-size: 14px;
       }
     }
   }
@@ -704,7 +698,7 @@
 @media screen and (max-width: 640px) {
   .header {
     .header-container {
-      padding: 0 8px; // Tighter padding for more space
+      padding: 0 8px;
     }
     
     .hamburger-menu {
@@ -721,7 +715,7 @@
     }
     
     .search-container {
-      display: none; // Hide search to prioritize address and cart
+      display: none;
     }
     
     .header-right {
@@ -733,39 +727,38 @@
         padding: 6px 8px;
         
         .address-text {
-          max-width: 70px; // Compact but still visible
-          font-size: 14px; // Accessibility compliant
+          max-width: 70px;
+          font-size: 14px;
         }
         
         span {
-          font-size: 14px; // Accessibility compliant
+          font-size: 14px;
         }
       }
       
       .location-dropdown {
         width: 280px;
-        left: -180px; // Adjust for smaller screens
+        left: -180px;
       }
       
       .cart-button {
-        // Cart button stays fully visible
         width: 36px;
         height: 36px;
       }
       
       .sign-in-button, .sign-up-button {
-        display: none !important; // Hide auth buttons to save space
+        display: none !important;
       }
       
       .login-button {
         display: block;
         padding: 6px 10px;
-        font-size: 14px; // Accessibility compliant
+        font-size: 14px;
       }
       
       .sign-out-button {
         padding: 6px 10px;
-        font-size: 14px; // Accessibility compliant
+        font-size: 14px;
       }
     }
   }
@@ -774,7 +767,7 @@
 @media screen and (max-width: 480px) {
   .header {
     .header-container {
-      padding: 0 6px; // Even tighter for very small screens
+      padding: 0 6px;
     }
     
     .header-right {
@@ -783,22 +776,18 @@
       .location-button {
         padding: 4px 6px;
         
-        // Show only location icon on very small screens but keep clickable
         .address-text {
-          display: none; // Hide text but keep button functional
+          display: none;
         }
         
         span {
-          display: none; // Hide "Deliver to" text
+          display: none;
         }
         
-        // Ensure location icon is visible and accessible
         .location-icon {
           margin-right: 0;
         }
         
-        // Add tooltip-like behavior with title attribute (handled in component)
-        // Only show tooltip when dropdown is NOT open
         &:not(.dropdown-open) {
           &::after {
             content: attr(data-address);
@@ -810,7 +799,7 @@
             color: white;
             padding: 6px 10px;
             border-radius: 6px;
-            font-size: 14px; // Accessibility compliant
+            font-size: 14px;
             font-weight: 500;
             white-space: nowrap;
             opacity: 0;
@@ -826,7 +815,6 @@
             opacity: 1;
           }
           
-          // Add small arrow pointing up to the button
           &::before {
             content: '';
             position: absolute;
@@ -851,22 +839,20 @@
       
       .location-dropdown {
         width: 260px;
-        left: -200px; // Adjust for very small screens
-        right: 16px; // Ensure it doesn't go off screen
+        left: -200px;
+        right: 16px;
       }
       
       .cart-button {
         width: 32px;
-        height: 32px; // Slightly smaller but still accessible
+        height: 32px;
       }
       
       .login-button, .sign-out-button {
         padding: 4px 8px;
-        font-size: 14px; // Keep accessibility compliant
+        font-size: 14px;
       }
     }
   }
 }
 
-// Remove the old breakpoint that hides address completely
-// @media screen and (max-width: 410px) - DELETED to ensure address is always accessible

@@ -71,43 +71,36 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   Profile.associate = function(models) {
-    // Profile has many orders
     Profile.hasMany(models.Order, {
       foreignKey: 'userId',
       as: 'orders'
     });
     
-    // Profile has many payment methods
     Profile.hasMany(models.PaymentMethod, {
       foreignKey: 'userId',
       as: 'paymentMethods'
     });
     
-    // Profile has many favorites
     Profile.hasMany(models.UserRestaurantFavorite, {
       foreignKey: 'userId',
       as: 'favorites'
     });
     
-    // Profile has many login activities
     Profile.hasMany(models.UserLoginActivity, {
       foreignKey: 'userId',
       as: 'loginActivities'
     });
     
-    // Profile has one preferences
     Profile.hasOne(models.UserPreference, {
       foreignKey: 'userId',
       as: 'preferences'
     });
     
-    // Profile has many support tickets
     Profile.hasMany(models.SupportTicket, {
       foreignKey: 'userId',
       as: 'supportTickets'
     });
     
-    // Profile has many notifications
     Profile.hasMany(models.Notification, {
       foreignKey: 'userId',
       as: 'notifications'

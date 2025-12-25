@@ -110,7 +110,6 @@
     }
   }
 
-  // Search Mode Toggle
   .search-mode-toggle {
       display: flex;
       background: #f1f5f9;
@@ -143,7 +142,6 @@
       }
     }
 
-  // Search Controls
   .search-controls {
     flex-shrink: 0;
 
@@ -251,7 +249,6 @@
     }
   }
 
-  // Menu Items Container
   .menu-items-container {
     flex: 1;
     overflow-y: auto;
@@ -420,7 +417,6 @@
       }
   }
 
-  // Mobile Responsive
   @media (max-width: 640px) {
     .menu-items-container {
       .menu-item-card {

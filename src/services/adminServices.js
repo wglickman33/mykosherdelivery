@@ -1,43 +1,39 @@
 import apiClient from '../lib/api';
 import logger from '../utils/logger';
 
-// ===== DASHBOARD ANALYTICS =====
 
-// Helper function to add delay between requests
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const fetchDashboardStats = async (timeRange = '7d') => {
   try {
-    // Calculate date range based on timeRange parameter
     const now = new Date();
     let startDate, previousStartDate;
     
     switch (timeRange) {
       case '24h':
         startDate = new Date(now.getTime() - (24 * 60 * 60 * 1000));
-        previousStartDate = new Date(now.getTime() - (48 * 60 * 60 * 1000)); // Previous 24h
+        previousStartDate = new Date(now.getTime() - (48 * 60 * 60 * 1000));
         break;
       case '7d':
         startDate = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
-        previousStartDate = new Date(now.getTime() - (14 * 24 * 60 * 60 * 1000)); // Previous 7d
+        previousStartDate = new Date(now.getTime() - (14 * 24 * 60 * 60 * 1000));
         break;
       case '30d':
         startDate = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
-        previousStartDate = new Date(now.getTime() - (60 * 24 * 60 * 60 * 1000)); // Previous 30d
+        previousStartDate = new Date(now.getTime() - (60 * 24 * 60 * 60 * 1000));
         break;
       case '90d':
         startDate = new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000));
-        previousStartDate = new Date(now.getTime() - (180 * 24 * 60 * 60 * 1000)); // Previous 90d
+        previousStartDate = new Date(now.getTime() - (180 * 24 * 60 * 60 * 1000));
         break;
       default:
-        startDate = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000)); // Default to 7 days
+        startDate = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
         previousStartDate = new Date(now.getTime() - (14 * 24 * 60 * 60 * 1000));
     }
 
     const currentDateFilter = { startDate: startDate.toISOString() };
     const previousDateFilter = { startDate: previousStartDate.toISOString(), endDate: startDate.toISOString() };
 
-    // Debug logging
     console.log(`🔍 Fetching dashboard stats for ${timeRange}:`, {
       currentPeriod: {
         start: startDate.toISOString(),
@@ -51,7 +47,6 @@ export const fetchDashboardStats = async (timeRange = '7d') => {
       }
     });
 
-    // Fetch current period data - reduce API calls by getting all orders and filtering
     const currentOrdersResponse = await apiClient.get('/admin/orders', { page: 1, limit: 1000, ...currentDateFilter });
     const currentOrders = currentOrdersResponse?.data || [];
     
@@ -69,15 +64,12 @@ export const fetchDashboardStats = async (timeRange = '7d') => {
     const currentDeliveredOrders = currentOrders.filter(order => order.status === 'delivered').length;
     const currentCancelledOrders = currentOrders.filter(order => order.status === 'cancelled').length;
     
-    // Active orders = not delivered or cancelled
     const currentActiveOrders = currentOrders.filter(order => 
       ['pending', 'confirmed', 'preparing', 'out_for_delivery'].includes(order.status)
     ).length;
 
-    // Add small delay to prevent rate limiting
     await delay(100);
 
-    // Fetch previous period data for comparison
     const previousOrdersResponse = await apiClient.get('/admin/orders', { page: 1, limit: 1000, ...previousDateFilter });
     const previousOrders = previousOrdersResponse?.data || [];
     
@@ -96,10 +88,8 @@ export const fetchDashboardStats = async (timeRange = '7d') => {
       ['pending', 'confirmed', 'preparing', 'out_for_delivery'].includes(order.status)
     ).length;
 
-    // Add small delay to prevent rate limiting
     await delay(100);
 
-    // Users, Restaurants counts (these are total counts, not time-filtered)
     const [usersAny, restaurantsAny] = await Promise.all([
       apiClient.get('/admin/users', { page: 1, limit: 1 }),
       apiClient.get('/admin/restaurants', { page: 1, limit: 1 })
@@ -108,7 +98,6 @@ export const fetchDashboardStats = async (timeRange = '7d') => {
     const totalUsers = usersAny?.pagination?.total || 0;
     const totalRestaurants = restaurantsAny?.pagination?.total || 0;
 
-    // Revenue and AOV calculation using the orders we already fetched
     const currentAmounts = currentOrders.map(o => Number(o?.total || o?.amount || 0)).filter(n => Number.isFinite(n));
     const currentTotalRevenue = currentAmounts.reduce((a, b) => a + b, 0);
     const currentAverageOrderValue = currentAmounts.length ? currentTotalRevenue / currentAmounts.length : 0;
@@ -117,7 +106,6 @@ export const fetchDashboardStats = async (timeRange = '7d') => {
     const previousTotalRevenue = previousAmounts.reduce((a, b) => a + b, 0);
     const previousAverageOrderValue = previousAmounts.length ? previousTotalRevenue / previousAmounts.length : 0;
 
-    // Calculate percentage changes
     const calculatePercentageChange = (current, previous) => {
       if (previous === 0) return current > 0 ? 100 : 0;
       return ((current - previous) / previous) * 100;
@@ -143,12 +131,10 @@ export const fetchDashboardStats = async (timeRange = '7d') => {
         averageOrderValue: currentAverageOrderValue,
         avgOrderValue: currentAverageOrderValue,
         timeRange,
-        // Percentage changes
         ordersPercentageChange,
         revenuePercentageChange,
         activeOrdersPercentageChange,
         avgOrderValuePercentageChange,
-        // Previous period data for reference
         previousPeriod: {
           totalOrders: previousTotalOrders,
           activeOrders: previousActiveOrders,
@@ -160,7 +146,6 @@ export const fetchDashboardStats = async (timeRange = '7d') => {
   } catch (error) {
     logger.error('Error fetching dashboard stats:', error);
     
-    // If it's a rate limiting error, return a more informative response
     if (error.message.includes('Too many requests')) {
       return { 
         success: false, 
@@ -179,7 +164,6 @@ export const fetchDashboardStats = async (timeRange = '7d') => {
           averageOrderValue: 0,
           avgOrderValue: 0,
           timeRange,
-          // Set percentage changes to 0 for rate limit errors
           ordersPercentageChange: 0,
           revenuePercentageChange: 0,
           activeOrdersPercentageChange: 0,
@@ -214,13 +198,11 @@ export const fetchDashboardStats = async (timeRange = '7d') => {
   }
 };
 
-// Fetch quarterly revenue data for charts
 export const fetchQuarterlyRevenueData = async () => {
   try {
     const now = new Date();
     const quarters = [];
     
-    // Get data for the last 4 quarters
     for (let i = 3; i >= 0; i--) {
       const quarterStart = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3 - (i * 3), 1);
       const quarterEnd = new Date(quarterStart.getFullYear(), quarterStart.getMonth() + 3, 0);
@@ -252,7 +234,6 @@ export const fetchQuarterlyRevenueData = async () => {
   }
 };
 
-// Fetch weekly orders data for charts - aggregate by day of week across all time
 export const fetchWeeklyOrdersData = async () => {
   try {
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -263,26 +244,23 @@ export const fetchWeeklyOrdersData = async () => {
       avgOrderValue: 0
     }));
     
-    // Get ALL orders (no date filter) to aggregate by day of week
     const allOrdersResponse = await apiClient.get('/admin/orders', {
       page: 1,
-      limit: 10000 // Large limit to get all orders
+      limit: 10000
     });
     
     const allOrders = allOrdersResponse?.data || [];
     
-    // Aggregate orders by day of week
     allOrders.forEach(order => {
       if (order.createdAt) {
         const orderDate = new Date(order.createdAt);
-        const dayOfWeek = orderDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+        const dayOfWeek = orderDate.getDay();
         
         dayTotals[dayOfWeek].orders += 1;
         dayTotals[dayOfWeek].revenue += Number(order.total) || 0;
       }
     });
     
-    // Calculate average order values
     dayTotals.forEach(day => {
       day.avgOrderValue = day.orders > 0 ? day.revenue / day.orders : 0;
     });
@@ -298,7 +276,6 @@ export const fetchWeeklyOrdersData = async () => {
 
 export const fetchRecentOrders = async (limit = 10, timeRange = '7d') => {
   try {
-    // Calculate date range based on timeRange parameter
     const now = new Date();
     let startDate;
     
@@ -316,7 +293,7 @@ export const fetchRecentOrders = async (limit = 10, timeRange = '7d') => {
         startDate = new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000));
         break;
       default:
-        startDate = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000)); // Default to 7 days
+        startDate = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
     }
 
     const dateFilter = { startDate: startDate.toISOString() };
@@ -328,7 +305,6 @@ export const fetchRecentOrders = async (limit = 10, timeRange = '7d') => {
   }
 };
 
-// ===== ORDERS MANAGEMENT =====
 
 export const fetchAllOrders = async (filters = {}) => {
   try {
@@ -400,7 +376,6 @@ export const fetchOrderRefunds = async (orderId) => {
   }
 };
 
-// ===== USERS MANAGEMENT =====
 
 export const fetchAllUsers = async (filters = {}) => {
   try {
@@ -479,7 +454,6 @@ export const deleteUser = async (userId) => {
   }
 };
 
-// ===== RESTAURANTS MANAGEMENT =====
 
 export const fetchAllRestaurants = async (filters = {}) => {
   try {
@@ -551,7 +525,6 @@ export const deleteRestaurant = async (restaurantId) => {
   }
 };
 
-// ===== MENU MANAGEMENT =====
 
 export const fetchMenuChangeRequests = async (filters = {}) => {
   try {
@@ -583,7 +556,6 @@ export const rejectMenuChange = async (requestId, adminNotes = '') => {
   }
 };
 
-// ===== ANALYTICS =====
 
 export const fetchOrdersAnalytics = async (timeRange = '30d') => {
   try {
@@ -625,12 +597,9 @@ export const fetchRestaurantAnalytics = async (timeRange = '30d') => {
   }
 };
 
-// ===== COMPREHENSIVE ANALYTICS =====
 
-// Get comprehensive analytics overview
 export const fetchComprehensiveAnalytics = async (timeRange = '30d') => {
   try {
-    // Get all orders for the time period
     const ordersResponse = await apiClient.get('/admin/orders', { 
       page: 1, 
       limit: 10000,
@@ -638,7 +607,6 @@ export const fetchComprehensiveAnalytics = async (timeRange = '30d') => {
     });
     const orders = ordersResponse?.data || [];
 
-    // Get users and restaurants with pagination info
     const [usersResponse, restaurantsResponse] = await Promise.all([
       apiClient.get('/admin/users', { page: 1, limit: 1 }),
       apiClient.get('/admin/restaurants', { page: 1, limit: 10000 })
@@ -646,45 +614,35 @@ export const fetchComprehensiveAnalytics = async (timeRange = '30d') => {
     
     const restaurants = restaurantsResponse?.data || [];
 
-    // Calculate overview metrics
     const totalRevenue = orders.reduce((sum, order) => sum + (Number(order.total) || 0), 0);
     const totalOrders = orders.length;
     const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-    const activeUsers = usersResponse?.pagination?.total || 0; // Use total from pagination like dashboard
+    const activeUsers = usersResponse?.pagination?.total || 0;
     const activeRestaurants = restaurants.filter(restaurant => restaurant.active !== false).length;
 
-    // Calculate order status breakdown
     const statusBreakdown = orders.reduce((acc, order) => {
       const status = order.status || 'pending';
       acc[status] = (acc[status] || 0) + 1;
       return acc;
     }, {});
 
-    // Calculate top performing restaurants based on items within orders
-    // Since orders can contain items from multiple restaurants, we need to track:
-    // 1. Revenue per restaurant (sum of item prices before tax)
-    // 2. Order count per restaurant (count of orders that contain items from that restaurant)
     
     const restaurantStats = restaurants.map(restaurant => {
       let revenue = 0;
-      const ordersWithThisRestaurant = new Set(); // Track unique orders that include this restaurant
+      const ordersWithThisRestaurant = new Set();
       
-      // Go through all orders and find items from this restaurant
       orders.forEach(order => {
         if (order.items && Array.isArray(order.items)) {
           let hasItemsFromThisRestaurant = false;
           
           order.items.forEach(item => {
-            // Check if this item belongs to the current restaurant
             if (item.restaurantId === restaurant.id || item.restaurant?.id === restaurant.id) {
-              // Add item revenue (before tax)
               const itemRevenue = (Number(item.price) || 0) * (Number(item.quantity) || 1);
               revenue += itemRevenue;
               hasItemsFromThisRestaurant = true;
             }
           });
           
-          // If this order contains items from this restaurant, count it as an order
           if (hasItemsFromThisRestaurant) {
             ordersWithThisRestaurant.add(order.id);
           }
@@ -702,7 +660,6 @@ export const fetchComprehensiveAnalytics = async (timeRange = '30d') => {
       };
     }).sort((a, b) => b.revenue - a.revenue);
 
-    // Calculate user retention (users with 2+ orders)
     const userOrderCounts = orders.reduce((acc, order) => {
       if (order.userId) {
         acc[order.userId] = (acc[order.userId] || 0) + 1;
@@ -738,7 +695,6 @@ export const fetchComprehensiveAnalytics = async (timeRange = '30d') => {
   }
 };
 
-// Get revenue trends by different time periods
 export const fetchRevenueTrends = async (period = 'quarterly') => {
   try {
     const now = new Date();
@@ -746,12 +702,10 @@ export const fetchRevenueTrends = async (period = 'quarterly') => {
 
     switch (period) {
       case 'weekly':
-        // Last 12 weeks - proper week boundaries (Monday to Sunday)
         for (let i = 11; i >= 0; i--) {
           const weekStart = new Date(now);
-          // Get Monday of the week
           const dayOfWeek = weekStart.getDay();
-          const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Sunday = 0, so go back 6 days to get Monday
+          const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
           weekStart.setDate(weekStart.getDate() + mondayOffset - (i * 7));
           weekStart.setHours(0, 0, 0, 0);
           
@@ -780,7 +734,6 @@ export const fetchRevenueTrends = async (period = 'quarterly') => {
         break;
 
       case 'monthly':
-        // Last 12 months - proper month boundaries
         for (let i = 11; i >= 0; i--) {
           const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
           monthStart.setHours(0, 0, 0, 0);
@@ -809,7 +762,6 @@ export const fetchRevenueTrends = async (period = 'quarterly') => {
         break;
 
       case 'quarterly':
-        // Last 4 quarters - proper quarter boundaries
         for (let i = 3; i >= 0; i--) {
           const quarterStart = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3 - (i * 3), 1);
           quarterStart.setHours(0, 0, 0, 0);
@@ -845,7 +797,6 @@ export const fetchRevenueTrends = async (period = 'quarterly') => {
   }
 };
 
-// Helper function to get date filter based on time range
 const getDateFilter = (timeRange) => {
   const now = new Date();
   const startDate = new Date();
@@ -873,7 +824,6 @@ const getDateFilter = (timeRange) => {
   };
 };
 
-// Fetch revenue breakdown by restaurant
 export const fetchRevenueByRestaurant = async (timeRange = '30d') => {
   try {
     const ordersResponse = await apiClient.get('/admin/orders', { 
@@ -883,11 +833,9 @@ export const fetchRevenueByRestaurant = async (timeRange = '30d') => {
     });
     const orders = ordersResponse?.data || [];
 
-    // Get all restaurants
     const restaurantsResponse = await apiClient.get('/admin/restaurants', { page: 1, limit: 10000 });
     const restaurants = restaurantsResponse?.data || [];
 
-    // Calculate revenue by restaurant
     const restaurantRevenue = restaurants.map(restaurant => {
       let revenue = 0;
       let orderCount = 0;
@@ -924,7 +872,6 @@ export const fetchRevenueByRestaurant = async (timeRange = '30d') => {
   }
 };
 
-// Fetch revenue by time of day
 export const fetchRevenueByTimeOfDay = async (timeRange = '30d') => {
   try {
     const ordersResponse = await apiClient.get('/admin/orders', { 
@@ -934,7 +881,6 @@ export const fetchRevenueByTimeOfDay = async (timeRange = '30d') => {
     });
     const orders = ordersResponse?.data || [];
 
-    // Helper function to format time in 12-hour format
     const formatTime = (hour) => {
       if (hour === 0) return '12:00 AM';
       if (hour < 12) return `${hour}:00 AM`;
@@ -942,7 +888,6 @@ export const fetchRevenueByTimeOfDay = async (timeRange = '30d') => {
       return `${hour - 12}:00 PM`;
     };
 
-    // Initialize 24-hour buckets
     const hourlyRevenue = Array(24).fill(0).map((_, hour) => ({
       hour: hour,
       time: formatTime(hour),
@@ -954,7 +899,6 @@ export const fetchRevenueByTimeOfDay = async (timeRange = '30d') => {
       orders: 0
     }));
 
-    // Aggregate revenue by hour
     orders.forEach(order => {
       if (order.createdAt) {
         const orderDate = new Date(order.createdAt);
@@ -966,7 +910,6 @@ export const fetchRevenueByTimeOfDay = async (timeRange = '30d') => {
       }
     });
 
-    // Calculate average order value
     hourlyRevenue.forEach(hour => {
       hour.avgOrderValue = hour.orders > 0 ? hour.revenue / hour.orders : 0;
     });
@@ -978,7 +921,6 @@ export const fetchRevenueByTimeOfDay = async (timeRange = '30d') => {
   }
 };
 
-// Fetch top revenue users
 export const fetchTopRevenueUsers = async (timeRange = '30d') => {
   try {
     const ordersResponse = await apiClient.get('/admin/orders', { 
@@ -988,11 +930,9 @@ export const fetchTopRevenueUsers = async (timeRange = '30d') => {
     });
     const orders = ordersResponse?.data || [];
 
-    // Get all users
     const usersResponse = await apiClient.get('/admin/users', { page: 1, limit: 10000 });
     const users = usersResponse?.data || [];
 
-    // Calculate revenue by user
     const userRevenue = {};
     
     orders.forEach(order => {
@@ -1013,7 +953,6 @@ export const fetchTopRevenueUsers = async (timeRange = '30d') => {
       }
     });
 
-    // Convert to array and add user info
     const topUsers = Object.values(userRevenue)
       .map(user => {
         const userInfo = users.find(u => u.id === user.userId);
@@ -1034,7 +973,6 @@ export const fetchTopRevenueUsers = async (timeRange = '30d') => {
   }
 };
 
-// Fetch revenue by day of week
 export const fetchRevenueByDayOfWeek = async (timeRange = '30d') => {
   try {
     const ordersResponse = await apiClient.get('/admin/orders', { 
@@ -1053,7 +991,6 @@ export const fetchRevenueByDayOfWeek = async (timeRange = '30d') => {
       avgOrderValue: 0
     }));
 
-    // Aggregate revenue by day of week
     orders.forEach(order => {
       if (order.createdAt) {
         const orderDate = new Date(order.createdAt);
@@ -1065,7 +1002,6 @@ export const fetchRevenueByDayOfWeek = async (timeRange = '30d') => {
       }
     });
 
-    // Calculate average order value
     dailyRevenue.forEach(day => {
       day.avgOrderValue = day.orders > 0 ? day.revenue / day.orders : 0;
     });
@@ -1077,9 +1013,7 @@ export const fetchRevenueByDayOfWeek = async (timeRange = '30d') => {
   }
 };
 
-// ===== ORDER ANALYTICS FUNCTIONS =====
 
-// Fetch order volume trends by period
 export const fetchOrderVolumeTrends = async (period = 'quarterly') => {
   try {
     const now = new Date();
@@ -1087,7 +1021,6 @@ export const fetchOrderVolumeTrends = async (period = 'quarterly') => {
 
     switch (period) {
       case 'weekly':
-        // Last 12 weeks
         for (let i = 11; i >= 0; i--) {
           const weekStart = new Date(now);
           const dayOfWeek = weekStart.getDay();
@@ -1120,7 +1053,6 @@ export const fetchOrderVolumeTrends = async (period = 'quarterly') => {
         break;
 
       case 'monthly':
-        // Last 12 months
         for (let i = 11; i >= 0; i--) {
           const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
           monthStart.setHours(0, 0, 0, 0);
@@ -1149,7 +1081,6 @@ export const fetchOrderVolumeTrends = async (period = 'quarterly') => {
         break;
 
       case 'quarterly':
-        // Last 4 quarters
         for (let i = 3; i >= 0; i--) {
           const quarterStart = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3 - (i * 3), 1);
           quarterStart.setHours(0, 0, 0, 0);
@@ -1185,7 +1116,6 @@ export const fetchOrderVolumeTrends = async (period = 'quarterly') => {
   }
 };
 
-// Fetch order size distribution
 export const fetchOrderSizeDistribution = async (timeRange = '30d') => {
   try {
     const ordersResponse = await apiClient.get('/admin/orders', { 
@@ -1195,7 +1125,6 @@ export const fetchOrderSizeDistribution = async (timeRange = '30d') => {
     });
     const orders = ordersResponse?.data || [];
 
-    // Define order size buckets
     const sizeBuckets = [
       { range: '$0-100', min: 0, max: 100, count: 0, orders: [] },
       { range: '$100-200', min: 100, max: 200, count: 0, orders: [] },
@@ -1205,7 +1134,6 @@ export const fetchOrderSizeDistribution = async (timeRange = '30d') => {
       { range: '$500+', min: 500, max: Infinity, count: 0, orders: [] }
     ];
 
-    // Categorize orders into buckets
     orders.forEach(order => {
       const orderValue = Number(order.total) || 0;
       for (const bucket of sizeBuckets) {
@@ -1217,7 +1145,6 @@ export const fetchOrderSizeDistribution = async (timeRange = '30d') => {
       }
     });
 
-    // Calculate percentages and average values
     const totalOrders = orders.length;
     const distribution = sizeBuckets.map(bucket => ({
       range: bucket.range,
@@ -1233,7 +1160,6 @@ export const fetchOrderSizeDistribution = async (timeRange = '30d') => {
   }
 };
 
-// Fetch orders by day of week
 export const fetchOrdersByDayOfWeek = async (timeRange = '30d') => {
   try {
     const ordersResponse = await apiClient.get('/admin/orders', { 
@@ -1252,7 +1178,6 @@ export const fetchOrdersByDayOfWeek = async (timeRange = '30d') => {
       avgOrderValue: 0
     }));
 
-    // Aggregate orders by day of week
     orders.forEach(order => {
       if (order.createdAt) {
         const orderDate = new Date(order.createdAt);
@@ -1264,7 +1189,6 @@ export const fetchOrdersByDayOfWeek = async (timeRange = '30d') => {
       }
     });
 
-    // Calculate average order value
     dailyOrders.forEach(day => {
       day.avgOrderValue = day.orders > 0 ? day.revenue / day.orders : 0;
     });
@@ -1276,7 +1200,6 @@ export const fetchOrdersByDayOfWeek = async (timeRange = '30d') => {
   }
 };
 
-// Fetch multi-restaurant vs single restaurant orders
 export const fetchOrderTypeDistribution = async (timeRange = '30d') => {
   try {
     const ordersResponse = await apiClient.get('/admin/orders', { 
@@ -1290,11 +1213,9 @@ export const fetchOrderTypeDistribution = async (timeRange = '30d') => {
     let multiRestaurantCount = 0;
 
     orders.forEach(order => {
-      // Check if order has multiple restaurants
       if (order.restaurantGroups && Object.keys(order.restaurantGroups).length > 1) {
         multiRestaurantCount++;
       } else if (order.items && Array.isArray(order.items)) {
-        // Check if items are from multiple restaurants
         const restaurantIds = new Set();
         order.items.forEach(item => {
           if (item.restaurantId) {
@@ -1307,7 +1228,6 @@ export const fetchOrderTypeDistribution = async (timeRange = '30d') => {
           singleRestaurantCount++;
         }
       } else {
-        // Default to single restaurant if no restaurant groups or items
         singleRestaurantCount++;
       }
     });
@@ -1348,7 +1268,6 @@ export const fetchOrderTypeDistribution = async (timeRange = '30d') => {
   }
 };
 
-// Fetch top ordering users
 export const fetchTopOrderingUsers = async (timeRange = '30d') => {
   try {
     const ordersResponse = await apiClient.get('/admin/orders', { 
@@ -1358,11 +1277,9 @@ export const fetchTopOrderingUsers = async (timeRange = '30d') => {
     });
     const orders = ordersResponse?.data || [];
 
-    // Get all users
     const usersResponse = await apiClient.get('/admin/users', { page: 1, limit: 10000 });
     const users = usersResponse?.data || [];
 
-    // Calculate orders by user
     const userOrderCounts = {};
     
     orders.forEach(order => {
@@ -1382,7 +1299,6 @@ export const fetchTopOrderingUsers = async (timeRange = '30d') => {
       }
     });
 
-    // Convert to array and add user info
     const topUsers = Object.values(userOrderCounts)
       .map(user => {
         const userInfo = users.find(u => u.id === user.userId);
@@ -1403,7 +1319,6 @@ export const fetchTopOrderingUsers = async (timeRange = '30d') => {
   }
 };
 
-// Fetch orders by time of day and day of week combined
 export const fetchOrdersByTimeAndDay = async (timeRange = '30d') => {
   try {
     const ordersResponse = await apiClient.get('/admin/orders', { 
@@ -1415,7 +1330,6 @@ export const fetchOrdersByTimeAndDay = async (timeRange = '30d') => {
 
     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     
-    // Helper function to format time in 12-hour format
     const formatTime = (hour) => {
       if (hour === 0) return '12:00 AM';
       if (hour < 12) return `${hour}:00 AM`;
@@ -1423,10 +1337,8 @@ export const fetchOrdersByTimeAndDay = async (timeRange = '30d') => {
       return `${hour - 12}:00 PM`;
     };
 
-    // Create combined data structure
     const combinedData = [];
     
-    // For each day of week, create time slots
     dayNames.forEach((dayName, dayIndex) => {
       for (let hour = 0; hour < 24; hour++) {
         combinedData.push({
@@ -1444,7 +1356,6 @@ export const fetchOrdersByTimeAndDay = async (timeRange = '30d') => {
       }
     });
 
-    // Aggregate orders by day and time
     orders.forEach(order => {
       if (order.createdAt) {
         const orderDate = new Date(order.createdAt);
@@ -1452,7 +1363,6 @@ export const fetchOrdersByTimeAndDay = async (timeRange = '30d') => {
         const hour = orderDate.getHours();
         const revenue = Number(order.total) || 0;
         
-        // Find the corresponding data point
         const dataPoint = combinedData.find(d => d.dayIndex === dayOfWeek && d.hour === hour);
         if (dataPoint) {
           dataPoint.orders += 1;
@@ -1461,7 +1371,6 @@ export const fetchOrdersByTimeAndDay = async (timeRange = '30d') => {
       }
     });
 
-    // Calculate average order value
     combinedData.forEach(point => {
       point.avgOrderValue = point.orders > 0 ? point.revenue / point.orders : 0;
     });
@@ -1473,26 +1382,19 @@ export const fetchOrdersByTimeAndDay = async (timeRange = '30d') => {
   }
 };
 
-// ===== USER ANALYTICS FUNCTIONS =====
 
-// Fetch user overview metrics (all time)
 export const fetchUserOverviewMetrics = async () => {
   try {
-    // Get all users
     const usersResponse = await apiClient.get('/admin/users', { page: 1, limit: 10000 });
     const users = usersResponse?.data || [];
 
-    // Get all orders
     const ordersResponse = await apiClient.get('/admin/orders', { page: 1, limit: 10000 });
     const orders = ordersResponse?.data || [];
 
-    // Calculate metrics
     const totalUsers = users.length;
     
-    // Active users = users who have logged in at least once (have last_login)
     const activeUsers = users.filter(user => user.last_login).length;
     
-    // New users = users who signed up but haven't necessarily logged in
     const newUsers = users.filter(user => {
       const signupDate = new Date(user.created_at);
       const thirtyDaysAgo = new Date();
@@ -1500,7 +1402,6 @@ export const fetchUserOverviewMetrics = async () => {
       return signupDate >= thirtyDaysAgo;
     }).length;
 
-    // Calculate user order counts
     const userOrderCounts = {};
     orders.forEach(order => {
       if (order.userId) {
@@ -1508,13 +1409,10 @@ export const fetchUserOverviewMetrics = async () => {
       }
     });
 
-    // Retained users = users with 2+ orders
     const retainedUsers = Object.values(userOrderCounts).filter(count => count >= 2).length;
     
-    // Retention rate = retained users / total users
     const retentionRate = totalUsers > 0 ? (retainedUsers / totalUsers) * 100 : 0;
     
-    // Average orders per user
     const totalOrders = orders.length;
     const avgOrdersPerUser = totalUsers > 0 ? totalOrders / totalUsers : 0;
 
@@ -1535,7 +1433,6 @@ export const fetchUserOverviewMetrics = async () => {
   }
 };
 
-// Fetch user registration trends
 export const fetchUserRegistrationTrends = async (period = 'monthly') => {
   try {
     const usersResponse = await apiClient.get('/admin/users', { page: 1, limit: 10000 });
@@ -1546,7 +1443,6 @@ export const fetchUserRegistrationTrends = async (period = 'monthly') => {
 
     switch (period) {
       case 'weekly': {
-        // Last 12 weeks - but include all users from the earliest signup
         const earliestSignup = users.length > 0 ? new Date(Math.min(...users.map(u => new Date(u.created_at)))) : now;
         const weeksBack = Math.max(12, Math.ceil((now - earliestSignup) / (7 * 24 * 60 * 60 * 1000)) + 1);
         
@@ -1576,7 +1472,6 @@ export const fetchUserRegistrationTrends = async (period = 'monthly') => {
       }
 
       case 'monthly': {
-        // Last 12 months - but include all users from the earliest signup
         const earliestSignupMonthly = users.length > 0 ? new Date(Math.min(...users.map(u => new Date(u.created_at)))) : now;
         const monthsBack = Math.max(12, (now.getFullYear() - earliestSignupMonthly.getFullYear()) * 12 + (now.getMonth() - earliestSignupMonthly.getMonth()) + 1);
         
@@ -1602,7 +1497,6 @@ export const fetchUserRegistrationTrends = async (period = 'monthly') => {
       }
 
       case 'quarterly': {
-        // Last 4 quarters - but include all users from the earliest signup
         const earliestSignupQuarterly = users.length > 0 ? new Date(Math.min(...users.map(u => new Date(u.created_at)))) : now;
         const yearDiff = now.getFullYear() - earliestSignupQuarterly.getFullYear();
         const quarterDiff = Math.floor(now.getMonth() / 3) - Math.floor(earliestSignupQuarterly.getMonth() / 3);
@@ -1638,7 +1532,6 @@ export const fetchUserRegistrationTrends = async (period = 'monthly') => {
   }
 };
 
-// Fetch user activity heatmap data
 export const fetchUserActivityHeatmap = async () => {
   try {
     const usersResponse = await apiClient.get('/admin/users', { page: 1, limit: 10000 });
@@ -1646,7 +1539,6 @@ export const fetchUserActivityHeatmap = async () => {
 
     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     
-    // Helper function to format time in 12-hour format
     const formatTime = (hour) => {
       if (hour === 0) return '12:00 AM';
       if (hour < 12) return `${hour}:00 AM`;
@@ -1654,7 +1546,6 @@ export const fetchUserActivityHeatmap = async () => {
       return `${hour - 12}:00 PM`;
     };
 
-    // Create heatmap data structure
     const heatmapData = [];
     
     dayNames.forEach((dayName, dayIndex) => {
@@ -1673,7 +1564,6 @@ export const fetchUserActivityHeatmap = async () => {
       }
     });
 
-    // Aggregate user activity by day and time (using last_login as proxy for activity)
     users.forEach(user => {
       if (user.last_login) {
         const loginDate = new Date(user.last_login);
@@ -1694,13 +1584,11 @@ export const fetchUserActivityHeatmap = async () => {
   }
 };
 
-// Fetch user order frequency distribution
 export const fetchUserOrderFrequencyDistribution = async () => {
   try {
     const ordersResponse = await apiClient.get('/admin/orders', { page: 1, limit: 10000 });
     const orders = ordersResponse?.data || [];
 
-    // Calculate order counts per user
     const userOrderCounts = {};
     orders.forEach(order => {
       if (order.userId) {
@@ -1708,7 +1596,6 @@ export const fetchUserOrderFrequencyDistribution = async () => {
       }
     });
 
-    // Define frequency buckets
     const frequencyBuckets = [
       { range: '1 order', min: 1, max: 1, count: 0, users: [] },
       { range: '2-5 orders', min: 2, max: 5, count: 0, users: [] },
@@ -1717,7 +1604,6 @@ export const fetchUserOrderFrequencyDistribution = async () => {
       { range: '20+ orders', min: 21, max: Infinity, count: 0, users: [] }
     ];
 
-    // Categorize users into buckets
     Object.values(userOrderCounts).forEach(orderCount => {
       for (const bucket of frequencyBuckets) {
         if (orderCount >= bucket.min && orderCount <= bucket.max) {
@@ -1728,7 +1614,6 @@ export const fetchUserOrderFrequencyDistribution = async () => {
       }
     });
 
-    // Calculate percentages
     const totalUsersWithOrders = Object.keys(userOrderCounts).length;
     const distribution = frequencyBuckets.map(bucket => ({
       range: bucket.range,
@@ -1744,13 +1629,11 @@ export const fetchUserOrderFrequencyDistribution = async () => {
   }
 };
 
-// Fetch user value segments
 export const fetchUserValueSegments = async () => {
   try {
     const ordersResponse = await apiClient.get('/admin/orders', { page: 1, limit: 10000 });
     const orders = ordersResponse?.data || [];
 
-    // Calculate total spending per user
     const userSpending = {};
     orders.forEach(order => {
       if (order.userId) {
@@ -1766,7 +1649,6 @@ export const fetchUserValueSegments = async () => {
       return { success: true, data: [] };
     }
 
-    // Calculate percentiles
     const highValueThreshold = spendingValues[Math.floor(totalUsers * 0.2) - 1] || 0;
     const mediumValueThreshold = spendingValues[Math.floor(totalUsers * 0.8) - 1] || 0;
 
@@ -1812,13 +1694,11 @@ export const fetchUserValueSegments = async () => {
   }
 };
 
-// Fetch geographic distribution of users
 export const fetchUserGeographicDistribution = async () => {
   try {
     const ordersResponse = await apiClient.get('/admin/orders', { page: 1, limit: 10000 });
     const orders = ordersResponse?.data || [];
 
-    // Group users by delivery address location
     const locationStats = {};
     
     orders.forEach(order => {
@@ -1841,7 +1721,6 @@ export const fetchUserGeographicDistribution = async () => {
       }
     });
 
-    // Convert to array and calculate metrics
     const distribution = Object.values(locationStats).map(stat => ({
       location: stat.location,
       userCount: stat.users.size,
@@ -1858,7 +1737,6 @@ export const fetchUserGeographicDistribution = async () => {
   }
 };
 
-// Fetch cohort analysis data
 export const fetchUserCohortAnalysis = async () => {
   try {
     const usersResponse = await apiClient.get('/admin/users', { page: 1, limit: 10000 });
@@ -1870,7 +1748,6 @@ export const fetchUserCohortAnalysis = async () => {
     const now = new Date();
     const cohorts = [];
 
-    // Create cohorts for the last 6 months
     for (let i = 5; i >= 0; i--) {
       const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
       monthStart.setHours(0, 0, 0, 0);
@@ -1878,7 +1755,6 @@ export const fetchUserCohortAnalysis = async () => {
       const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
       monthEnd.setHours(23, 59, 59, 999);
       
-      // Users who signed up in this month
       const cohortUsers = users.filter(user => {
         const signupDate = new Date(user.created_at);
         return signupDate >= monthStart && signupDate <= monthEnd;
@@ -1886,13 +1762,11 @@ export const fetchUserCohortAnalysis = async () => {
       
       const cohortName = monthStart.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
       
-      // Calculate retention for each subsequent month
       const retentionData = [];
       for (let j = 0; j <= i; j++) {
         const retentionMonthStart = new Date(monthStart.getFullYear(), monthStart.getMonth() + j, 1);
         const retentionMonthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + j + 1, 0);
         
-        // Count how many cohort users made orders in this month
         const activeInMonth = cohortUsers.filter(user => {
           const userOrders = orders.filter(order => 
             order.userId === user.id && 
@@ -1925,13 +1799,11 @@ export const fetchUserCohortAnalysis = async () => {
   }
 };
 
-// Fetch user lifecycle stages
 export const fetchUserLifecycleStages = async () => {
   try {
     const ordersResponse = await apiClient.get('/admin/orders', { page: 1, limit: 10000 });
     const orders = ordersResponse?.data || [];
 
-    // Calculate order counts per user
     const userOrderCounts = {};
     const userLastOrderDates = {};
     
@@ -1967,7 +1839,6 @@ export const fetchUserLifecycleStages = async () => {
         vipUsers++;
       }
       
-      // Check for churned users (no orders in 90+ days)
       if (lastOrderDate && lastOrderDate < ninetyDaysAgo) {
         churnedUsers++;
       }
@@ -2015,7 +1886,6 @@ export const fetchUserLifecycleStages = async () => {
   }
 };
 
-// Fetch user order patterns
 export const fetchUserOrderPatterns = async (timeRange = '30d') => {
   try {
     const ordersResponse = await apiClient.get('/admin/orders', { 
@@ -2025,7 +1895,6 @@ export const fetchUserOrderPatterns = async (timeRange = '30d') => {
     });
     const orders = ordersResponse?.data || [];
 
-    // Calculate user order counts and spending
     const userStats = {};
     orders.forEach(order => {
       if (order.userId) {
@@ -2042,13 +1911,11 @@ export const fetchUserOrderPatterns = async (timeRange = '30d') => {
       }
     });
 
-    // Convert to array and sort by order count
     const userStatsArray = Object.values(userStats).map(user => ({
       ...user,
       avgOrderValue: user.orders > 0 ? user.revenue / user.orders : 0
     })).sort((a, b) => b.orders - a.orders);
 
-    // Create segments based on order frequency
     const segments = [
       { name: 'New Users', minOrders: 1, maxOrders: 1, users: [], avgOrderValue: 0 },
       { name: 'Regular Users', minOrders: 2, maxOrders: 5, users: [], avgOrderValue: 0 },
@@ -2073,7 +1940,6 @@ export const fetchUserOrderPatterns = async (timeRange = '30d') => {
   }
 };
 
-// ===== SUPPORT =====
 
 export const fetchSupportTickets = async (filters = {}) => {
   try {
@@ -2108,7 +1974,6 @@ export const addTicketResponse = async (ticketId, message, isInternal = false) =
   }
 };
 
-// Public endpoint to create a support ticket from site forms
 export const createSupportTicket = async (payload) => {
   try {
     const response = await apiClient.post('/support/tickets', payload);
@@ -2129,7 +1994,6 @@ export const deleteClosedSupportTickets = async () => {
   }
 };
 
-// ===== NOTIFICATIONS =====
 export const fetchAdminNotifications = async (limit = 250) => {
   try {
     const response = await apiClient.get('/admin/notifications', { limit });
@@ -2173,7 +2037,6 @@ export const deleteNotification = async (id) => {
   }
 };
 
-// Fetch short-lived SSE token for orders/notifications stream
 export const fetchOrdersStreamToken = async () => {
   try {
     const response = await apiClient.post('/admin/orders/stream-token', {});
@@ -2184,7 +2047,6 @@ export const fetchOrdersStreamToken = async () => {
   }
 };
 
-// ===== SYSTEM SETTINGS =====
 
 export const fetchSystemSettings = async () => {
   try {
@@ -2206,11 +2068,9 @@ export const updateSystemSetting = async (key, value) => {
   }
 };
 
-// ===== COUNTS FOR SIDEBAR BADGES =====
 
 export const fetchNotificationCounts = async () => {
   try {
-    // Active orders = not delivered or cancelled
     const activeStatuses = ['pending', 'confirmed', 'preparing', 'out_for_delivery'];
 
     const results = await Promise.all(
@@ -2219,7 +2079,6 @@ export const fetchNotificationCounts = async () => {
 
     const activeOrders = results.reduce((sum, resp) => sum + (resp?.pagination?.total || 0), 0);
 
-    // Count active tickets (open and in_progress support tickets + pending menu change requests)
     const [supportTicketsResp, menuRequestsResp] = await Promise.all([
       apiClient.get('/admin/support-tickets', { status: 'open,in_progress', page: 1, limit: 1 }),
       apiClient.get('/admin/menu-change-requests', { status: 'pending', page: 1, limit: 1 })
@@ -2246,7 +2105,6 @@ export const createRestaurant = async (restaurantData) => {
 
 export const logAdminAction = async (adminId, action, tableName, recordId, oldValues, newValues) => {
   try {
-    // For now, just log to console - implement audit logging when ready
     logger.info('Admin action logged', {
       adminId,
       action,
@@ -2266,7 +2124,6 @@ export const fetchAuditLogs = async (filters = {}) => {
   try {
     const queryParams = new URLSearchParams();
     
-    // Add filter parameters
     if (filters.page) queryParams.append('page', filters.page);
     if (filters.limit) queryParams.append('limit', filters.limit);
     if (filters.action && filters.action !== 'all') queryParams.append('action', filters.action);
@@ -2292,7 +2149,6 @@ export const fetchAuditLogs = async (filters = {}) => {
   }
 };
 
-// Fetch top menu items for a specific restaurant
 export const fetchRestaurantMenuItems = async (restaurantId, timeRange = '30d') => {
   try {
     const ordersResponse = await apiClient.get('/admin/orders', { 
@@ -2302,7 +2158,6 @@ export const fetchRestaurantMenuItems = async (restaurantId, timeRange = '30d') 
     });
     const orders = ordersResponse?.data || [];
 
-    // Get restaurant info
     const restaurantsResponse = await apiClient.get('/admin/restaurants', { page: 1, limit: 10000 });
     const restaurants = restaurantsResponse?.data || [];
     const restaurant = restaurants.find(r => r.id === restaurantId);
@@ -2311,13 +2166,11 @@ export const fetchRestaurantMenuItems = async (restaurantId, timeRange = '30d') 
       return { success: false, error: 'Restaurant not found' };
     }
 
-    // Count menu items from this restaurant
     const menuItemCounts = {};
     
     orders.forEach(order => {
       if (order.items && Array.isArray(order.items)) {
         order.items.forEach(item => {
-          // Check if this item belongs to the specified restaurant
           if (item.restaurantId === restaurantId || item.restaurant?.id === restaurantId) {
             const itemKey = `${item.name}_${item.price}`; // Use name + price as unique key
             if (!menuItemCounts[itemKey]) {
@@ -2335,7 +2188,6 @@ export const fetchRestaurantMenuItems = async (restaurantId, timeRange = '30d') 
       }
     });
 
-    // Convert to array and sort by quantity
     const topMenuItems = Object.values(menuItemCounts)
       .sort((a, b) => b.quantity - a.quantity)
       .slice(0, 10);
@@ -2351,7 +2203,6 @@ export const fetchRestaurantMenuItems = async (restaurantId, timeRange = '30d') 
   }
 };
 
-// ===== UTILITY FUNCTIONS =====
 
 export const uploadRestaurantLogo = async (file) => {
   try {
@@ -2360,7 +2211,6 @@ export const uploadRestaurantLogo = async (file) => {
     const form = new FormData();
     form.append('logo', file);
     
-    // Get the token manually to ensure it's included
     const token = apiClient.getToken();
     const headers = {};
     if (token) {

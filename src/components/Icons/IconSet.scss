@@ -1,4 +1,4 @@
-/* Icon set container */
+
 .icon-set {
   display: flex;
   flex-direction: column;
@@ -8,7 +8,7 @@
   background-color: rgba(255, 255, 255, 0.1);
   border-radius: 30px;
   
-  /* For positioning on its own page/component */
+  
   &.standalone {
     position: fixed;
     top: 50%;
@@ -16,7 +16,7 @@
     transform: translate(-50%, -50%);
   }
   
-  /* Horizontal layout */
+  
   &.horizontal {
     flex-direction: row;
     flex-wrap: wrap;
@@ -27,11 +27,11 @@
     max-width: 900px;
     margin: 0 auto;
     
-    /* We don't need special hover effects here as they're defined in IconStyle.scss */
+    
   }
 }
 
-/* Media queries for responsive design */
+
 @media (max-width: 768px) {
   .icon-set {
     gap: 8px;

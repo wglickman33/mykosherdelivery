@@ -49,26 +49,21 @@ import { useScrollToTop } from "./hooks/useScrollToTop";
 import logger from "./utils/logger";
 import "./App.scss";
 
-// Import the actual HelpPage component
 import HelpPage from "./components/HelpPage/HelpPage";
 
-// Component to handle authenticated routing logic
 function AuthenticatedApp() {
   const { user, loading, tempAddress } = useAuth();
   const location = useLocation();
   const [initialLoad, setInitialLoad] = useState(true);
   
-  // Scroll to top on route changes
   useScrollToTop();
 
-  // Track when initial authentication check is complete
   useEffect(() => {
     if (!loading && initialLoad) {
       setInitialLoad(false);
     }
   }, [loading, initialLoad]);
 
-  // Add debugging for state changes
   useEffect(() => {
     logger.debug('App.jsx - State changed:', {
       user: !!user,
@@ -88,7 +83,6 @@ function AuthenticatedApp() {
     userObject: user ? { id: user.id, email: user.email } : null
   });
 
-  // Show loading spinner while checking authentication (only on initial load)
   if (loading && initialLoad) {
     return (
       <div className="app-loading">
@@ -103,15 +97,12 @@ function AuthenticatedApp() {
 
   const pathname = location.pathname;
 
-  // Define public routes that don't require authentication
   const publicRoutes = ["/landing", "/signin", "/signup", "/blog", "/faq", "/contact", "/partner", "/advertise", "/help", "/terms", "/privacy", "/admin"];
   const isPublicRoute = publicRoutes.some(route => pathname === route || pathname.startsWith(route + "/"));
 
-  // Define app routes that require some form of access (auth or temp address)
   const appRoutes = ["/home", "/restaurants", "/restaurant", "/cart", "/checkout", "/order-confirmation", "/gift-card", "/account"];
   const isAppRoute = appRoutes.some(route => pathname === route || pathname.startsWith(route + "/"));
 
-  // ROOT PATH: Only redirect from root, preserve all other routes
   if (pathname === "/") {
     if (user) {
       logger.debug('App.jsx - Authenticated user, redirecting to /home');
@@ -125,35 +116,29 @@ function AuthenticatedApp() {
     }
   }
 
-  // AUTHENTICATED USER: Only redirect from landing/auth pages, preserve all other routes
   if (user) {
     if (pathname === "/landing" || pathname === "/signin" || pathname === "/signup") {
       logger.debug('App.jsx - Authenticated user on landing/auth, redirecting to /home');
       return <Navigate to="/home" replace />;
     }
-    // Allow authenticated users to access any route - no redirects
     return renderApp();
   }
 
-  // GUEST WITH ADDRESS: Allow access to app and public routes
   if (tempAddress) {
     if (isAppRoute || isPublicRoute) {
       return renderApp();
     } else {
-      // Unknown route, render app to show 404 page
       logger.debug('App.jsx - Guest accessing unknown route, showing 404 page');
       return renderApp();
     }
   }
 
-  // NO AUTH, NO ADDRESS: Allow public routes, redirect app routes to landing
   if (isPublicRoute) {
     return renderApp();
   } else if (isAppRoute) {
     logger.debug('App.jsx - No auth/address accessing app route, redirecting to /landing');
     return <Navigate to="/landing" replace />;
   } else {
-    // Unknown route, render app to show 404 page
     logger.debug('App.jsx - No auth/address accessing unknown route, showing 404 page');
     return renderApp();
   }
@@ -163,7 +148,6 @@ function AuthenticatedApp() {
     const isLandingRoute = pathname === "/landing";
     const isAdminRoute = pathname.startsWith("/admin");
     
-    // Admin routes - completely separate layout
     if (isAdminRoute) {
       return (
         <Routes>

@@ -37,7 +37,6 @@ module.exports = {
       }
     });
 
-    // Add indexes
     await queryInterface.addIndex('admin_notifications', ['read_by']);
     await queryInterface.addIndex('admin_notifications', ['type']);
     await queryInterface.addIndex('admin_notifications', ['created_at']);

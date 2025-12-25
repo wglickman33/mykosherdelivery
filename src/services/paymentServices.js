@@ -2,16 +2,13 @@ import { loadStripe } from '@stripe/stripe-js';
 import apiClient from '../lib/api';
 import logger from '../utils/logger';
 
-// Initialize Stripe
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
-// ===== STRIPE SETUP =====
 
 export const getStripe = async () => {
   return await stripePromise;
 };
 
-// ===== ORDER CREATION SERVICES =====
 
 export const createOrder = async (orderData) => {
   try {
@@ -25,7 +22,6 @@ export const createOrder = async (orderData) => {
       tax
     } = orderData;
 
-    // Create orders via Express backend
     const response = await apiClient.post('/orders', {
       userId,
       restaurantGroups,
@@ -47,7 +43,6 @@ export const createOrder = async (orderData) => {
   }
 };
 
-// ===== PAYMENT PROCESSING SERVICES =====
 
 export const processPayment = async (paymentData) => {
   try {
@@ -58,8 +53,6 @@ export const processPayment = async (paymentData) => {
       customerInfo
     } = paymentData;
 
-    // ⚠️ SECURITY: Payment processing MUST be done server-side
-    // This function now calls the backend API for secure payment processing
     
     if (!paymentMethodId) {
       throw new Error('Payment method is required');
@@ -73,9 +66,8 @@ export const processPayment = async (paymentData) => {
       throw new Error('Order IDs are required');
     }
 
-    // Call backend API for secure payment processing
     const response = await apiClient.post('/payments/process', {
-      amount: Math.round(amount * 100), // Convert to cents
+      amount: Math.round(amount * 100),
       paymentMethodId,
       orderIds,
       customerInfo,
@@ -97,7 +89,6 @@ export const processPayment = async (paymentData) => {
   } catch (error) {
     logger.error('Payment processing error:', error);
     
-    // Return user-friendly error messages
     let errorMessage = 'Payment processing failed. Please try again.';
     
     if (error.message.includes('card_declined')) {
@@ -119,7 +110,6 @@ export const processPayment = async (paymentData) => {
 
 
 
-// ===== PAYMENT METHOD SERVICES =====
 
 export const createPaymentMethod = async (cardElement, billingDetails) => {
   try {
@@ -153,7 +143,6 @@ export const savePaymentMethodToUser = async (userId, paymentMethod, isDefault =
       isDefault: isDefault
     };
 
-    // Save payment method via Express backend
     const response = await apiClient.post('/payments/methods', paymentMethodData);
 
     if (response.success) {
@@ -167,12 +156,10 @@ export const savePaymentMethodToUser = async (userId, paymentMethod, isDefault =
   }
 };
 
-// ===== ORDER CALCULATION SERVICES =====
 
 export const calculateOrderTotals = async (cartItems, zipCode = null) => {
   const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   
-  // Dynamic delivery fee based on zip code (fallback to default)
   let deliveryFee = 5.99;
   let taxRate = 0.0825;
   
@@ -202,17 +189,11 @@ export const calculateOrderTotals = async (cartItems, zipCode = null) => {
   };
 };
 
-// ===== EMAIL NOTIFICATION SERVICES =====
 
 export const sendOrderConfirmationEmail = async (orderData) => {
   try {
     console.log('📧 Sending REAL order confirmation email:', orderData);
     
-    // ⚠️ EmailJS Implementation - Real email sending
-    // You'll need to set up EmailJS account and get these values:
-    // 1. Go to https://emailjs.com
-    // 2. Create account and email template
-    // 3. Get your PUBLIC_KEY, SERVICE_ID, and TEMPLATE_ID
     
     const emailjsConfig = {
       publicKey: import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'YOUR_EMAILJS_PUBLIC_KEY',
@@ -220,7 +201,6 @@ export const sendOrderConfirmationEmail = async (orderData) => {
       templateId: import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 'YOUR_EMAILJS_TEMPLATE_ID'
     };
     
-    // Check if EmailJS is configured
     if (emailjsConfig.publicKey === 'YOUR_EMAILJS_PUBLIC_KEY') {
       console.warn('⚠️ EmailJS not configured - skipping real email send');
       console.log('📧 Email would have been sent to:', orderData.customerEmail);
@@ -230,18 +210,15 @@ export const sendOrderConfirmationEmail = async (orderData) => {
         customerName: orderData.customerName
       });
       
-      // Simulate successful email for demo
       return { 
         success: true, 
         note: 'Email simulated - configure EmailJS for real emails'
       };
     }
     
-    // Real EmailJS implementation (when configured)
     const { default: emailjs } = await import('@emailjs/browser');
     
     const templateParams = {
-      // Template variables for your EmailJS template
       order_ids: orderData.orderIds ? orderData.orderIds.join(', ') : orderData.orders?.[0]?.order_number || 'N/A',
       to_name: orderData.customerInfo?.firstName || orderData.customerInfo?.first_name || orderData.customerName || 'Customer',
       order_date: new Date().toLocaleDateString('en-US', { 
@@ -251,9 +228,9 @@ export const sendOrderConfirmationEmail = async (orderData) => {
       }),
       to_email: orderData.customerInfo?.email || orderData.customerEmail || 'customer@example.com',
       delivery_address: orderData.deliveryAddress || 'Address not provided',
-      delivery_fee: `$${(orderData.deliveryFee || 5.99).toFixed(2)}`,
-      tax: orderData.tax ? `$${orderData.tax.toFixed(2)}` : 'Included',
-      total_amount: `$${(orderData.total || orderData.paymentInfo?.amount || 0).toFixed(2)}`
+      delivery_fee: `${(orderData.deliveryFee || 5.99).toFixed(2)}`,
+      tax: orderData.tax ? `${orderData.tax.toFixed(2)}` : 'Included',
+      total_amount: `${(orderData.total || orderData.paymentInfo?.amount || 0).toFixed(2)}`
     };
     
     const response = await emailjs.send(
@@ -276,7 +253,6 @@ export const sendOrderConfirmationEmail = async (orderData) => {
   }
 };
 
-// ===== GUEST ORDER SERVICES =====
 
 export const createGuestOrder = async (orderData) => {
   try {
@@ -290,7 +266,6 @@ export const createGuestOrder = async (orderData) => {
       tax
     } = orderData;
 
-    // Create guest orders via Express backend
     const response = await apiClient.post('/orders/guest', {
       guestInfo,
       restaurantGroups,

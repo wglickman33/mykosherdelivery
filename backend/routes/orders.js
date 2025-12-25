@@ -15,7 +15,7 @@ async function createGlobalAdminNotification(payload) {
       type: payload.type,
       title: payload.title,
       message: payload.body || payload.message || '',
-      readBy: [], // Empty array means no admin has read it yet
+      readBy: [],
       data: payload.ref || null
     });
     
@@ -39,7 +39,6 @@ async function createGlobalAdminNotification(payload) {
   }
 }
 
-// Create guest order
 router.post('/guest', [
   body('guestInfo').isObject(),
   body('restaurantGroups').isObject(),
@@ -68,13 +67,11 @@ router.post('/guest', [
 
     const orders = [];
 
-    // Create separate orders for each restaurant
     for (const [restaurantId, group] of Object.entries(restaurantGroups)) {
-      // Generate random 10-digit order number
       const orderNumber = Math.floor(1000000000 + Math.random() * 9000000000).toString();
       
       const order = await Order.create({
-        userId: null, // Guest order
+        userId: null,
         restaurantId: restaurantId,
         orderNumber: orderNumber,
         status: 'pending',
@@ -106,7 +103,6 @@ router.post('/guest', [
   }
 });
 
-// Create new order
 router.post('/', authenticateToken, [
   body('restaurantGroups').isObject(),
   body('deliveryAddress').isObject(),
@@ -144,11 +140,8 @@ router.post('/', authenticateToken, [
       appliedPromo = null
     } = req.body;
 
-    // Create ONE unified order with multiple restaurants
-    // Generate random 10-digit order number
     const orderNumber = Math.floor(1000000000 + Math.random() * 9000000000).toString();
     
-    // Flatten all items from all restaurants into one array
     const allItems = [];
     Object.entries(restaurantGroups).forEach(([restaurantId, group]) => {
       const groupItems = Array.isArray(group.items) ? group.items : Object.values(group.items);
@@ -162,8 +155,8 @@ router.post('/', authenticateToken, [
 
     const order = await Order.create({
       userId: req.userId,
-      restaurantId: null, // null for multi-restaurant orders
-      restaurantGroups: restaurantGroups, // Store the restaurant grouping data
+      restaurantId: null,
+      restaurantGroups: restaurantGroups,
       orderNumber: orderNumber,
       status: 'pending',
       items: allItems,
@@ -178,7 +171,6 @@ router.post('/', authenticateToken, [
       deliveryInstructions: deliveryInstructions || null
     });
 
-    // Broadcast creation event with full order data including associations
     const fullOrderData = await Order.findByPk(order.id, {
       include: [
         {
@@ -194,7 +186,6 @@ router.post('/', authenticateToken, [
       ]
     });
 
-    // Enhance with restaurant information for multi-restaurant orders
     const orderData = fullOrderData.toJSON();
     if (orderData.restaurantGroups && Object.keys(orderData.restaurantGroups).length > 0) {
       const restaurantIds = Object.keys(orderData.restaurantGroups);
@@ -211,7 +202,6 @@ router.post('/', authenticateToken, [
 
     emitOrderCreated(orderData);
 
-    // Notify all admins
     try {
       await createGlobalAdminNotification({
         type: 'order.created',
@@ -224,7 +214,7 @@ router.post('/', authenticateToken, [
     res.status(201).json({
       success: true,
       data: {
-        orders: [order] // Return array for consistency, but only one order
+        orders: [order]
       },
       message: 'Order created successfully'
     });
@@ -238,12 +228,10 @@ router.post('/', authenticateToken, [
   }
 });
 
-// Get user's orders
 router.get('/user/:userId', authenticateToken, async (req, res) => {
   try {
     const { userId } = req.params;
     
-    // Users can only access their own orders (except admins)
     if (req.user.role !== 'admin' && req.userId !== userId) {
       return res.status(403).json({
         error: 'Access denied',
@@ -272,12 +260,10 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
       ]
     });
 
-    // Enhance orders with restaurant information for multi-restaurant orders
     const enhancedOrders = await Promise.all(orders.map(async (order) => {
       const orderData = order.toJSON();
       
       if (orderData.restaurantGroups && Object.keys(orderData.restaurantGroups).length > 1) {
-        // Multi-restaurant order - fetch all restaurant details
         const restaurantIds = Object.keys(orderData.restaurantGroups);
         const restaurants = await Restaurant.findAll({
           where: { id: restaurantIds },
@@ -287,7 +273,6 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
         orderData.restaurants = restaurants;
         orderData.isMultiRestaurant = true;
       } else if (orderData.restaurant) {
-        // Single restaurant order - use existing association
         orderData.restaurants = [orderData.restaurant];
         orderData.isMultiRestaurant = false;
       }
@@ -305,7 +290,6 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
   }
 });
 
-// Get single order by ID
 router.get('/:orderId', authenticateToken, async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -332,7 +316,6 @@ router.get('/:orderId', authenticateToken, async (req, res) => {
       });
     }
 
-    // Users can only access their own orders (except admins)
     if (req.user.role !== 'admin' && order.userId !== req.userId) {
       return res.status(403).json({
         error: 'Access denied',
@@ -350,7 +333,6 @@ router.get('/:orderId', authenticateToken, async (req, res) => {
   }
 });
 
-// Update order status (admin/restaurant owner only)
 router.patch('/:orderId/status', authenticateToken, [
   body('status').isIn(['pending', 'confirmed', 'preparing', 'out_for_delivery', 'delivered', 'cancelled'])
 ], async (req, res) => {
@@ -374,7 +356,6 @@ router.patch('/:orderId/status', authenticateToken, [
       });
     }
 
-    // Check permissions
     if (req.user.role !== 'admin' && req.user.role !== 'restaurant_owner') {
       return res.status(403).json({
         error: 'Access denied',
@@ -382,10 +363,8 @@ router.patch('/:orderId/status', authenticateToken, [
       });
     }
 
-    // Update status
     await order.update({ status });
 
-    // Notify all admins
     try {
       await createGlobalAdminNotification({
         type: 'order.status_changed',
@@ -409,7 +388,6 @@ router.patch('/:orderId/status', authenticateToken, [
   }
 });
 
-// Cancel order (user or admin)
 router.patch('/:orderId/cancel', authenticateToken, async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -422,7 +400,6 @@ router.patch('/:orderId/cancel', authenticateToken, async (req, res) => {
       });
     }
 
-    // Users can only cancel their own orders (except admins)
     if (req.user.role !== 'admin' && order.userId !== req.userId) {
       return res.status(403).json({
         error: 'Access denied',
@@ -430,7 +407,6 @@ router.patch('/:orderId/cancel', authenticateToken, async (req, res) => {
       });
     }
 
-    // Check if order can be cancelled
     if (['delivered', 'cancelled'].includes(order.status)) {
       return res.status(400).json({
         error: 'Cannot cancel order',
@@ -438,7 +414,6 @@ router.patch('/:orderId/cancel', authenticateToken, async (req, res) => {
       });
     }
 
-    // Update status to cancelled
     await order.update({ status: 'cancelled' });
 
     res.json({
@@ -456,7 +431,6 @@ router.patch('/:orderId/cancel', authenticateToken, async (req, res) => {
   }
 });
 
-// Reorder functionality
 router.post('/:orderId/reorder', authenticateToken, async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -477,7 +451,6 @@ router.post('/:orderId/reorder', authenticateToken, async (req, res) => {
       });
     }
 
-    // Users can only reorder their own orders (except admins)
     if (req.user.role !== 'admin' && originalOrder.userId !== req.userId) {
       return res.status(403).json({
         error: 'Access denied',
@@ -485,14 +458,11 @@ router.post('/:orderId/reorder', authenticateToken, async (req, res) => {
       });
     }
 
-    // Return order items and restaurant info for adding to cart (don't create new order)
     const itemsToReorder = Array.isArray(originalOrder.items) ? 
       originalOrder.items : 
       Object.values(originalOrder.items);
 
-    // Handle both single and multi-restaurant orders
     if (originalOrder.restaurantGroups) {
-      // Multi-restaurant order - return grouped data
       const restaurantIds = Object.keys(originalOrder.restaurantGroups);
       const restaurants = await Restaurant.findAll({
         where: { id: restaurantIds },
@@ -510,7 +480,6 @@ router.post('/:orderId/reorder', authenticateToken, async (req, res) => {
         message: 'Items ready for reorder'
       });
     } else {
-      // Single restaurant order - legacy format
       res.status(200).json({
         success: true,
         data: {
@@ -534,7 +503,6 @@ router.post('/:orderId/reorder', authenticateToken, async (req, res) => {
   }
 });
 
-// Get all orders (admin only)
 router.get('/', requireAdmin, async (req, res) => {
   try {
     const { status, restaurantId, limit = 100, offset = 0 } = req.query;
@@ -576,7 +544,6 @@ router.get('/', requireAdmin, async (req, res) => {
   }
 });
 
-// Send order confirmation email
 router.post('/send-confirmation', authenticateToken, [
   body('orderIds').exists(),
   body('customerInfo').exists(),
@@ -595,12 +562,10 @@ router.post('/send-confirmation', authenticateToken, [
 
     let { orderIds, customerInfo, total } = req.body;
     
-    // Ensure orderIds is an array
     if (!Array.isArray(orderIds)) {
       if (typeof orderIds === 'string') {
         orderIds = [orderIds];
       } else if (typeof orderIds === 'object' && orderIds !== null) {
-        // Convert object to array (handle case where it's sent as {0: 'id1', 1: 'id2'})
         orderIds = Object.values(orderIds);
       } else {
         return res.status(400).json({
@@ -610,7 +575,6 @@ router.post('/send-confirmation', authenticateToken, [
       }
     }
     
-    // Ensure total is a number
     if (typeof total === 'string') {
       total = parseFloat(total);
     }
@@ -622,7 +586,6 @@ router.post('/send-confirmation', authenticateToken, [
     }
     const userId = req.userId;
 
-    // Verify orders belong to user
     const orders = await Order.findAll({
       where: {
         id: orderIds,
@@ -644,7 +607,6 @@ router.post('/send-confirmation', authenticateToken, [
       });
     }
 
-    // Send confirmation email
     const emailResult = await sendOrderConfirmationEmail({
       orderIds: orderIds,
       customerInfo: customerInfo,
@@ -674,10 +636,8 @@ router.post('/send-confirmation', authenticateToken, [
   }
 });
 
-// Shipday webhook endpoint for order status updates
 router.post('/webhooks/shipday', async (req, res) => {
   try {
-    // Log ALL incoming webhook requests for debugging
     logger.info('🔔 Shipday webhook endpoint hit', {
       method: req.method,
       path: req.path,
@@ -687,15 +647,12 @@ router.post('/webhooks/shipday', async (req, res) => {
       timestamp: new Date().toISOString()
     });
     
-    // Verify webhook token/secret if configured
     const webhookSecret = process.env.SHIPDAY_WEBHOOK_SECRET;
     if (webhookSecret) {
-      // Check for token in Authorization header or custom header
       const authHeader = req.headers['authorization'];
       const tokenHeader = req.headers['x-shipday-token'] || req.headers['x-webhook-token'] || req.headers['token'];
       const providedToken = authHeader?.replace('Bearer ', '') || tokenHeader;
       
-      // Log header presence (not values) for debugging
       logger.info('Shipday webhook headers received:', {
         hasAuthorization: !!req.headers['authorization'],
         hasXShipdayToken: !!req.headers['x-shipday-token'],
@@ -727,8 +684,6 @@ router.post('/webhooks/shipday', async (req, res) => {
       orderNumber: webhookData.order?.order_number
     });
 
-    // Extract Shipday order ID and status from webhook payload
-    // Shipday sends: { order: { id, order_number }, order_status, event }
     const shipdayOrderId = (webhookData.order?.id || webhookData.orderId || webhookData.id)?.toString();
     const shipdayStatus = webhookData.order_status || webhookData.status;
     const referenceNumber = (webhookData.order?.order_number || webhookData.referenceNumber)?.toString();
@@ -749,7 +704,6 @@ router.post('/webhooks/shipday', async (req, res) => {
       });
     }
 
-    // Find order by shipdayOrderId or referenceNumber (our orderNumber)
     let order;
     if (shipdayOrderId) {
       order = await Order.findOne({
@@ -775,17 +729,15 @@ router.post('/webhooks/shipday', async (req, res) => {
     }
 
     const STATUS_MAP = {
-      // Shipday order_status values
       'not_assigned': 'pending',
-      'started': 'confirmed',           // Driver assigned and started
+      'started': 'confirmed',
       'picked_up': 'preparing',
-      'ready_to_deliver': 'out_for_delivery', // Driver marked "on the way"
+      'ready_to_deliver': 'out_for_delivery',
       'on_the_way': 'out_for_delivery',
-      'already_delivered': 'delivered', // Driver marked "complete order"
+      'already_delivered': 'delivered',
       'delivered': 'delivered',
       'cancelled': 'cancelled',
       'canceled': 'cancelled',
-      // Legacy/fallback mappings
       'pending': 'pending',
       'assigned': 'confirmed',
       'accepted': 'confirmed',
@@ -800,7 +752,6 @@ router.post('/webhooks/shipday', async (req, res) => {
 
     const mappedStatus = STATUS_MAP[shipdayStatus.toLowerCase()] || shipdayStatus.toLowerCase();
     
-    // Validate mapped status
     const validStatuses = ['pending', 'confirmed', 'preparing', 'out_for_delivery', 'delivered', 'cancelled'];
     if (!validStatuses.includes(mappedStatus)) {
       logger.warn('Invalid status from Shipday webhook:', {
@@ -814,12 +765,10 @@ router.post('/webhooks/shipday', async (req, res) => {
       });
     }
 
-    // Update order status if it has changed
     const previousStatus = order.status;
     if (previousStatus !== mappedStatus) {
       await order.update({ status: mappedStatus });
 
-      // Update delivery time if delivered
       if (mappedStatus === 'delivered' && !order.actualDeliveryTime) {
         await order.update({ actualDeliveryTime: new Date() });
       }
@@ -833,7 +782,6 @@ router.post('/webhooks/shipday', async (req, res) => {
         shipdayStatus
       });
 
-      // Create admin notification for status change
       try {
         await createGlobalAdminNotification({
           type: 'order.status_changed',
@@ -845,9 +793,7 @@ router.post('/webhooks/shipday', async (req, res) => {
         logger.warn('Failed to create admin notification for Shipday status update:', notifError);
       }
 
-      // Emit event for real-time UI updates via SSE
       try {
-        // Emit order.updated for SSE stream (AdminOrders listens to this)
         appEvents.emit('order.updated', {
           id: order.id,
           orderNumber: order.orderNumber,
@@ -866,7 +812,6 @@ router.post('/webhooks/shipday', async (req, res) => {
       });
     }
 
-    // Return success response to Shipday
     res.json({
       success: true,
       message: 'Webhook processed successfully',
@@ -880,7 +825,6 @@ router.post('/webhooks/shipday', async (req, res) => {
       webhookData: req.body
     });
     
-    // Return 500 to Shipday so they can retry
     res.status(500).json({
       error: 'Internal server error',
       message: 'Failed to process webhook'

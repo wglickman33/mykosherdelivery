@@ -1,6 +1,6 @@
 'use strict';
 
-/** @type {import('sequelize-cli').Migration} */
+
 module.exports = {
   async up (queryInterface, Sequelize) {
     await queryInterface.createTable('payment_methods', {
@@ -58,7 +58,6 @@ module.exports = {
       }
     });
 
-    // Add indexes
     await queryInterface.addIndex('payment_methods', ['user_id']);
     await queryInterface.addIndex('payment_methods', ['is_default']);
   },

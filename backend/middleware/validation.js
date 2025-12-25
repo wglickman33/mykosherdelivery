@@ -1,7 +1,6 @@
 const { body, param, query, validationResult } = require('express-validator');
 const logger = require('../utils/logger');
 
-// Handle validation errors
 const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -21,7 +20,6 @@ const handleValidationErrors = (req, res, next) => {
   next();
 };
 
-// Validation rules
 const validationRules = {
   email: body('email')
     .isEmail()
@@ -57,7 +55,6 @@ const validationRules = {
     .isUUID()
     .withMessage(`${field} must be a valid UUID`),
 
-  // Pagination validation
   page: query('page')
     .optional()
     .isInt({ min: 1, max: 1000 })
@@ -68,7 +65,6 @@ const validationRules = {
     .isInt({ min: 1, max: 100 })
     .withMessage('Limit must be a number between 1 and 100'),
 
-  // Address validation
   address: body('address')
     .isObject()
     .withMessage('Address must be an object'),
@@ -92,7 +88,6 @@ const validationRules = {
     .matches(/^\d{5}(-\d{4})?$/)
     .withMessage('Zip code must be in format 12345 or 12345-6789'),
 
-  // Order validation
   orderItems: body('items')
     .isArray({ min: 1 })
     .withMessage('Order must contain at least one item'),
@@ -101,13 +96,11 @@ const validationRules = {
     .isFloat({ min: 0.01, max: 9999.99 })
     .withMessage('Amount must be between $0.01 and $9,999.99'),
 
-  // Restaurant validation
   restaurantId: body('restaurantId')
     .trim()
     .isLength({ min: 1, max: 50 })
     .withMessage('Restaurant ID is required'),
 
-  // Menu item validation
   menuItemName: body('name')
     .trim()
     .isLength({ min: 1, max: 100 })
@@ -117,7 +110,6 @@ const validationRules = {
     .isFloat({ min: 0.01, max: 999.99 })
     .withMessage('Price must be between $0.01 and $999.99'),
 
-  // Search validation
   searchQuery: query('q')
     .optional()
     .trim()
@@ -126,7 +118,6 @@ const validationRules = {
     .matches(/^[a-zA-Z0-9\s\-'".]+$/)
     .withMessage('Search query contains invalid characters'),
 
-  // Date range validation
   dateFrom: query('from')
     .optional()
     .isISO8601()
@@ -137,7 +128,6 @@ const validationRules = {
     .isISO8601()
     .withMessage('To date must be a valid ISO 8601 date'),
 
-  // File upload validation
   imageFile: (req, res, next) => {
     if (!req.file) {
       return res.status(400).json({
@@ -167,9 +157,7 @@ const validationRules = {
   }
 };
 
-// Sanitization middleware
 const sanitizeInput = (req, res, next) => {
-  // Remove any potential XSS attempts from string fields
   const sanitizeString = (str) => {
     if (typeof str !== 'string') return str;
     
@@ -219,7 +207,6 @@ const sanitizeInput = (req, res, next) => {
   next();
 };
 
-// Rate limiting validation with exemptions for certain endpoints
 const validateRateLimit = (windowMs = 15 * 60 * 1000, max = 100) => {
   const requests = new Map();
 
@@ -228,7 +215,6 @@ const validateRateLimit = (windowMs = 15 * 60 * 1000, max = 100) => {
     const now = Date.now();
     const windowStart = now - windowMs;
 
-    // Exempt certain endpoints from rate limiting
     const exemptPaths = [
       '/api/health', 
       '/api/auth/session', 
@@ -242,7 +228,6 @@ const validateRateLimit = (windowMs = 15 * 60 * 1000, max = 100) => {
       return next();
     }
 
-    // Clean old entries
     const userRequests = requests.get(key) || [];
     const validRequests = userRequests.filter(time => time > windowStart);
 
@@ -261,7 +246,6 @@ const validateRateLimit = (windowMs = 15 * 60 * 1000, max = 100) => {
       });
     }
 
-    // Add current request
     validRequests.push(now);
     requests.set(key, validRequests);
 

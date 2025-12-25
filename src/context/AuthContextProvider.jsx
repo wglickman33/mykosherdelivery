@@ -5,7 +5,6 @@ import { AuthContext } from './AuthContext'
 import { fetchUserProfile } from '../services/accountServices'
 import logger from '../utils/logger'
 
-// Efficient session management utilities
 class SessionManager {
   constructor() {
     this.tokenExpiryTimeout = null;
@@ -14,7 +13,6 @@ class SessionManager {
     this.maxRefreshAttempts = 3;
   }
 
-  // Start monitoring token expiration with a single timeout
   startTokenMonitoring(token, onExpiryCallback) {
     if (this.tokenExpiryTimeout) {
       this.stopTokenMonitoring();
@@ -25,15 +23,12 @@ class SessionManager {
       const expiresAt = tokenPayload.exp * 1000;
       const timeUntilExpiry = expiresAt - Date.now();
       
-      // If token is already expired, call callback immediately
       if (timeUntilExpiry <= 0) {
         logger.warn('Token is already expired');
         onExpiryCallback();
         return;
       }
 
-      // Set up a single timeout for when the token expires
-      // Refresh 5 minutes before expiry
       const timeoutMs = Math.max(timeUntilExpiry - (5 * 60 * 1000), 1000);
       
       logger.debug('Token monitoring started', {
@@ -56,7 +51,6 @@ class SessionManager {
     }
   }
 
-  // Stop monitoring
   stopTokenMonitoring() {
     if (this.tokenExpiryTimeout) {
       clearTimeout(this.tokenExpiryTimeout);
@@ -66,7 +60,6 @@ class SessionManager {
     this.refreshAttempts = 0;
   }
 
-  // Check if we should continue trying to refresh
   shouldContinueRefresh() {
     return this.refreshAttempts < this.maxRefreshAttempts;
   }
@@ -75,7 +68,7 @@ class SessionManager {
 const sessionManager = new SessionManager();
 
 const GUEST_SESSION_KEY = 'mkd_guest_session'
-const GUEST_SESSION_MS = 24 * 60 * 60 * 1000 // 24 hours
+const GUEST_SESSION_MS = 24 * 60 * 60 * 1000
 
 function getValidGuestSession() {
   try {
@@ -84,7 +77,7 @@ function getValidGuestSession() {
     const parsed = JSON.parse(raw)
     if (parsed?.expires && parsed.expires > Date.now()) return parsed
   } catch {
-    // ignore invalid guest session json
+    void 0;
   }
   return null
 }
@@ -103,13 +96,11 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true)
   const [isGuest, setIsGuest] = useState(false)
   const [tempAddress, setTempAddress] = useState(() => {
-    // Initialize temp address from localStorage
     try {
       const saved = localStorage.getItem('mkd_temp_address')
       if (saved) {
         const parsed = JSON.parse(saved)
         const now = Date.now()
-        // Temp address expires after 24 hours (like delivery apps)
         if (parsed.expires > now) {
           return parsed.address
         } else {
@@ -122,7 +113,6 @@ export const AuthProvider = ({ children }) => {
     return null
   })
   const [selectedAddress, setSelectedAddress] = useState(() => {
-    // Initialize selected address from localStorage
     try {
       const saved = localStorage.getItem('mkd_selected_address')
       if (saved) {
@@ -132,10 +122,9 @@ export const AuthProvider = ({ children }) => {
       logger.error('AuthContext - Error loading selected address:', error)
     }
     return null
-  }) // New state for currently selected address
+  })
 
   useEffect(() => {
-    // Get initial session
     const getInitialSession = async () => {
       logger.debug('AuthContext - Getting initial session...')
       const { success, user: sessionUser } = await authService.getSession()
@@ -151,9 +140,7 @@ export const AuthProvider = ({ children }) => {
         setUser(sessionUser)
         setIsGuest(false)
         
-        // Token monitoring will be started by the useEffect below
         
-        // Fetch profile in the background and then clear loading
         try {
           const fetched = await fetchUserProfile(sessionUser.id)
           if (fetched) {
@@ -179,10 +166,8 @@ export const AuthProvider = ({ children }) => {
     getInitialSession()
   }, [])
 
-  // Efficient session management - no polling, only when token expires
   useEffect(() => {
     if (user) {
-      // Recursive function to handle token refresh cycles
       const startTokenRefreshCycle = async () => {
         const token = authService.getToken();
         if (!token) {
@@ -216,7 +201,6 @@ export const AuthProvider = ({ children }) => {
               sessionManager.stopTokenMonitoring();
             } else {
               logger.debug('Token refreshed successfully, restarting cycle');
-              // Reset attempts counter and restart the cycle
               sessionManager.refreshAttempts = 0;
               startTokenRefreshCycle();
             }
@@ -267,7 +251,6 @@ export const AuthProvider = ({ children }) => {
         setUser(newUser)
         setIsGuest(false)
         
-        // Token monitoring will be started by the useEffect below
         
         await fetchProfile(newUser.id)
         return { success: true, user: newUser }
@@ -292,7 +275,6 @@ export const AuthProvider = ({ children }) => {
         setUser(sessionUser)
         setIsGuest(false)
         
-        // Token monitoring will be started by the useEffect below
         
         await fetchProfile(sessionUser.id)
         return { success: true, user: sessionUser }
@@ -310,14 +292,12 @@ export const AuthProvider = ({ children }) => {
     try {
       logger.debug('AuthContext - Signing out user')
       
-      // Stop token monitoring
       sessionManager.stopTokenMonitoring()
       
       await authService.signOut()
     } catch (error) {
       logger.error('AuthContext - Signout error:', error)
     } finally {
-      // Clear all user data and temporary address
       logger.debug('AuthContext - Clearing user data and temp address')
       setUser(null)
       setProfile(null)
@@ -325,19 +305,15 @@ export const AuthProvider = ({ children }) => {
       setTempAddress(null)
       setSelectedAddress(null)
       
-      // Clear temporary address from localStorage
       localStorage.removeItem('mkd_temp_address')
       logger.debug('AuthContext - Cleared mkd_temp_address from localStorage')
       
-      // Clear guest session
       localStorage.removeItem(GUEST_SESSION_KEY)
       logger.debug('AuthContext - Cleared guest session from localStorage')
       
       logger.debug('AuthContext - User signed out, all data cleared')
       
-      // Handle navigation if callback provided
       if (navigateCallback && typeof navigateCallback === 'function') {
-        // Use setTimeout to ensure state updates have been processed
         setTimeout(() => {
           navigateCallback()
         }, 0)
@@ -366,7 +342,6 @@ export const AuthProvider = ({ children }) => {
     try {
       const { success, data, error } = await authService.addAddress(addressData)
       if (success && data) {
-        // Update profile with new addresses
         setProfile(data)
         setUser(data)
         return { success: true, data }
@@ -399,7 +374,6 @@ export const AuthProvider = ({ children }) => {
     try {
       const { success, error } = await authService.deleteAddress(addressId)
       if (success) {
-        // Refresh profile to get updated addresses
         if (user) {
           fetchProfile(user.id)
         }
@@ -433,7 +407,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const tempAddressData = {
         address,
-        expires: Date.now() + (24 * 60 * 60 * 1000) // 24 hours from now
+        expires: Date.now() + (24 * 60 * 60 * 1000)
       }
       localStorage.setItem('mkd_temp_address', JSON.stringify(tempAddressData))
       setTempAddress(address)
@@ -444,7 +418,6 @@ export const AuthProvider = ({ children }) => {
   }
 
   const getCurrentAddress = () => {
-    // Priority order: selected address > primary address > temp address
     if (selectedAddress) {
       return selectedAddress
     }
@@ -463,7 +436,6 @@ export const AuthProvider = ({ children }) => {
 
   const selectAddress = (address) => {
     setSelectedAddress(address)
-    // Persist selected address to localStorage
     try {
       if (address) {
         localStorage.setItem('mkd_selected_address', JSON.stringify(address))

@@ -68,7 +68,6 @@ module.exports = (sequelize, DataTypes) => {
   updatedAt: 'updated_at'
 });
 
-  // Instance methods
   PromoCode.prototype.isValid = function() {
     if (!this.active) return false;
     if (this.expiresAt && new Date() > this.expiresAt) return false;

@@ -2,7 +2,6 @@ const { Order, Profile } = require('../models');
 
 async function cleanupUserOrders() {
   try {
-    // Find the user by email
     const user = await Profile.findOne({
       where: { email: 'willglickman@gmail.com' }
     });
@@ -14,7 +13,6 @@ async function cleanupUserOrders() {
 
     console.log(`👤 Found user: ${user.firstName} ${user.lastName} (ID: ${user.id})`);
 
-    // Find all orders for this user
     const orders = await Order.findAll({
       where: { userId: user.id }
     });
@@ -26,7 +24,6 @@ async function cleanupUserOrders() {
       return;
     }
 
-    // Delete all orders for this user
     const deletedCount = await Order.destroy({
       where: { userId: user.id }
     });

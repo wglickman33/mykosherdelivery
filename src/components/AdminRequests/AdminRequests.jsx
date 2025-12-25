@@ -37,14 +37,13 @@ const AdminRequests = () => {
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ q: '', type: 'all', status: 'all' });
   const [draggingId, setDraggingId] = useState(null);
-  const [activeTab, setActiveTab] = useState('board'); // 'board' | 'inbox'
+  const [activeTab, setActiveTab] = useState('board');
   const [dragOverStatus, setDragOverStatus] = useState(null);
 
   const boardRef = useRef(null);
   const scrollAnimRef = useRef(null);
-  const edgeDirRef = useRef(0); // -1 left, 1 right, 0 none
+  const edgeDirRef = useRef(0);
 
-  // Inbox state
   const [selected, setSelected] = useState(null);
   const [reply, setReply] = useState('');
   const [isInternal, setIsInternal] = useState(false);
@@ -110,7 +109,7 @@ const AdminRequests = () => {
         scrollAnimRef.current = null;
         return;
       }
-      el.scrollLeft += edgeDirRef.current * 12; // px per frame
+      el.scrollLeft += edgeDirRef.current * 12;
       scrollAnimRef.current = requestAnimationFrame(step);
     };
     scrollAnimRef.current = requestAnimationFrame(step);
@@ -143,7 +142,6 @@ const AdminRequests = () => {
     stopAutoScroll();
     await updateTicketStatus(draggingId, status, prevDisplay);
     
-    // Refresh notifications after status change
     window.dispatchEvent(new CustomEvent('mkd-refresh-notifications'));
   };
 
@@ -155,7 +153,6 @@ const AdminRequests = () => {
       setReply('');
       setIsInternal(false);
       
-      // Refresh notifications after adding response
       window.dispatchEvent(new CustomEvent('mkd-refresh-notifications'));
     }
     setSaving(false);
@@ -163,7 +160,6 @@ const AdminRequests = () => {
 
   useEffect(() => () => stopAutoScroll(), []);
 
-  // Delete closed tickets modal state
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [purging, setPurging] = useState(false);
 
@@ -175,7 +171,6 @@ const AdminRequests = () => {
       if (res?.success) {
         setTickets(prev => prev.filter(t => t.status !== 'closed'));
         
-        // Refresh notifications after purging
         window.dispatchEvent(new CustomEvent('mkd-refresh-notifications'));
       }
     } finally {

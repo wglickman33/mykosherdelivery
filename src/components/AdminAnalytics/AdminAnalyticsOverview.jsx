@@ -31,19 +31,16 @@ const AdminAnalyticsOverview = () => {
     try {
       setLoading(true);
       
-      // Fetch comprehensive analytics (overview cards)
       const analyticsResult = await fetchComprehensiveAnalytics();
       if (analyticsResult.success) {
         setAnalyticsData(analyticsResult.data);
       }
 
-      // Fetch revenue trends
       const revenueResult = await fetchRevenueTrends(revenuePeriod);
       if (revenueResult.success) {
         setRevenueTrends(revenueResult.data);
       }
 
-      // Fetch order volume trends
       const orderVolumeResult = await fetchOrderVolumeTrends(orderVolumePeriod);
       if (orderVolumeResult.success) {
         setOrderVolumeTrends(orderVolumeResult.data);
@@ -80,7 +77,7 @@ const AdminAnalyticsOverview = () => {
     <div className="admin-analytics">
       <AnalyticsNavigation />
       <div className="analytics-content">
-        {/* Overview Cards */}
+        {}
         <div className="metrics-grid">
           <div className="metric-card revenue">
             <div className="metric-icon">
@@ -134,7 +131,7 @@ const AdminAnalyticsOverview = () => {
           </div>
         </div>
 
-        {/* Order Status Breakdown Cards */}
+        {}
         <div className="metrics-grid">
           <div className="metric-card pending">
             <div className="metric-icon">
@@ -215,9 +212,9 @@ const AdminAnalyticsOverview = () => {
           </div>
         </div>
 
-        {/* Revenue & Order Trends Charts */}
+        {}
         <div className="charts-grid">
-          {/* Revenue Trends Chart */}
+          {}
           <div className="chart-section">
             <div className="chart-header">
               <h3>Revenue Trends</h3>
@@ -274,7 +271,7 @@ const AdminAnalyticsOverview = () => {
             </ThemeProvider>
           </div>
 
-          {/* Order Volume Trends Chart */}
+          {}
           <div className="chart-section">
             <div className="chart-header">
               <h3>Order Volume Trends</h3>

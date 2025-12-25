@@ -1,9 +1,7 @@
 import apiClient from '../lib/api';
 import logger from '../utils/logger';
 
-// MailChimp API service functions
 export const mailchimpService = {
-  // Get all campaigns
   async getCampaigns() {
     try {
       logger.info('📧 Fetching MailChimp campaigns');
@@ -15,7 +13,6 @@ export const mailchimpService = {
     }
   },
 
-  // Create a new campaign
   async createCampaign(campaignData) {
     try {
       logger.info('📧 Creating MailChimp campaign:', campaignData.name);
@@ -27,7 +24,6 @@ export const mailchimpService = {
     }
   },
 
-  // Update a campaign
   async updateCampaign(campaignId, campaignData) {
     try {
       logger.info('📧 Updating MailChimp campaign:', campaignId);
@@ -39,7 +35,6 @@ export const mailchimpService = {
     }
   },
 
-  // Send a campaign
   async sendCampaign(campaignId) {
     try {
       logger.info('📧 Sending MailChimp campaign:', campaignId);
@@ -51,7 +46,6 @@ export const mailchimpService = {
     }
   },
 
-  // Delete a campaign
   async deleteCampaign(campaignId) {
     try {
       logger.info('📧 Deleting MailChimp campaign:', campaignId);
@@ -63,7 +57,6 @@ export const mailchimpService = {
     }
   },
 
-  // Get campaign analytics
   async getCampaignAnalytics(campaignId) {
     try {
       logger.info('📊 Fetching campaign analytics:', campaignId);
@@ -75,7 +68,6 @@ export const mailchimpService = {
     }
   },
 
-  // Get all templates
   async getTemplates() {
     try {
       logger.info('📧 Fetching MailChimp templates');
@@ -87,7 +79,6 @@ export const mailchimpService = {
     }
   },
 
-  // Create a new template
   async createTemplate(templateData) {
     try {
       logger.info('📧 Creating MailChimp template:', templateData.name);
@@ -99,7 +90,6 @@ export const mailchimpService = {
     }
   },
 
-  // Update a template
   async updateTemplate(templateId, templateData) {
     try {
       logger.info('📧 Updating MailChimp template:', templateId);
@@ -111,7 +101,6 @@ export const mailchimpService = {
     }
   },
 
-  // Delete a template
   async deleteTemplate(templateId) {
     try {
       logger.info('📧 Deleting MailChimp template:', templateId);
@@ -123,7 +112,6 @@ export const mailchimpService = {
     }
   },
 
-  // Get mailing lists
   async getLists() {
     try {
       logger.info('📧 Fetching MailChimp lists');
@@ -135,7 +123,6 @@ export const mailchimpService = {
     }
   },
 
-  // Get list members
   async getListMembers(listId, options = {}) {
     try {
       logger.info('📧 Fetching list members:', listId);
@@ -147,7 +134,6 @@ export const mailchimpService = {
     }
   },
 
-  // Add member to list
   async addListMember(listId, memberData) {
     try {
       logger.info('📧 Adding member to list:', listId);
@@ -159,7 +145,6 @@ export const mailchimpService = {
     }
   },
 
-  // Update member in list
   async updateListMember(listId, memberEmail, memberData) {
     try {
       logger.info('📧 Updating list member:', memberEmail);
@@ -171,7 +156,6 @@ export const mailchimpService = {
     }
   },
 
-  // Remove member from list
   async removeListMember(listId, memberEmail) {
     try {
       logger.info('📧 Removing member from list:', memberEmail);
@@ -183,7 +167,6 @@ export const mailchimpService = {
     }
   },
 
-  // Test email sending
   async sendTestEmail(campaignId, testEmails) {
     try {
       logger.info('📧 Sending test email for campaign:', campaignId);
@@ -197,7 +180,6 @@ export const mailchimpService = {
     }
   },
 
-  // Get MailChimp account info
   async getAccountInfo() {
     try {
       logger.info('📧 Fetching MailChimp account info');

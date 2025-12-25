@@ -1,9 +1,8 @@
 'use strict';
 
-/** @type {import('sequelize-cli').Migration} */
+
 module.exports = {
   async up(queryInterface, Sequelize) {
-    // Check if table already exists
     const tableExists = await queryInterface.showAllTables().then(tables => 
       tables.some(table => table.tableName === 'notifications')
     );
@@ -51,22 +50,21 @@ module.exports = {
         }
       });
 
-      // Add indexes only if they don't exist
       try {
         await queryInterface.addIndex('notifications', ['user_id'], { name: 'notifications_user_id_idx' });
-      } catch (e) { /* Index already exists */ }
+      } catch (e) {  }
       
       try {
         await queryInterface.addIndex('notifications', ['read'], { name: 'notifications_read_idx' });
-      } catch (e) { /* Index already exists */ }
+      } catch (e) {  }
       
       try {
         await queryInterface.addIndex('notifications', ['type'], { name: 'notifications_type_idx' });
-      } catch (e) { /* Index already exists */ }
+      } catch (e) {  }
       
       try {
         await queryInterface.addIndex('notifications', ['created_at'], { name: 'notifications_created_at_idx' });
-      } catch (e) { /* Index already exists */ }
+      } catch (e) {  }
     }
   },
 

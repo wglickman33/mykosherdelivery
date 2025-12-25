@@ -183,7 +183,7 @@
         display: flex;
         align-items: center;
         gap: 8px;
-        flex-wrap: wrap; /* allow wrapping to prevent overlap */
+        flex-wrap: wrap; 
 
         select {
           flex: 1 1 180px;
@@ -193,7 +193,7 @@
       }
     }
 
-    /* Stack time range selects on smaller screens to avoid crowding */
+    
     @media (max-width: 900px) {
       .filter-group {
         .time-range { flex-direction: column; align-items: stretch; }
@@ -223,9 +223,9 @@
 
     .orders-table {
       width: 100%;
-      border-collapse: separate; /* allow sticky header borders to render nicely */
+      border-collapse: separate; 
       border-spacing: 0;
-      min-width: 980px; /* enforce horizontal scroll on small screens */
+      min-width: 980px; 
 
       thead {
         position: sticky;
@@ -265,7 +265,7 @@
         }
       }
 
-      /* Assign predictable widths to columns */
+      
       colgroup {
         col.col-order { width: 110px; }
         col.col-customer { width: 220px; }
@@ -581,7 +581,6 @@
     }
   }
 
-  // Order Details Modal Specific Styles (exact copy from AccountPage)
   .account-modal__content {
     .order-info {
       .order-header {
@@ -981,7 +980,6 @@
     }
   }
 
-  // Status badge styles (matching AccountPage)
   .order-status {
     padding: 0.25rem 0.75rem;
     border-radius: 20px;
@@ -1008,7 +1006,6 @@
     }
   }
 
-  // Responsive styles for order details
   @media (max-width: 768px) {
     .account-modal__content {
       .order-progress {
@@ -1025,7 +1022,6 @@
     }
   }
 
-  // Legacy styles for backward compatibility
   .order-overview {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -1133,7 +1129,6 @@
     }
   }
 
-  // Delete Confirmation Modal Styles
   .delete-warning {
     text-align: center;
     padding: 20px 0;
@@ -1217,7 +1212,6 @@
   }
 }
 
-  // Responsive breakpoints
   @media (max-width: 1200px) {
     .orders-header { 
       align-items: stretch; 

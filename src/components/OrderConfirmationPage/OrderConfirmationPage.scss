@@ -1,18 +1,16 @@
-// Order Confirmation Page Styles
 .order-confirmation-page {
   min-height: 100vh;
   background: #ffffff;
   
-  // Account for fixed header (60px) and sidebar
   margin-top: 60px;
   margin-left: 240px;
   
   @media (max-width: 1111px) {
-    margin-left: 60px; // Icon sidebar width
+    margin-left: 60px;
   }
   
   @media (max-width: 768px) {
-    margin-left: 0; // No sidebar on mobile
+    margin-left: 0;
   }
   
   .loading-container {
@@ -48,7 +46,6 @@
     }
   }
   
-  // Success Header
   .success-header {
     text-align: center;
     margin-bottom: 3rem;
@@ -102,7 +99,6 @@
     }
   }
   
-  // Order Details Grid
   .order-details-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -183,7 +179,6 @@
     }
   }
   
-  // Order Items Section
   .order-items-section {
     background: white;
     border: 1px solid #e5e7eb;
@@ -299,7 +294,7 @@
       
       &.discount-line {
         .discount-value {
-          color: #059669 !important; // Green color for discount
+          color: #059669 !important;
           font-weight: 600;
         }
       }
@@ -326,7 +321,6 @@
   }
   }
   
-  // Action Buttons
   .action-buttons {
     display: flex;
     gap: 1rem;

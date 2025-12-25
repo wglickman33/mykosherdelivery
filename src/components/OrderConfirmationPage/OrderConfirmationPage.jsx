@@ -12,7 +12,6 @@ const OrderConfirmationPage = () => {
   const [orderData, setOrderData] = useState(null);
   const emailSentRef = useRef(false);
 
-  // Extract pricing data for use throughout the component
   const subtotal = orderData?.subtotal || 0;
   const deliveryFee = orderData?.deliveryFee || 5.99;
   const tip = orderData?.tip || 0;
@@ -25,7 +24,6 @@ const OrderConfirmationPage = () => {
     try {
       console.log('📧 Sending confirmation email with data:', orderData);
       
-      // Check if EmailJS is configured
       const emailjsConfig = {
         publicKey: import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
         serviceId: import.meta.env.VITE_EMAILJS_SERVICE_ID,
@@ -37,14 +35,12 @@ const OrderConfirmationPage = () => {
         return;
       }
 
-      // Get order number from multiple possible sources
       let orderNumber = orderData.paymentMethod?.orderNumber || 
                        orderData.paymentMethod?.order_number ||
                        orderData.orderNumber ||
                        orderData.order_number ||
                        null;
 
-      // If orderNumber is not found or is a placeholder value, try to fetch it from backend
       if (!orderNumber || orderNumber === 'Order' || orderNumber === 'Confirmed') {
         const orderIds = orderData.paymentMethod?.orderIds || orderData.orderIds;
         if (orderIds && orderIds.length > 0) {
@@ -60,22 +56,17 @@ const OrderConfirmationPage = () => {
         }
       }
 
-      // Final fallback - use order ID if orderNumber is still not available
       if (!orderNumber) {
         const orderIds = orderData.paymentMethod?.orderIds || orderData.orderIds;
         orderNumber = (orderIds && orderIds.length > 0) ? orderIds[0] : 'N/A';
       }
       
-      // Use the component-level pricing variables
 
-      // Get user's name from multiple possible sources
       const getUserName = () => {
-        // Try to get name from user profile first (best source)
         if (orderData.userProfile?.firstName) {
           return orderData.userProfile.firstName;
         }
         
-        // Try contact info
         if (orderData.contactInfo?.firstName) {
           return orderData.contactInfo.firstName;
         }
@@ -83,14 +74,12 @@ const OrderConfirmationPage = () => {
           return orderData.contactInfo.first_name;
         }
         
-        // Try to extract from user profile email
         if (orderData.userProfile?.email) {
           const emailName = orderData.userProfile.email.split('@')[0];
           const capitalizedEmailName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
           return capitalizedEmailName;
         }
         
-        // Try to extract from contact email
         if (orderData.contactInfo?.email) {
           const emailName = orderData.contactInfo.email.split('@')[0];
           const capitalizedEmailName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
@@ -100,7 +89,6 @@ const OrderConfirmationPage = () => {
         return 'Customer';
       };
 
-      // Derive safe live values from orderData to avoid zeros
       const sSubtotal = Number(orderData?.subtotal ?? 0);
       const sDelivery = Number(orderData?.deliveryFee ?? 0);
       const sTip = Number(orderData?.tip ?? 0);
@@ -110,7 +98,6 @@ const OrderConfirmationPage = () => {
 
       const fullName = `${orderData.userProfile?.firstName || ''} ${orderData.userProfile?.lastName || ''}`.trim() || getUserName();
 
-      // Prepare email template data (matching the HTML template variables)
       const templateParams = {
         to_email: orderData.contactInfo?.email || orderData.userProfile?.email || 'customer@example.com',
         to_name: getUserName(),
@@ -121,19 +108,18 @@ const OrderConfirmationPage = () => {
           month: 'long', 
           day: 'numeric' 
         }),
-        subtotal: `$${sSubtotal.toFixed(2)}`,
-        discount: sDiscount > 0 ? `-$${sDiscount.toFixed(2)}${orderData?.appliedPromo?.code ? ` (${orderData.appliedPromo.code})` : ''}` : '$0.00',
-        delivery_fee: `$${sDelivery.toFixed(2)}`,
-        tip: `$${sTip.toFixed(2)}`,
-        tax: `$${sTax.toFixed(2)}`,
-        total_amount: `$${sTotal.toFixed(2)}`,
+        subtotal: `${sSubtotal.toFixed(2)}`,
+        discount: sDiscount > 0 ? `-${sDiscount.toFixed(2)}${orderData?.appliedPromo?.code ? ` (${orderData.appliedPromo.code})` : ''}` : '$0.00',
+        delivery_fee: `${sDelivery.toFixed(2)}`,
+        tip: `${sTip.toFixed(2)}`,
+        tax: `${sTax.toFixed(2)}`,
+        total_amount: `${sTotal.toFixed(2)}`,
         delivery_address: formatAddress(orderData.deliveryAddress),
         order_items_html: buildOrderItemsHtml(orderData.orderItems)
       };
 
       console.log('📧 Email template params:', templateParams);
 
-      // Send email via EmailJS
       const response = await emailjs.send(
         emailjsConfig.serviceId,
         emailjsConfig.templateId,
@@ -148,11 +134,9 @@ const OrderConfirmationPage = () => {
   }, []);
 
   useEffect(() => {
-    // Get order data from navigation state
     if (location.state) {
       setOrderData(location.state);
       
-      // Create unique key for this order to prevent duplicate emails
       const orderKey = location.state.paymentMethod?.orderNumber || 
                       location.state.paymentMethod?.order_number ||
                       location.state.orderNumber ||
@@ -162,7 +146,6 @@ const OrderConfirmationPage = () => {
                       `order_${Date.now()}`;
       const emailSentKey = `email_sent_${orderKey}`;
       
-      // Check if email was already sent for this order (including across page refreshes)
       const emailAlreadySent = sessionStorage.getItem(emailSentKey) || emailSentRef.current;
       
       if (!emailAlreadySent) {
@@ -171,7 +154,6 @@ const OrderConfirmationPage = () => {
         sessionStorage.setItem(emailSentKey, 'true');
       }
     } else {
-      // If no order data, redirect to home
       navigate('/');
     }
   }, [location.state, navigate, sendConfirmationEmail]);
@@ -182,7 +164,6 @@ const OrderConfirmationPage = () => {
     return `${address.street || ''}${address.apartment ? `, ${address.apartment}` : ''}, ${address.city || ''}, ${address.state || ''} ${address.zip_code || ''}`;
   };
 
-  // Build rich HTML for items grouped by restaurant (for email rendering)
   const buildOrderItemsHtml = (orderItems) => {
     if (!orderItems || orderItems.length === 0) {
       return '<div>No items</div>';
@@ -237,7 +218,7 @@ const OrderConfirmationPage = () => {
   return (
     <div className="order-confirmation-page">
       <div className="order-confirmation-container">
-        {/* Success Header */}
+        {}
         <div className="success-header">
           <div className="success-icon">
             <Check className="check-icon" />
@@ -257,9 +238,9 @@ const OrderConfirmationPage = () => {
           </div>
         </div>
 
-        {/* Order Details */}
+        {}
         <div className="order-details-grid">
-          {/* Delivery Information */}
+          {}
           <div className="detail-card">
             <div className="card-header">
               <MapPin className="card-icon" />
@@ -275,7 +256,7 @@ const OrderConfirmationPage = () => {
             </div>
           </div>
 
-          {/* Contact Information */}
+          {}
           <div className="detail-card">
             <div className="card-header">
               <Phone className="card-icon" />
@@ -287,7 +268,7 @@ const OrderConfirmationPage = () => {
             </div>
           </div>
 
-          {/* Payment Information */}
+          {}
           <div className="detail-card">
             <div className="card-header">
               <CreditCard className="card-icon" />
@@ -302,7 +283,7 @@ const OrderConfirmationPage = () => {
 
         </div>
 
-        {/* Order Items */}
+        {}
         <div className="order-items-section">
           <h3 className="section-title">Your Order</h3>
           <div className="order-items-list">
@@ -331,7 +312,7 @@ const OrderConfirmationPage = () => {
             ))}
           </div>
           
-          {/* Order Total Breakdown */}
+          {}
           <div className="order-total-summary">
             <h3>Order Summary</h3>
             <div className="breakdown-line">
@@ -365,7 +346,7 @@ const OrderConfirmationPage = () => {
           </div>
         </div>
 
-        {/* Action Buttons */}
+        {}
         <div className="action-buttons">
           <button 
             className="primary-button"

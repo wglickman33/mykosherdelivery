@@ -1,4 +1,3 @@
-// Delivery zones configuration with zip codes and delivery fees
 export const DELIVERY_ZONES = {
   WESTCHESTER: {
     name: 'Westchester County',
@@ -115,21 +114,17 @@ export const DELIVERY_ZONES = {
   }
 };
 
-// Create a flat map of all valid zip codes for quick lookup
 export const VALID_ZIP_CODES = new Set();
 Object.values(DELIVERY_ZONES).forEach(zone => {
   zone.zipCodes.forEach(zip => VALID_ZIP_CODES.add(zip));
 });
 
-// Function to validate if a zip code is in delivery area
 export const isValidZipCode = (zipCode) => {
   if (!zipCode) return false;
-  // Clean the zip code (remove spaces, take first 5 digits)
   const cleanZip = zipCode.toString().replace(/\s+/g, '').slice(0, 5);
   return VALID_ZIP_CODES.has(cleanZip);
 };
 
-// Function to get delivery zone info for a zip code (FALLBACK - use deliveryZoneService for dynamic data)
 export const getDeliveryZoneInfo = (zipCode) => {
   if (!zipCode) return null;
   
@@ -148,16 +143,13 @@ export const getDeliveryZoneInfo = (zipCode) => {
   return null;
 };
 
-// Function to extract zip code from address string
 export const extractZipCode = (address) => {
   if (!address) return null;
   
-  // Look for 5-digit zip code pattern
   const zipMatch = address.match(/\b\d{5}\b/);
   return zipMatch ? zipMatch[0] : null;
 };
 
-// Function to validate address and return detailed info (FALLBACK - use deliveryZoneService for dynamic validation)
 export const validateDeliveryAddress = (address) => {
   const zipCode = extractZipCode(address);
   
@@ -189,10 +181,8 @@ export const validateDeliveryAddress = (address) => {
   };
 }; 
 
-// NEW: Function to validate address using Google Geocoding API coordinates
 export const validateAddressWithGeocoding = async (address) => {
   try {
-    // Use Google Geocoding API to get coordinates
     const geocoder = new window.google.maps.Geocoder();
     
     return new Promise((resolve, reject) => {
@@ -203,7 +193,6 @@ export const validateAddressWithGeocoding = async (address) => {
           const lat = location.lat();
           const lng = location.lng();
           
-          // Extract zip code from address components if available
           let zipCode = null;
           for (const component of result.address_components) {
             if (component.types.includes('postal_code')) {
@@ -212,7 +201,6 @@ export const validateAddressWithGeocoding = async (address) => {
             }
           }
           
-          // If we have a zip code, use the existing validation
           if (zipCode && isValidZipCode(zipCode)) {
             const zone = getDeliveryZoneInfo(zipCode);
             resolve({
@@ -226,8 +214,6 @@ export const validateAddressWithGeocoding = async (address) => {
             return;
           }
           
-          // If no zip code, check if coordinates fall within delivery area boundaries
-          // For now, we'll use a simplified approach - check if it's in the general NYC metro area
           const isInDeliveryArea = isCoordinateInDeliveryArea(lat, lng);
           
           if (isInDeliveryArea) {
@@ -235,7 +221,7 @@ export const validateAddressWithGeocoding = async (address) => {
               isValid: true,
               reason: 'coordinates',
               zipCode: null,
-              zone: null, // We don't know the specific zone without zip code
+              zone: null,
               coordinates: { lat, lng },
               formattedAddress: result.formatted_address
             });
@@ -259,18 +245,13 @@ export const validateAddressWithGeocoding = async (address) => {
   }
 };
 
-// Helper function to check if coordinates are in delivery area
-// This is a simplified approach - you could make this more sophisticated with actual polygon boundaries
 const isCoordinateInDeliveryArea = (lat, lng) => {
-  // Approximate boundaries for NYC metro area (including Nassau, Westchester, etc.)
-  // These are rough boundaries - you could make them more precise
   
-  // NYC Metro area boundaries (rough approximation)
   const bounds = {
-    north: 41.5,  // Northern boundary (Westchester)
-    south: 40.4,  // Southern boundary (Brooklyn/Queens)
-    east: -73.5,  // Eastern boundary (Nassau County)
-    west: -74.3   // Western boundary (New Jersey border)
+    north: 41.5,
+    south: 40.4,
+    east: -73.5,
+    west: -74.3
   };
   
   return lat >= bounds.south && lat <= bounds.north && 

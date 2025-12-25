@@ -58,9 +58,9 @@ $card-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   hyphens: auto;
 }
 
-/* Specific layout fixes for problematic ranges */
 
-/* 3+1 T-shape layout (1132px to 1199px) */
+
+
 @media (min-width: 1132px) and (max-width: 1199px) {
   .about-cards-wrapper {
     display: grid;
@@ -74,14 +74,14 @@ $card-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     max-width: 350px;
   }
   
-  /* Position the 4th card in the center of the second row */
+  
   .about-card:nth-child(4) {
     grid-column: 2;
     grid-row: 2;
   }
 }
 
-/* 2x2 grid layout (990px to 1131px) */
+
 @media (min-width: 990px) and (max-width: 1131px) {
   .about-cards-wrapper {
     display: grid;
@@ -98,7 +98,7 @@ $card-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 }
 
-/* Tablet styles */
+
 @media (max-width: 989px) and (min-width: 769px) {
   .about-cards-container {
     padding: 2.5rem 1.5rem;
@@ -127,7 +127,7 @@ $card-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 }
 
-/* Mobile styles */
+
 @media (max-width: 768px) and (min-width: 481px) {
   .about-cards-container {
     padding: 2.5rem 1.5rem;
@@ -182,7 +182,7 @@ $card-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 }
 
-/* Small mobile adjustments */
+
 @media (max-width: 360px) {
   .about-cards-wrapper {
     grid-template-columns: 1fr;
@@ -201,7 +201,7 @@ $card-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 }
 
-/* Large desktop styles */
+
 @media (min-width: 1200px) {
   .about-cards-wrapper {
     grid-template-columns: repeat(4, 1fr);
@@ -224,7 +224,7 @@ $card-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 }
 
-/* Extra large screens */
+
 @media (min-width: 1600px) {
   .about-cards-wrapper {
     max-width: 1600px;

@@ -24,7 +24,6 @@ const Header = () => {
   const dropdownRef = useRef(null);
   const searchRef = useRef(null);
 
-  // Simple search data - using real data from your data files
   const searchData = {
     restaurants: [
       { name: 'Bagel Boys', type: 'Bagels, Breakfast Eats, Dairy', url: '/restaurant/bagel-boys' },
@@ -56,14 +55,12 @@ const Header = () => {
     ]
   };
 
-  // Simple search function - only restaurants, FAQs, and blogs
   const performSearch = (term) => {
     if (!term || term.length < 2) return [];
     
     const results = [];
     const searchTerm = term.toLowerCase();
     
-    // Search restaurants
     searchData.restaurants.forEach(restaurant => {
       if (restaurant.name.toLowerCase().includes(searchTerm) || 
           restaurant.type.toLowerCase().includes(searchTerm)) {
@@ -71,21 +68,19 @@ const Header = () => {
       }
     });
     
-    // Search FAQs
     searchData.faqs.forEach(faq => {
       if (faq.question.toLowerCase().includes(searchTerm)) {
         results.push({ ...faq, category: 'faq' });
       }
     });
     
-    // Search blogs
     searchData.blogs.forEach(blog => {
       if (blog.title.toLowerCase().includes(searchTerm)) {
         results.push({ ...blog, category: 'blog' });
       }
     });
     
-    return results.slice(0, 10); // Limit to 10 results
+    return results.slice(0, 10);
   };
 
   const handleSearchChange = (e) => {
@@ -102,24 +97,20 @@ const Header = () => {
   const handleSearchResultClick = (result) => {
     console.log('🔍 Search result clicked:', result);
     
-    // Clear search and close dropdown
     setSearchTerm('');
     setShowSearchDropdown(false);
     
-    // Navigate immediately
     navigate(result.url);
   };
 
   const extractAddressData = (address) => {
     if (!address) return null;
     
-    // Handle nested structure
     let addressData = address;
     if (address?.address && typeof address.address === 'object') {
       addressData = address.address;
     }
     
-    // Try different field name variations
     const street = addressData?.street || addressData?.address_line_1 || addressData?.line1 || addressData?.street_address || 'Unknown Street';
     const apartment = addressData?.apartment || addressData?.address_line_2 || addressData?.line2 || addressData?.unit || addressData?.apt;
     const city = addressData?.city || addressData?.locality || 'Unknown City';
@@ -137,13 +128,11 @@ const Header = () => {
     };
   };
 
-  // Ensure all addresses have IDs using consistent generation
   const savedAddresses = (profile?.addresses || []).map((address, index) => {
     if (address.id) {
-      return address; // Already has an ID
+      return address;
     }
     
-    // Generate a consistent ID based on address content
     const streetPart = (address.street || address.address?.street || 'unknown').replace(/\s+/g, '_').toLowerCase();
     const cityPart = (address.city || address.address?.city || 'city').replace(/\s+/g, '_').toLowerCase();
     
@@ -181,61 +170,50 @@ const Header = () => {
   };
 
   const formatCurrentAddress = () => {
-    // Get fresh address data on each call to prevent stale state
     const address = getCurrentAddress();
     
     if (!address) return "Enter your address";
     
-    // Handle string addresses (temp addresses)
     if (typeof address === 'string') {
       return address.length > 30 ? address.substring(0, 30) + "..." : address;
     }
     
-    // Handle object addresses - ensure we always return a string
     if (typeof address === 'object' && address !== null) {
       const parts = [];
       
-      // Extract address parts safely
       if (address.street) parts.push(address.street);
       if (address.apartment) parts.push(address.apartment);
       if (address.city) parts.push(address.city);
       if (address.state) parts.push(address.state);
       if (address.zip_code) parts.push(address.zip_code);
       
-      // If we have parts, join them
       if (parts.length > 0) {
         const fullAddress = parts.join(', ');
         return fullAddress.length > 30 ? fullAddress.substring(0, 30) + "..." : fullAddress;
       }
       
-      // If no standard parts found, try to get street directly
       if (address.street) {
         return address.street.length > 30 ? address.street.substring(0, 30) + "..." : address.street;
       }
       
-      // Last resort - check if it has any string property we can use
       const addressString = address.address || address.description || address.formatted_address;
       if (addressString && typeof addressString === 'string') {
         return addressString.length > 30 ? addressString.substring(0, 30) + "..." : addressString;
       }
     }
     
-    // Final fallback for any unexpected data types
     return "Enter your address";
   };
 
   const getFullCurrentAddress = () => {
-    // Get fresh address data on each call
     const address = getCurrentAddress();
     
     if (!address) return "No address selected";
     
-    // Handle string addresses
     if (typeof address === 'string') {
       return address;
     }
     
-    // Handle object addresses
     if (typeof address === 'object' && address !== null) {
       const parts = [];
       if (address.street) parts.push(address.street);
@@ -248,7 +226,6 @@ const Header = () => {
         return parts.join(', ');
       }
       
-      // Fallback to any available address string
       return address.address || address.description || address.formatted_address || "Address available";
     }
     
@@ -270,7 +247,6 @@ const Header = () => {
     };
   }, []);
 
-  // Separate effect for search dropdown click-outside
   useEffect(() => {
     const handleSearchClickOutside = (event) => {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
@@ -279,7 +255,6 @@ const Header = () => {
     };
 
     if (showSearchDropdown) {
-      // Add a longer delay to ensure clicks on search results work
       const timeoutId = setTimeout(() => {
         document.addEventListener("mousedown", handleSearchClickOutside);
       }, 300);
@@ -349,7 +324,7 @@ const Header = () => {
               aria-label="Search for restaurants and food"
             />
             
-            {/* Search Dropdown */}
+            {}
             {showSearchDropdown && (
               <div className="search-dropdown">
                 {performSearch(searchTerm).map((result, index) => (
@@ -477,12 +452,11 @@ const Header = () => {
                       </div>
                     )}
 
-                    {/* Show all saved addresses for easy selection */}
+                    {}
                     {savedAddresses.length > 0 && (
                       <div className="saved-addresses">
                         <h4>Your addresses:</h4>
                         {savedAddresses.map((address) => {
-                          // Extract address data safely using the helper function
                           const addressData = extractAddressData(address);
                           if (!addressData) return null;
                           

@@ -2,10 +2,7 @@ import { validateAddressWithGeocoding } from '../data/deliveryZones';
 import { isValidDeliveryZipCode, getDeliveryZoneByZipCode } from './deliveryZoneService';
 import logger from '../utils/logger';
 
-/**
- * Enhanced address validation that uses backend delivery zones
- * Falls back to static data if backend is unavailable
- */
+
 export const validateDeliveryAddress = async (address) => {
   try {
     if (!address || typeof address !== 'string') {
@@ -19,21 +16,18 @@ export const validateDeliveryAddress = async (address) => {
       };
     }
 
-    // First, try to validate using Google Geocoding API
     const geocodingResult = await validateAddressWithGeocoding(address);
     
     if (!geocodingResult.isValid) {
       return geocodingResult;
     }
 
-    // If we have a zip code, validate it against backend delivery zones
     if (geocodingResult.zipCode) {
       try {
         const isValidZip = await isValidDeliveryZipCode(geocodingResult.zipCode);
         const zoneInfo = await getDeliveryZoneByZipCode(geocodingResult.zipCode);
         
         if (!isValidZip || !zoneInfo) {
-          // If backend validation fails, fall back to static validation
           const { isValidZipCode: staticIsValid, getDeliveryZoneInfo } = await import('../data/deliveryZones');
           
           if (staticIsValid(geocodingResult.zipCode)) {
@@ -69,7 +63,6 @@ export const validateDeliveryAddress = async (address) => {
       } catch (backendError) {
         logger.warn('Backend delivery zone validation failed, falling back to static validation:', backendError);
         
-        // Fall back to static validation if backend fails
         try {
           const { isValidZipCode: staticIsValid, getDeliveryZoneInfo } = await import('../data/deliveryZones');
           
@@ -88,12 +81,10 @@ export const validateDeliveryAddress = async (address) => {
           logger.error('Static validation also failed:', staticError);
         }
         
-        // If both backend and static validation fail, return the geocoding result
         return geocodingResult;
       }
     }
 
-    // If no zip code but coordinates are valid, return the geocoding result
     return geocodingResult;
 
   } catch (error) {
@@ -109,11 +100,7 @@ export const validateDeliveryAddress = async (address) => {
   }
 };
 
-/**
- * Validate a zip code against backend delivery zones
- * @param {string} zipCode - The zip code to validate
- * @returns {Promise<Object>} Validation result with zone info
- */
+
 export const validateZipCode = async (zipCode) => {
   try {
     if (!zipCode) {
@@ -157,15 +144,10 @@ export const validateZipCode = async (zipCode) => {
   }
 };
 
-/**
- * Extract zip code from address string
- * @param {string} address - The address string
- * @returns {string|null} Extracted zip code or null
- */
+
 export const extractZipCode = (address) => {
   if (!address) return null;
   
-  // Look for 5-digit zip code pattern
   const zipMatch = address.match(/\b\d{5}\b/);
   return zipMatch ? zipMatch[0] : null;
 };

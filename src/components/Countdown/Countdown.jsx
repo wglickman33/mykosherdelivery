@@ -5,28 +5,24 @@ import { getCountdownSettings } from "../../services/countdownService";
 import { isInPastDuePeriod } from "../../utils/countdownUtils";
 
 const Countdown = ({ variant = "default", className = "" }) => {
-  // State for countdown settings
   const [settings, setSettings] = useState({
-    targetDay: 4, // Thursday
-    targetTime: '18:00', // 6:00 PM
-    resetDay: 6, // Saturday
-    resetTime: '00:00', // 12:00 AM
+    targetDay: 4,
+    targetTime: '18:00',
+    resetDay: 6,
+    resetTime: '00:00',
     timezone: 'America/New_York',
     targetDayName: 'Thursday',
     resetDayName: 'Saturday',
   });
 
-  // Memoized function to check if current time is in the "past due" period
   const checkIsInPastDuePeriod = useCallback(() => {
     return isInPastDuePeriod(settings);
   }, [settings]);
 
-  // Function to get the next target date
   const getNextTargetDate = useCallback(() => {
     const now = new Date();
     const timezone = settings.timezone || 'America/New_York';
     
-    // Get current time in the target timezone using Intl.DateTimeFormat
     const formatter = new Intl.DateTimeFormat('en-US', {
       timeZone: timezone,
       weekday: 'long',
@@ -41,7 +37,6 @@ const Countdown = ({ variant = "default", className = "" }) => {
     const currentHour = parseInt(parts.find(part => part.type === 'hour').value);
     const currentMinute = parseInt(parts.find(part => part.type === 'minute').value);
     
-    // Convert day name to number (0=Sunday, 1=Monday, ..., 6=Saturday)
     const dayMap = {
       'Sunday': 0,
       'Monday': 1,
@@ -57,28 +52,21 @@ const Countdown = ({ variant = "default", className = "" }) => {
     const targetHour = parseInt(settings.targetTime.split(':')[0]);
     const targetMinute = parseInt(settings.targetTime.split(':')[1]);
 
-    // Calculate days to next target day
     let daysUntilTarget;
 
     if (currentDay === targetDay) {
-      // It's the target day
       if (currentHour < targetHour || (currentHour === targetHour && currentMinute < targetMinute)) {
-        // Before target time, use today
         daysUntilTarget = 0;
       } else {
-        // After target time, check if we're still in "past due" period
         const isPastDue = checkIsInPastDuePeriod();
         daysUntilTarget = isPastDue ? 0 : 7;
       }
     } else if (currentDay < targetDay) {
-      // Before target day in the week
       daysUntilTarget = targetDay - currentDay;
     } else {
-      // After target day in the week
       daysUntilTarget = 7 - (currentDay - targetDay);
     }
 
-    // Create the target date
     const targetDate = new Date(now);
     targetDate.setDate(now.getDate() + daysUntilTarget);
     targetDate.setHours(targetHour, targetMinute, 0, 0);
@@ -86,14 +74,12 @@ const Countdown = ({ variant = "default", className = "" }) => {
     return targetDate;
   }, [settings, checkIsInPastDuePeriod]);
 
-  // Function to calculate time remaining
   const calculateTimeRemaining = useCallback((target) => {
     if (!target) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
 
     const now = new Date();
     const difference = target - now;
 
-    // If in "past due" period or past target, return zeros
     if (difference <= 0 || checkIsInPastDuePeriod()) {
       return { days: 0, hours: 0, minutes: 0, seconds: 0 };
     }
@@ -110,17 +96,14 @@ const Countdown = ({ variant = "default", className = "" }) => {
 
 
 
-  // Initialize state
   const [targetDate, setTargetDate] = useState(null);
   const [timeRemaining, setTimeRemaining] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [isPastDue, setIsPastDue] = useState(false);
 
-  // Format time for display
   const formatTime = (value) => {
     return value.toString().padStart(2, "0");
   };
 
-  // Format the target date for display
   const formatTargetDate = (date) => {
     if (!date) return "Calculating...";
 
@@ -147,12 +130,10 @@ const Countdown = ({ variant = "default", className = "" }) => {
     }
   };
 
-  // Check if we need to transition from "past due" period to next countdown
   const checkForPeriodTransition = useCallback(() => {
     const now = new Date();
     const timezone = settings.timezone || 'America/New_York';
     
-    // Get current time in the target timezone using Intl.DateTimeFormat
     const formatter = new Intl.DateTimeFormat('en-US', {
       timeZone: timezone,
       weekday: 'long',
@@ -167,7 +148,6 @@ const Countdown = ({ variant = "default", className = "" }) => {
     const currentHour = parseInt(parts.find(part => part.type === 'hour').value);
     const currentMinute = parseInt(parts.find(part => part.type === 'minute').value);
     
-    // Convert day name to number (0=Sunday, 1=Monday, ..., 6=Saturday)
     const dayMap = {
       'Sunday': 0,
       'Monday': 1,
@@ -183,16 +163,13 @@ const Countdown = ({ variant = "default", className = "" }) => {
     const resetHour = parseInt(settings.resetTime.split(':')[0]);
     const resetMinute = parseInt(settings.resetTime.split(':')[1]);
 
-    // Check if we've just transitioned to reset time
     if (currentDay === resetDay && currentHour === resetHour && currentMinute < resetMinute + 1) {
-      // Just after reset time, reset target date
       const newTarget = getNextTargetDate();
       setTargetDate(newTarget);
       setIsPastDue(false);
     }
   }, [settings, getNextTargetDate]);
 
-  // Load countdown settings on mount
   useEffect(() => {
     const loadSettings = async () => {
       try {
@@ -200,21 +177,18 @@ const Countdown = ({ variant = "default", className = "" }) => {
         setSettings(fetchedSettings);
       } catch (error) {
         console.error('Failed to load countdown settings, using defaults:', error);
-        // Keep default settings
       }
     };
     
     loadSettings();
   }, []);
 
-  // Initialize countdown when settings change
   useEffect(() => {
     if (settings.targetDay !== undefined) {
       const initialTarget = getNextTargetDate();
       setTargetDate(initialTarget);
       setTimeRemaining(calculateTimeRemaining(initialTarget));
       
-      // Set initial past due status
       const initialPastDue = (() => {
         if (checkIsInPastDuePeriod()) {
           return true;
@@ -227,20 +201,15 @@ const Countdown = ({ variant = "default", className = "" }) => {
     }
   }, [settings, getNextTargetDate, calculateTimeRemaining, checkIsInPastDuePeriod]);
 
-  // Update countdown
   useEffect(() => {
     const updateCountdown = () => {
-      // Check if we need to transition from "past due" to next countdown
       checkForPeriodTransition();
 
-      // Update past due status - recalculate based on current targetDate
       const pastDueStatus = (() => {
-        // If we're in the "past due" period, show past due message
         if (checkIsInPastDuePeriod()) {
           return true;
         }
 
-        // If we've passed the target time but not in defined "past due" period
         const now = new Date();
         const difference = targetDate - now;
         return difference <= 0;
@@ -248,7 +217,6 @@ const Countdown = ({ variant = "default", className = "" }) => {
       
       setIsPastDue(pastDueStatus);
 
-      // Update time remaining
       setTimeRemaining(calculateTimeRemaining(targetDate));
     };
 

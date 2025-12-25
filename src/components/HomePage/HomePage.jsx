@@ -34,7 +34,6 @@ const HomePage = () => {
     const loadFavorites = async () => {
       if (!user || featuredRestaurants.length === 0) return;
       
-      // Add a small delay to ensure the validation cache is populated
       await new Promise(resolve => setTimeout(resolve, 100));
       
       try {
@@ -43,7 +42,6 @@ const HomePage = () => {
             const isFavorite = await checkIsFavorite(user.id, restaurant.id);
             return { restaurantId: restaurant.id, isFavorite };
           } catch (error) {
-            // Silently handle 406 errors - they don't affect functionality
             if (error.message?.includes('406') || error.status === 406) {
               console.warn(`Skipping favorite check for ${restaurant.id} - restaurant may not be fully synchronized`);
               return { restaurantId: restaurant.id, isFavorite: false };
@@ -99,11 +97,9 @@ const HomePage = () => {
         }
       } else {
         console.error('Failed to update favorite:', result.error);
-        // You could show a user-friendly error message here
       }
     } catch (error) {
       console.error('Error toggling favorite:', error);
-      // You could show a user-friendly error message here
     }
   };
 

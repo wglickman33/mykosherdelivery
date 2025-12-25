@@ -191,7 +191,7 @@
             }
           }
 
-          /* Column widths */
+          
           colgroup {
             col.col-timestamp { width: 140px; }
             col.col-admin { width: 200px; }
@@ -316,7 +316,7 @@
             border-radius: 6px;
             cursor: pointer;
             font-size: 0.9rem;
-            transition: all 0.3s ease; /* User preference for button animations */
+            transition: all 0.3s ease; 
 
             &:hover:not(:disabled) {
               background: #f3f4f6;
@@ -447,7 +447,7 @@
           font-size: 0.9rem;
           font-weight: 500;
           cursor: pointer;
-          transition: all 0.3s ease; /* User preference for button animations */
+          transition: all 0.3s ease; 
           border: 1px solid transparent;
 
           &:hover {
@@ -542,7 +542,7 @@
               font-size: 0.8rem;
               font-weight: 500;
               cursor: pointer;
-              transition: all 0.3s ease; /* User preference for button animations */
+              transition: all 0.3s ease; 
 
               &:hover {
                 background: #fde68a;
@@ -605,7 +605,7 @@
           font-size: 0.9rem;
           font-weight: 500;
           cursor: pointer;
-          transition: all 0.3s ease; /* User preference for button animations */
+          transition: all 0.3s ease; 
 
           &:hover {
             background: #059669;
@@ -691,7 +691,7 @@
               background-color: #d1d5db;
               border-radius: 24px;
               cursor: pointer;
-              transition: all 0.3s ease; /* User preference for button animations */
+              transition: all 0.3s ease; 
 
               &:before {
                 content: "";
@@ -740,7 +740,7 @@
             font-size: 0.8rem;
             font-weight: 500;
             cursor: pointer;
-            transition: all 0.3s ease; /* User preference for button animations */
+            transition: all 0.3s ease; 
 
             &:hover {
               background: #d97706;
@@ -763,7 +763,7 @@
           font-size: 0.9rem;
           font-weight: 500;
           cursor: pointer;
-          transition: all 0.3s ease; /* User preference for button animations */
+          transition: all 0.3s ease; 
 
           &:hover {
             background: #2563eb;
@@ -843,7 +843,6 @@
     }
   }
 
-  // Countdown Timer Tab Styles
   .countdown-timer-tab {
     .countdown-settings-section {
       background: white;
@@ -1007,7 +1006,7 @@
             font-weight: 600;
             border: none;
             cursor: pointer;
-            transition: all 0.3s ease; /* User preference for button animations */
+            transition: all 0.3s ease; 
 
             &:disabled {
               opacity: 0.6;
@@ -1042,7 +1041,6 @@
     }
   }
 
-// ==================== PROMO CODES TAB ====================
 .promo-codes-tab {
   .promo-codes-header {
     display: flex;
@@ -1257,7 +1255,6 @@
       border-top: 1px solid #f3f4f6;
     }
 
-  // Modal styles
   .modal-overlay {
     position: fixed;
     top: 0;

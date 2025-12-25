@@ -32,44 +32,37 @@ const AdminAnalyticsUsers = () => {
     try {
       setLoading(true);
       
-      // Fetch user overview metrics (all time)
       const overviewResult = await fetchUserOverviewMetrics();
       if (overviewResult.success) {
         setUserOverviewMetrics(overviewResult.data);
       }
 
-      // Fetch user registration trends
       const registrationResult = await fetchUserRegistrationTrends(userRegistrationPeriod);
       if (registrationResult.success) {
         setUserRegistrationTrends(registrationResult.data);
       }
 
-      // Fetch user order frequency distribution
       const frequencyResult = await fetchUserOrderFrequencyDistribution();
       if (frequencyResult.success) {
         setUserOrderFrequencyDistribution(frequencyResult.data);
       }
 
-      // Fetch user value segments
       const segmentsResult = await fetchUserValueSegments();
       if (segmentsResult.success) {
         setUserValueSegments(segmentsResult.data);
       }
 
-      // Fetch user geographic distribution
       const geoResult = await fetchUserGeographicDistribution();
       if (geoResult.success) {
         setUserGeographicDistribution(geoResult.data);
       }
 
 
-      // Fetch user lifecycle stages
       const lifecycleResult = await fetchUserLifecycleStages();
       if (lifecycleResult.success) {
         setUserLifecycleStages(lifecycleResult.data);
       }
 
-      // Fetch user order patterns
       const patternsResult = await fetchUserOrderPatterns(userOrderPatternsPeriod);
       if (patternsResult.success) {
         setUserOrderPatterns(patternsResult.data);
@@ -106,7 +99,7 @@ const AdminAnalyticsUsers = () => {
     <div className="admin-analytics">
       <AnalyticsNavigation />
       <div className="analytics-content">
-        {/* User Overview Metrics */}
+        {}
         <div className="metrics-grid">
           <div className="metric-card revenue">
             <div className="metric-icon">
@@ -160,7 +153,7 @@ const AdminAnalyticsUsers = () => {
           </div>
         </div>
 
-        {/* User Registration Trends Chart */}
+        {}
         <div className="chart-section">
           <div className="chart-header">
             <h3>User Registration Trends by {userRegistrationPeriod.charAt(0).toUpperCase() + userRegistrationPeriod.slice(1)}</h3>
@@ -210,7 +203,7 @@ const AdminAnalyticsUsers = () => {
           </ThemeProvider>
         </div>
 
-        {/* User Order Frequency Distribution Chart */}
+        {}
         <div className="chart-section">
           <div className="chart-header">
             <h3>User Order Frequency Distribution</h3>
@@ -255,7 +248,7 @@ const AdminAnalyticsUsers = () => {
           </ThemeProvider>
         </div>
 
-        {/* User Value Segments Chart */}
+        {}
         <div className="chart-section" style={{ marginTop: '32px' }}>
           <div className="chart-header">
             <h3>User Value Segments</h3>
@@ -300,7 +293,7 @@ const AdminAnalyticsUsers = () => {
           </ThemeProvider>
         </div>
 
-        {/* User Geographic Distribution Chart */}
+        {}
         <div className="chart-section">
           <div className="chart-header">
             <h3>Geographic Distribution of Users</h3>
@@ -346,7 +339,7 @@ const AdminAnalyticsUsers = () => {
         </div>
 
 
-        {/* User Lifecycle Stages Chart */}
+        {}
         <div className="chart-section">
           <div className="chart-header">
             <h3>User Lifecycle Stages</h3>
@@ -393,7 +386,7 @@ const AdminAnalyticsUsers = () => {
           </ThemeProvider>
         </div>
 
-        {/* User Order Patterns Chart */}
+        {}
         <div className="chart-section">
           <div className="chart-header">
             <h3>User Order Patterns by {userOrderPatternsPeriod}</h3>
@@ -442,7 +435,7 @@ const AdminAnalyticsUsers = () => {
             />
           </ThemeProvider>
           
-          {/* User Type Definitions Legend */}
+          {}
           <div style={{ marginTop: '16px', padding: '16px', background: '#f8fafc', borderRadius: '8px' }}>
             <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem', fontWeight: '600', color: '#374151' }}>
               User Type Definitions
@@ -468,7 +461,7 @@ const AdminAnalyticsUsers = () => {
           </div>
         </div>
 
-        {/* User Revenue Analysis Chart */}
+        {}
         <div className="chart-section" style={{ marginTop: '32px' }}>
           <div className="chart-header">
             <h3>User Revenue Analysis by {userOrderPatternsPeriod}</h3>
@@ -509,7 +502,7 @@ const AdminAnalyticsUsers = () => {
             />
           </ThemeProvider>
           
-          {/* User Type Definitions Legend */}
+          {}
           <div style={{ marginTop: '16px', padding: '16px', background: '#f0fdf4', borderRadius: '8px' }}>
             <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem', fontWeight: '600', color: '#374151' }}>
               User Type Definitions

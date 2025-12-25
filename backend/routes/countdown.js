@@ -3,7 +3,6 @@ const { requireAdmin } = require('../middleware/auth');
 const logger = require('../utils/logger');
 const { AdminAuditLog } = require('../models');
 
-// Helper function to log admin actions
 const logAdminAction = async (adminId, action, tableName, recordId, oldValues, newValues, req = null) => {
   try {
     const ipAddress = req ? req.ip || req.connection.remoteAddress : null;
@@ -26,19 +25,16 @@ const logAdminAction = async (adminId, action, tableName, recordId, oldValues, n
 
 const router = express.Router();
 
-// Get current countdown settings
 router.get('/settings', async (req, res) => {
   try {
-    // Default settings (matches current hardcoded logic)
     const defaultSettings = {
-      targetDay: 4, // Thursday (0=Sunday, 4=Thursday)
-      targetTime: '18:00', // 6:00 PM
-      resetDay: 6, // Saturday (6=Saturday)
-      resetTime: '00:00', // 12:00 AM
-      timezone: 'America/New_York', // EST/EDT
+      targetDay: 4,
+      targetTime: '18:00',
+      resetDay: 6,
+      resetTime: '00:00',
+      timezone: 'America/New_York',
     };
 
-    // Get settings from environment variables or use defaults
     const settings = {
       targetDay: parseInt(process.env.COUNTDOWN_TARGET_DAY) || defaultSettings.targetDay,
       targetTime: process.env.COUNTDOWN_TARGET_TIME || defaultSettings.targetTime,
@@ -47,7 +43,6 @@ router.get('/settings', async (req, res) => {
       timezone: process.env.COUNTDOWN_TIMEZONE || defaultSettings.timezone,
     };
 
-    // Convert day numbers to readable names for frontend
     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     
     const response = {
@@ -66,12 +61,10 @@ router.get('/settings', async (req, res) => {
   }
 });
 
-// Update countdown settings (admin only)
 router.put('/settings', requireAdmin, async (req, res) => {
   try {
     const { targetDay, targetTime, resetDay, resetTime, timezone } = req.body;
 
-    // Validation
     if (targetDay !== undefined && (targetDay < 0 || targetDay > 6)) {
       return res.status(400).json({
         error: 'Invalid target day. Must be 0-6 (Sunday-Saturday)'
@@ -96,7 +89,6 @@ router.put('/settings', requireAdmin, async (req, res) => {
       });
     }
 
-    // Get old settings for audit log BEFORE updating
     const oldSettings = {
       targetDay: parseInt(process.env.COUNTDOWN_TARGET_DAY) || 4,
       targetTime: process.env.COUNTDOWN_TARGET_TIME || '18:00',
@@ -105,7 +97,6 @@ router.put('/settings', requireAdmin, async (req, res) => {
       timezone: process.env.COUNTDOWN_TIMEZONE || 'America/New_York'
     };
 
-    // Update environment variables
     if (targetDay !== undefined) process.env.COUNTDOWN_TARGET_DAY = targetDay.toString();
     if (targetTime !== undefined) process.env.COUNTDOWN_TARGET_TIME = targetTime;
     if (resetDay !== undefined) process.env.COUNTDOWN_RESET_DAY = resetDay.toString();
@@ -120,7 +111,6 @@ router.put('/settings', requireAdmin, async (req, res) => {
       timezone: process.env.COUNTDOWN_TIMEZONE || 'America/New_York'
     };
 
-    // Log admin action
     try {
       await logAdminAction(
         req.user.id,
@@ -135,13 +125,11 @@ router.put('/settings', requireAdmin, async (req, res) => {
       logger.warn('Failed to log admin action for countdown settings update:', auditError);
     }
 
-    // Log the update
     logger.info('Countdown settings updated by admin', {
       adminId: req.user.id,
       settings: newSettings
     });
 
-    // Return updated settings
     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const updatedSettings = {
       targetDay: parseInt(process.env.COUNTDOWN_TARGET_DAY),
@@ -166,10 +154,8 @@ router.put('/settings', requireAdmin, async (req, res) => {
   }
 });
 
-// Reset countdown settings to defaults (admin only)
 router.post('/settings/reset', requireAdmin, async (req, res) => {
   try {
-    // Get old settings for audit log
     const oldSettings = {
       targetDay: parseInt(process.env.COUNTDOWN_TARGET_DAY) || 4,
       targetTime: process.env.COUNTDOWN_TARGET_TIME || '18:00',
@@ -178,7 +164,6 @@ router.post('/settings/reset', requireAdmin, async (req, res) => {
       timezone: process.env.COUNTDOWN_TIMEZONE || 'America/New_York'
     };
 
-    // Reset to default values
     delete process.env.COUNTDOWN_TARGET_DAY;
     delete process.env.COUNTDOWN_TARGET_TIME;
     delete process.env.COUNTDOWN_RESET_DAY;
@@ -193,7 +178,6 @@ router.post('/settings/reset', requireAdmin, async (req, res) => {
       timezone: 'America/New_York'
     };
 
-    // Log admin action
     try {
       await logAdminAction(
         req.user.id,

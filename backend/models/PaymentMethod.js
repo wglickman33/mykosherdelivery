@@ -73,7 +73,6 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   PaymentMethod.associate = function(models) {
-    // PaymentMethod belongs to Profile
     PaymentMethod.belongsTo(models.Profile, {
       foreignKey: 'userId',
       as: 'user'

@@ -44,7 +44,7 @@ $success-color: #28a745;
   }
 }
 
-/* SIGN IN STYLES (DEFAULT) */
+
 .auth-page__form-container {
   background-color: $white;
   border-radius: 20px;
@@ -151,7 +151,7 @@ $success-color: #28a745;
   }
 }
 
-/* SIGN UP STYLES (COMPACT) */
+
 .auth-page__form-container--signup {
   padding: 2rem 1.7rem;
 }
@@ -213,7 +213,7 @@ $success-color: #28a745;
   padding-top: 0.9rem;
 }
 
-/* SHARED STYLES */
+
 .required {
   color: $error-color;
 }
@@ -355,7 +355,7 @@ $success-color: #28a745;
   }
 }
 
-/* RESPONSIVE STYLES */
+
 @media (max-width: 768px) and (min-width: 481px) {
   .auth-page__form-container--signup {
     padding: 0.85rem 1.2rem;

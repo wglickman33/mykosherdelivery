@@ -1,4 +1,3 @@
-// Variables to match the site's design system
 $primary-color: #5fb4f9;
 $primary-dark: #061757;
 $white: #FFFFFF;
@@ -12,44 +11,39 @@ $border-radius: 8px;
 $box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 
 .help-page {
-  // Account for fixed header and sidebar positioning - matches other pages
-  margin-top: 60px; // Height of the fixed header
-  margin-left: 240px; // Width of the desktop sidebar
+  margin-top: 60px;
+  margin-left: 240px;
   min-height: calc(100vh - 60px);
   background-color: #f8f9fa;
   transition: margin-left 0.3s ease;
 
-  // Match sidebar responsiveness breakpoints exactly
   @media screen and (min-width: 641px) and (max-width: 1110px) {
-    margin-left: 60px; // Icon sidebar width
+    margin-left: 60px;
   }
 
   @media screen and (max-width: 640px) {
-    margin-left: 0; // No sidebar on mobile
+    margin-left: 0;
   }
 }
 
 .help-page__container {
-  max-width: none; // Remove max-width constraint to fill available space
+  max-width: none;
   margin: 0;
   padding: 2rem;
   
-  // Responsive padding management - match other pages exactly
   @media screen and (min-width: 1111px) {
-    max-width: 1200px; // Centered with max-width only on desktop
+    max-width: 1200px;
     margin: 0 auto;
     padding: 2rem;
   }
   
   @media screen and (min-width: 641px) and (max-width: 1110px) {
-    // Fill the available space on tablet with icon sidebar
     max-width: none;
     margin: 0;
-    padding: 2rem 3rem; // More padding to use the space better
+    padding: 2rem 3rem;
   }
   
   @media screen and (max-width: 640px) {
-    // Mobile - no sidebar
     padding: 1rem;
   }
   
@@ -59,7 +53,7 @@ $box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .help-page__content {
-  margin-bottom: 2rem; // Space before footer
+  margin-bottom: 2rem;
   
   @media screen and (max-width: 640px) {
     margin-bottom: 1.5rem;
@@ -70,12 +64,11 @@ $box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
 }
 
-// Help Header Section
 .help-page__header {
   text-align: center;
   margin-bottom: 3rem;
   padding-bottom: 2rem;
-  border-bottom: 1px solid $gray-200; // Add border after header
+  border-bottom: 1px solid $gray-200;
   
   .help-page__header-title {
     font-size: 3rem;
@@ -139,7 +132,6 @@ $box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
 }
 
-// Tutorial Sections
 .help-page__tutorial-sections {
   margin-bottom: 4rem;
 }
@@ -147,12 +139,12 @@ $box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 .help-page__tutorial-section {
   margin-bottom: 2.5rem;
   padding-bottom: 2.5rem;
-  border-bottom: 1px solid $gray-200; // Add thin border between sections
+  border-bottom: 1px solid $gray-200;
   
   &:last-child {
     margin-bottom: 0;
     padding-bottom: 0;
-    border-bottom: none; // Remove border from last section
+    border-bottom: none;
   }
 }
 
@@ -225,22 +217,21 @@ $box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
 }
 
-// Video Grid
 .help-page__video-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 1.5rem;
-  max-width: 1200px; // Prevent videos from getting too wide
+  max-width: 1200px;
   
   @media screen and (min-width: 641px) {
-    grid-template-columns: repeat(auto-fit, minmax(320px, 400px)); // More controlled sizing on desktop
-    justify-content: center; // Center the grid items
+    grid-template-columns: repeat(auto-fit, minmax(320px, 400px));
+    justify-content: center;
   }
   
   @media screen and (max-width: 768px) {
     grid-template-columns: 1fr;
     gap: 1rem;
-    max-width: none; // Full width on mobile
+    max-width: none;
   }
 }
 
@@ -252,16 +243,16 @@ $box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   border: 1px solid $gray-200;
   cursor: pointer;
   transition: all 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
-  width: 100%; // Ensure full width within grid cell
-  max-width: 400px; // Prevent cards from getting too wide
-  margin: 0 auto; // Center cards in their grid cells
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
   
   &:hover {
     transform: translateY(-4px);
     box-shadow: 0 8px 24px rgba(6, 23, 87, 0.15);
     
     .help-page__video-play-button {
-      background-color: $primary-dark !important; // Force navy color on hover
+      background-color: $primary-dark !important;
       transform: translate(-50%, -50%) scale(1.1);
     }
   }
@@ -298,7 +289,7 @@ $box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(4px);
   
   .help-page__video-play-button-icon {
-    margin-left: 4px; // Center the play icon
+    margin-left: 4px;
   }
 }
 
@@ -333,7 +324,6 @@ $box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
 }
 
-// Help Resources Section
 .help-page__resources {
   text-align: center;
   margin-top: 4rem;
@@ -423,7 +413,6 @@ $box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   line-height: 1.5;
 }
 
-// Video Modal
 .help-page__video-modal-overlay {
   position: fixed;
   top: 0;
@@ -437,17 +426,16 @@ $box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   z-index: 10000;
   padding: 1rem;
   
-  // Account for sidebar positioning
   @media screen and (min-width: 1111px) {
-    left: 240px; // Full sidebar width
+    left: 240px;
   }
   
   @media screen and (min-width: 641px) and (max-width: 1110px) {
-    left: 60px; // Icon sidebar width
+    left: 60px;
   }
   
   @media screen and (max-width: 640px) {
-    left: 0; // No sidebar on mobile
+    left: 0;
     padding: 0.5rem;
   }
 }
@@ -461,7 +449,6 @@ $box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
   border: 1px solid $gray-200;
   
-  // Larger modal on desktop
   @media screen and (min-width: 768px) {
     max-width: 90vw;
     max-height: 90vh;
@@ -602,7 +589,6 @@ $box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
 }
 
-// Responsive adjustments
 @media screen and (max-width: 640px) {
   .help-page__header {
     margin-bottom: 3rem;

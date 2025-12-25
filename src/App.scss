@@ -61,39 +61,32 @@ ul, ol {
   list-style: none;
 }
 
-// Root container
 #root {
   display: flex;
   flex-direction: column;
   min-height: 100%;
 }
 
-// App wrapper
 .app {
   flex: 1 0 auto;
   display: flex;
   flex-direction: column;
 }
 
-// App container with transitions
 .app-container {
   min-height: 100vh;
   position: relative;
   transition: padding 0.3s ease, margin 0.3s ease;
 }
 
-// Main content area that accounts for fixed positioning
 .main-content {
-  // No margins here since each page component handles its own spacing
-  // This allows for full flexibility in page layouts
   position: relative;
   z-index: 1;
 }
 
-// Placeholder styling for unfinished pages
 .page-placeholder {
-  margin-top: 60px; // Account for fixed header
-  margin-left: 240px; // Account for desktop sidebar
+  margin-top: 60px;
+  margin-left: 240px;
   min-height: calc(100vh - 60px);
   display: flex;
   align-items: center;
@@ -104,12 +97,10 @@ ul, ol {
   background-color: #f8f9fa;
   transition: margin-left 0.3s ease;
 
-  // Tablet view adjustments
   @media screen and (min-width: 641px) and (max-width: 1110px) {
-    margin-left: 60px; // Icon sidebar width
+    margin-left: 60px;
   }
 
-  // Mobile view adjustments  
   @media screen and (max-width: 640px) {
     margin-left: 0;
     font-size: 18px;
@@ -118,31 +109,27 @@ ul, ol {
   }
 }
 
-// Typography
 h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
   line-height: 1.2;
   margin-bottom: 0.5em;
-  color: #061757; // Match header text color
+  color: #061757;
 }
 
 p {
   margin-bottom: 1rem;
 }
 
-// Smooth transitions when body has menu-open class
 body.menu-open {
   .app-container, main {
     transition: all 0.3s ease;
   }
   
-  // When menu is open on mobile, disable scrolling
   @media (max-width: 640px) {
     overflow: hidden;
   }
 }
 
-// Global transition for responsive breakpoints
 @media (min-width: 641px) {
   .app-container, main {
     transition: all 0.3s ease;

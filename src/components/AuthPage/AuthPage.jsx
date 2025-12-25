@@ -10,7 +10,6 @@ const AuthPage = () => {
   const navigate = useNavigateWithScroll();
   const { signIn, signUp, user } = useAuth();
   
-  // Determine mode based on URL
   const isSignupMode = location.pathname === '/signup';
   const [mode, setMode] = useState(isSignupMode ? 'signup' : 'signin');
   
@@ -27,12 +26,10 @@ const AuthPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Update mode when URL changes
   useEffect(() => {
     const newMode = location.pathname === '/signup' ? 'signup' : 'signin';
     if (newMode !== mode) {
       setMode(newMode);
-      // Clear form when switching modes
       setFormData({
         firstName: "",
         lastName: "",
@@ -47,7 +44,6 @@ const AuthPage = () => {
     }
   }, [location.pathname, mode]);
 
-  // Redirect if already authenticated
   useEffect(() => {
     if (user) {
       console.log('AuthPage - User already authenticated, redirecting to home');
@@ -62,7 +58,6 @@ const AuthPage = () => {
       [name]: value
     }));
     
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -70,7 +65,6 @@ const AuthPage = () => {
       }));
     }
     
-    // Clear submit status when user starts typing
     if (submitStatus) {
       setSubmitStatus(null);
     }
@@ -100,7 +94,6 @@ const AuthPage = () => {
     } else if (formData.password.length < 8) {
       newErrors.password = "Password must be at least 8 characters";
     } else if (mode === 'signup') {
-      // Enhanced password validation for signup
       const hasNumber = /\d/.test(formData.password);
       const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(formData.password);
       
@@ -157,7 +150,6 @@ const AuthPage = () => {
       if (result.error) {
         console.error(`${mode} error:`, result.error);
         
-        // Handle specific email validation errors
         if (result.error.message?.includes('Email address') && result.error.message?.includes('invalid')) {
           setErrors(prev => ({
             ...prev,
@@ -165,10 +157,8 @@ const AuthPage = () => {
           }));
           setSubmitStatus(null);
         } else if (result.error.message?.includes('email')) {
-          // Handle other email-related errors (like confirmation needed)
           setSubmitStatus('email_confirmation');
         } else if (result.error.message?.includes('Invalid login credentials')) {
-          // Handle signin errors - show as general error message
           setSubmitStatus('error');
         } else if (result.error.message?.includes('User already registered')) {
           setErrors(prev => ({
@@ -177,15 +167,12 @@ const AuthPage = () => {
           }));
           setSubmitStatus(null);
         } else {
-          // Generic error for other cases
           setSubmitStatus('error');
         }
       } else {
-        // Success - navigate immediately
         console.log(`${mode} successful`);
         setSubmitStatus('success');
         
-        // Navigate immediately after successful auth
         if (result.data?.user) {
           console.log(`${mode} successful, navigating to homepage`);
           navigate('/home', { replace: true });
@@ -195,7 +182,6 @@ const AuthPage = () => {
     } catch (error) {
       console.error(`${mode} error:`, error);
       
-      // Handle caught errors - check if they're email related
       if (error.message?.includes('Email address') && error.message?.includes('invalid')) {
         setErrors(prev => ({
           ...prev,
@@ -232,14 +218,12 @@ const AuthPage = () => {
   return (
     <div className="auth-page">
       <div className="auth-page__container">
-        {/* Logo */}
         <div className="auth-page__logo">
           <Link to="/home">
             <img src={logoImg} alt="My Kosher Delivery" />
           </Link>
         </div>
 
-        {/* Auth Form */}
         <div className={`auth-page__form-container ${mode === 'signup' ? 'auth-page__form-container--signup' : ''}`}>
           <div className={`auth-page__header ${mode === 'signup' ? 'auth-page__header--signup' : ''}`}>
             <h1 className={`auth-page__title ${mode === 'signup' ? 'auth-page__title--signup' : ''}`}>
@@ -420,7 +404,6 @@ const AuthPage = () => {
               }
             </button>
             
-            {/* Status messages */}
             {submitStatus === 'error' && (
               <div className={`auth-page__message error ${mode === 'signup' ? 'auth-page__message--signup' : ''}`}>
                 <div className="auth-page__message-content">
@@ -451,7 +434,6 @@ const AuthPage = () => {
             )}
           </form>
 
-          {/* Toggle Mode */}
           <div className={`auth-page__toggle ${mode === 'signup' ? 'auth-page__toggle--signup' : ''}`}>
             <p className="auth-page__toggle-text">
               {mode === 'signin' 

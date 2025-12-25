@@ -47,13 +47,11 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   UserRestaurantFavorite.associate = function(models) {
-    // UserRestaurantFavorite belongs to Profile
     UserRestaurantFavorite.belongsTo(models.Profile, {
       foreignKey: 'userId',
       as: 'user'
     });
     
-    // UserRestaurantFavorite belongs to Restaurant
     UserRestaurantFavorite.belongsTo(models.Restaurant, {
       foreignKey: 'restaurantId',
       as: 'restaurant'

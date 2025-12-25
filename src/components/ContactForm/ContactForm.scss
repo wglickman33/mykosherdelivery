@@ -224,7 +224,7 @@ $success-color: #28a745;
   }
 }
 
-/* Under 1110px - vertical form fields */
+
 @media (max-width: 1110px) {
   .contact-form-row {
     grid-template-columns: 1fr;
@@ -232,7 +232,7 @@ $success-color: #28a745;
   }
 }
 
-/* Large tablets (769px to 1024px) */
+
 @media (max-width: 1024px) and (min-width: 769px) {
   .contact-form-container {
     padding: 1.5rem;
@@ -253,7 +253,7 @@ $success-color: #28a745;
   }
 }
 
-/* Tablets and below (768px and below) - eliminate form scrolling */
+
 @media (max-width: 768px) {
   .contact-form-container {
     min-height: 100vh;
@@ -328,7 +328,7 @@ $success-color: #28a745;
   }
 }
 
-/* Small tablets/large phones (481px to 700px) */
+
 @media (max-width: 700px) and (min-width: 481px) {
   .contact-form-container {
     padding: 1rem;
@@ -378,7 +378,7 @@ $success-color: #28a745;
   }
 }
 
-/* Mobile (325px to 480px) */
+
 @media (max-width: 480px) {
   .contact-form-container {
     padding: 1rem;
@@ -461,7 +461,7 @@ $success-color: #28a745;
   }
 }
 
-/* Small mobile (325px and below) */
+
 @media (max-width: 325px) {
   .contact-form-container {
     padding: 0.8rem;
@@ -508,7 +508,7 @@ $success-color: #28a745;
   }
 }
 
-/* Large desktop styles */
+
 @media (min-width: 1200px) {
   .contact-form-container {
     padding: 3rem 2rem;

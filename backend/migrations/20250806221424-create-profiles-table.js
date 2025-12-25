@@ -1,6 +1,6 @@
 'use strict';
 
-/** @type {import('sequelize-cli').Migration} */
+
 module.exports = {
   async up (queryInterface, Sequelize) {
     await queryInterface.createTable('profiles', {
@@ -54,7 +54,6 @@ module.exports = {
       }
     });
 
-    // Add indexes
     await queryInterface.addIndex('profiles', ['email'], {
       unique: true,
       name: 'profiles_email_unique'

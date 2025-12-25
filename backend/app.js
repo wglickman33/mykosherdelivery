@@ -40,7 +40,6 @@ app.use(validateRateLimit(15 * 60 * 1000, 500));
 app.use(express.json({ 
   limit: '10mb',
   verify: (req, res, buf) => {
-    // Store raw body for webhook verification
     if (req.originalUrl === '/api/payments/webhook') {
       req.rawBody = buf;
     }
@@ -48,19 +47,16 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Input sanitization middleware
 app.use(sanitizeInput);
 
-// Serve static assets with CORS headers
 app.use('/static', (req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-  res.header('Cross-Origin-Resource-Policy', 'cross-origin'); // Allow cross-origin requests
+  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
   next();
 }, express.static('public'));
 
-// Request logging middleware
 app.use((req, res, next) => {
   logger.info(`${req.method} ${req.path}`, {
     ip: req.ip,
@@ -70,7 +66,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/profiles', profileRoutes);
 app.use('/api/restaurants', restaurantRoutes);
@@ -84,10 +79,8 @@ app.use('/api/countdown', countdownRoutes);
 app.use('/api/tax', taxRoutes);
 app.use('/api/images', require('./routes/images'));
 
-// Health check endpoint - always responds quickly for Railway
 app.get('/api/health', async (req, res) => {
   try {
-    // Quick health check without blocking
     const dbStatus = await sequelize.authenticate()
       .then(() => 'connected')
       .catch(() => 'disconnected');
@@ -99,7 +92,6 @@ app.get('/api/health', async (req, res) => {
       database: dbStatus
     });
   } catch {
-    // Still return 200 so Railway doesn't kill the deployment
     res.status(200).json({
     status: 'OK',
     timestamp: new Date().toISOString(),
@@ -109,9 +101,7 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
-// Error handling middleware
-// eslint-disable-next-line no-unused-vars
-app.use((err, req, res, next) => {
+app.use((err, req, res) => {
   logger.error('Unhandled error:', err);
   
   res.status(err.status || 500).json({
@@ -122,7 +112,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 404 handler
 app.use('*', (req, res) => {
   res.status(404).json({
     error: 'Route not found',

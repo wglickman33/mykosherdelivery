@@ -6,29 +6,24 @@
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
   display: flex;
-  align-items: flex-start; // Changed from center to flex-start
+  align-items: flex-start;
   justify-content: center;
   z-index: 10000;
   padding: 1rem;
 
-  // Account for sidebar on desktop, but overlay covers full screen including header
-  // Calculate exact top position for symmetrical spacing
   @media (min-width: 1111px) {
-    left: 240px; // Full sidebar width
-    padding-top: calc(60px + 1rem); // Header height + desired spacing
-    // Equal spacing at bottom
+    left: 240px;
+    padding-top: calc(60px + 1rem);;
   }
 
   @media (min-width: 641px) and (max-width: 1110px) {
-    left: 60px; // Icon sidebar width
-    padding-top: calc(60px + 1rem); // Header height + desired spacing
-    // Equal spacing at bottom
+    left: 60px;
+    padding-top: calc(60px + 1rem);
   }
 
   @media (max-width: 640px) {
     left: 0;
-    padding-top: calc(60px + 1rem); // Header height + desired spacing
-    // Equal spacing at bottom
+    padding-top: calc(60px + 1rem);
   }
 }
 
@@ -53,7 +48,7 @@
   top: 1rem;
   right: 1rem;
   float: right;
-  margin-bottom: -40px; // Negative margin to not take up space
+  margin-bottom: -40px;
   background: rgba(255, 255, 255, 0.95);
   border: none;
   border-radius: 50%;
@@ -95,7 +90,6 @@
     height: 100%;
     object-fit: cover;
     
-    // Special styling for placeholder images (MKD icon)
     &.placeholder-image {
       object-fit: contain;
       padding: 3rem;
@@ -143,30 +137,29 @@
   cursor: default;
   transition: all 0.3s ease;
 
-  // Different colors for different dietary tags
   &[title*="Meat"],
   &[title*="meat"] {
-    background: #dc3545; // Red for meat
+    background: #dc3545;
     
     &:hover {
-      background: #c82333; // Darker red on hover
+      background: #c82333;
     }
     
     &:hover::after {
-      background: #c82333; // Tooltip matches hover color
+      background: #c82333;
     }
   }
 
   &[title*="Dairy"],
   &[title*="dairy"] {
-    background: #5fb4f9; // Brand blue for dairy
+    background: #5fb4f9;
     
     &:hover {
-      background: #061757; // Navy on hover
+      background: #061757;
     }
     
     &:hover::after {
-      background: #061757; // Tooltip matches hover color
+      background: #061757;
     }
   }
 
@@ -174,17 +167,17 @@
   &[title*="gluten"],
   &[title*="Nut Free"],
   &[title*="nut"] {
-    background: #ffc107; // Yellow for gluten free and nut free
-    color: #212529; // Dark text for better contrast on yellow
+    background: #ffc107;
+    color: #212529;
     
     &:hover {
-      background: #e0a800; // Darker yellow on hover
-      color: #212529; // Maintain dark text
+      background: #e0a800;
+      color: #212529;
     }
     
     &:hover::after {
-      background: #e0a800; // Tooltip matches hover color
-      color: #212529; // Dark text in tooltip
+      background: #e0a800;
+      color: #212529;
     }
   }
 
@@ -192,25 +185,24 @@
   &[title*="vegetarian"],
   &[title*="Vegan"],
   &[title*="vegan"] {
-    background: #28a745; // Green for vegetarian and vegan
+    background: #28a745;
     
     &:hover {
-      background: #1e7e34; // Darker green on hover
+      background: #1e7e34;
     }
     
     &:hover::after {
-      background: #1e7e34; // Tooltip matches hover color
+      background: #1e7e34;
     }
   }
 
-  // Default fallback for any other labels
   &:not([title*="Meat"]):not([title*="Dairy"]):not([title*="Gluten Free"]):not([title*="Vegetarian"]):not([title*="Vegan"]):not([title*="Nut Free"]):not([title*="meat"]):not([title*="dairy"]):not([title*="gluten"]):not([title*="vegetarian"]):not([title*="vegan"]):not([title*="nut"]) {
     &:hover {
-      background: #061757; // Darker blue on hover
+      background: #061757;
     }
     
     &:hover::after {
-      background: #061757; // Tooltip matches hover color
+      background: #061757;
     }
   }
 
@@ -364,28 +356,25 @@
     outline-offset: 2px;
   }
 
-  // Added state styling
   &.added {
-    background: #28a745; // Green background for added state
+    background: #28a745;
     color: white;
     cursor: default;
     transform: scale(1.02);
     box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
     
     &:hover {
-      background: #28a745; // Keep green on hover when added
+      background: #28a745;
       transform: scale(1.02);
     }
   }
 
-  // Disabled state styling
   &:disabled {
     cursor: default;
-    opacity: 1; // Keep full opacity for added state
+    opacity: 1;
   }
 }
 
-// Variant Selection Styling
 .modal-variants {
   margin: 1.5rem 0;
   
@@ -450,7 +439,6 @@
   }
 }
 
-// Builder Configuration Styling
 .modal-configurations {
   margin: 1.5rem 0;
   

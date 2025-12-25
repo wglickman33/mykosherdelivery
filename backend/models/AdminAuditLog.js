@@ -71,7 +71,6 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   AdminAuditLog.associate = function(models) {
-    // AdminAuditLog belongs to Profile (admin)
     AdminAuditLog.belongsTo(models.Profile, {
       foreignKey: 'adminId',
       as: 'admin'

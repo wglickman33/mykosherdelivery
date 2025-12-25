@@ -59,7 +59,6 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   Notification.associate = function(models) {
-    // Notification belongs to Profile
     Notification.belongsTo(models.Profile, {
       foreignKey: 'userId',
       as: 'user'

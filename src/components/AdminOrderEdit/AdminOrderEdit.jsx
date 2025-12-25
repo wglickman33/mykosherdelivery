@@ -1,5 +1,5 @@
 import './AdminOrderEdit.scss';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { fetchOrderById, updateOrder, fetchAllRestaurants, processRefund, fetchOrderRefunds } from '../../services/adminServices';
 import { useNotification } from '../../hooks/useNotification';
@@ -17,16 +17,13 @@ const AdminOrderEdit = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   
-  // Order editing state
   const [editedOrder, setEditedOrder] = useState(null);
   const [originalOrder, setOriginalOrder] = useState(null);
   
-  // UI state
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [showMenuItemBrowser, setShowMenuItemBrowser] = useState(false);
   const [autoSaveTimeout, setAutoSaveTimeout] = useState(null);
   
-  // Refund state
   const [refunds, setRefunds] = useState([]);
   const [refundType, setRefundType] = useState('full');
   const [refundAmount, setRefundAmount] = useState(0);
@@ -37,17 +34,14 @@ const AdminOrderEdit = () => {
   useEffect(() => {
     fetchOrderData();
     fetchRestaurants();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orderId]);
+  }, [fetchOrderData, fetchRestaurants]);
 
   useEffect(() => {
     if (order?.id) {
       fetchRefunds();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [order?.id]);
+  }, [order?.id, fetchRefunds]);
 
-  // Cleanup auto-save timeout on unmount
   useEffect(() => {
     return () => {
       if (autoSaveTimeout) {
@@ -58,7 +52,6 @@ const AdminOrderEdit = () => {
 
   useEffect(() => {
     if (order && refundType === 'full') {
-      // Use original order total (the amount that was actually paid, including all fees)
       const orderTotal = parseFloat(originalOrder?.total || order.total || 0);
       const totalRefunded = refunds
         .filter(r => r.status === 'processed')
@@ -67,15 +60,15 @@ const AdminOrderEdit = () => {
     }
   }, [refundType, order, originalOrder, refunds]);
 
-  const fetchOrderData = async () => {
+  const fetchOrderData = useCallback(async () => {
     try {
       setLoading(true);
       const result = await fetchOrderById(orderId);
       if (result.success) {
         const orderData = result.data;
         setOrder(orderData);
-        setEditedOrder(JSON.parse(JSON.stringify(orderData))); // Deep copy
-        setOriginalOrder(JSON.parse(JSON.stringify(orderData))); // Deep copy
+        setEditedOrder(JSON.parse(JSON.stringify(orderData)));
+        setOriginalOrder(JSON.parse(JSON.stringify(orderData)));
       } else {
         setError(result.error || 'Failed to fetch order');
       }
@@ -85,9 +78,9 @@ const AdminOrderEdit = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [orderId]);
 
-  const fetchRefunds = async () => {
+  const fetchRefunds = useCallback(async () => {
     try {
       const result = await fetchOrderRefunds(orderId);
       if (result.success) {
@@ -96,7 +89,7 @@ const AdminOrderEdit = () => {
     } catch (err) {
       console.error('Error fetching refunds:', err);
     }
-  };
+  }, [orderId]);
 
   const handleProcessRefund = async () => {
     if (!refundReason.trim()) {
@@ -109,7 +102,6 @@ const AdminOrderEdit = () => {
       return;
     }
 
-    // Use original order total (the amount that was actually paid, including all fees)
     const orderTotal = parseFloat(originalOrder?.total || order.total || 0);
     const totalRefunded = refunds
       .filter(r => r.status === 'processed')
@@ -135,7 +127,6 @@ const AdminOrderEdit = () => {
         setRefundReason('');
         setRefundType('full');
         setRefundAmount(0);
-        // Refresh order and refunds
         await fetchOrderData();
         await fetchRefunds();
       } else {
@@ -148,7 +139,7 @@ const AdminOrderEdit = () => {
     }
   };
 
-  const fetchRestaurants = async () => {
+  const fetchRestaurants = useCallback(async () => {
     try {
       const result = await fetchAllRestaurants();
       if (result.success) {
@@ -157,9 +148,8 @@ const AdminOrderEdit = () => {
     } catch (error) {
       console.error('Error fetching restaurants:', error);
     }
-  };
+  }, []);
 
-  // Calculate price differences
   const calculatePriceDifference = () => {
     if (!editedOrder || !originalOrder) return 0;
     
@@ -173,7 +163,6 @@ const AdminOrderEdit = () => {
     
     let subtotal = 0;
     
-    // Calculate subtotal from restaurant groups
     if (editedOrder.restaurantGroups) {
       Object.values(editedOrder.restaurantGroups).forEach(group => {
         const groupItems = Array.isArray(group.items) ? group.items : Object.values(group.items || {});
@@ -191,7 +180,6 @@ const AdminOrderEdit = () => {
     return subtotal + deliveryFee + tip + tax - discountAmount;
   };
 
-  // Update item quantity
   const updateItemQuantity = (restaurantId, itemIndex, newQuantity) => {
     if (!editedOrder || !editedOrder.restaurantGroups) return;
     
@@ -203,7 +191,6 @@ const AdminOrderEdit = () => {
       if (items[itemIndex]) {
         items[itemIndex].quantity = Math.max(0, parseInt(newQuantity));
         
-        // Update the group
         updatedOrder.restaurantGroups[restaurantId] = {
           ...group,
           items: items,
@@ -216,7 +203,6 @@ const AdminOrderEdit = () => {
     }
   };
 
-  // Remove item
   const removeItem = (restaurantId, itemIndex) => {
     if (!editedOrder || !editedOrder.restaurantGroups) return;
     
@@ -227,7 +213,6 @@ const AdminOrderEdit = () => {
       const items = Array.isArray(group.items) ? group.items : Object.values(group.items);
       items.splice(itemIndex, 1);
       
-      // Update the group
       updatedOrder.restaurantGroups[restaurantId] = {
         ...group,
         items: items,
@@ -239,20 +224,17 @@ const AdminOrderEdit = () => {
     }
   };
 
-  // Add item to order
   const addItemToOrder = (menuItem) => {
     if (!editedOrder) return;
     
     const updatedOrder = { ...editedOrder };
     
-    // Initialize restaurantGroups if it doesn't exist
     if (!updatedOrder.restaurantGroups) {
       updatedOrder.restaurantGroups = {};
     }
     
     const restaurantId = menuItem.restaurantId;
     
-    // Initialize restaurant group if it doesn't exist
     if (!updatedOrder.restaurantGroups[restaurantId]) {
       updatedOrder.restaurantGroups[restaurantId] = {
         items: [],
@@ -263,13 +245,10 @@ const AdminOrderEdit = () => {
     const group = updatedOrder.restaurantGroups[restaurantId];
     const items = Array.isArray(group.items) ? group.items : Object.values(group.items || {});
     
-    // For configured items (variety/builder), create a unique identifier based on configuration
-    // This allows multiple configurations of the same item to be separate line items
     const itemKey = menuItem.selectedVariant || menuItem.selectedConfigurations
       ? `${menuItem.id}-${JSON.stringify(menuItem.selectedVariant || menuItem.selectedConfigurations)}`
       : menuItem.id;
     
-    // Check if item with same configuration already exists
     const existingItemIndex = items.findIndex(item => {
       if (item.selectedVariant || item.selectedConfigurations) {
         const existingKey = `${item.id}-${JSON.stringify(item.selectedVariant || item.selectedConfigurations)}`;
@@ -281,10 +260,8 @@ const AdminOrderEdit = () => {
     const quantity = menuItem.quantity || 1;
     
     if (existingItemIndex >= 0) {
-      // Increase quantity of existing item
       items[existingItemIndex].quantity += quantity;
     } else {
-      // Add new item with all configuration data
       const newItem = {
         id: menuItem.id,
         name: menuItem.name,
@@ -297,13 +274,11 @@ const AdminOrderEdit = () => {
         itemType: menuItem.itemType || 'simple'
       };
       
-      // Add configuration data for variety items
       if (menuItem.selectedVariant) {
         newItem.selectedVariant = menuItem.selectedVariant;
         newItem.basePrice = menuItem.basePrice || menuItem.price;
       }
       
-      // Add configuration data for builder items
       if (menuItem.selectedConfigurations) {
         newItem.selectedConfigurations = menuItem.selectedConfigurations;
         newItem.configurationPrice = menuItem.configurationPrice || 0;
@@ -313,7 +288,6 @@ const AdminOrderEdit = () => {
       items.push(newItem);
     }
     
-    // Update the group
     updatedOrder.restaurantGroups[restaurantId] = {
       ...group,
       items: items,
@@ -325,30 +299,21 @@ const AdminOrderEdit = () => {
       autoSave();
   };
 
-  // Auto-save changes with debouncing (no automatic refunds)
   const autoSave = async () => {
     if (!editedOrder) return;
     
-    // Clear existing timeout
     if (autoSaveTimeout) {
       clearTimeout(autoSaveTimeout);
     }
     
-    // Set new timeout for auto-save (1 second delay)
     const timeout = setTimeout(async () => {
     try {
       setSaving(true);
-      
-      const newTotal = calculateNewTotal();
         
-        // Update the order (no automatic refunds - user must manually process refunds)
-        // Note: We don't update order.total here - it should remain as the original paid amount for refund purposes
-        // The newTotal is calculated for display purposes only
       const updatedOrderData = {
         ...editedOrder,
         subtotal: editedOrder.restaurantGroups ? 
             Object.values(editedOrder.restaurantGroups).reduce((sum, group) => sum + (group.subtotal || 0), 0) : 0
-          // Keep original total - don't update it so refunds can use the original paid amount
       };
       
       const result = await updateOrder(orderId, updatedOrderData);
@@ -371,7 +336,6 @@ const AdminOrderEdit = () => {
     setAutoSaveTimeout(timeout);
   };
 
-  // Format currency
   const formatCurrency = (amount) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 
   if (loading) {
@@ -404,7 +368,7 @@ const AdminOrderEdit = () => {
 
   return (
     <div className="admin-order-edit">
-      {/* Header */}
+      {}
       <div className="order-edit-header">
         <div className="header-content">
           <button 
@@ -437,7 +401,7 @@ const AdminOrderEdit = () => {
         </div>
       </div>
 
-      {/* Order Overview */}
+      {}
       <div className="order-overview">
         <div className="overview-grid">
           <div className="overview-item">
@@ -477,9 +441,9 @@ const AdminOrderEdit = () => {
         </div>
       </div>
 
-      {/* Unified Content */}
+      {}
       <div className="unified-content">
-        {/* Order Items Section */}
+        {}
         <div className="content-section items-section">
           <div className="section-header">
               <h3>Order Items</h3>
@@ -530,27 +494,25 @@ const AdminOrderEdit = () => {
                         </div>
                         <div className="item-info-controls">
                           <div className="item-name">{item.name}</div>
-                          {/* Display selected variant for variety items */}
+                          {}
                           {item.itemType === 'variety' && item.selectedVariant && (
                             <div className="item-customization">
                               <span className="customization-label">Variant:</span>
                               <span className="customization-value">{item.selectedVariant.name}</span>
                             </div>
                           )}
-                          {/* Display selected configurations for builder items */}
+                          {}
                           {item.itemType === 'builder' && item.selectedConfigurations && (
                             <div className="item-customization">
                               <span className="customization-label">Customizations:</span>
                               <div className="customization-list">
                                 {Array.isArray(item.selectedConfigurations) ? (
-                                  // If it's an array of selected options
                                   item.selectedConfigurations.map((config, idx) => (
                                     <div key={idx} className="customization-item">
                                       <span>{config.category}: {config.option}</span>
                                     </div>
                                   ))
                                 ) : (
-                                  // If it's an object with category keys
                                   Object.entries(item.selectedConfigurations).map(([key, configs]) => (
                                     <div key={key} className="customization-category">
                                       {Array.isArray(configs) && configs.length > 0 && (
@@ -603,7 +565,7 @@ const AdminOrderEdit = () => {
             })}
           </div>
 
-        {/* Pricing & Fees Section */}
+        {}
         <div className="content-section pricing-section">
           <div className="section-header">
             <h3>Pricing & Fees</h3>
@@ -672,13 +634,13 @@ const AdminOrderEdit = () => {
             </div>
           </div>
 
-        {/* Refunds Section */}
+        {}
         <div className="content-section refunds-section">
           <div className="section-header">
             <h3>Refund Management</h3>
           </div>
             
-            {/* Refund Summary */}
+            {}
             <div className="refund-summary">
               <div className="refund-summary-item">
               <span className="label">Original Order Total (Paid):</span>
@@ -704,7 +666,7 @@ const AdminOrderEdit = () => {
               </div>
             </div>
 
-            {/* Existing Refunds */}
+            {}
             {refunds.length > 0 && (
               <div className="existing-refunds">
                 <h4>Refund History</h4>
@@ -733,7 +695,7 @@ const AdminOrderEdit = () => {
               </div>
             )}
 
-            {/* Process New Refund Button */}
+            {}
             <div className="refund-actions">
               <button 
                 className="refund-btn full-refund"
@@ -763,7 +725,7 @@ const AdminOrderEdit = () => {
           </div>
       </div>
 
-      {/* Menu Item Browser */}
+      {}
       {showMenuItemBrowser && (
         <MenuItemBrowser
           onItemSelect={addItemToOrder}
@@ -771,7 +733,7 @@ const AdminOrderEdit = () => {
         />
       )}
 
-      {/* Refund Modal */}
+      {}
       {showRefundModal && order && (
         <div className="modal-overlay" onClick={() => {
           if (!processingRefund) {
@@ -821,7 +783,6 @@ const AdminOrderEdit = () => {
                         className={`type-btn ${refundType === 'full' ? 'active' : ''}`}
                         onClick={() => {
                           setRefundType('full');
-                          // Use original order total (the amount that was actually paid, including all fees)
                           const orderTotal = parseFloat(originalOrder?.total || order.total || 0);
                           const totalRefunded = refunds
                             .filter(r => r.status === 'processed')
@@ -925,7 +886,7 @@ const AdminOrderEdit = () => {
         </div>
       )}
 
-      {/* Notification Toast */}
+      {}
       <NotificationToast notification={notification} onClear={clearNotification} />
     </div>
   );

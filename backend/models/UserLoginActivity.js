@@ -49,7 +49,6 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   UserLoginActivity.associate = function(models) {
-    // UserLoginActivity belongs to Profile
     UserLoginActivity.belongsTo(models.Profile, {
       foreignKey: 'userId',
       as: 'user'

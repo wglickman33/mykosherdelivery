@@ -17,7 +17,6 @@ const PartnerWithUsPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  // Scroll to top when component mounts or when isSubmitted changes
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [isSubmitted]);
@@ -29,7 +28,6 @@ const PartnerWithUsPage = () => {
       [name]: value
     }));
     
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -39,22 +37,18 @@ const PartnerWithUsPage = () => {
   };
 
   const validateWebsite = (url) => {
-    if (!url.trim()) return true; // Optional field
+    if (!url.trim()) return true;
     
-    // Remove whitespace
     url = url.trim();
     
-    // If it doesn't start with http:// or https://, add https://
     if (!url.match(/^https?:\/\//)) {
       url = 'https://' + url;
     }
     
-    // Check if it's an unsafe HTTP URL
     if (url.startsWith('http://')) {
       return false;
     }
     
-    // Basic URL validation
     try {
       new URL(url);
       return true;
@@ -119,14 +113,12 @@ const PartnerWithUsPage = () => {
       if (!result.success) throw new Error(result.error || 'Failed to submit');
       setIsSubmitted(true);
       
-      // Force immediate scroll to top with multiple methods for reliability
       setTimeout(() => {
         window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
         document.documentElement.scrollTop = 0;
         document.body.scrollTop = 0;
       }, 0);
       
-      // Reset form
       setFormData({
         firstName: '',
         lastName: '',
@@ -136,7 +128,7 @@ const PartnerWithUsPage = () => {
         partnershipBenefit: ''
       });
     } catch {
-      // keep existing UX; you can add error banner if desired
+      void 0;
     } finally {
       setIsSubmitting(false);
     }
@@ -153,7 +145,6 @@ const PartnerWithUsPage = () => {
               <button 
                 onClick={() => {
                   setIsSubmitted(false);
-                  // Scroll to top when returning to form
                   setTimeout(() => {
                     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
                     document.documentElement.scrollTop = 0;

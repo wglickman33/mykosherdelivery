@@ -21,7 +21,6 @@ const TempAddressModal = ({ isOpen, onClose }) => {
     }
   }, [isOpen, tempAddress]);
 
-  // Initialize Google Places API
   useEffect(() => {
     const initializeGooglePlaces = () => {
       if (window.google && window.google.maps && window.google.maps.places) {
@@ -51,29 +50,22 @@ const TempAddressModal = ({ isOpen, onClose }) => {
     initializeGooglePlaces();
   }, []);
 
-  // Filter suggestions to only show addresses in valid delivery areas
   const filterValidSuggestions = (suggestions) => {
     return suggestions.filter(suggestion => {
       const address = suggestion.description;
       
-      // First try to extract zip code
       const zipCode = extractZipCode(address);
       if (zipCode && isValidZipCode(zipCode)) {
         return true;
       }
       
-      // If no zip code found, check if address contains known delivery cities/areas
       const validAreas = [
-        // NYC Areas
         'New York, NY', 'Manhattan, NY', 'Brooklyn, NY', 'Queens, NY', 'Bronx, NY', 'The Bronx, NY',
-        // Nassau County
         'Cedarhurst, NY', 'Lawrence, NY', 'Woodmere, NY', 'Hewlett, NY', 'Inwood, NY', 'Far Rockaway, NY',
         'Long Beach, NY', 'Oceanside, NY', 'Hempstead, NY', 'Garden City, NY', 'Westbury, NY', 'Mineola, NY',
         'Hicksville, NY', 'Levittown, NY', 'Massapequa, NY', 'Plainview, NY', 'Syosset, NY', 'Jericho, NY',
-        // Westchester County
         'White Plains, NY', 'Yonkers, NY', 'New Rochelle, NY', 'Mount Vernon, NY', 'Scarsdale, NY', 'Rye, NY',
         'Harrison, NY', 'Mamaroneck, NY', 'Larchmont, NY', 'Bronxville, NY', 'Eastchester, NY', 'Tuckahoe, NY',
-        // The Hamptons
         'East Hampton, NY', 'Southampton, NY', 'Bridgehampton, NY', 'Westhampton, NY', 'Sag Harbor, NY',
         'Montauk, NY', 'Amagansett, NY', 'Water Mill, NY', 'Sagaponack, NY', 'Westhampton Beach, NY'
       ];
@@ -85,7 +77,7 @@ const TempAddressModal = ({ isOpen, onClose }) => {
   const handleInputChange = (e) => {
     const value = e.target.value;
     setAddress(value);
-    setAddressError(''); // Clear any previous errors
+    setAddressError('');
 
     if (value.length > 2) {
       setIsLoading(true);
@@ -109,7 +101,6 @@ const TempAddressModal = ({ isOpen, onClose }) => {
                 secondary_text: prediction.structured_formatting.secondary_text
               }));
               
-              // Filter to only show valid delivery addresses
               const validSuggestions = filterValidSuggestions(formattedSuggestions);
               setSuggestions(validSuggestions);
               setShowSuggestions(validSuggestions.length > 0);
@@ -164,20 +155,15 @@ const TempAddressModal = ({ isOpen, onClose }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (address.trim()) {
-      // Since we've already filtered addresses through our autocomplete,
-      // we can trust that any address the user selected is valid for delivery
-      // Clear any previous errors
       setAddressError("");
       
       setTempAddress(address.trim());
       onClose();
     } else {
-      // Only show error if no address is entered at all
       setAddressError("Please enter a delivery address");
     }
   };
 
-  // Close suggestions when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (

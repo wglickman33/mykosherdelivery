@@ -24,7 +24,6 @@ const AdminLogin = () => {
       const result = await signIn(formData.email, formData.password);
       
       if (result.success) {
-        // Check if user is admin using backend role
         if (result.user?.role === 'admin') {
           navigate('/admin/dashboard');
         } else {

@@ -24,7 +24,7 @@ const MaterialChart = ({
   tooltipContent,
   chartColor = '#3b82f6',
   title = 'Chart',
-  type = 'line' // 'line', 'bar', 'pie'
+  type = 'line'
 }) => {
   const [chartType, setChartType] = useState(type);
 
@@ -38,14 +38,12 @@ const MaterialChart = ({
     );
   }
 
-  // Format data for Material UI charts
   const formattedData = data.map(item => ({
     ...item,
     [labelKey]: item[labelKey],
     [valueKey]: item[valueKey] || 0
   }));
 
-  // Custom tooltip component
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
@@ -89,14 +87,12 @@ const MaterialChart = ({
     return null;
   };
 
-  // Add PropTypes for CustomTooltip
   CustomTooltip.propTypes = {
     active: PropTypes.bool,
     payload: PropTypes.array,
     label: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
   };
 
-  // Color palette for pie charts
   const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
   const renderChart = () => {
@@ -123,7 +119,7 @@ const MaterialChart = ({
                 tick={{ fontSize: 12 }}
                 stroke="#666"
                 tickFormatter={(value) => 
-                  valueKey === 'revenue' ? `$${value.toLocaleString()}` : value.toLocaleString()
+                  valueKey === 'revenue' ? `${value.toLocaleString()}` : value.toLocaleString()
                 }
               />
               <Tooltip content={<CustomTooltip />} />
@@ -174,7 +170,7 @@ const MaterialChart = ({
                 <Tooltip content={<CustomTooltip />} />
               </PieChart>
             </ResponsiveContainer>
-            {/* Custom Legend */}
+            {}
             <div style={{ 
               display: 'flex', 
               justifyContent: 'center', 
@@ -235,7 +231,7 @@ const MaterialChart = ({
                 tick={{ fontSize: 12 }}
                 stroke="#666"
                 tickFormatter={(value) => 
-                  valueKey === 'revenue' ? `$${value.toLocaleString()}` : value.toLocaleString()
+                  valueKey === 'revenue' ? `${value.toLocaleString()}` : value.toLocaleString()
                 }
               />
               <Tooltip content={<CustomTooltip />} />

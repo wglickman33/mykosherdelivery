@@ -20,17 +20,15 @@ const MenuItemModal = ({
   menuItem = null, 
   onSave 
 }) => {
-  const [step, setStep] = useState(1); // 1: Type Selection, 2: Details, 3: Preview
+  const [step, setStep] = useState(1);
   const [itemType, setItemType] = useState(null);
   const [formData, setFormData] = useState({});
   const [errors, setErrors] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Reset form when modal opens/closes or when editing different item
   useEffect(() => {
     if (isOpen) {
       if (menuItem) {
-        // Editing existing item
         setItemType(menuItem.itemType);
         setFormData({
           name: menuItem.name || '',
@@ -43,9 +41,8 @@ const MenuItemModal = ({
           options: menuItem.options || getDefaultOptions(menuItem.itemType),
           labels: menuItem.labels || []
         });
-        setStep(2); // Skip type selection for editing
+        setStep(2);
       } else {
-        // Creating new item
         setItemType(null);
         setFormData({
           name: '',
@@ -80,7 +77,6 @@ const MenuItemModal = ({
       [field]: value
     }));
     
-    // Clear errors when user starts typing
     if (errors.length > 0) {
       setErrors([]);
     }
@@ -110,10 +106,8 @@ const MenuItemModal = ({
       
       let result;
       if (menuItem) {
-        // Update existing item
         result = await updateMenuItem(restaurant.id, menuItem.id, normalizedData);
       } else {
-        // Create new item
         result = await createMenuItem(restaurant.id, normalizedData);
       }
 
@@ -134,10 +128,8 @@ const MenuItemModal = ({
   const handleBack = () => {
     if (step === 2) {
       if (menuItem) {
-        // If editing, go back to details
         setStep(2);
       } else {
-        // If creating, go back to type selection
         setStep(1);
         setItemType(null);
       }
@@ -162,7 +154,7 @@ const MenuItemModal = ({
         </div>
 
         <div className="menu-item-modal__content">
-          {/* Step Indicator */}
+          {}
           <div className="menu-item-modal__steps">
             <div className={`menu-item-modal__step ${step >= 1 ? 'active' : ''}`}>
               <span className="menu-item-modal__step-number">1</span>
@@ -178,7 +170,7 @@ const MenuItemModal = ({
             </div>
           </div>
 
-          {/* Error Display */}
+          {}
           {errors.length > 0 && (
             <div className="menu-item-modal__errors">
               <h4>Please fix the following errors:</h4>
@@ -190,7 +182,7 @@ const MenuItemModal = ({
             </div>
           )}
 
-          {/* Step 1: Type Selection */}
+          {}
           {step === 1 && (
             <TypeSelectionStep 
               onTypeSelect={handleTypeSelection}
@@ -198,7 +190,7 @@ const MenuItemModal = ({
             />
           )}
 
-          {/* Step 2: Details Form */}
+          {}
           {step === 2 && (
             <DetailsFormStep
               formData={formData}
@@ -211,7 +203,7 @@ const MenuItemModal = ({
             />
           )}
 
-          {/* Step 3: Preview */}
+          {}
           {step === 3 && (
             <PreviewStep
               formData={formData}
@@ -228,7 +220,6 @@ const MenuItemModal = ({
   );
 };
 
-// Step 1: Type Selection Component
 const TypeSelectionStep = ({ onTypeSelect, selectedType }) => {
   const types = [
     {
@@ -279,7 +270,6 @@ const TypeSelectionStep = ({ onTypeSelect, selectedType }) => {
   );
 };
 
-// Step 2: Details Form Component
 const DetailsFormStep = ({ 
   formData, 
   itemType, 
@@ -294,7 +284,7 @@ const DetailsFormStep = ({
       <h3>Item Details</h3>
       
       <div className="menu-item-modal__form-grid">
-        {/* Basic Information */}
+        {}
         <div className="menu-item-modal__form-section">
           <h4>Basic Information</h4>
           
@@ -339,7 +329,6 @@ const DetailsFormStep = ({
               value={formData.price}
               onChange={(e) => {
                 const value = e.target.value;
-                // Allow empty string, but convert to number for storage
                 const numericValue = value === '' ? 0 : parseFloat(value) || 0;
                 onInputChange('price', numericValue);
               }}
@@ -386,7 +375,7 @@ const DetailsFormStep = ({
           </div>
         </div>
 
-        {/* Dietary Labels */}
+        {}
         <div className="menu-item-modal__form-section">
           <LabelSelector
             selectedLabels={formData.labels || []}
@@ -395,7 +384,7 @@ const DetailsFormStep = ({
         </div>
       </div>
 
-      {/* Type-Specific Options - Full Width */}
+      {}
       <div className="menu-item-modal__form-section menu-item-modal__form-section--full-width">
         <h4>{getItemTypeDisplayName(itemType)} Options</h4>
         
@@ -432,7 +421,6 @@ const DetailsFormStep = ({
   );
 };
 
-// Step 3: Preview Component
 const PreviewStep = ({ formData, itemType, onSave, onBack, loading, isEditing }) => {
   return (
     <div className="menu-item-modal__preview">
@@ -490,7 +478,7 @@ const PreviewStep = ({ formData, itemType, onSave, onBack, loading, isEditing })
                     <ul>
                       {config.options.map((option, optIndex) => (
                         <li key={optIndex}>
-                          {option.name} {parseFloat(option.priceModifier || 0) > 0 ? `(+$${(parseFloat(option.priceModifier || 0)).toFixed(2)})` : ''}
+                          {option.name} {parseFloat(option.priceModifier || 0) > 0 ? `(+${(parseFloat(option.priceModifier || 0)).toFixed(2)})` : ''}
                         </li>
                       ))}
                     </ul>
@@ -519,11 +507,9 @@ const PreviewStep = ({ formData, itemType, onSave, onBack, loading, isEditing })
   );
 };
 
-// Variety Options Editor Component
 const VarietyOptionsEditor = ({ options, onChange }) => {
   const [variants, setVariants] = useState(options?.variants || []);
 
-  // Sync variants with parent when they change
   useEffect(() => {
     onChange({ variants });
   }, [variants, onChange]);
@@ -607,11 +593,9 @@ const VarietyOptionsEditor = ({ options, onChange }) => {
   );
 };
 
-// Builder Options Editor Component
 const BuilderOptionsEditor = ({ options, onChange }) => {
   const [configurations, setConfigurations] = useState(options?.configurations || []);
 
-  // Sync configurations with parent when they change
   useEffect(() => {
     onChange({ configurations });
   }, [configurations, onChange]);
@@ -771,7 +755,6 @@ const BuilderOptionsEditor = ({ options, onChange }) => {
   );
 };
 
-// PropTypes validation
 MenuItemModal.propTypes = {
   isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,

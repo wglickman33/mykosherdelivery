@@ -36,13 +36,11 @@ const AdminAnalyticsRevenue = () => {
     try {
       setLoading(true);
       
-      // Fetch comprehensive analytics for overview
       const analyticsResult = await fetchComprehensiveAnalytics();
       if (analyticsResult.success) {
         setAnalyticsData(analyticsResult.data);
       }
 
-      // Fetch all revenue-related data
       const [
         trendsResult,
         restaurantResult,
@@ -94,7 +92,7 @@ const AdminAnalyticsRevenue = () => {
     <div className="admin-analytics">
       <AnalyticsNavigation />
       <div className="analytics-content">
-        {/* Revenue Overview Cards */}
+        {}
         <div className="metrics-grid">
           <div className="metric-card revenue">
             <div className="metric-icon">
@@ -148,7 +146,7 @@ const AdminAnalyticsRevenue = () => {
           </div>
         </div>
 
-        {/* Revenue Trends Chart */}
+        {}
         <div className="chart-section">
           <div className="chart-header">
             <h3>Revenue Trends by {revenuePeriod.charAt(0).toUpperCase() + revenuePeriod.slice(1)}</h3>
@@ -204,7 +202,7 @@ const AdminAnalyticsRevenue = () => {
           </ThemeProvider>
         </div>
 
-        {/* Revenue by Restaurant Chart */}
+        {}
         <div className="chart-section">
           <div className="chart-header">
             <h3>Revenue by Restaurant (Top 10)</h3>
@@ -249,7 +247,7 @@ const AdminAnalyticsRevenue = () => {
           </ThemeProvider>
         </div>
 
-        {/* Revenue by Time of Day Chart */}
+        {}
         <div className="chart-section">
           <div className="chart-header">
             <h3>Revenue by Time of Day</h3>
@@ -294,7 +292,7 @@ const AdminAnalyticsRevenue = () => {
           </ThemeProvider>
         </div>
 
-        {/* Revenue by Day of Week Chart */}
+        {}
         <div className="chart-section">
           <div className="chart-header">
             <h3>Revenue by Day of Week</h3>
@@ -339,7 +337,7 @@ const AdminAnalyticsRevenue = () => {
           </ThemeProvider>
         </div>
 
-        {/* Top Revenue Users Chart */}
+        {}
         <div className="chart-section">
           <div className="chart-header">
             <h3>Top 10 Revenue Users</h3>

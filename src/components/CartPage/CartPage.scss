@@ -283,7 +283,6 @@
                   transform: scale(1.05);
                 }
                 
-                // Special styling for placeholder images (MKD icon)
                 &.placeholder-image {
                   object-fit: contain;
                   padding: 1rem;
@@ -582,7 +581,7 @@
     border: 1px solid transparent;
     position: sticky;
     top: 5rem;
-    max-height: calc(100vh - 6rem); // Constrain height to viewport minus top offset
+    max-height: calc(100vh - 6rem);
     display: flex;
     flex-direction: column;
     transition: all 0.3s ease;
@@ -609,7 +608,7 @@
       text-align: center;
       padding-bottom: 1rem;
       border-bottom: 2px solid #f8f9fa;
-      flex-shrink: 0; // Don't shrink the header
+      flex-shrink: 0;
 
       @media (max-width: 640px) {
         font-size: 1.25rem;
@@ -622,9 +621,8 @@
       margin-bottom: 1.5rem;
       flex: 1;
       overflow-y: auto;
-      min-height: 0; // Allow flexbox to shrink this section
+      min-height: 0;
       
-      // Custom scrollbar styling
       &::-webkit-scrollbar {
         width: 6px;
       }
@@ -669,7 +667,7 @@
 
     .total-section {
       margin-bottom: 2rem;
-      flex-shrink: 0; // Don't shrink this section
+      flex-shrink: 0;
 
       .total-line {
         display: flex;
@@ -762,7 +760,7 @@
       text-align: center;
       position: relative;
       overflow: hidden;
-      flex-shrink: 0; // Don't shrink this button
+      flex-shrink: 0;
 
       &::before {
         content: '';
@@ -803,14 +801,12 @@
   }
 }
 
-// Single column layout for empty cart
 .cart-content:has(.empty-cart) {
   grid-template-columns: 1fr;
   max-width: 600px;
   margin: 0 auto;
 }
 
-// Enhanced mobile responsiveness
 @media screen and (max-width: 480px) {
   .cart-main .cart-body .cart-items .restaurant-group {
     .items-list .cart-item {

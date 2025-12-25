@@ -14,13 +14,11 @@ const AddressManagementModal = ({ isOpen, onClose, onAddressSelect }) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [addressToDelete, setAddressToDelete] = useState(null);
 
-  // Ensure all addresses have IDs using consistent generation
   const addresses = (profile?.addresses || []).map((address, index) => {
     if (address.id) {
-      return address; // Already has an ID
+      return address;
     }
     
-    // Generate a consistent ID based on address content
     const streetPart = (address.street || address.address?.street || 'unknown').replace(/\s+/g, '_').toLowerCase();
     const cityPart = (address.city || address.address?.city || 'city').replace(/\s+/g, '_').toLowerCase();
     
@@ -85,7 +83,6 @@ const AddressManagementModal = ({ isOpen, onClose, onAddressSelect }) => {
   };
 
   const getDeliveryInstructions = (address) => {
-    // Handle both old nested structure and new flat structure
     if (address?.address && typeof address.address === 'object') {
       return address.address.delivery_instructions;
     }
@@ -93,13 +90,10 @@ const AddressManagementModal = ({ isOpen, onClose, onAddressSelect }) => {
   };
 
   const formatAddress = (address) => {
-    // Handle both old nested structure {id, label, address: {...}} and new flat structure {id, label, street, city, ...}
     let addressData;
     if (address?.address && typeof address.address === 'object') {
-      // Old nested structure
       addressData = address.address;
     } else {
-      // New flat structure or direct address object
       addressData = address;
     }
     
@@ -113,7 +107,7 @@ const AddressManagementModal = ({ isOpen, onClose, onAddressSelect }) => {
   };
 
   const getAddressIcon = () => {
-    return '📍'; // Use a single location icon for all addresses
+    return '📍';
   };
 
   if (!isOpen) return null;
@@ -244,14 +238,14 @@ const AddressManagementModal = ({ isOpen, onClose, onAddressSelect }) => {
         </div>
       </div>
 
-      {/* Add Address Modal */}
+      {}
       <AddressModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
         mode="add"
       />
 
-      {/* Edit Address Modal */}
+      {}
       <AddressModal
         isOpen={showEditModal}
         onClose={() => {
@@ -262,7 +256,7 @@ const AddressManagementModal = ({ isOpen, onClose, onAddressSelect }) => {
         addressToEdit={selectedAddress}
       />
 
-      {/* Delete Confirmation Modal */}
+      {}
       <DeleteConfirmModal
         isOpen={showDeleteModal}
         onClose={cancelDeleteAddress}

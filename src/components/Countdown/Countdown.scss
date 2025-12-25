@@ -6,7 +6,6 @@
     background-color: #ffffff;
     text-align: center;
 
-    // HomePage variant styling - matches HomePage design system
     &.homepage {
       background: white;
       padding: 2.5rem 2rem;
@@ -37,7 +36,6 @@
       }
 
       .countdown-section {
-        // Ensure consistent spacing
         margin: 0;
       }
 
@@ -55,7 +53,6 @@
         font-size: 2.2rem;
         border: none;
         
-        // Accessibility improvements
         &:focus {
           outline: 2px solid #5fb4f9;
           outline-offset: 2px;
@@ -83,7 +80,6 @@
         margin-top: 1.5rem;
       }
 
-      // Responsive design for accessibility
       @media (max-width: 768px) {
         padding: 2rem 1.5rem;
         
@@ -136,7 +132,6 @@
         }
       }
 
-      // High contrast mode support
       @media (prefers-contrast: high) {
         border: 2px solid #061757;
         
@@ -151,7 +146,6 @@
         }
       }
 
-      // Reduced motion support
       @media (prefers-reduced-motion: reduce) {
         .countdown-box {
           transition: none;

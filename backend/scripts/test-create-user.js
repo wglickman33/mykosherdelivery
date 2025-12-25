@@ -6,7 +6,6 @@ async function testCreateUser() {
     await sequelize.authenticate();
     console.log('Database connected successfully.');
     
-    // Test data for creating a user
     const testUserData = {
       email: 'testuser@example.com',
       password: 'testpassword123',
@@ -19,14 +18,12 @@ async function testCreateUser() {
     
     console.log('Testing user creation with data:', testUserData);
     
-    // Check if user already exists
     const existingUser = await Profile.findOne({ where: { email: testUserData.email } });
     if (existingUser) {
       console.log('User already exists, deleting first...');
       await existingUser.destroy({ force: true });
     }
     
-    // Create user
     const bcrypt = require('bcryptjs');
     const hashedPassword = await bcrypt.hash(testUserData.password, 12);
     
@@ -50,7 +47,6 @@ async function testCreateUser() {
       preferredName: user.preferredName
     });
     
-    // Clean up - delete the test user
     await user.destroy({ force: true });
     console.log('Test user cleaned up successfully.');
     

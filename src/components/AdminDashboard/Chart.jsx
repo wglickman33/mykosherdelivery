@@ -29,7 +29,6 @@ const Chart = ({
     setHoveredIndex(index);
     const rect = event.currentTarget.getBoundingClientRect();
     
-    // For line charts, always position tooltips above the dots
     if (chartType === 'line') {
       setTooltipAbove(true);
       setTooltipPosition({
@@ -37,7 +36,6 @@ const Chart = ({
         y: rect.top - 80
       });
     } else {
-      // For bar charts, use smart positioning
       const tooltipHeight = 80;
       const wouldGoOffBottom = rect.top - tooltipHeight < 0;
       
@@ -100,7 +98,6 @@ const Chart = ({
       return `${x},${y}`;
     }).join(' ');
 
-    // Create area path for gradient fill
     const areaPoints = data.map((item, index) => {
       const x = (index / (data.length - 1)) * 160;
       const y = 100 - ((item[valueKey] / maxVal) * 100);
@@ -114,7 +111,7 @@ const Chart = ({
     return (
       <div className="chart-container">
         <svg className="line-chart" viewBox="0 0 160 100" preserveAspectRatio="xMidYMid meet">
-          {/* Define gradients */}
+          {}
           <defs>
             <linearGradient id="revenueGradient" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.8" />
@@ -132,14 +129,14 @@ const Chart = ({
             </linearGradient>
           </defs>
           
-          {/* Area fill */}
+          {}
           <path
             d={areaPath}
             fill={`url(#${gradientId}Area)`}
             className="chart-area"
           />
           
-          {/* Main line */}
+          {}
           <polyline
             points={points}
             fill="none"
@@ -150,13 +147,13 @@ const Chart = ({
             className={`chart-line ${valueKey === 'revenue' ? 'revenue-line' : 'orders-line'}`}
           />
           
-          {/* Data points */}
+          {}
           {data.map((item, index) => {
             const x = (index / (data.length - 1)) * 160;
             const y = 100 - ((item[valueKey] / maxVal) * 100);
             return (
               <g key={index}>
-                {/* Outer circle */}
+                {}
                 <circle
                   cx={x}
                   cy={y}
@@ -166,7 +163,7 @@ const Chart = ({
                   onMouseLeave={handleMouseLeave}
                   className="chart-point"
                 />
-                {/* Inner white circle */}
+                {}
                 <circle
                   cx={x}
                   cy={y}

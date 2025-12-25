@@ -10,13 +10,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 19000; // Lower than AddressModal overlay (20000)
+  z-index: 19000;
   padding: 20px;
   backdrop-filter: blur(4px);
   animation: fadeIn 0.2s ease-out;
   overflow: hidden;
   
-  // Ensure centering regardless of sidebar - use viewport units
   box-sizing: border-box;
 }
 
@@ -43,7 +42,6 @@
   flex-direction: column;
   position: relative;
   
-  // Ensure modal stays within viewport and doesn't overlap
   box-sizing: border-box;
   
   @keyframes slideUp {
@@ -65,7 +63,7 @@
   padding: 20px 24px 16px;
   border-bottom: 1px solid #e9ecef;
   flex-shrink: 0;
-  position: relative; // Ensure close button positioning
+  position: relative;
   
   h2 {
     margin: 0;
@@ -76,7 +74,7 @@
     min-width: 0;
     margin-right: 16px;
     line-height: 1.2;
-    word-wrap: break-word; // Prevent text overflow
+    word-wrap: break-word;
   }
   
   .close-button {
@@ -92,7 +90,7 @@
     flex-shrink: 0;
     position: relative;
     z-index: 1;
-    min-width: 40px; // Ensure consistent sizing
+    min-width: 40px;
     min-height: 40px;
     
     &:hover {
@@ -107,7 +105,7 @@
     svg {
       width: 24px;
       height: 24px;
-      flex-shrink: 0; // Prevent icon from shrinking
+      flex-shrink: 0;
     }
   }
 }
@@ -129,7 +127,7 @@
       svg {
         width: 48px;
         height: 48px;
-        flex-shrink: 0; // Prevent icon from shrinking
+        flex-shrink: 0;
       }
     }
     
@@ -138,14 +136,14 @@
       font-size: 1.25rem;
       color: #061757;
       font-weight: 600;
-      word-wrap: break-word; // Prevent text overflow
+      word-wrap: break-word;
     }
     
     p {
       margin: 0 0 24px;
       color: #6c757d;
       font-size: 16px;
-      word-wrap: break-word; // Prevent text overflow
+      word-wrap: break-word;
     }
     
     .add-first-address-button {
@@ -158,8 +156,8 @@
       font-weight: 600;
       cursor: pointer;
       transition: all 0.3s ease;
-      white-space: nowrap; // Prevent text wrapping
-      flex-shrink: 0; // Prevent button from shrinking
+      white-space: nowrap;
+      flex-shrink: 0;
       
       &:hover {
         background-color: #061757;
@@ -226,7 +224,7 @@
         transition: opacity 0.3s ease;
         pointer-events: none;
         white-space: nowrap;
-        z-index: 1; // Ensure tooltip appears above other elements
+        z-index: 1;
       }
       
       &:hover::after {
@@ -251,7 +249,7 @@
           font-weight: 600;
           color: #061757;
           font-size: 16px;
-          flex-wrap: wrap; // Allow wrapping on small screens
+          flex-wrap: wrap;
           
           .primary-badge {
             background-color: #5fb4f9;
@@ -260,8 +258,8 @@
             padding: 2px 8px;
             border-radius: 12px;
             font-weight: 500;
-            white-space: nowrap; // Prevent badge text wrapping
-            flex-shrink: 0; // Prevent badge from shrinking
+            white-space: nowrap;
+            flex-shrink: 0;
           }
         }
         
@@ -270,7 +268,7 @@
           font-size: 14px;
           line-height: 1.4;
           margin-bottom: 4px;
-          word-wrap: break-word; // Prevent text overflow
+          word-wrap: break-word;
         }
         
         .delivery-instructions {
@@ -278,7 +276,7 @@
           font-size: 13px;
           font-style: italic;
           margin-top: 4px;
-          word-wrap: break-word; // Prevent text overflow
+          word-wrap: break-word;
         }
       }
       
@@ -286,7 +284,7 @@
         opacity: 0.3;
         transition: all 0.3s ease;
         color: #5fb4f9;
-        flex-shrink: 0; // Prevent indicator from shrinking
+        flex-shrink: 0;
         
         svg {
           width: 20px;
@@ -306,7 +304,7 @@
       padding: 12px 16px;
       border-top: 1px solid #e9ecef;
       background-color: #f8f9fa;
-      flex-wrap: wrap; // Allow wrapping on small screens
+      flex-wrap: wrap;
       
       .action-button {
         background: none;
@@ -318,8 +316,8 @@
         align-items: center;
         justify-content: center;
         transition: all 0.3s ease;
-        flex-shrink: 0; // Prevent buttons from shrinking
-        min-width: 32px; // Ensure consistent sizing
+        flex-shrink: 0;
+        min-width: 32px;
         min-height: 32px;
         
         &:hover:not(:disabled) {
@@ -368,7 +366,7 @@
         svg {
           width: 16px;
           height: 16px;
-          flex-shrink: 0; // Prevent icon from shrinking
+          flex-shrink: 0;
         }
       }
     }
@@ -390,8 +388,8 @@
     gap: 8px;
     transition: all 0.3s ease;
     margin-bottom: 16px;
-    white-space: nowrap; // Prevent text wrapping
-    flex-shrink: 0; // Prevent button from shrinking
+    white-space: nowrap;
+    flex-shrink: 0;
     
     &:hover {
       background-color: #5fb4f9;
@@ -407,7 +405,7 @@
     svg {
       width: 20px;
       height: 20px;
-      flex-shrink: 0; // Prevent icon from shrinking
+      flex-shrink: 0;
     }
   }
   
@@ -419,11 +417,10 @@
     color: #856404;
     font-size: 14px;
     text-align: center;
-    word-wrap: break-word; // Prevent text overflow
+    word-wrap: break-word;
   }
 }
 
-// Tablet and mobile responsiveness
 @media (max-width: 768px) {
   .address-management-overlay {
     padding: 16px;
@@ -443,12 +440,12 @@
     
     h2 {
       font-size: 1.25rem;
-      margin-right: 12px; // Ensure space for close button
+      margin-right: 12px;
     }
     
     .close-button {
       padding: 6px;
-      min-width: 36px; // Adjust for smaller screens
+      min-width: 36px;
       min-height: 36px;
       
       svg {
@@ -483,7 +480,7 @@
         padding: 14px;
         
         &::after {
-          display: none; // Hide tooltip on mobile
+          display: none;
         }
         
         .address-icon {
@@ -524,7 +521,7 @@
         
         .action-button {
           padding: 8px;
-          min-width: 28px; // Adjust for smaller screens
+          min-width: 28px;
           min-height: 28px;
           
           svg {
@@ -547,7 +544,6 @@
   }
 }
 
-// Small mobile devices
 @media (max-width: 480px) {
   .address-management-overlay {
     padding: 12px;
@@ -564,12 +560,12 @@
     
     h2 {
       font-size: 1.1rem;
-      margin-right: 10px; // Ensure space for close button
+      margin-right: 10px;
     }
     
     .close-button {
       padding: 4px;
-      min-width: 32px; // Adjust for smaller screens
+      min-width: 32px;
       min-height: 32px;
       
       svg {
@@ -654,7 +650,7 @@
         .action-button {
           padding: 6px;
           border-radius: 4px;
-          min-width: 24px; // Adjust for smaller screens
+          min-width: 24px;
           min-height: 24px;
           
           svg {
@@ -685,7 +681,6 @@
   }
 }
 
-// Extra small devices
 @media (max-width: 360px) {
   .address-management-overlay {
     padding: 8px;
@@ -701,11 +696,11 @@
     
     h2 {
       font-size: 1rem;
-      margin-right: 8px; // Ensure space for close button
+      margin-right: 8px;
     }
     
     .close-button {
-      min-width: 28px; // Adjust for smaller screens
+      min-width: 28px;
       min-height: 28px;
       
       svg {
@@ -739,7 +734,7 @@
         
         .action-button {
           padding: 4px;
-          min-width: 20px; // Adjust for smaller screens
+          min-width: 20px;
           min-height: 20px;
           
           svg {
@@ -757,7 +752,6 @@
   }
 }
 
-// Landscape orientation on mobile
 @media (max-height: 500px) and (orientation: landscape) {
   .address-management-overlay {
     padding: 8px;
@@ -824,7 +818,6 @@
   }
 }
 
-// High contrast mode support
 @media (prefers-contrast: high) {
   .address-management-modal {
     border: 2px solid #000;
@@ -839,7 +832,6 @@
   }
 }
 
-// Reduced motion support
 @media (prefers-reduced-motion: reduce) {
   .address-management-overlay {
     animation: none;

@@ -14,9 +14,8 @@
   backdrop-filter: blur(4px);
   animation: fadeIn 0.2s ease-out;
   overflow: hidden;
-  z-index: 20000; // Higher than AddressManagementModal and below delete confirm
+  z-index: 20000;
   
-  // Ensure centering regardless of sidebar - use viewport units
   box-sizing: border-box;
 }
 
@@ -42,7 +41,6 @@
   flex-direction: column;
   position: relative;
   
-  // Ensure modal stays within viewport and doesn't overlap
   box-sizing: border-box;
   
   @keyframes slideUp {
@@ -64,7 +62,7 @@
   padding: 20px 24px 16px;
   border-bottom: 1px solid #e9ecef;
   flex-shrink: 0;
-  position: relative; // Ensure close button positioning
+  position: relative;
   
   h2 {
     margin: 0;
@@ -75,7 +73,7 @@
     min-width: 0;
     margin-right: 16px;
     line-height: 1.2;
-    word-wrap: break-word; // Prevent text overflow
+    word-wrap: break-word;
   }
   
   .close-button {
@@ -91,7 +89,7 @@
     flex-shrink: 0;
     position: relative;
     z-index: 1;
-    min-width: 40px; // Ensure consistent sizing
+    min-width: 40px;
     min-height: 40px;
     
     &:hover {
@@ -106,7 +104,7 @@
     svg {
       width: 24px;
       height: 24px;
-      flex-shrink: 0; // Prevent icon from shrinking
+      flex-shrink: 0;
     }
   }
 }
@@ -128,7 +126,7 @@
     color: #d32f2f;
     font-size: 14px;
     margin-bottom: 20px;
-    word-wrap: break-word; // Prevent text overflow
+    word-wrap: break-word;
     
     svg {
       flex-shrink: 0;
@@ -144,7 +142,7 @@
       font-weight: 600;
       color: #061757;
       font-size: 13px;
-      word-wrap: break-word; // Prevent text overflow
+      word-wrap: break-word;
     }
     
     input, select, textarea {
@@ -155,7 +153,7 @@
       font-size: 15px;
       transition: all 0.3s ease;
       background-color: white;
-      box-sizing: border-box; // Ensure padding doesn't affect width
+      box-sizing: border-box;
       
       &:focus {
         outline: none;
@@ -204,7 +202,7 @@
       display: flex;
       align-items: center;
       gap: 4px;
-      word-wrap: break-word; // Prevent text overflow
+      word-wrap: break-word;
     }
   }
   
@@ -228,7 +226,7 @@
       margin-bottom: 12px;
       padding-bottom: 12px;
       border-bottom: 1px solid #e9ecef;
-      flex-wrap: wrap; // Allow wrapping on small screens
+      flex-wrap: wrap;
       
       .set-primary-button {
         background-color: #f8f9fa;
@@ -240,8 +238,8 @@
         font-weight: 600;
         cursor: pointer;
         transition: all 0.3s ease;
-        white-space: nowrap; // Prevent text wrapping
-        flex-shrink: 0; // Prevent button from shrinking
+        white-space: nowrap;
+        flex-shrink: 0;
         
         &:hover:not(:disabled) {
           background-color: #e9ecef;
@@ -269,8 +267,8 @@
         font-weight: 600;
         cursor: pointer;
         transition: all 0.3s ease;
-        white-space: nowrap; // Prevent text wrapping
-        flex-shrink: 0; // Prevent button from shrinking
+        white-space: nowrap;
+        flex-shrink: 0;
         
         &:hover:not(:disabled) {
           background-color: #dc3545;
@@ -294,7 +292,7 @@
       display: flex;
       gap: 12px;
       justify-content: flex-end;
-      flex-wrap: wrap; // Allow wrapping on small screens
+      flex-wrap: wrap;
       
       .cancel-button {
         background-color: transparent;
@@ -306,8 +304,8 @@
         font-weight: 600;
         cursor: pointer;
         transition: all 0.3s ease;
-        white-space: nowrap; // Prevent text wrapping
-        flex-shrink: 0; // Prevent button from shrinking
+        white-space: nowrap;
+        flex-shrink: 0;
         
         &:hover:not(:disabled) {
           background-color: #f8f9fa;
@@ -335,8 +333,8 @@
         font-weight: 600;
         cursor: pointer;
         transition: all 0.3s ease;
-        white-space: nowrap; // Prevent text wrapping
-        flex-shrink: 0; // Prevent button from shrinking
+        white-space: nowrap;
+        flex-shrink: 0;
         
         &:hover:not(:disabled) {
           background-color: #061757;
@@ -367,11 +365,10 @@
     color: #856404;
     font-size: 14px;
     text-align: center;
-    word-wrap: break-word; // Prevent text overflow
+    word-wrap: break-word;
   }
 }
 
-// Tablet and mobile responsiveness
 @media (max-width: 768px) {
   .address-modal-overlay {
     padding: 16px;
@@ -391,12 +388,12 @@
     
     h2 {
       font-size: 1.25rem;
-      margin-right: 12px; // Ensure space for close button
+      margin-right: 12px;
     }
     
     .close-button {
       padding: 6px;
-      min-width: 36px; // Adjust for smaller screens
+      min-width: 36px;
       min-height: 36px;
       
       svg {
@@ -418,7 +415,7 @@
       
       input, select, textarea {
         padding: 12px 14px;
-        font-size: 16px; // Prevent zoom on iOS
+        font-size: 16px;
       }
     }
     
@@ -461,7 +458,6 @@
   }
 }
 
-// Small mobile devices
 @media (max-width: 480px) {
   .address-modal-overlay {
     padding: 12px;
@@ -478,12 +474,12 @@
     
     h2 {
       font-size: 1.1rem;
-      margin-right: 10px; // Ensure space for close button
+      margin-right: 10px;
     }
     
     .close-button {
       padding: 4px;
-      min-width: 32px; // Adjust for smaller screens
+      min-width: 32px;
       min-height: 32px;
       
       svg {
@@ -545,7 +541,6 @@
   }
 }
 
-// Extra small devices
 @media (max-width: 360px) {
   .address-modal-overlay {
     padding: 8px;
@@ -561,11 +556,11 @@
     
     h2 {
       font-size: 1rem;
-      margin-right: 8px; // Ensure space for close button
+      margin-right: 8px;
     }
     
     .close-button {
-      min-width: 28px; // Adjust for smaller screens
+      min-width: 28px;
       min-height: 28px;
       
       svg {
@@ -620,7 +615,6 @@
   }
 }
 
-// Landscape orientation on mobile
 @media (max-height: 500px) and (orientation: landscape) {
   .address-modal-overlay {
     padding: 8px;
@@ -663,7 +657,6 @@
   }
 }
 
-// High contrast mode support
 @media (prefers-contrast: high) {
   .address-modal {
     border: 2px solid #000;
@@ -683,7 +676,6 @@
   }
 }
 
-// Reduced motion support
 @media (prefers-reduced-motion: reduce) {
   .address-modal-overlay {
     animation: none;

@@ -57,31 +57,26 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   Restaurant.associate = function(models) {
-    // Restaurant has many orders
     Restaurant.hasMany(models.Order, {
       foreignKey: 'restaurantId',
       as: 'orders'
     });
     
-    // Restaurant has many menu items
     Restaurant.hasMany(models.MenuItem, {
       foreignKey: 'restaurantId',
       as: 'menuItems'
     });
     
-    // Restaurant has many favorites
     Restaurant.hasMany(models.UserRestaurantFavorite, {
       foreignKey: 'restaurantId',
       as: 'favorites'
     });
     
-    // Restaurant has many owners
     Restaurant.hasMany(models.RestaurantOwner, {
       foreignKey: 'restaurantId',
       as: 'owners'
     });
     
-    // Restaurant has many analytics
     Restaurant.hasMany(models.RestaurantAnalytic, {
       foreignKey: 'restaurantId',
       as: 'analytics'

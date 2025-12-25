@@ -112,7 +112,7 @@
           background-color: #f6f7f8;
         }
         
-        /* Add active state styling */
+        
         &.active {
           background-color: rgba(95, 180, 249, 0.1);
           
@@ -148,24 +148,21 @@
     }
   }
   
-  // Display rules for the icon sidebar
   .icon-sidebar {
-    display: none; // Hidden by default for all screen sizes
+    display: none;
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
   }
   
-  // Show on tablet only (641px-1110px)
   @media screen and (min-width: 641px) and (max-width: 1110px) {
     .icon-sidebar {
-      display: flex; // Show on tablet
+      display: flex;
       opacity: 1;
       visibility: visible;
       transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
     }
     
-    // Hide when mobile menu is open
     body.menu-open .icon-sidebar {
       opacity: 0;
       visibility: hidden;
@@ -173,10 +170,9 @@
     }
   }
   
-  // Update main container margin for tablet view
   @media screen and (min-width: 641px) and (max-width: 1110px) {
     .main-container {
-      margin-left: 60px !important; // Override and add margin for icon sidebar
+      margin-left: 60px !important;
       transition: margin-left 0.3s ease;
     }
   }

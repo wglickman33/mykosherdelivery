@@ -77,7 +77,6 @@
   min-height: 0;
 }
 
-// Bar Chart Styles
 .chart-bars {
   display: flex;
   align-items: end;
@@ -132,7 +131,6 @@
   text-align: center;
 }
 
-// Line Chart Styles
 .line-chart {
   width: 100%;
   height: 100%;
@@ -173,9 +171,7 @@
   transition: opacity 0.3s ease;
 }
 
-// Enhanced line chart animations - removed all hover effects
 
-// Smooth transitions for all line chart elements
 .chart-line,
 .chart-point,
 .chart-point-inner,
@@ -200,7 +196,6 @@
   flex: 1;
 }
 
-// Tooltip Styles
 .chart-tooltip {
   position: fixed;
   background: #1f2937;
@@ -272,7 +267,6 @@
   }
 }
 
-// Responsive Design
 @media (max-width: 768px) {
   .chart-card {
     padding: 16px;

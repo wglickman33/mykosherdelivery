@@ -1,4 +1,4 @@
-/* eslint-env node */
+
 require('dotenv').config();
 const path = require('path');
 const models = require(path.resolve(__dirname, '..', 'models'));

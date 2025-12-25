@@ -12,10 +12,9 @@ const ContactForm = () => {
 
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitStatus, setSubmitStatus] = useState(null); // 'success', 'error', or null
+  const [submitStatus, setSubmitStatus] = useState(null);
   const [messageTimer, setMessageTimer] = useState(null);
 
-  // Cleanup timer on component unmount
   useEffect(() => {
     return () => {
       if (messageTimer) {
@@ -31,7 +30,6 @@ const ContactForm = () => {
       [name]: value
     }));
     
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -39,7 +37,6 @@ const ContactForm = () => {
       }));
     }
     
-    // Clear submit status when user starts typing
     if (submitStatus) {
       setSubmitStatus(null);
       if (messageTimer) {
@@ -96,7 +93,6 @@ const ContactForm = () => {
       const result = await createSupportTicket(payload);
       if (!result.success) throw new Error(result.error || 'Failed to submit');
       
-      // Reset form on success
       setFormData({
         firstName: "",
         lastName: "",
@@ -106,7 +102,6 @@ const ContactForm = () => {
       
       setSubmitStatus('success');
       
-      // Auto-hide success message after 5 seconds
       const timer = setTimeout(() => {
         setSubmitStatus(null);
         setMessageTimer(null);
@@ -115,7 +110,6 @@ const ContactForm = () => {
     } catch {
       setSubmitStatus('error');
       
-      // Auto-hide error message after 7 seconds
       const timer = setTimeout(() => {
         setSubmitStatus(null);
         setMessageTimer(null);

@@ -73,17 +73,14 @@ const mapOrderToShipdayFormat = (order) => {
       }));
     }
     
-    // Build order notes/instructions
     const orderNotes = [
       orderData.deliveryInstructions,
       orderData.appliedPromo ? `Promo Code: ${orderData.appliedPromo.code || ''}` : null
     ].filter(Boolean).join(' | ');
     
-    // Format order placed time in EST
     const orderPlacedTime = orderData.createdAt || orderData.created_at || new Date();
     const orderDate = new Date(orderPlacedTime);
     
-    // Get EST time components
     const estFormatter = new Intl.DateTimeFormat('en-US', {
       timeZone: 'America/New_York',
       year: 'numeric',
@@ -99,36 +96,28 @@ const mapOrderToShipdayFormat = (order) => {
     const estObj = {};
     estParts.forEach(part => { estObj[part.type] = part.value; });
     
-    // Determine EST/EDT offset (-05:00 for EST, -04:00 for EDT)
-    // DST in US: 2nd Sunday in March to 1st Sunday in November
     const month = parseInt(estObj.month);
     const day = parseInt(estObj.day);
     const year = parseInt(estObj.year);
-    let offsetHours = -5; // Default to EST
+    let offsetHours = -5;
     
-    // Simple DST check: April-October are always EDT
     if (month >= 4 && month <= 10) {
-      offsetHours = -4; // EDT
+      offsetHours = -4;
     } else if (month === 3) {
-      // March: DST starts 2nd Sunday (approximately day 8-14)
-      // Calculate 2nd Sunday of March
-      const firstOfMarch = new Date(year, 2, 1); // Month is 0-indexed
+      const firstOfMarch = new Date(year, 2, 1);
       const firstSunday = 1 + (7 - firstOfMarch.getDay()) % 7;
       const secondSunday = firstSunday + 7;
-      if (day >= secondSunday) offsetHours = -4; // EDT
+      if (day >= secondSunday) offsetHours = -4;
     } else if (month === 11) {
-      // November: DST ends 1st Sunday (approximately day 1-7)
-      const firstOfNovember = new Date(year, 10, 1); // Month is 0-indexed
+      const firstOfNovember = new Date(year, 10, 1);
       const firstSunday = 1 + (7 - firstOfNovember.getDay()) % 7;
-      if (day < firstSunday) offsetHours = -4; // EDT
+      if (day < firstSunday) offsetHours = -4;
     }
     
     const offsetStr = `${offsetHours >= 0 ? '+' : ''}${String(offsetHours).padStart(2, '0')}:00`;
     
-    // Format as ISO 8601: YYYY-MM-DDTHH:mm:ss±HH:00
     const orderPlacedISO = `${estObj.year}-${estObj.month}-${estObj.day}T${estObj.hour}:${estObj.minute}:${estObj.second}${offsetStr}`;
     
-    // Ensure customer name is never null or empty
     if (!customerName || customerName.trim() === '' || customerName === 'Customer') {
       customerName = `Customer ${orderData.orderNumber}`;
     }
@@ -137,7 +126,6 @@ const mapOrderToShipdayFormat = (order) => {
       customerName = `Customer ${orderData.orderNumber}`;
     }
     
-    // Ensure phone number is never null or empty
     if (!phoneNumber || phoneNumber.trim() === '') {
       phoneNumber = '0000000000';
     }
@@ -147,32 +135,29 @@ const mapOrderToShipdayFormat = (order) => {
       throw new Error(`Missing required delivery address fields: street=${!!addressLine1}, city=${!!city}, state=${!!state}, zip=${!!zipCode}`);
     }
     
-    // Build full address string for Shipday (required format: "Street, Apt, City, State ZIP, Country")
     let fullAddress = addressLine1;
     if (addressLine2) {
       fullAddress += `, ${addressLine2}`;
     }
     fullAddress += `, ${city}, ${state} ${zipCode}, USA`;
     
-    // Shipday API expects customerAddress as a full string and totalOrderCost for amount
     const shipdayOrder = {
       orderNumber: orderData.orderNumber,
       customerName: customerName,
-      customerPhoneNumber: phoneNumber, // Shipday expects customerPhoneNumber, not customerPhone
+      customerPhoneNumber: phoneNumber,
       customerEmail: email || undefined,
-      customerAddress: fullAddress, // Required: Full address as string, not nested object
+      customerAddress: fullAddress,
       items: orderItems.map(item => ({
         name: item.name,
         quantity: item.quantity || 1,
         unitPrice: parseFloat(item.price || 0)
       })),
-      totalOrderCost: parseFloat(orderData.total || 0), // Required: Amount field name is totalOrderCost
-      tips: parseFloat(orderData.tip || 0) || undefined, // Optional: Tip amount
+      totalOrderCost: parseFloat(orderData.total || 0),
+      tips: parseFloat(orderData.tip || 0) || undefined,
       specialInstructions: orderNotes || undefined,
       orderPlaced: orderPlacedISO || undefined
     };
     
-    // Remove undefined fields
     Object.keys(shipdayOrder).forEach(key => {
       if (shipdayOrder[key] === undefined) {
         delete shipdayOrder[key];
@@ -186,9 +171,7 @@ const mapOrderToShipdayFormat = (order) => {
   }
 };
 
-/**
- * Sends order to Shipday API
- */
+
 const sendOrderToShipday = async (order) => {
   if (!SHIPDAY_API_KEY) {
     logger.warn('Shipday API key not configured, skipping order send');
@@ -198,7 +181,6 @@ const sendOrderToShipday = async (order) => {
   try {
     const shipdayOrder = mapOrderToShipdayFormat(order);
     
-    // Make API call with retry logic
     let response;
     let responseData;
     let shipdayOrderId = null;
@@ -217,7 +199,6 @@ const sendOrderToShipday = async (order) => {
       
       responseData = response.data;
       
-      // Check if Shipday returned an error (success: false)
       if (responseData && typeof responseData === 'object' && !Array.isArray(responseData) && responseData.success === false) {
         const errorMessage = responseData.response || responseData.message || responseData.error || 'Shipday insert failed';
         logger.error('Shipday API returned error:', {
@@ -232,7 +213,6 @@ const sendOrderToShipday = async (order) => {
         };
       }
       
-      // Handle string responses (e.g., "Order inserted with id 12345")
       if (typeof responseData === 'string') {
         const idMatch = responseData.match(/\bid\s+(\d+)\b/i);
         if (idMatch && idMatch[1]) {
@@ -245,11 +225,9 @@ const sendOrderToShipday = async (order) => {
           };
         }
       } else {
-        // Extract in strict priority order: id > orderId > data.id > data.orderId
         shipdayOrderId = responseData?.id || responseData?.orderId || responseData?.data?.id || responseData?.data?.orderId;
       }
       
-      // Validate that we got an order ID
       if (!shipdayOrderId) {
         logger.error('Shipday API response missing order ID:', {
           orderId: order.id || order.orderId,
@@ -263,7 +241,6 @@ const sendOrderToShipday = async (order) => {
         };
       }
       
-      // Defensive success check
       if (responseData && typeof responseData === 'object' && !Array.isArray(responseData) && 'success' in responseData && responseData.success === false) {
         return { 
           success: false, 
@@ -316,25 +293,17 @@ const sendOrderToShipday = async (order) => {
   }
 };
 
-/**
- * Updates order status in Shipday (if needed)
- * Note: Shipday may not support direct status updates via API.
- * Status changes should come from Shipday dashboard actions (which trigger webhooks).
- * This function is kept for potential future use or specific Shipday API support.
- */
+
 const updateShipdayOrderStatus = async (shipdayOrderId, status) => {
   if (!SHIPDAY_API_KEY || !shipdayOrderId) {
     return { success: false, error: 'Missing Shipday API key or order ID' };
   }
   
-  // For cancelled status, use the cancel endpoint instead
   if (status === 'cancelled' || status === 'canceled') {
     return await cancelShipdayOrder(shipdayOrderId);
   }
   
   try {
-    // Try using the Order Status Update endpoint: PUT /orders/{orderId}/status
-    // If that doesn't work, Shipday may not support direct status updates
     const response = await retryWithBackoff(async () => {
       const apiResponse = await axios.put(`${SHIPDAY_BASE_URL}/orders/${shipdayOrderId}/status`, { status }, {
         headers: {
@@ -359,7 +328,6 @@ const updateShipdayOrderStatus = async (shipdayOrderId, status) => {
       data: responseData
     };
   } catch (error) {
-    // If status update fails, it's non-blocking - status changes should come via webhooks from Shipday
     logger.warn('Shipday status update not supported or failed (this is expected - use Shipday dashboard for status changes):', {
       shipdayOrderId,
       status,
@@ -374,9 +342,7 @@ const updateShipdayOrderStatus = async (shipdayOrderId, status) => {
   }
 };
 
-/**
- * Cancels order in Shipday
- */
+
 const cancelShipdayOrder = async (shipdayOrderId) => {
   if (!SHIPDAY_API_KEY || !shipdayOrderId) {
     return { success: false, error: 'Missing Shipday API key or order ID' };
@@ -415,9 +381,7 @@ const cancelShipdayOrder = async (shipdayOrderId) => {
   }
 };
 
-/**
- * Retrieves order details from Shipday
- */
+
 const getShipdayOrder = async (shipdayOrderId) => {
   if (!SHIPDAY_API_KEY || !shipdayOrderId) {
     return { success: false, error: 'Missing Shipday API key or order ID' };

@@ -9,7 +9,7 @@ const Footer = () => {
     <footer className="footer">
       <div className="footer__container">
         <div className="footer__content">
-          {/* Logo and Description */}
+          {}
           <div className="footer__brand">
             <div className="footer__logo">
               <Link to="/home">
@@ -22,7 +22,7 @@ const Footer = () => {
             </p>
           </div>
 
-          {/* Company Links */}
+          {}
           <div className="footer__section">
             <h3 className="footer__section-title">Company</h3>
             <nav className="footer__nav">
@@ -42,7 +42,7 @@ const Footer = () => {
             </nav>
           </div>
 
-          {/* Legal Links */}
+          {}
           <div className="footer__section">
             <h3 className="footer__section-title">Legal</h3>
             <nav className="footer__nav">
@@ -51,7 +51,7 @@ const Footer = () => {
             </nav>
           </div>
 
-          {/* Social Links */}
+          {}
           <div className="footer__section">
             <h3 className="footer__section-title">Follow Us</h3>
             <div className="footer__social">
@@ -83,7 +83,7 @@ const Footer = () => {
           </div>
         </div>
 
-        {/* Bottom Bar */}
+        {}
         <div className="footer__bottom">
           <div className="footer__bottom-content">
             <p className="footer__copyright">

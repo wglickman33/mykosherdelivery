@@ -1,4 +1,3 @@
-// Address Confirmation Modal Styles
 .address-modal-overlay {
   position: fixed;
   top: 0;
@@ -191,16 +190,16 @@
 @media (max-width: 420px) {
   .address-modal {
     .modal-header {
-      padding: 1rem 3rem 1rem 1rem; // Extra right padding to prevent close icon overlap
+      padding: 1rem 3rem 1rem 1rem;
       
       h3 {
-        font-size: 1.125rem; // Slightly smaller title
-        max-width: calc(100% - 2rem); // Ensure title doesn't extend into close button area
+        font-size: 1.125rem;
+        max-width: calc(100% - 2rem);
       }
       
       .close-button {
-        right: 1rem; // Reduce right positioning slightly
-        font-size: 1.25rem; // Slightly smaller close icon
+        right: 1rem;
+        font-size: 1.25rem;
       }
     }
   }

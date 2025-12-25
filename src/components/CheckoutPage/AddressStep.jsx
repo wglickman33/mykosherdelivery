@@ -15,7 +15,6 @@ const AddressStep = ({ onNext }) => {
     details: ""
   });
 
-  // Get saved addresses from user profile
   const savedAddresses = profile?.addresses || [];
 
   const handleAddressSelect = (address) => {
@@ -56,7 +55,7 @@ const AddressStep = ({ onNext }) => {
       </div>
 
       <div className="addresses-list">
-        {/* Saved Addresses */}
+        {}
         {savedAddresses.map((address) => (
           <div
             key={address.id}

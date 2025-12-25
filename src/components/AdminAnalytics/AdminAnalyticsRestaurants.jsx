@@ -30,7 +30,6 @@ const AdminAnalyticsRestaurants = () => {
     try {
       setLoading(true);
       
-      // Fetch comprehensive analytics for restaurant data
       const analyticsResult = await fetchComprehensiveAnalytics();
       if (analyticsResult.success) {
         setAnalyticsData(analyticsResult.data);
@@ -82,7 +81,6 @@ const AdminAnalyticsRestaurants = () => {
     );
   }
 
-  // Sort restaurants based on selected criteria
   const sortedRestaurants = [...(analyticsData.topRestaurants || [])].sort((a, b) => {
     switch (restaurantSortBy) {
       case 'orders':
@@ -99,7 +97,7 @@ const AdminAnalyticsRestaurants = () => {
     <div className="admin-analytics">
       <AnalyticsNavigation />
       <div className="analytics-content">
-        {/* Restaurant Overview Cards */}
+        {}
         <div className="metrics-grid">
           <div className="metric-card revenue">
             <div className="metric-icon">
@@ -153,7 +151,7 @@ const AdminAnalyticsRestaurants = () => {
           </div>
         </div>
 
-        {/* Top Performing Restaurants */}
+        {}
         <div className="top-restaurants-section">
           <div className="restaurants-header">
             <h3>Top Performing Restaurants</h3>
@@ -191,7 +189,7 @@ const AdminAnalyticsRestaurants = () => {
           </div>
         </div>
 
-        {/* Restaurant Performance Chart */}
+        {}
         <div className="chart-section">
           <div className="chart-header">
             <h3>Top 10 Restaurants by Revenue</h3>
@@ -239,7 +237,7 @@ const AdminAnalyticsRestaurants = () => {
           </ThemeProvider>
         </div>
 
-        {/* Restaurant Order Distribution Chart */}
+        {}
         <div className="chart-section">
           <div className="chart-header">
             <h3>Restaurant Order Distribution</h3>
@@ -287,7 +285,7 @@ const AdminAnalyticsRestaurants = () => {
           </ThemeProvider>
         </div>
 
-        {/* Restaurant Average Order Value Chart */}
+        {}
         <div className="chart-section">
           <div className="chart-header">
             <h3>Restaurant Average Order Values</h3>
@@ -338,7 +336,7 @@ const AdminAnalyticsRestaurants = () => {
           </ThemeProvider>
         </div>
 
-        {/* Restaurant Menu Items Chart */}
+        {}
         <div className="chart-section">
           <div className="chart-header">
             <h3>Top Menu Items by Restaurant</h3>

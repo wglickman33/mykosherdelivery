@@ -58,7 +58,6 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   UserAnalytic.associate = function(models) {
-    // UserAnalytic belongs to Profile
     UserAnalytic.belongsTo(models.Profile, {
       foreignKey: 'userId',
       as: 'user'

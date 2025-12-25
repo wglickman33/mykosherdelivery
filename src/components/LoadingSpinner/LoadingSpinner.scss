@@ -14,7 +14,6 @@ $secondary-text: #6c757d;
   gap: 1rem;
   padding: 2rem;
   
-  // Responsive padding
   @media (max-width: 768px) {
     padding: 1.5rem;
   }
@@ -40,7 +39,6 @@ $secondary-text: #6c757d;
     margin: 0;
     line-height: 1.4;
     
-    // Responsive font sizes
     @media (max-width: 768px) {
       font-size: 0.95rem;
     }
@@ -50,7 +48,6 @@ $secondary-text: #6c757d;
     }
   }
 
-  // Size variants
   &--small {
     gap: 0.5rem;
     padding: 1rem;
@@ -110,7 +107,6 @@ $secondary-text: #6c757d;
     }
   }
 
-  // Color variants
   &--default {
     .loading-spinner__circle {
       border: 3px solid $light-gray;
@@ -159,7 +155,6 @@ $secondary-text: #6c757d;
   }
 }
 
-// Full-page loading states
 .loading-spinner--fullpage {
   min-height: 50vh;
   padding: 4rem 2rem;
@@ -175,7 +170,6 @@ $secondary-text: #6c757d;
   }
 }
 
-// Inline loading states (for buttons, etc.)
 .loading-spinner--inline {
   flex-direction: row;
   gap: 0.5rem;
@@ -193,7 +187,6 @@ $secondary-text: #6c757d;
   }
 }
 
-// Animation
 @keyframes spin {
   0% { 
     transform: rotate(0deg); 
@@ -203,11 +196,9 @@ $secondary-text: #6c757d;
   }
 }
 
-// Accessibility - Respect reduced motion preference
 @media (prefers-reduced-motion: reduce) {
   .loading-spinner__circle {
     animation: none;
-    // Show a pulsing effect instead for reduced motion
     animation: pulse 2s ease-in-out infinite;
   }
 }

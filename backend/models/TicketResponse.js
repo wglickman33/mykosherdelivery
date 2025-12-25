@@ -58,13 +58,11 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   TicketResponse.associate = function(models) {
-    // TicketResponse belongs to SupportTicket
     TicketResponse.belongsTo(models.SupportTicket, {
       foreignKey: 'ticketId',
       as: 'ticket'
     });
     
-    // TicketResponse belongs to Profile (responder)
     TicketResponse.belongsTo(models.Profile, {
       foreignKey: 'responderId',
       as: 'responder'

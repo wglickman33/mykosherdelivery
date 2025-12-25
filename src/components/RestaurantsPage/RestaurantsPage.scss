@@ -13,17 +13,16 @@ $secondary-text: #6c757d;
   background-color: $light-gray;
   transition: margin-left 0.3s ease;
 
-  // Match sidebar responsiveness breakpoints exactly
   @media screen and (min-width: 1111px) {
-    margin-left: 240px; // Full sidebar width
+    margin-left: 240px;
   }
 
   @media screen and (min-width: 641px) and (max-width: 1110px) {
-    margin-left: 60px; // Icon sidebar width
+    margin-left: 60px;
   }
 
   @media screen and (max-width: 640px) {
-    margin-left: 0; // No sidebar on mobile
+    margin-left: 0;
   }
 
   &__content {
@@ -66,9 +65,7 @@ $secondary-text: #6c757d;
   }
 }
 
-// Loading states are now handled by LoadingSpinner component
 
-// Header
 .restaurants-header {
   text-align: center;
   margin-bottom: 3rem;
@@ -93,7 +90,6 @@ $secondary-text: #6c757d;
   }
 }
 
-// Controls
 .restaurants-controls {
   margin-bottom: 2rem;
 
@@ -157,7 +153,6 @@ $secondary-text: #6c757d;
   }
 }
 
-// Grid
 .restaurants-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 320px));
@@ -180,7 +175,6 @@ $secondary-text: #6c757d;
   }
 }
 
-// Restaurant Card Wrapper (for positioning heart icon)
 .restaurant-card-wrapper {
   position: relative;
   width: 100%;
@@ -188,7 +182,6 @@ $secondary-text: #6c757d;
   margin: 0 auto;
 }
 
-// Restaurant Card (matching HomePage exactly)
 .restaurant-card {
   background: white;
   border-radius: 18px;
@@ -221,7 +214,6 @@ $secondary-text: #6c757d;
       height: 100%;
       object-fit: cover;
       
-      // Special styling for placeholder images (MKD icon)
       &.placeholder-image {
         object-fit: contain;
         padding: 2rem;
@@ -268,7 +260,6 @@ $secondary-text: #6c757d;
   }
 }
 
-// Heart Icon for Favorites
 .favorite-btn {
   position: absolute;
   top: 1rem;
@@ -302,7 +293,6 @@ $secondary-text: #6c757d;
   }
 }
 
-// Empty State
 .empty-state {
   text-align: center;
   padding: 4rem 2rem;
@@ -321,7 +311,6 @@ $secondary-text: #6c757d;
   }
 }
 
-// Footer override for app pages
 .restaurants-page > .footer {
   margin-left: 0;
   border-radius: 0 0 0 0;
@@ -333,7 +322,7 @@ $secondary-text: #6c757d;
 
 @media (max-width: 1110px) {
   .restaurants-page {
-    margin-left: 60px; // Icon sidebar width
+    margin-left: 60px;
   }
 }
 

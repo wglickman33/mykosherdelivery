@@ -56,13 +56,11 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   RestaurantOwner.associate = function(models) {
-    // RestaurantOwner belongs to Profile
     RestaurantOwner.belongsTo(models.Profile, {
       foreignKey: 'userId',
       as: 'user'
     });
     
-    // RestaurantOwner belongs to Restaurant
     RestaurantOwner.belongsTo(models.Restaurant, {
       foreignKey: 'restaurantId',
       as: 'restaurant'

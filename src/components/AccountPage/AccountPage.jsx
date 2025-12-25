@@ -24,10 +24,8 @@ import {
 import AddressManagementModal from '../AddressManagementModal/AddressManagementModal';
 import { Navigate } from 'react-router-dom';
 
-// Modal Components
 const ProfileEditModal = ({ isOpen, onClose, profile, onSave, getPrimaryAddress }) => {
-  // Format the primary address for pre-filling
-  const getFormattedPrimaryAddress = () => {
+  const getFormattedPrimaryAddress = useCallback(() => {
     const addr = getPrimaryAddress && getPrimaryAddress();
     if (!addr) return '';
     if (addr.address && typeof addr.address === 'object') {
@@ -39,7 +37,7 @@ const ProfileEditModal = ({ isOpen, onClose, profile, onSave, getPrimaryAddress 
     }
     if (typeof addr === 'string') return addr;
     return Object.values(addr).filter(Boolean).join(', ');
-  };
+  }, [getPrimaryAddress]);
 
   const [formData, setFormData] = useState({
     first_name: profile?.firstName || '',
@@ -50,7 +48,6 @@ const ProfileEditModal = ({ isOpen, onClose, profile, onSave, getPrimaryAddress 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Update address field if modal is opened and primary address changes
   useEffect(() => {
     if (isOpen) {
       setFormData((prev) => ({
@@ -58,8 +55,7 @@ const ProfileEditModal = ({ isOpen, onClose, profile, onSave, getPrimaryAddress 
         address: getFormattedPrimaryAddress()
       }));
     }
-    // eslint-disable-next-line
-  }, [isOpen, profile]);
+  }, [isOpen, profile, getFormattedPrimaryAddress]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -67,8 +63,8 @@ const ProfileEditModal = ({ isOpen, onClose, profile, onSave, getPrimaryAddress 
     setError('');
     
     try {
-      // Exclude address from the update payload since it's not in the profiles table
-      const { address, ...profileUpdates } = formData; // eslint-disable-line no-unused-vars
+      // eslint-disable-next-line no-unused-vars
+      const { address, ...profileUpdates } = formData;
       await onSave(profileUpdates);
     } catch (err) {
       setError(err.message || 'Failed to save profile');
@@ -181,7 +177,6 @@ const OrderDetailsModal = ({ isOpen, onClose, order }) => {
 
   const progressSteps = getOrderProgress(order.status);
   
-  // Note: Multi-restaurant orders are now handled with order.isMultiRestaurant flag from backend
 
   return (
     <div className="account-modal-overlay" onClick={onClose}>
@@ -203,18 +198,15 @@ const OrderDetailsModal = ({ isOpen, onClose, order }) => {
             <div className="order-meta">
               {(() => {
                 try {
-                  // Check for multi-restaurant order by looking at restaurantGroups
                   const isMultiRestaurant = order.restaurantGroups && Object.keys(order.restaurantGroups).length > 1;
                   
                   if (isMultiRestaurant) {
-                    // Multi-restaurant order - get restaurant names from restaurantGroups
                     const restaurantNames = [];
                     Object.keys(order.restaurantGroups).forEach(restaurantId => {
                       const restaurant = order.restaurants?.find(r => r.id == restaurantId);
                       if (restaurant) {
                         restaurantNames.push(restaurant.name);
                       } else {
-                        // Fallback to ID if name not found
                         restaurantNames.push(restaurantId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
                       }
                     });
@@ -226,13 +218,10 @@ const OrderDetailsModal = ({ isOpen, onClose, order }) => {
                       </>
                     );
                   } else if (order.restaurants && order.restaurants.length === 1) {
-                    // Single restaurant (new format)
                     return <p><strong>Restaurant:</strong> {order.restaurants[0].name}</p>;
                   } else if (order.restaurant?.name) {
-                    // Legacy single restaurant
                     return <p><strong>Restaurant:</strong> {order.restaurant.name}</p>;
                   } else if (order.restaurantGroups && Object.keys(order.restaurantGroups).length === 1) {
-                    // Single restaurant but using new format
                     const restaurantId = Object.keys(order.restaurantGroups)[0];
                     const restaurant = order.restaurants?.find(r => r.id == restaurantId);
                     const restaurantName = restaurant?.name || restaurantId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
@@ -256,7 +245,7 @@ const OrderDetailsModal = ({ isOpen, onClose, order }) => {
                   }
                 })()}</p>
               
-              {/* Detailed Price Breakdown */}
+              {}
               <div className="price-breakdown">
                 <h4>Order Summary</h4>
                 <div className="breakdown-line">
@@ -307,7 +296,6 @@ const OrderDetailsModal = ({ isOpen, onClose, order }) => {
           <div className="order-items">
             <h4>Items Ordered</h4>
             {order.restaurantGroups ? (
-              // Display items grouped by restaurant when using new order format
               Object.entries(order.restaurantGroups).map(([restaurantId, group]) => {
                 const restaurant = order.restaurants?.find(r => r.id == restaurantId);
                 const restaurantName = restaurant?.name || restaurantId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
@@ -338,15 +326,12 @@ const OrderDetailsModal = ({ isOpen, onClose, order }) => {
                 );
               })
             ) : (
-              // Display items for single restaurant order
               (() => {
-                // Handle different item formats (array vs object)
                 let itemsToDisplay = [];
                 
                 if (Array.isArray(order.items)) {
                   itemsToDisplay = order.items;
                 } else if (order.items && typeof order.items === 'object') {
-                  // Convert object to array if needed
                   itemsToDisplay = Object.values(order.items);
                 }
                 
@@ -435,7 +420,6 @@ export default function AccountPage() {
   const { addToCart, clearCart } = useCart();
   const navigate = useNavigate();
 
-  // State management
   const [activeTab, setActiveTab] = useState('profile');
   const [profile, setProfile] = useState(null);
   const [orders, setOrders] = useState([]);
@@ -444,19 +428,16 @@ export default function AccountPage() {
   const [loginActivity, setLoginActivity] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Filter states
   const [orderFilters, setOrderFilters] = useState({ status: 'all', dateRange: null });
-  // Modal states
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAddressModal, setShowAddressModal] = useState(false);
 
-  // Redirect guests to sign-in page
   useEffect(() => {
     if (!user) {
-      // no-op, handled below
+      return;
     }
   }, [user]);
 
@@ -489,7 +470,6 @@ export default function AccountPage() {
     }
   }, [user, loadUserData]);
 
-  // Setup order subscription separately
   useEffect(() => {
     if (!user) return;
     const subscription = subscribeToOrderUpdates(user.id, () => {
@@ -507,7 +487,6 @@ export default function AccountPage() {
     return <Navigate to="/signin" replace />;
   }
 
-  // Profile handlers
   const handleProfileSave = async (formData) => {
     try {
       const result = await updateUserProfile(user.id, formData);
@@ -516,15 +495,12 @@ export default function AccountPage() {
         setShowProfileModal(false);
       } else {
         console.error('Failed to update profile:', result.error);
-        // Could add user notification here
       }
     } catch (error) {
       console.error('Error updating profile:', error);
-      // Could add user notification here
     }
   };
 
-  // Order handlers
   const handleOrderFilter = async (filters) => {
     setOrderFilters(filters);
     const ordersData = await fetchUserOrders(user.id, filters);
@@ -543,7 +519,6 @@ export default function AccountPage() {
       clearCart();
       
       if (result.data.isMultiRestaurant && result.data.restaurantGroups) {
-        // Multi-restaurant order - add items grouped by restaurant
         const restaurants = result.data.restaurants || [];
         
         Object.entries(result.data.restaurantGroups).forEach(([restaurantId, group]) => {
@@ -566,13 +541,11 @@ export default function AccountPage() {
         
         navigate('/cart');
       } else {
-        // Single restaurant order - legacy format
         const items = result.data.items || [];
         const restaurant = result.data.restaurant || { id: 'unknown', name: 'Restaurant' };
         
         if (items.length > 0) {
           items.forEach(item => {
-            // Ensure each item has the necessary cart properties
             const cartItem = {
               ...item,
               restaurantId: restaurant.id,
@@ -590,7 +563,6 @@ export default function AccountPage() {
     }
   };
 
-  // Preferences handlers
   const handlePreferencesUpdate = async (newPreferences) => {
     const result = await updateUserPreferences(user.id, newPreferences);
     if (result.success) {
@@ -599,7 +571,6 @@ export default function AccountPage() {
   };
 
 
-  // Account deletion handler
   const handleDeleteAccount = async (password) => {
     const result = await deleteUserAccount(user.id, password);
     if (result.success) {
@@ -628,7 +599,7 @@ export default function AccountPage() {
   return (
     <div className="account-page">
       <div className="account-page__content">
-        {/* Dashboard Header */}
+        {}
         <div className="dashboard-header">
           <div className="user-welcome">
             <div className="user-avatar">
@@ -647,7 +618,7 @@ export default function AccountPage() {
             </div>
           </div>
           
-          {/* Quick Stats */}
+          {}
           <div className="quick-stats">
             <div className="stat-card">
               <div className="stat-number">{stats.totalOrders}</div>
@@ -660,7 +631,7 @@ export default function AccountPage() {
           </div>
         </div>
 
-        {/* Dashboard Navigation */}
+        {}
         <div className="dashboard-nav">
           <button 
             className={`nav-tab ${activeTab === 'profile' ? 'active' : ''}`}
@@ -700,7 +671,7 @@ export default function AccountPage() {
           </button>
         </div>
 
-        {/* Dashboard Content */}
+        {}
         <div className="dashboard-content">
           {activeTab === 'profile' && (
             <div className="profile-section">
@@ -858,7 +829,6 @@ export default function AccountPage() {
                           {(() => {
                             try {
                               if (order.restaurantGroups && Object.keys(order.restaurantGroups).length > 0) {
-                                // Multi-restaurant order - sum all items from all restaurants
                                 const totalItems = Object.values(order.restaurantGroups).reduce((total, group) => {
                                   const groupItems = Array.isArray(group.items) ? group.items : Object.values(group.items || {});
                                   return total + groupItems.length;
@@ -1001,7 +971,7 @@ export default function AccountPage() {
         </div>
       </div>
 
-      {/* Modals */}
+      {}
       <ProfileEditModal
         isOpen={showProfileModal}
         onClose={() => setShowProfileModal(false)}

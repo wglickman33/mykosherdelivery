@@ -2,10 +2,9 @@
 
 const bcrypt = require('bcryptjs');
 
-/** @type {import('sequelize-cli').Migration} */
+
 module.exports = {
   async up (queryInterface, Sequelize) {
-    // Hash the admin password
     const hashedPassword = await bcrypt.hash('MKDAdmin2024!', 12);
     
     await queryInterface.bulkInsert('profiles', [{

@@ -12,10 +12,8 @@ import {
   useElements
 } from '@stripe/react-stripe-js';
 
-// Initialize Stripe
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
-// Unified Stripe Payment Form Component
 const StripeCardForm = ({ onSuccess, onError, createPaymentIntent }) => {
   const stripe = useStripe();
   const elements = useElements();
@@ -138,7 +136,6 @@ const PaymentStep = ({
   const [errorTimeout, setErrorTimeout] = useState(null);
   const [stripePaymentData, setStripePaymentData] = useState(null);
 
-  // Cleanup error timeout on unmount
   useEffect(() => {
     return () => {
       if (errorTimeout) {
@@ -147,7 +144,6 @@ const PaymentStep = ({
     };
   }, [errorTimeout]);
 
-  // Helper function to set error with timeout
   const setErrorWithTimeout = (message) => {
     if (errorTimeout) {
       clearTimeout(errorTimeout);
@@ -157,7 +153,6 @@ const PaymentStep = ({
     setErrorTimeout(timeout);
   };
 
-  // Helper function to clear error and timeout
   const clearError = () => {
     if (errorTimeout) {
       clearTimeout(errorTimeout);
@@ -166,9 +161,7 @@ const PaymentStep = ({
     setError("");
   };
 
-  // Simple payment intent creation - called only when button is clicked
   const createPaymentIntent = async () => {
-    // Prevent duplicate calls if stripe data already exists
     if (stripePaymentData) {
       return stripePaymentData;
     }
@@ -177,7 +170,6 @@ const PaymentStep = ({
       setIsProcessing(true);
       clearError();
 
-      // Group items by restaurant (orderData.items is an array, need to group it)
       const restaurantGroups = {};
       orderData.items.forEach(item => {
         const restaurantId = item.restaurantId || 'unknown';
@@ -192,10 +184,8 @@ const PaymentStep = ({
         restaurantGroups[restaurantId].total += item.price * item.quantity;
       });
 
-      // Use the subtotal from orderData (already calculated in CheckoutPage)
       const subtotal = orderData.subtotal;
 
-      // Create order with correct format
       const orderPayload = {
         restaurantGroups: restaurantGroups,
         deliveryAddress: orderData.deliveryAddress,
@@ -214,7 +204,6 @@ const PaymentStep = ({
         throw new Error('Failed to create orders');
       }
 
-      // Extract order IDs from response (supports both legacy and new formats)
       const ordersArray = Array.isArray(orderResponse.data?.orders)
         ? orderResponse.data.orders
         : (Array.isArray(orderResponse.data) ? orderResponse.data : []);
@@ -222,12 +211,10 @@ const PaymentStep = ({
         .map(order => order?.id)
         .filter(Boolean);
 
-      // Validate order IDs before creating payment intent
       if (!orderIds || orderIds.length === 0 || orderIds.some(id => !id)) {
         throw new Error('Invalid order IDs extracted from response');
       }
 
-      // Create payment intent
       const paymentIntentResponse = await apiClient.post('/payments/create-intent', {
         amount: Math.round(orderData.total * 100),
         currency: 'usd',
@@ -238,7 +225,6 @@ const PaymentStep = ({
         throw new Error(paymentIntentResponse.error || 'Failed to create payment intent');
       }
 
-      // Return stripe data instead of setting state
       const stripeData = {
         clientSecret: paymentIntentResponse.clientSecret,
         amount: Math.round(orderData.total * 100),
@@ -251,18 +237,16 @@ const PaymentStep = ({
     } catch (error) {
       console.error('Payment intent creation failed:', error);
       setErrorWithTimeout(error.message || 'Payment setup failed. Please try again.');
-      throw error; // Re-throw so the form can handle it
+      throw error;
     } finally {
       setIsProcessing(false);
     }
   };
 
-  // Handle successful Stripe payment
   const handleStripePaymentSuccess = async (paymentIntent, paymentMeta = {}) => {
     const orderIds = paymentMeta?.orderIds || stripePaymentData?.orderIds;
     let orderNumber = null;
 
-    // Fetch order to get orderNumber
     if (orderIds && orderIds.length > 0) {
       try {
         const firstOrderId = orderIds[0];
@@ -289,7 +273,6 @@ const PaymentStep = ({
         throw new Error('Payment succeeded but order metadata is missing.');
       }
 
-      // IMPORTANT: Confirm payment intent on backend to update order status and send to Shipday
       try {
         console.log('Confirming payment intent on backend...', { paymentIntentId: paymentIntent.id });
         const confirmResult = await apiClient.post('/payments/confirm-intent', {
@@ -298,10 +281,8 @@ const PaymentStep = ({
         console.log('Payment confirmed on backend:', confirmResult);
       } catch (confirmError) {
         console.error('Failed to confirm payment intent on backend:', confirmError);
-        // Don't block the flow - payment already succeeded on Stripe side
       }
 
-      // Send order confirmation email
       const emailResult = await apiClient.post('/orders/send-confirmation', {
         orderIds: meta.orderIds,
         customerInfo: {
@@ -317,7 +298,6 @@ const PaymentStep = ({
       console.error('Failed to send confirmation email:', error);
     }
 
-    // Complete the order and redirect to confirmation page
     onComplete({
       id: 'stripe-payment',
       type: 'card',
@@ -330,33 +310,27 @@ const PaymentStep = ({
     });
   };
 
-  // Handle Stripe payment error
   const handleStripePaymentError = (errorMessage) => {
     setErrorWithTimeout(errorMessage);
     setStripePaymentData(null);
     setIsProcessing(false);
   };
 
-  // Get saved payment methods from user profile
   const savedMethods = profile?.payment_methods || [];
   
 
 
 
-  // Tip and promo handlers are now passed as props from CheckoutPage
 
   const handleSubmit = async () => {
-    // Clear any previous errors
     clearError();
     
-    // Validation checks with specific error messages
     if (!selectedMethod) {
       setErrorWithTimeout("Please select a payment method to continue.");
       return;
     }
 
     if (selectedMethod === 'new-card') {
-      // Stripe Elements handles validation
       setErrorWithTimeout("Please use the secure card form above.");
       return;
     }
@@ -366,12 +340,9 @@ const PaymentStep = ({
     try {
 
       
-      // First, create the order in the database
       const restaurantGroups = {};
       
-      // Group items by restaurant
       orderData.items.forEach((item, index) => {
-        // Ensure we have a valid restaurant ID
         if (!item.restaurantId) {
           console.error('Cart item missing restaurantId:', item);
           throw new Error('Cart items must have restaurant information. Please refresh and try again.');
@@ -386,31 +357,27 @@ const PaymentStep = ({
           };
         }
         
-        // Add item with index to avoid duplication
         const itemWithIndex = { ...item, orderIndex: index };
         restaurantGroups[restaurantId].items.push(itemWithIndex);
         restaurantGroups[restaurantId].subtotal += item.price * item.quantity;
       });
 
-      // Get calculated values from CheckoutPage via orderData
       const totalSubtotal = Object.values(restaurantGroups).reduce((sum, group) => sum + group.subtotal, 0);
-      const deliveryFee = orderData.deliveryFee; // Use dynamic delivery fee from CheckoutPage
-      const tip = orderData.tip; // Use tip calculated in CheckoutPage
-      const discountAmount = orderData.discountAmount || 0; // Use discount from CheckoutPage
+      const deliveryFee = orderData.deliveryFee;
+      const tip = orderData.tip;
+      const discountAmount = orderData.discountAmount || 0;
       const discountedSubtotal = totalSubtotal - discountAmount;
-      const tax = discountedSubtotal * (orderData.taxRate || 0.0825); // Dynamic tax rate from CheckoutPage
-      const total = orderData.total; // Use total calculated in CheckoutPage
+      const tax = discountedSubtotal * (orderData.taxRate || 0.0825);
+      const total = orderData.total;
       
-      // Split delivery fee and tax across restaurants proportionally
       const restaurantCount = Object.keys(restaurantGroups).length;
       const deliveryFeePerRestaurant = deliveryFee / restaurantCount;
       const taxRate = 0.0825;
 
-      // Add delivery fee and tax to each restaurant group
       Object.keys(restaurantGroups).forEach(restaurantId => {
         const group = restaurantGroups[restaurantId];
         group.deliveryFee = deliveryFeePerRestaurant;
-        group.tax = group.subtotal * taxRate; // Tax based on restaurant's subtotal
+        group.tax = group.subtotal * taxRate;
         group.total = group.subtotal + group.deliveryFee + group.tax;
       });
 
@@ -427,7 +394,6 @@ const PaymentStep = ({
         appliedPromo: orderData.appliedPromo || null
       };
 
-      // Create order via backend
       const orderResponse = await apiClient.post('/orders', orderPayload);
 
       if (!orderResponse.success) {
@@ -436,11 +402,9 @@ const PaymentStep = ({
 
       const orderIds = orderResponse.data.orders.map(order => order.id);
       
-      // Now process payment
       let paymentResult;
       
       if (selectedMethod.startsWith('saved-')) {
-        // Use saved payment method
         const method = savedMethods.find(m => m.id === selectedMethod);
         if (method && method.stripe_payment_method_id) {
           paymentResult = await processPayment({
@@ -451,9 +415,8 @@ const PaymentStep = ({
           });
         }
       } else if (selectedMethod === 'new-card') {
-        // Create payment intent for new card with the created orders
         const paymentIntentResponse = await apiClient.post('/payments/create-intent', {
-          amount: Math.round(orderData.total * 100), // Convert to cents
+          amount: Math.round(orderData.total * 100),
           currency: 'usd',
           orderIds: orderIds
         });
@@ -462,22 +425,19 @@ const PaymentStep = ({
           throw new Error('Failed to create payment intent');
         }
 
-        // Set up Stripe Elements for payment
         setStripePaymentData({
           clientSecret: paymentIntentResponse.clientSecret,
           paymentIntentId: paymentIntentResponse.paymentIntentId,
           orderIds: orderIds,
           amount: Math.round(orderData.total * 100)
         });
-        return; // Don't continue with normal payment flow
+        return;
       }
 
       if (paymentResult && paymentResult.success) {
-        // Get order number from response (handle both camelCase and snake_case)
         const order = orderResponse.data.orders?.[0];
         const orderNumber = order?.orderNumber || order?.order_number || order?.id;
         
-        // Complete the order (email will be sent from OrderConfirmationPage)
         onComplete({
           id: selectedMethod,
           type: 'card',
@@ -493,7 +453,6 @@ const PaymentStep = ({
     } catch (error) {
       console.error('Payment failed:', error);
       
-      // Provide user-friendly error messages based on error type
       let friendlyMessage = "We're having trouble processing your payment right now. Please try again in a moment.";
       
       if (error.message?.includes('restaurant information')) {
@@ -534,7 +493,7 @@ const PaymentStep = ({
       </div>
 
       <div className="payment-methods">
-        {/* Saved Cards */}
+        {}
         {savedMethods.length > 0 && (
           <div className="saved-methods">
             <h3 className="section-title">Saved Payment Methods</h3>
@@ -580,7 +539,7 @@ const PaymentStep = ({
           </div>
         )}
 
-        {/* Add New Card */}
+        {}
         <div className="new-card-section">
           <div
             className={`payment-card ${
@@ -597,7 +556,7 @@ const PaymentStep = ({
                   type="radio"
                   value="new-card"
                   checked={selectedMethod === 'new-card'}
-                                                                             onChange={() => {
+                    onChange={() => {
                        if (error) clearError();
                        setSelectedMethod('new-card');
                      }}
@@ -624,7 +583,7 @@ const PaymentStep = ({
         </div>
       </div>
 
-      {/* Tip Selection */}
+      {}
       <div className="payment-tip-section">
         <h3 className="payment-tip-title">Add Driver Tip</h3>
         <div className="payment-tip-options">

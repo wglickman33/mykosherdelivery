@@ -2,16 +2,14 @@
 
 const { v4: uuidv4 } = require('uuid');
 
-/** @type {import('sequelize-cli').Migration} */
+
 module.exports = {
   async up (queryInterface, Sequelize) {
     const now = new Date();
 
-    // Clear existing data to avoid conflicts
     await queryInterface.bulkDelete('menu_items', null, {});
     await queryInterface.bulkDelete('restaurants', null, {});
 
-    // Restaurants copied from src/data/restaurants.js (images handled separately via logo filenames)
     const restaurants = [
       {
         id: 'bagel-boys',
@@ -161,9 +159,7 @@ module.exports = {
 
     await queryInterface.bulkInsert('restaurants', restaurants, {});
 
-    // Menu items copied from src/data/restaurants.js (category omitted)
     const menuItems = [
-      // Bagel Boys
       {
         id: uuidv4(),
         restaurant_id: 'bagel-boys',
@@ -192,7 +188,6 @@ module.exports = {
         created_at: now,
         updated_at: now
       },
-      // The Cheese Store
       {
         id: uuidv4(),
         restaurant_id: 'the-cheese-store',
@@ -221,7 +216,6 @@ module.exports = {
         created_at: now,
         updated_at: now
       },
-      // Stop Chop & Roll
       {
         id: uuidv4(),
         restaurant_id: 'stop-chop-and-roll',
@@ -250,7 +244,6 @@ module.exports = {
         created_at: now,
         updated_at: now
       },
-      // Ruthy's Grocery & Deli
       {
         id: uuidv4(),
         restaurant_id: 'ruthys-grocery-and-deli',
@@ -279,7 +272,6 @@ module.exports = {
         created_at: now,
         updated_at: now
       },
-      // Graze Smokehouse
       {
         id: uuidv4(),
         restaurant_id: 'graze-smokehouse',
@@ -308,7 +300,6 @@ module.exports = {
         created_at: now,
         updated_at: now
       },
-      // Traditions Eatery
       {
         id: uuidv4(),
         restaurant_id: 'traditions-eatery',
@@ -337,7 +328,6 @@ module.exports = {
         created_at: now,
         updated_at: now
       },
-      // Alan's Bakery
       {
         id: uuidv4(),
         restaurant_id: 'alans-bakery',
@@ -366,7 +356,6 @@ module.exports = {
         created_at: now,
         updated_at: now
       },
-      // Central Perk Cafe
       {
         id: uuidv4(),
         restaurant_id: 'central-perk-cafe',
@@ -395,7 +384,6 @@ module.exports = {
         created_at: now,
         updated_at: now
       },
-      // Spruce D'Vine
       {
         id: uuidv4(),
         restaurant_id: 'spruce-dvine',
@@ -424,7 +412,6 @@ module.exports = {
         created_at: now,
         updated_at: now
       },
-      // Oh! Nuts
       {
         id: uuidv4(),
         restaurant_id: 'oh-nuts',
@@ -453,7 +440,6 @@ module.exports = {
         created_at: now,
         updated_at: now
       },
-      // Five Fifty
       {
         id: uuidv4(),
         restaurant_id: 'five-fifty',
@@ -482,7 +468,6 @@ module.exports = {
         created_at: now,
         updated_at: now
       },
-      // Mazza & More
       {
         id: uuidv4(),
         restaurant_id: 'mazza-and-more',

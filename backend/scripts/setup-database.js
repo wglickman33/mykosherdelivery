@@ -1,18 +1,8 @@
-#!/usr/bin/env node
-
-/**
- * Database Setup Script
- * 
- * This script sets up the PostgreSQL database for MyKosherDelivery
- * It creates the database, runs migrations, and seeds initial data
- */
-
 require('dotenv').config();
 const { Client } = require('pg');
 const { execSync } = require('child_process');
 const logger = require('../utils/logger');
 
-// Database configuration
 const DB_CONFIG = {
   host: process.env.DB_HOST || 'localhost',
   port: process.env.DB_PORT || 5432,
@@ -21,54 +11,47 @@ const DB_CONFIG = {
   database: process.env.DB_NAME || 'mkd_development'
 };
 
-// Extract database name from DATABASE_URL if provided
 if (process.env.DATABASE_URL) {
   const url = new URL(process.env.DATABASE_URL);
   DB_CONFIG.host = url.hostname;
   DB_CONFIG.port = url.port || 5432;
   DB_CONFIG.user = url.username;
   DB_CONFIG.password = url.password;
-  DB_CONFIG.database = url.pathname.slice(1); // Remove leading slash
+  DB_CONFIG.database = url.pathname.slice(1);
 }
 
-/**
- * Create database if it doesn't exist
- */
 async function createDatabase() {
   const client = new Client({
     host: DB_CONFIG.host,
     port: DB_CONFIG.port,
     user: DB_CONFIG.user,
     password: DB_CONFIG.password,
-    database: 'postgres' // Connect to default postgres database
+    database: 'postgres'
   });
 
   try {
     await client.connect();
     logger.info('Connected to PostgreSQL server');
 
-    // Check if database exists
     const result = await client.query(
       'SELECT 1 FROM pg_database WHERE datname = $1',
       [DB_CONFIG.database]
     );
 
     if (result.rows.length === 0) {
-      // Create database
       await client.query(`CREATE DATABASE "${DB_CONFIG.database}"`);
       logger.info(`Database "${DB_CONFIG.database}" created successfully`);
     } else {
       logger.info(`Database "${DB_CONFIG.database}" already exists`);
     }
 
-    // Create user if it doesn't exist (for development)
     if (process.env.NODE_ENV === 'development') {
       try {
         await client.query(`CREATE USER mkd_user WITH PASSWORD 'secure_password'`);
         await client.query(`GRANT ALL PRIVILEGES ON DATABASE "${DB_CONFIG.database}" TO mkd_user`);
         logger.info('Database user "mkd_user" created and granted privileges');
       } catch (error) {
-        if (error.code === '42710') { // User already exists
+        if (error.code === '42710') {
           logger.info('Database user "mkd_user" already exists');
         } else {
           logger.warn('Failed to create database user:', error.message);
@@ -84,9 +67,6 @@ async function createDatabase() {
   }
 }
 
-/**
- * Run database migrations
- */
 async function runMigrations() {
   try {
     logger.info('Running database migrations...');
@@ -101,9 +81,6 @@ async function runMigrations() {
   }
 }
 
-/**
- * Seed database with initial data
- */
 async function seedDatabase() {
   try {
     logger.info('Seeding database with initial data...');
@@ -118,9 +95,6 @@ async function seedDatabase() {
   }
 }
 
-/**
- * Test database connection
- */
 async function testConnection() {
   const client = new Client({
     host: DB_CONFIG.host,
@@ -143,9 +117,6 @@ async function testConnection() {
   }
 }
 
-/**
- * Create required extensions
- */
 async function createExtensions() {
   const client = new Client({
     host: DB_CONFIG.host,
@@ -158,11 +129,9 @@ async function createExtensions() {
   try {
     await client.connect();
     
-    // Create UUID extension
     await client.query('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"');
     logger.info('UUID extension created/verified');
     
-    // Create pgcrypto extension for additional security functions
     await client.query('CREATE EXTENSION IF NOT EXISTS "pgcrypto"');
     logger.info('pgcrypto extension created/verified');
     
@@ -174,9 +143,6 @@ async function createExtensions() {
   }
 }
 
-/**
- * Main setup function
- */
 async function setupDatabase() {
   try {
     logger.info('Starting database setup...');
@@ -187,22 +153,17 @@ async function setupDatabase() {
       database: DB_CONFIG.database
     });
 
-    // Step 1: Create database
     await createDatabase();
 
-    // Step 2: Test connection
     const connectionOk = await testConnection();
     if (!connectionOk) {
       throw new Error('Database connection failed');
     }
 
-    // Step 3: Create extensions
     await createExtensions();
 
-    // Step 4: Run migrations
     await runMigrations();
 
-    // Step 5: Seed database (optional, only in development)
     if (process.env.NODE_ENV === 'development' || process.argv.includes('--seed')) {
       await seedDatabase();
     }
@@ -216,9 +177,6 @@ async function setupDatabase() {
   }
 }
 
-/**
- * Reset database (development only)
- */
 async function resetDatabase() {
   if (process.env.NODE_ENV === 'production') {
     logger.error('Database reset is not allowed in production');
@@ -228,16 +186,13 @@ async function resetDatabase() {
   try {
     logger.warn('Resetting database - this will delete all data!');
     
-    // Undo all migrations
     execSync('npx sequelize-cli db:migrate:undo:all', { 
       stdio: 'inherit',
       cwd: __dirname + '/..'
     });
     
-    // Run migrations again
     await runMigrations();
     
-    // Seed database
     await seedDatabase();
     
     logger.info('Database reset completed successfully!');
@@ -247,7 +202,6 @@ async function resetDatabase() {
   }
 }
 
-// Command line interface
 const command = process.argv[2];
 
 switch (command) {

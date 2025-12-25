@@ -11,17 +11,14 @@ import { formatPhoneNumber, formatPhoneForInput } from '../../utils/phoneFormatt
 import MenuItemModal from './MenuItemModal';
 import { fetchRestaurantMenuItems, deleteMenuItem } from '../../services/menuItemService';
 
-// Load all restaurant logos from frontend assets (Vite)
 const logoModules = import.meta.glob('../../assets/restaurantlogos/*', { eager: true, import: 'default' });
 
-// Normalize a restaurant record to expose both snake_case and camelCase keys
 const normalizeRestaurant = (r = {}) => {
   const out = { ...r };
   out.type_of_food = r.type_of_food ?? r.typeOfFood ?? '';
   out.phone_number = r.phone_number ?? r.phone ?? '';
   out.kosher_certification = r.kosher_certification ?? r.kosherCertification ?? '';
   out.logo_url = r.logo_url ?? r.logoUrl ?? '';
-  // keep address, featured as-is
   return out;
 };
 
@@ -39,12 +36,12 @@ const AdminRestaurants = () => {
   const [filters, setFilters] = useState({
     search: '',
     featured: undefined,
-    sort: 'name_asc', // name_asc | name_desc | featured
+    sort: 'name_asc',
     page: 1,
     limit: 20
   });
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 1 });
-  const [activeTab, setActiveTab] = useState('restaurants'); // 'restaurants' | 'menus'
+  const [activeTab, setActiveTab] = useState('restaurants');
   const [showMenuItemModal, setShowMenuItemModal] = useState(false);
   const [selectedMenuItem, setSelectedMenuItem] = useState(null);
   const [selectedRestaurantForMenu, setSelectedRestaurantForMenu] = useState(null);
@@ -66,7 +63,6 @@ const AdminRestaurants = () => {
   const lastSearchRef = useRef('');
   const { user: adminUser } = useAuth();
 
-  // Map asset basenames (e.g., grazeLogo.png) to URLs
   const assetsLogoByName = useMemo(() => {
     const map = {};
     Object.entries(logoModules).forEach(([path, url]) => {
@@ -90,7 +86,7 @@ const AdminRestaurants = () => {
 
   useEffect(() => {
     fetchRestaurants();
-  }, []); // initial load only
+  }, []);
 
   const fetchRestaurants = async () => {
     setLoading(true);
@@ -127,19 +123,17 @@ const AdminRestaurants = () => {
     }
   }, [menuItemsFilters, showNotification]);
 
-  // Handle menu item search - only trigger API call on Enter or button click
   const handleMenuItemsSearch = useCallback(() => {
     if (selectedRestaurantForMenu && menuItemsFilters.search !== lastSearchRef.current) {
       lastSearchRef.current = menuItemsFilters.search;
       const newFilters = {
         ...menuItemsFilters,
-        page: 1 // Reset to first page when searching
+        page: 1
       };
       fetchMenuItems(selectedRestaurantForMenu.id, newFilters);
     }
   }, [menuItemsFilters, selectedRestaurantForMenu, fetchMenuItems]);
 
-  // Handle search input change (just update state, don't trigger API)
   const handleSearchInputChange = useCallback((searchTerm) => {
     setMenuItemsFilters(prev => ({
       ...prev,
@@ -148,7 +142,6 @@ const AdminRestaurants = () => {
     }));
   }, []);
 
-  // Handle Enter key press in search input
   const handleSearchKeyDown = useCallback((e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -156,7 +149,6 @@ const AdminRestaurants = () => {
     }
   }, [handleMenuItemsSearch]);
 
-  // Handle menu item pagination
   const handleMenuItemsPageChange = useCallback((newPage) => {
     const newFilters = {
       ...menuItemsFilters,
@@ -171,7 +163,6 @@ const AdminRestaurants = () => {
   const applyFilters = useCallback(() => {
     let list = Array.isArray(allRestaurants) ? [...allRestaurants] : [];
 
-    // Search (name, cuisine, address)
     if (filters.search && filters.search.trim() !== '') {
       const q = filters.search.trim().toLowerCase();
       list = list.filter(r => (
@@ -181,12 +172,10 @@ const AdminRestaurants = () => {
       ));
     }
 
-    // Featured filter
     if (typeof filters.featured === 'boolean') {
       list = list.filter(r => !!r.featured === filters.featured);
     }
 
-    // Sort
     switch (filters.sort) {
       case 'name_desc':
         list.sort((a, b) => (b.name || '').localeCompare(a.name || ''));
@@ -199,7 +188,6 @@ const AdminRestaurants = () => {
         list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     }
 
-    // Pagination (client-side)
     const total = list.length;
     const limit = filters.limit || 20;
     const totalPages = Math.max(1, Math.ceil(total / limit));
@@ -222,14 +210,12 @@ const AdminRestaurants = () => {
     .replace(/(^-|-$)/g, '') || `restaurant-${Date.now()}`;
 
   const mapToApi = (data, isCreate = false) => {
-    // sanitize logo to store just filename when it maps to a bundled asset
     const inputLogo = data.logo_url || data.logoUrl || '';
     const fname = String(inputLogo).split('/').pop()?.toLowerCase() || '';
     const base = fname.replace(/\.[^.]+$/, '');
     const logoFromAssets = (fname && assetsLogoByName[fname]) || (base && assetsLogoByBase[base]);
     const storedLogo = logoFromAssets ? (fname || `${base}.png`) : inputLogo;
     const payload = {
-      // DB-first camelCase schema expected by backend
       name: data.name || '',
       address: data.address || '',
       phone: data.phone_number || data.phone || '',
@@ -253,7 +239,6 @@ const AdminRestaurants = () => {
       setShowCreateModal(false);
       setFormData({});
       
-      // Refresh notifications
       window.dispatchEvent(new CustomEvent('mkd-refresh-notifications'));
       
       showNotification('Restaurant created successfully', 'success');
@@ -269,7 +254,6 @@ const AdminRestaurants = () => {
       setShowEditModal(false);
       setSelectedRestaurant(null);
       
-      // Refresh notifications
       window.dispatchEvent(new CustomEvent('mkd-refresh-notifications'));
       
       showNotification('Restaurant updated successfully', 'success');
@@ -293,7 +277,6 @@ const AdminRestaurants = () => {
       setShowDeleteConfirm(false);
       setSelectedRestaurant(null);
       
-      // Refresh notifications
       window.dispatchEvent(new CustomEvent('mkd-refresh-notifications'));
       
       showNotification('Restaurant deleted successfully', 'success');
@@ -321,7 +304,6 @@ const AdminRestaurants = () => {
         setSelectedMenuItemToDelete(null);
         showNotification('Menu item deleted successfully', 'success');
         
-        // Refresh menu items
         await fetchMenuItems(selectedRestaurantForMenu.id);
       }
     } catch (error) {
@@ -346,31 +328,24 @@ const AdminRestaurants = () => {
     });
   };
 
-  // currency formatting no longer needed in view modal
 
-  // Resolve a usable logo URL from stored value
   const resolveLogoUrl = (raw) => {
     if (!raw) return '';
     const val = String(raw).trim();
     
-    // Handle absolute URLs first
     if (/^https?:\/\//i.test(val)) return val;
-    if (val.startsWith('/')) return val; // server-relative (Vite-built assets or same-origin)
+    if (val.startsWith('/')) return val;
     
-    // Extract filename for matching
     const filename = val.split('/').pop()?.toLowerCase();
     
-    // Check if it's a frontend asset first (for existing bundled logos)
     if (filename && assetsLogoByName[filename]) return assetsLogoByName[filename];
     const base = filename ? filename.replace(/\.[^.]+$/, '') : '';
     if (base && assetsLogoByBase[base]) return assetsLogoByBase[base];
     
-    // For new uploaded files, use the new image service
     if (val.startsWith('images/')) {
       return buildImageUrl(val);
     }
     
-    // Legacy support for old uploaded files
     return buildImageUrl(`static/restaurant-logos/${val}`);
   };
 
@@ -419,7 +394,7 @@ const AdminRestaurants = () => {
         </div>
       </div>
 
-      {/* Tabs */}
+      {}
       <div className="admin-restaurants__tabs">
         <button 
           className={`admin-restaurants__tab ${activeTab === 'restaurants' ? 'active' : ''}`} 
@@ -435,10 +410,10 @@ const AdminRestaurants = () => {
         </button>
       </div>
 
-      {/* Tab Content */}
+      {}
       {activeTab === 'restaurants' && (
         <>
-          {/* Filters */}
+          {}
           <div className="admin-restaurants__filters">
             <div className="admin-restaurants__filter-group">
               <label>Search</label>
@@ -491,7 +466,7 @@ const AdminRestaurants = () => {
             </div>
           </div>
 
-      {/* Restaurants Grid */}
+      {}
       <div className="admin-restaurants__content">
         {loading ? (
           <div className="admin-restaurants__loading">
@@ -580,7 +555,7 @@ const AdminRestaurants = () => {
               ))}
             </div>
 
-            {/* Pagination */}
+            {}
             <div className="admin-restaurants__pagination">
               <div className="admin-restaurants__pagination-info">
                 Showing {pagination.total > 0 ? ((pagination.page - 1) * pagination.limit) + 1 : 0} to{' '}
@@ -625,16 +600,14 @@ const AdminRestaurants = () => {
                   const restaurant = allRestaurants.find(r => r.id === restaurantId);
                   setSelectedRestaurantForMenu(restaurant || null);
                   
-                  // Reset filters when switching restaurants
                   const resetFilters = {
                     search: '',
                     page: 1,
                     limit: 20
                   };
                   setMenuItemsFilters(resetFilters);
-                  lastSearchRef.current = ''; // Reset search ref
+                  lastSearchRef.current = '';
                   
-                  // Fetch menu items when restaurant is selected
                   if (restaurant) {
                     fetchMenuItems(restaurant.id, resetFilters);
                   } else {
@@ -655,7 +628,7 @@ const AdminRestaurants = () => {
               )}
             </div>
             
-            {/* Menu Items Display */}
+            {}
             {selectedRestaurantForMenu && (
               <div className="admin-restaurants__menu-items-section">
                 <div className="admin-restaurants__menu-items-header">
@@ -671,7 +644,7 @@ const AdminRestaurants = () => {
                   </button>
                 </div>
 
-                {/* Search and Pagination Controls */}
+                {}
                 <div className="admin-restaurants__menu-items-controls">
                   <div className="admin-restaurants__search-container">
                     <input
@@ -766,7 +739,7 @@ const AdminRestaurants = () => {
                   </div>
                 )}
 
-                {/* Pagination Controls */}
+                {}
                 {menuItemsPagination.totalPages > 1 && (
                   <div className="admin-restaurants__pagination">
                     <button
@@ -809,7 +782,7 @@ const AdminRestaurants = () => {
         </div>
       )}
 
-      {/* Restaurant Details Modal */}
+      {}
       {showRestaurantModal && selectedRestaurant && (
         <div className="admin-restaurants__overlay" onClick={() => setShowRestaurantModal(false)}>
           <div className="admin-restaurants__modal admin-restaurants__modal--view" onClick={(e) => e.stopPropagation()}>
@@ -879,7 +852,7 @@ const AdminRestaurants = () => {
         </div>
       )}
 
-      {/* Create/Edit Restaurant Modal */}
+      {}
       {(showCreateModal || showEditModal) && (
         <div className="admin-restaurants__overlay" onClick={() => {
           setShowCreateModal(false);
@@ -1023,7 +996,7 @@ const AdminRestaurants = () => {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
+      {}
       {showDeleteConfirm && selectedRestaurant && (
         <div className="admin-restaurants__overlay" onClick={() => setShowDeleteConfirm(false)}>
           <div className="admin-restaurants__modal admin-restaurants__modal--delete" onClick={(e) => e.stopPropagation()}>
@@ -1056,7 +1029,7 @@ const AdminRestaurants = () => {
         </div>
       )}
 
-      {/* Menu Item Delete Confirmation Modal */}
+      {}
       {showMenuItemDeleteConfirm && selectedMenuItemToDelete && (
         <div className="admin-restaurants__overlay" onClick={() => setShowMenuItemDeleteConfirm(false)}>
           <div className="admin-restaurants__modal admin-restaurants__modal--delete" onClick={(e) => e.stopPropagation()}>
@@ -1089,7 +1062,7 @@ const AdminRestaurants = () => {
         </div>
       )}
 
-      {/* Menu Item Modal */}
+      {}
       {showMenuItemModal && selectedRestaurantForMenu && (
         <MenuItemModal
           isOpen={showMenuItemModal}
@@ -1102,7 +1075,6 @@ const AdminRestaurants = () => {
           onSave={(savedMenuItem) => {
             showNotification(`Menu item "${savedMenuItem.name}" ${selectedMenuItem ? 'updated' : 'created'} successfully`, 'success');
             
-            // Refresh menu items list
             if (selectedRestaurantForMenu) {
               fetchMenuItems(selectedRestaurantForMenu.id);
             }
@@ -1110,7 +1082,7 @@ const AdminRestaurants = () => {
         />
       )}
       
-      {/* Notification Toast */}
+      {}
       <NotificationToast 
         notification={notification} 
         onClose={hideNotification} 

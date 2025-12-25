@@ -10,12 +10,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 19500; // Above AddressManagement (19000), below AddressModal (20000) and DeleteConfirm (21000)
+  z-index: 19500;
   animation: fadeIn 0.2s ease-out;
-  overflow: hidden; // Prevent background scroll
-  padding: 20px; // Add padding for consistent spacing
+  overflow: hidden;
+  padding: 20px;
   
-  // Ensure centering regardless of sidebar - use viewport units
   box-sizing: border-box;
 }
 
@@ -24,17 +23,16 @@
   border-radius: 12px;
   padding: 0;
   max-width: 500px;
-  width: calc(100% - 40px); // Account for overlay padding
+  width: calc(100% - 40px);
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   animation: slideIn 0.2s ease-out;
-  max-height: calc(100vh - 40px); // Account for overlay padding
-  min-height: 300px; // Add minimum height
+  max-height: calc(100vh - 40px);
+  min-height: 300px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   position: relative;
   
-  // Ensure modal stays within viewport and doesn't overlap
   box-sizing: border-box;
 }
 
@@ -45,7 +43,7 @@
   padding: 24px 24px 16px;
   border-bottom: 1px solid #e9ecef;
   flex-shrink: 0;
-  position: relative; // Ensure close button positioning
+  position: relative;
   
   h2 {
     margin: 0;
@@ -56,7 +54,7 @@
     min-width: 0;
     margin-right: 16px;
     padding-top: 4px;
-    word-wrap: break-word; // Prevent text overflow
+    word-wrap: break-word;
   }
   
   .close-button {
@@ -71,7 +69,7 @@
     transition: all 0.3s ease;
     flex-shrink: 0;
     margin-top: -4px;
-    min-width: 40px; // Ensure consistent sizing
+    min-width: 40px;
     min-height: 40px;
     
     &:hover {
@@ -86,7 +84,7 @@
     svg {
       width: 24px;
       height: 24px;
-      flex-shrink: 0; // Prevent icon from shrinking
+      flex-shrink: 0;
     }
   }
 }
@@ -95,7 +93,7 @@
   padding: 24px;
   flex: 1;
   overflow-y: auto;
-  max-height: calc(100vh - 140px); // Account for header and padding
+  max-height: calc(100vh - 140px);
   
   .form-group {
     margin-bottom: 24px;
@@ -106,7 +104,7 @@
       font-weight: 600;
       color: #374151;
       font-size: 14px;
-      word-wrap: break-word; // Prevent text overflow
+      word-wrap: break-word;
     }
     
     .address-input-container {
@@ -137,9 +135,8 @@
         right: 12px;
         top: 50%;
         transform: translateY(-50%);
-        z-index: 1; // Ensure it appears above input
+        z-index: 1;
         
-        // LoadingSpinner component handles the spinner styling
       }
       
       .suggestions-dropdown {
@@ -175,13 +172,13 @@
             color: #111827;
             font-size: 14px;
             margin-bottom: 2px;
-            word-wrap: break-word; // Prevent text overflow
+            word-wrap: break-word;
           }
           
           .suggestion-secondary {
             color: #6b7280;
             font-size: 12px;
-            word-wrap: break-word; // Prevent text overflow
+            word-wrap: break-word;
           }
         }
       }
@@ -199,7 +196,7 @@
       color: #dc3545;
       font-size: 14px;
       font-weight: 500;
-      word-wrap: break-word; // Prevent text overflow
+      word-wrap: break-word;
 
       svg {
         flex-shrink: 0;
@@ -213,7 +210,7 @@
     gap: 12px;
     justify-content: flex-end;
     margin-top: 32px;
-    flex-wrap: wrap; // Allow wrapping on small screens
+    flex-wrap: wrap;
     
     .cancel-button {
       background-color: transparent;
@@ -225,8 +222,8 @@
       font-weight: 600;
       cursor: pointer;
       transition: all 0.3s ease;
-      white-space: nowrap; // Prevent text wrapping
-      flex-shrink: 0; // Prevent button from shrinking
+      white-space: nowrap;
+      flex-shrink: 0;
       
       &:hover {
         background-color: #f8f9fa;
@@ -249,8 +246,8 @@
       font-weight: 600;
       cursor: pointer;
       transition: all 0.3s ease;
-      white-space: nowrap; // Prevent text wrapping
-      flex-shrink: 0; // Prevent button from shrinking
+      white-space: nowrap;
+      flex-shrink: 0;
       
       &:hover:not(:disabled) {
         background-color: #061757;
@@ -292,7 +289,6 @@
   }
 }
 
-// Mobile responsiveness
 @media (max-width: 768px) {
   .temp-address-modal-overlay {
     padding: 16px;
@@ -301,7 +297,7 @@
   
   .temp-address-modal {
     max-width: none;
-    width: calc(100% - 32px); // Account for overlay padding
+    width: calc(100% - 32px);
     max-height: calc(100vh - 32px);
     min-height: 280px;
       border-radius: 16px;
@@ -312,11 +308,11 @@
     
     h2 {
       font-size: 1.3rem;
-      margin-right: 12px; // Ensure space for close button
+      margin-right: 12px;
     }
     
     .close-button {
-      min-width: 36px; // Adjust for smaller screens
+      min-width: 36px;
       min-height: 36px;
       
       svg {
@@ -344,14 +340,13 @@
   }
 }
 
-// Small mobile devices
 @media (max-width: 480px) {
   .temp-address-modal-overlay {
     padding: 12px;
   }
   
   .temp-address-modal {
-    width: calc(100% - 24px); // Account for overlay padding
+    width: calc(100% - 24px);
     max-height: calc(100vh - 24px);
     min-height: 260px;
     border-radius: 12px;
@@ -362,12 +357,12 @@
     
     h2 {
       font-size: 1.1rem;
-      margin-right: 10px; // Ensure space for close button
+      margin-right: 10px;
     }
     
     .close-button {
       padding: 6px;
-      min-width: 32px; // Adjust for smaller screens
+      min-width: 32px;
       min-height: 32px;
       
       svg {
@@ -391,12 +386,12 @@
       .address-input-container {
         .address-input {
           padding: 10px 12px;
-          font-size: 16px; // Prevent zoom on iOS
+          font-size: 16px;
           border-radius: 6px;
         }
         
         .suggestions-dropdown {
-          max-height: 150px; // Reduce height on small screens
+          max-height: 150px;
           
           .suggestion-item {
             padding: 10px 12px;
@@ -433,14 +428,13 @@
   }
 }
 
-// Extra small devices
 @media (max-width: 360px) {
   .temp-address-modal-overlay {
     padding: 8px;
   }
   
   .temp-address-modal {
-    width: calc(100% - 16px); // Account for overlay padding
+    width: calc(100% - 16px);
     max-height: calc(100vh - 16px);
     min-height: 240px;
   }
@@ -450,12 +444,12 @@
     
     h2 {
       font-size: 1rem;
-      margin-right: 8px; // Ensure space for close button
+      margin-right: 8px;
     }
     
     .close-button {
       padding: 4px;
-      min-width: 28px; // Adjust for smaller screens
+      min-width: 28px;
       min-height: 28px;
       
       svg {
@@ -484,7 +478,7 @@
         }
         
         .suggestions-dropdown {
-          max-height: 120px; // Further reduce height
+          max-height: 120px;
           
           .suggestion-item {
             padding: 8px 10px;
@@ -521,7 +515,6 @@
   }
 }
 
-// Landscape orientation on mobile
 @media (max-height: 500px) and (orientation: landscape) {
   .temp-address-modal-overlay {
     padding: 8px;
@@ -576,7 +569,6 @@
   }
 }
 
-// High contrast mode support
 @media (prefers-contrast: high) {
   .temp-address-modal {
     border: 2px solid #000;
@@ -602,7 +594,6 @@
   }
 }
 
-// Reduced motion support
 @media (prefers-reduced-motion: reduce) {
   .temp-address-modal-overlay {
     animation: none;

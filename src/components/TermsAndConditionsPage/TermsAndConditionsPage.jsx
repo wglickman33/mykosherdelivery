@@ -3,7 +3,6 @@ import Footer from '../Footer/Footer';
 import './TermsAndConditionsPage.scss';
 
 const TermsAndConditionsPage = () => {
-  // Scroll to top when component mounts
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);

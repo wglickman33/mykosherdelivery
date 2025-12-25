@@ -16,7 +16,6 @@
   &__search { padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 0.9rem; min-width: 240px; &:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); } }
   &__type, &__status { padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 0.9rem; background: #fff; }
 
-  // Board (Kanban)
   &__board { display: grid; grid-template-columns: repeat(5, minmax(280px, 1fr)); gap: 16px; align-items: start; overflow-x: auto; padding-bottom: 8px; }
   &__column { background: #ffffff; border: 1px solid rgba(6,23,87,0.08); border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); display: flex; flex-direction: column; min-height: 260px; transition: background-color 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease; }
   &__column.drag-over { background: #f1f5f9; border-color: #cbd5e1; box-shadow: 0 0 0 2px rgba(59,130,246,0.15) inset; }
@@ -35,7 +34,6 @@
   &__meta { display: flex; justify-content: space-between; gap: 8px; color: rgba(6,23,87,0.7); font-size: 0.85rem; }
   &__email { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-  // Inbox (Table + Drawer)
   &__inbox { display: grid; grid-template-columns: 1fr 380px; gap: 16px; align-items: start; }
   &__table-wrap { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); border: 1px solid #f1f5f9; }
   &__table { width: 100%; border-collapse: collapse; table-layout: fixed; }
@@ -46,11 +44,9 @@
   &__table tr.active { background: #eef2ff; }
   .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-  // Ensure only the pill renders text in the Status column (prevents stray characters)
   &__table td:nth-child(5) { font-size: 0; }
   &__table td:nth-child(5) .admin-requests__status-pill { font-size: 0.75rem; }
 
-  // Status pill styles
   &__status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; letter-spacing: .02em; text-transform: none; border: 1px solid transparent; }
   &__status-pill--open { background: #dbeafe; color: #1e40af; border-color: #bfdbfe; }
   &__status-pill--in_progress { background: #fef3c7; color: #92400e; border-color: #fde68a; }
@@ -94,7 +90,6 @@
   &__confirm-actions .admin-requests__danger { background: #ef4444; color: #fff; border-color: transparent; }
   &__confirm-actions .admin-requests__danger:hover { background: #dc2626; }
 
-  // Responsive
   @media (max-width: 1200px) { &__board { grid-template-columns: repeat(3, minmax(260px, 1fr)); } }
   @media (max-width: 900px) { &__board { grid-template-columns: repeat(2, minmax(260px, 1fr)); } }
   @media (max-width: 750px) {

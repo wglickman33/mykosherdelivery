@@ -66,7 +66,7 @@ const CartPage = () => {
                           <h4 className="item-name">{item.name}</h4>
                           <p className="item-description">{item.description}</p>
                           
-                          {/* Display selected variant for variety items */}
+                          {}
                           {item.itemType === 'variety' && item.selectedVariant && (
                             <div className="item-customization">
                               <span className="customization-label">Selected:</span>
@@ -79,7 +79,7 @@ const CartPage = () => {
                             </div>
                           )}
                           
-                          {/* Display selected configurations for builder items */}
+                          {}
                           {item.itemType === 'builder' && item.selectedConfigurations && item.selectedConfigurations.length > 0 && (
                             <div className="item-customization">
                               <div className="customization-list">
@@ -98,11 +98,10 @@ const CartPage = () => {
                             </div>
                           )}
                           
-                          {/* Price breakdown for customized items */}
+                          {}
                           {(item.itemType === 'variety' || item.itemType === 'builder') && (
                             <div className="item-price-breakdown">
                               {(() => {
-                                // Use stored basePrice if available, otherwise calculate it
                                 const basePrice = item.basePrice !== undefined 
                                   ? item.basePrice
                                   : (item.itemType === 'variety' 
@@ -137,7 +136,7 @@ const CartPage = () => {
                             </div>
                           )}
                           
-                          {/* Simple price display for regular items */}
+                          {}
                           {(!item.itemType || item.itemType === 'simple') && (
                           <div className="item-price">${item.price.toFixed(2)} each</div>
                           )}

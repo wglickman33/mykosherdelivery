@@ -10,7 +10,6 @@ const AdminCampaigns = () => {
   const [error, setError] = useState(null);
   const [dataLoaded, setDataLoaded] = useState(false);
 
-  // Campaign form state
   const [showCampaignModal, setShowCampaignModal] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState(null);
   const [campaignForm, setCampaignForm] = useState({
@@ -23,7 +22,6 @@ const AdminCampaigns = () => {
     fromEmail: 'noreply@mykosherdelivery.com'
   });
 
-  // Template form state
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [templateForm, setTemplateForm] = useState({
@@ -33,21 +31,17 @@ const AdminCampaigns = () => {
     type: 'html'
   });
 
-  // Delete confirmation state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteItem, setDeleteItem] = useState(null);
   const [deleteType, setDeleteType] = useState('');
 
-  // Send campaign state
   const [showSendModal, setShowSendModal] = useState(false);
   const [sendingCampaign, setSendingCampaign] = useState(null);
 
-  // Use template state
   const [showUseTemplateModal, setShowUseTemplateModal] = useState(false);
 
-  // Memoized data loading functions
   const loadCampaigns = useCallback(async () => {
-    if (dataLoaded) return; // Prevent duplicate loads
+    if (dataLoaded) return;
     
     setLoading(true);
     setError(null);
@@ -77,7 +71,7 @@ const AdminCampaigns = () => {
   }, [dataLoaded]);
 
   const loadTemplates = useCallback(async () => {
-    if (dataLoaded) return; // Prevent duplicate loads
+    if (dataLoaded) return;
     
     try {
       const response = await mailchimpService.getTemplates();
@@ -99,7 +93,6 @@ const AdminCampaigns = () => {
     }
   }, [dataLoaded]);
 
-  // Load data only when tab changes or component mounts
   useEffect(() => {
     if (!dataLoaded) {
       const loadData = async () => {
@@ -110,7 +103,6 @@ const AdminCampaigns = () => {
     }
   }, [loadCampaigns, loadTemplates, dataLoaded]);
 
-  // Template pre-filling function
   const handleUseTemplate = useCallback((template) => {
     setCampaignForm(prev => ({
       ...prev,
@@ -224,7 +216,6 @@ const AdminCampaigns = () => {
     setEditingTemplate(null);
   };
 
-  // Edit functions
   const handleEditCampaign = useCallback((campaign) => {
     setEditingCampaign(campaign);
     setCampaignForm({
@@ -257,7 +248,6 @@ const AdminCampaigns = () => {
     setShowDeleteModal(true);
   };
 
-  // Form validation functions
   const validateCampaignForm = () => {
     const errors = {};
     
@@ -320,7 +310,6 @@ const AdminCampaigns = () => {
     setShowSendModal(true);
   }, []);
 
-  // Memoized card components for better performance
   const CampaignCard = useCallback(({ campaign }) => (
     <div className="campaign-card">
       <div className="campaign-header">
@@ -395,7 +384,6 @@ const AdminCampaigns = () => {
   ), [handleEditTemplate, handleUseTemplate]);
 
 
-  // Delete confirmation handler
   const handleConfirmDelete = async () => {
     setLoading(true);
     try {
@@ -427,7 +415,6 @@ const AdminCampaigns = () => {
     }
   };
 
-  // Send campaign handler
   const handleConfirmSend = async () => {
     setLoading(true);
     try {
@@ -564,7 +551,7 @@ const AdminCampaigns = () => {
         </div>
       )}
 
-      {/* Campaign Creation Modal */}
+      {}
       {showCampaignModal && (
         <div className="modal-overlay">
           <div className="modal">
@@ -645,7 +632,7 @@ const AdminCampaigns = () => {
         </div>
       )}
 
-      {/* Template Creation Modal */}
+      {}
       {showTemplateModal && (
         <div className="modal-overlay">
           <div className="modal">
@@ -722,7 +709,7 @@ const AdminCampaigns = () => {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
+      {}
       {showDeleteModal && (
         <div className="modal-overlay">
           <div className="modal">
@@ -768,7 +755,7 @@ const AdminCampaigns = () => {
         </div>
       )}
 
-      {/* Send Campaign Modal */}
+      {}
       {showSendModal && (
         <div className="modal-overlay">
           <div className="modal">
@@ -813,7 +800,7 @@ const AdminCampaigns = () => {
         </div>
       )}
 
-      {/* Use Template Modal */}
+      {}
       {showUseTemplateModal && (
         <div className="modal-overlay">
           <div className="modal">
@@ -859,7 +846,6 @@ const AdminCampaigns = () => {
 };
 
 AdminCampaigns.propTypes = {
-  // Add any props if needed
 };
 
 export default AdminCampaigns;

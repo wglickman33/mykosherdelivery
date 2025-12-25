@@ -26,7 +26,7 @@ export default function GiftCardPage() {
       id: `gift-card-${selectedValue}`,
       name: 'MKD Gift Card',
       price: selectedValue,
-      description: `My Kosher Delivery Gift Card - $${selectedValue}`,
+      description: `My Kosher Delivery Gift Card - ${selectedValue}`,
       image: '/src/assets/navyMKDIcon.png',
       category: 'Gift Card'
     };
@@ -39,7 +39,6 @@ export default function GiftCardPage() {
 
     addToCart(giftCardItem, 1, giftCardRestaurant);
     
-    // Show success message
     setShowAddedToCart(true);
     setTimeout(() => {
       setShowAddedToCart(false);

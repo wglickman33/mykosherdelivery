@@ -1,7 +1,6 @@
 .contact-page {
-  // Account for fixed header and sidebar positioning
-  margin-top: 60px; // Height of the fixed header
-  margin-left: 240px; // Width of the desktop sidebar
+  margin-top: 60px;
+  margin-left: 240px;
   min-height: calc(100vh - 60px);
   background-color: #f8f9fa;
   transition: margin-left 0.3s ease;
@@ -70,7 +69,6 @@
   .contact-main {
     margin-bottom: 80px;
     
-    // Override ContactForm styles for ContactPage layout
     .contact-form-container {
       background: transparent !important;
       height: auto !important;
@@ -92,7 +90,7 @@
     }
 
     .contact-form-text {
-      display: none !important; // Hide the form's own title and description
+      display: none !important;
     }
 
     .contact-form {
@@ -107,9 +105,8 @@
     }
   }
 
-  // Tablet view adjustments
   @media screen and (min-width: 641px) and (max-width: 1110px) {
-    margin-left: 60px; // Icon sidebar width
+    margin-left: 60px;
 
     .contact-content {
       padding: 40px 20px 0;
@@ -132,7 +129,6 @@
     }
   }
 
-  // Mobile view adjustments  
   @media screen and (max-width: 640px) {
     margin-left: 0;
 

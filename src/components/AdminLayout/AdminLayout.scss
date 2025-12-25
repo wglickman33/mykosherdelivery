@@ -30,7 +30,6 @@
   }
 }
 
-// Admin Sidebar
 .admin-sidebar {
   width: 280px;
   background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
@@ -41,11 +40,11 @@
   box-shadow: 4px 0 10px rgba(0, 0, 0, 0.1);
   position: sticky;
   top: 0;
-  height: 100vh; /* full height */
-  overflow: hidden; /* prevent whole sidebar from scrolling */
+  height: 100vh; 
+  overflow: hidden; 
 
   &.collapsed {
-    width: 80px; /* slightly wider rail for optic balance */
+    width: 80px; 
   }
 
   &__header {
@@ -83,7 +82,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 40px; /* unified button size */
+      width: 40px; 
       height: 40px;
 
       svg { width: 20px; height: 20px; }
@@ -94,11 +93,10 @@
     }
   }
 
-  // Navigation
   &__nav {
-    flex: 1 1 auto; /* take remaining space */
+    flex: 1 1 auto; 
     padding: 16px 0;
-    overflow-y: auto; /* only nav scrolls when needed */
+    overflow-y: auto; 
     overscroll-behavior: contain;
 
     .nav-item {
@@ -170,7 +168,7 @@
   &__footer {
     padding: 20px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
-    margin-top: auto; /* pin to bottom */
+    margin-top: auto; 
 
     .admin-user {
       display: flex;
@@ -232,13 +230,12 @@
     }
   }
 
-  // Collapsed state adjustments
   &.collapsed {
     .admin-sidebar__header {
-      justify-content: center; /* center the toggle */
+      justify-content: center; 
       padding: 14px 0;
 
-      .admin-logo { display: none; } /* remove logo icon */
+      .admin-logo { display: none; } 
 
       .sidebar-toggle {
         width: 40px;
@@ -279,7 +276,6 @@
   }
 }
 
-// Main Content Area
 .admin-main {
   flex: 1;
   display: flex;
@@ -348,14 +344,14 @@
         line-height: 1;
         min-width: 18px;
         text-align: center;
-        border: none; /* solid red only */
+        border: none; 
       }
 
       .notif-dropdown {
         position: absolute;
         right: 0;
         top: 44px;
-        width: 440px; /* wider to show more text */
+        width: 440px; 
         max-height: 420px;
         background: #ffffff;
         border: 1px solid #e5e7eb;
@@ -364,7 +360,7 @@
         overflow: hidden;
         z-index: 2000;
         box-sizing: border-box;
-        overflow-x: hidden; /* prevent horizontal scroll */
+        overflow-x: hidden; 
 
         .notif-header {
           display: flex;
@@ -379,7 +375,7 @@
             background: transparent;
             color: #2563eb;
             font-weight: 600;
-            font-size: 0.85rem; /* slightly smaller */
+            font-size: 0.85rem; 
             padding: 6px 8px;
             border-radius: 6px;
             cursor: pointer;
@@ -396,7 +392,7 @@
           list-style: none;
           max-height: 360px;
           overflow-y: auto;
-          overflow-x: hidden; /* prevent horizontal scroll */
+          overflow-x: hidden; 
         }
 
         .notif-empty {
@@ -408,7 +404,7 @@
 
         .notif-item {
           display: grid;
-          grid-template-columns: 1fr 72px 44px; /* main, read/unread button, delete */
+          grid-template-columns: 1fr 72px 44px; 
           align-items: stretch;
           column-gap: 6px;
           border-bottom: 1px solid #f1f5f9;
@@ -430,7 +426,7 @@
             cursor: pointer;
             transition: background 0.15s ease;
             min-height: 56px;
-            min-width: 0; /* allow ellipsis within main */
+            min-width: 0; 
 
             &:hover { background: #f1f5f9; }
 
@@ -447,7 +443,7 @@
                 color: #0f172a;
                 font-size: 0.92rem;
                 display: -webkit-box;
-                -webkit-line-clamp: 4; /* allow up to 4 lines */
+                -webkit-line-clamp: 4; 
                 line-clamp: 4;
                 -webkit-box-orient: vertical;
                 overflow: hidden;
@@ -457,7 +453,7 @@
                 color: #64748b;
                 font-size: 0.82rem;
                 display: -webkit-box;
-                -webkit-line-clamp: 4; /* show up to 4 lines */
+                -webkit-line-clamp: 4; 
                 line-clamp: 4;
                 -webkit-box-orient: vertical;
                 overflow: hidden;
@@ -470,7 +466,7 @@
               color: #94a3b8;
               font-size: 0.78rem;
               flex-shrink: 0;
-              width: 58px; /* fixed to prevent shifting */
+              width: 58px; 
               text-align: right;
             }
           }
@@ -492,8 +488,8 @@
           }
 
           .notif-toggle {
-            width: 64px; /* fixed width for symmetry */
-            height: 36px; /* align with delete */
+            width: 64px; 
+            height: 36px; 
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -526,7 +522,6 @@
   background: #f8fafc;
 }
 
-// Responsive Design
 @media (max-width: 768px) {
   .admin-sidebar {
     position: fixed;

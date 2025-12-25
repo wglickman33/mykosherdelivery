@@ -18,7 +18,7 @@ export default function RestaurantDetailPage() {
   const [loading, setLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [addedItems, setAddedItems] = useState(new Set()); // Track added items
+  const [addedItems, setAddedItems] = useState(new Set());
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const { addToCart } = useCart();
@@ -37,18 +37,14 @@ export default function RestaurantDetailPage() {
   const handleAddToCart = (item, e) => {
     e.stopPropagation();
     
-    // Don't allow direct add to cart for variety or builder items
-    // These require selections/modifications that must be made in the modal
     if (item.itemType === 'variety' || item.itemType === 'builder') {
       return;
     }
     
     addToCart(item, 1, restaurant);
     
-    // Show "Added" feedback
     setAddedItems(prev => new Set([...prev, item.id]));
     
-    // Remove "Added" feedback after 1.5 seconds
     setTimeout(() => {
       setAddedItems(prev => {
         const newSet = new Set(prev);
@@ -58,19 +54,16 @@ export default function RestaurantDetailPage() {
     }, 1500);
   };
   
-  // Check if item can be added directly to cart (only simple items)
   const canAddDirectlyToCart = (item) => {
     return !item.itemType || item.itemType === 'simple';
   };
 
-  // Get unique categories from menu items
   const getCategories = () => {
     if (!restaurant?.menuItems) return [];
     const categories = [...new Set(restaurant.menuItems.map(item => item.category).filter(Boolean))];
     return categories.sort();
   };
 
-  // Filter menu items based on search term and category
   const getFilteredMenuItems = () => {
     if (!restaurant?.menuItems) return [];
     
@@ -142,7 +135,7 @@ export default function RestaurantDetailPage() {
         <div className="menu-section">
           <h2 className="menu-title">Menu</h2>
           
-          {/* Search and Filter Controls */}
+          {}
           <div className="menu-controls">
             <div className="search-container">
               <input
@@ -173,7 +166,7 @@ export default function RestaurantDetailPage() {
             </div>
           </div>
 
-          {/* Results count */}
+          {}
           <div className="results-info">
             <p>
               Showing {getFilteredMenuItems().length} of {restaurant.menuItems.length} items

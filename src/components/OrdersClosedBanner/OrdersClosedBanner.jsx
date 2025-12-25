@@ -6,16 +6,15 @@ import { getCountdownSettings, formatTimeForDisplay } from '../../services/count
 const OrdersClosedBanner = () => {
   const [isOrdersClosed, setIsOrdersClosed] = useState(false);
   const [settings, setSettings] = useState({
-    targetDay: 4, // Thursday
-    targetTime: '18:00', // 6:00 PM
-    resetDay: 6, // Saturday
-    resetTime: '00:00', // 12:00 AM
+    targetDay: 4,
+    targetTime: '18:00',
+    resetDay: 6,
+    resetTime: '00:00',
     timezone: 'America/New_York',
     targetDayName: 'Thursday',
     resetDayName: 'Saturday',
   });
 
-  // Load countdown settings on mount
   useEffect(() => {
     const loadSettings = async () => {
       try {
@@ -23,23 +22,19 @@ const OrdersClosedBanner = () => {
         setSettings(fetchedSettings);
       } catch (error) {
         console.error('Failed to load countdown settings for banner, using defaults:', error);
-        // Keep default settings
       }
     };
     
     loadSettings();
   }, []);
 
-  // Update orders closed status
   useEffect(() => {
     const updateStatus = () => {
       setIsOrdersClosed(isInPastDuePeriod(settings));
     };
 
-    // Initial check
     updateStatus();
 
-    // Update every minute to handle transitions
     const interval = setInterval(updateStatus, 60000);
 
     return () => clearInterval(interval);

@@ -6,14 +6,12 @@ const { body, validationResult } = require("express-validator");
 
 const router = express.Router();
 
-// Helper function to ensure all addresses have consistent IDs
 const ensureAddressIds = (addresses) => {
   return addresses.map((addr, index) => {
     if (addr.id) {
-      return addr; // Already has an ID
+      return addr;
     }
 
-    // Generate a consistent ID based on address content
     const streetPart = (addr.street || addr.address?.street || "unknown")
       .replace(/\s+/g, "_")
       .toLowerCase();
@@ -28,9 +26,7 @@ const ensureAddressIds = (addresses) => {
   });
 };
 
-// ===== New: Current user profile endpoints (/me) =====
 
-// Get current user's profile
 router.get("/me", authenticateToken, async (req, res) => {
   try {
     const profile = await Profile.findByPk(req.userId, {
@@ -54,7 +50,6 @@ router.get("/me", authenticateToken, async (req, res) => {
   }
 });
 
-// Update current user's profile
 router.put(
   "/me",
   authenticateToken,
@@ -110,7 +105,6 @@ router.put(
   }
 );
 
-// Add new address to current user
 router.post(
   "/me/addresses",
   authenticateToken,
@@ -132,16 +126,13 @@ router.post(
         });
       }
 
-      // Accept either top-level fields or nested under address
       const payload =
         req.body.address && typeof req.body.address === "object"
           ? req.body.address
           : req.body;
 
-      // Ensure an id; if provided, keep it
       const id = payload.id || `addr_${Date.now()}`;
 
-      // Set primary if this is the first address
       const isPrimary = addresses.length === 0;
 
       const newAddress = {
@@ -150,7 +141,6 @@ router.post(
         is_primary: isPrimary,
       };
 
-      // If setting as primary explicitly, clear others
       if (payload.is_primary) {
         addresses.forEach((a) => {
           a.is_primary = false;
@@ -179,7 +169,6 @@ router.post(
   }
 );
 
-// Update an existing address by id for current user
 router.put("/me/addresses/:addressId", authenticateToken, async (req, res) => {
   try {
     const { addressId } = req.params;
@@ -193,7 +182,6 @@ router.put("/me/addresses/:addressId", authenticateToken, async (req, res) => {
     if (idx === -1) return res.status(404).json({ error: "Address not found" });
 
     const updated = { ...addresses[idx], ...req.body };
-    // Maintain only one primary
     if (req.body.is_primary === true) {
       addresses.forEach((a) => {
         a.is_primary = false;
@@ -221,7 +209,6 @@ router.put("/me/addresses/:addressId", authenticateToken, async (req, res) => {
   }
 });
 
-// Delete an address by id for current user
 router.delete(
   "/me/addresses/:addressId",
   authenticateToken,
@@ -241,7 +228,6 @@ router.delete(
       const wasPrimary = !!addresses[idx].is_primary;
       addresses.splice(idx, 1);
 
-      // If we removed the primary, set first remaining as primary
       if (wasPrimary && addresses.length > 0) {
         addresses = addresses.map((a, i) => ({ ...a, is_primary: i === 0 }));
       }
@@ -265,7 +251,6 @@ router.delete(
   }
 );
 
-// Set an address as primary for current user
 router.patch(
   "/me/addresses/:addressId/primary",
   authenticateToken,
@@ -279,16 +264,13 @@ router.patch(
         ? [...profile.addresses]
         : [];
 
-      // Ensure all addresses have IDs so frontend IDs can be matched/persisted
       const addressesWithIds = ensureAddressIds(addresses);
 
-      // Try exact id match first
       let idx = addressesWithIds.findIndex((a) => a.id === addressId);
 
-      // If not found, try to match by suffix street+city (id pattern: addr_{index}_{street}_{city})
       if (idx === -1) {
         const tokens = String(addressId).split("_");
-        const suffix = tokens.length > 3 ? tokens.slice(2).join("_") : null; // drop 'addr' and index
+        const suffix = tokens.length > 3 ? tokens.slice(2).join("_") : null;
         const slugify = (s) =>
           String(s || "")
             .trim()
@@ -309,7 +291,6 @@ router.patch(
       if (idx === -1)
         return res.status(404).json({ error: "Address not found" });
 
-      // Set only this one as primary
       addressesWithIds.forEach((a, i) => {
         a.is_primary = i === idx;
       });
@@ -333,14 +314,11 @@ router.patch(
   }
 );
 
-// ===== Existing routes by id remain below =====
 
-// Get user profile
 router.get("/:id", authenticateToken, async (req, res) => {
   try {
     const userId = req.params.id;
 
-    // Users can only access their own profile (except admins)
     if (req.user.role !== "admin" && req.userId !== userId) {
       return res.status(403).json({
         error: "Access denied",
@@ -369,7 +347,6 @@ router.get("/:id", authenticateToken, async (req, res) => {
   }
 });
 
-// Update user profile
 router.put(
   "/:id",
   authenticateToken,
@@ -384,7 +361,6 @@ router.put(
     try {
       const userId = req.params.id;
 
-      // Users can only update their own profile (except admins)
       if (req.user.role !== "admin" && req.userId !== userId) {
         return res.status(403).json({
           error: "Access denied",
@@ -401,9 +377,9 @@ router.put(
       }
 
       const updates = { ...req.body };
-      delete updates.password; // Never allow password updates through this route
-      delete updates.email; // Never allow email updates
-      delete updates.role; // Never allow role updates (except through admin routes)
+      delete updates.password;
+      delete updates.email;
+      delete updates.role;
 
       updates.updatedAt = new Date();
 
@@ -438,12 +414,10 @@ router.put(
   }
 );
 
-// Get user orders
 router.get("/:id/orders", authenticateToken, async (req, res) => {
   try {
     const userId = req.params.id;
 
-    // Users can only access their own orders (except admins)
     if (req.user.role !== "admin" && req.userId !== userId) {
       return res.status(403).json({
         error: "Access denied",
@@ -482,12 +456,10 @@ router.get("/:id/orders", authenticateToken, async (req, res) => {
   }
 });
 
-// Get user statistics
 router.get("/:id/stats", authenticateToken, async (req, res) => {
   try {
     const userId = req.params.id;
 
-    // Users can only access their own stats (except admins)
     if (req.user.role !== "admin" && req.userId !== userId) {
       return res.status(403).json({
         error: "Access denied",
@@ -495,14 +467,13 @@ router.get("/:id/stats", authenticateToken, async (req, res) => {
       });
     }
 
-    // Get order statistics
     const totalOrders = await Order.count({ where: { userId } });
 
     const totalSpent =
       (await Order.sum("total", {
         where: {
           userId,
-          status: ["delivered", "confirmed"], // Only count completed orders
+          status: ["delivered", "confirmed"],
         },
       })) || 0;
 
@@ -524,7 +495,6 @@ router.get("/:id/stats", authenticateToken, async (req, res) => {
   }
 });
 
-// Add address to user profile
 router.post(
   "/:id/addresses",
   authenticateToken,
@@ -540,7 +510,6 @@ router.post(
     try {
       const userId = req.params.id;
 
-      // Users can only add to their own profile (except admins)
       if (req.user.role !== "admin" && req.userId !== userId) {
         return res.status(403).json({
           error: "Access denied",
@@ -566,7 +535,6 @@ router.post(
 
       const addresses = user.addresses || [];
 
-      // Limit to 3 addresses
       if (addresses.length >= 3) {
         return res.status(400).json({
           error: "Address limit reached",
@@ -574,11 +542,10 @@ router.post(
         });
       }
 
-      // Create new address with unique ID
       const newAddress = {
         id: Date.now().toString(),
         ...req.body,
-        is_primary: addresses.length === 0, // First address is primary
+        is_primary: addresses.length === 0,
         created_at: new Date().toISOString(),
       };
 
@@ -591,7 +558,6 @@ router.post(
         updatedAt: new Date(),
       });
 
-      // Return updated user profile
       const updatedUser = await Profile.findByPk(userId, {
         attributes: { exclude: ["password"] },
       });
@@ -611,7 +577,6 @@ router.post(
   }
 );
 
-// Update address
 router.put(
   "/:id/addresses/:addressId",
   authenticateToken,
@@ -628,7 +593,6 @@ router.put(
       const userId = req.params.id;
       const addressId = req.params.addressId;
 
-      // Users can only update their own profile (except admins)
       if (req.user.role !== "admin" && req.userId !== userId) {
         return res.status(403).json({
           error: "Access denied",
@@ -662,7 +626,6 @@ router.put(
         });
       }
 
-      // Update the address
       addresses[addressIndex] = {
         ...addresses[addressIndex],
         ...req.body,
@@ -674,7 +637,6 @@ router.put(
         updatedAt: new Date(),
       });
 
-      // Return updated user profile
       const updatedUser = await Profile.findByPk(userId, {
         attributes: { exclude: ["password"] },
       });
@@ -694,7 +656,6 @@ router.put(
   }
 );
 
-// Delete address
 router.delete(
   "/:id/addresses/:addressId",
   authenticateToken,
@@ -703,7 +664,6 @@ router.delete(
       const userId = req.params.id;
       const addressId = req.params.addressId;
 
-      // Users can only delete from their own profile (except admins)
       if (req.user.role !== "admin" && req.userId !== userId) {
         return res.status(403).json({
           error: "Access denied",
@@ -729,20 +689,15 @@ router.delete(
         });
       }
 
-      // Remove the address
       addresses.splice(addressIndex, 1);
 
-      // Update primary address index if needed
       let newPrimaryIndex = user.primaryAddressIndex;
       if (addressIndex === user.primaryAddressIndex) {
-        // If we deleted the primary address, make the first remaining address primary
         newPrimaryIndex = addresses.length > 0 ? 0 : 0;
       } else if (addressIndex < user.primaryAddressIndex) {
-        // If we deleted an address before the primary, adjust the index
         newPrimaryIndex = user.primaryAddressIndex - 1;
       }
 
-      // Update is_primary flags
       addresses.forEach((addr, index) => {
         addr.is_primary = index === newPrimaryIndex;
       });
@@ -768,7 +723,6 @@ router.delete(
   }
 );
 
-// Set primary address
 router.patch(
   "/:id/addresses/:addressId/primary",
   authenticateToken,
@@ -777,7 +731,6 @@ router.patch(
       const userId = req.params.id;
       const addressId = req.params.addressId;
 
-      // Users can only update their own profile (except admins)
       if (req.user.role !== "admin" && req.userId !== userId) {
         return res.status(403).json({
           error: "Access denied",
@@ -803,7 +756,6 @@ router.patch(
         });
       }
 
-      // Update is_primary flags
       addresses.forEach((addr, index) => {
         addr.is_primary = index === addressIndex;
       });
@@ -814,7 +766,6 @@ router.patch(
         updatedAt: new Date(),
       });
 
-      // Return updated user profile
       const updatedUser = await Profile.findByPk(userId, {
         attributes: { exclude: ["password"] },
       });
@@ -834,7 +785,6 @@ router.patch(
   }
 );
 
-// Update password
 router.patch(
   "/:id/password",
   authenticateToken,
@@ -852,7 +802,6 @@ router.patch(
     try {
       const userId = req.params.id;
 
-      // Users can only update their own password (except admins)
       if (req.user.role !== "admin" && req.userId !== userId) {
         return res.status(403).json({
           error: "Access denied",
@@ -870,7 +819,6 @@ router.patch(
 
       const { currentPassword, newPassword } = req.body;
 
-      // Get user with password
       const user = await Profile.findByPk(userId);
       if (!user) {
         return res.status(404).json({
@@ -879,7 +827,6 @@ router.patch(
         });
       }
 
-      // Verify current password (admins can skip this check)
       if (req.user.role !== "admin") {
         const isValidPassword = await bcrypt.compare(
           currentPassword,
@@ -893,13 +840,11 @@ router.patch(
         }
       }
 
-      // Hash new password
       const hashedPassword = await bcrypt.hash(
         newPassword,
         parseInt(process.env.BCRYPT_SALT_ROUNDS) || 12
       );
 
-      // Update password
       await Profile.update(
         { password: hashedPassword, updatedAt: new Date() },
         { where: { id: userId } }

@@ -7,7 +7,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     userId: {
       type: DataTypes.UUID,
-      allowNull: true, // Allow null for guest tickets
+      allowNull: true,
       field: 'user_id',
       references: {
         model: 'profiles',
@@ -72,19 +72,16 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   SupportTicket.associate = function(models) {
-    // SupportTicket belongs to Profile (customer)
     SupportTicket.belongsTo(models.Profile, {
       foreignKey: 'userId',
       as: 'customer'
     });
     
-    // SupportTicket belongs to Profile (assigned admin)
     SupportTicket.belongsTo(models.Profile, {
       foreignKey: 'assignedTo',
       as: 'assignedAdmin'
     });
     
-    // SupportTicket has many responses
     SupportTicket.hasMany(models.TicketResponse, {
       foreignKey: 'ticketId',
       as: 'responses'

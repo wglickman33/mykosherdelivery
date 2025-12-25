@@ -3,7 +3,6 @@ import Footer from '../Footer/Footer';
 import './PrivacyPage.scss';
 
 const PrivacyPage = () => {
-  // Scroll to top when component mounts
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);

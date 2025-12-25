@@ -54,7 +54,6 @@ module.exports = (sequelize, DataTypes) => {
     ]
   });
 
-  // No associations needed for this model
 
   return DeliveryZone;
 }; 

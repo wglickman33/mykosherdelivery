@@ -11,7 +11,7 @@ const MenuItemBrowser = ({ onItemSelect, onClose }) => {
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [restaurantsLoading, setRestaurantsLoading] = useState(true);
-  const [searchMode, setSearchMode] = useState('restaurant'); // 'restaurant' or 'item'
+  const [searchMode, setSearchMode] = useState('restaurant');
   const [selectedRestaurant, setSelectedRestaurant] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState(null);
@@ -140,18 +140,15 @@ const MenuItemBrowser = ({ onItemSelect, onClose }) => {
   };
 
   const handleItemSelect = (item) => {
-    // Check if item requires configuration (variety or builder)
     const requiresConfiguration = item.itemType === 'variety' || item.itemType === 'builder';
     
     if (requiresConfiguration) {
-      // Open MenuItemModal for configuration
       setItemToConfigure(item);
       setRestaurantForItem({
         id: item.restaurantId || item.restaurant?.id,
         name: item.restaurant?.name || 'Unknown Restaurant'
       });
     } else {
-      // Simple item - add directly
     onItemSelect({
       id: item.id,
       name: item.name,
@@ -169,8 +166,6 @@ const MenuItemBrowser = ({ onItemSelect, onClose }) => {
   };
 
   const handleConfiguredItemAdd = (configuredItem) => {
-    // Item has been configured in MenuItemModal, now add it to order
-    // Ensure restaurantId is included
     const restaurantId = configuredItem.restaurantId || itemToConfigure?.restaurantId || restaurantForItem?.id;
     const restaurantName = configuredItem.restaurantName || itemToConfigure?.restaurant?.name || restaurantForItem?.name || 'Unknown Restaurant';
     
@@ -199,7 +194,7 @@ const MenuItemBrowser = ({ onItemSelect, onClose }) => {
         </div>
 
         <div className="menu-item-browser__content">
-          {/* Search Mode Toggle */}
+          {}
           <div className="search-mode-toggle">
             <button
               className={`mode-btn ${searchMode === 'restaurant' ? 'active' : ''}`}
@@ -225,7 +220,7 @@ const MenuItemBrowser = ({ onItemSelect, onClose }) => {
             </button>
           </div>
 
-          {/* Search Controls */}
+          {}
           <div className="search-controls">
             {searchMode === 'restaurant' ? (
               <div className="control-group">
@@ -272,7 +267,7 @@ const MenuItemBrowser = ({ onItemSelect, onClose }) => {
             )}
           </div>
 
-          {/* Menu Items Display */}
+          {}
           <div className="menu-items-container">
         {error && (
               <div className="error-message">
@@ -336,7 +331,7 @@ const MenuItemBrowser = ({ onItemSelect, onClose }) => {
         </div>
       </div>
 
-      {/* MenuItemModal for configuring variable/configurable items */}
+      {}
       {itemToConfigure && (
         <MenuItemModal
           item={itemToConfigure}

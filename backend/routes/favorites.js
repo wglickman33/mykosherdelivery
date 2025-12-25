@@ -4,7 +4,6 @@ const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Known id aliases to tolerate mismatches from frontend routes
 const RESTAURANT_ID_ALIASES = {
   'five-fifty-pizza': 'five-fifty',
   'stop-chop': 'stop-chop-and-roll'
@@ -16,7 +15,6 @@ const resolveRestaurantId = (rawId) => {
   return RESTAURANT_ID_ALIASES[lowered] || lowered;
 };
 
-// Get user's favorite restaurants
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const favorites = await UserRestaurantFavorite.findAll({
@@ -48,13 +46,11 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
-// Add restaurant to favorites
 router.post('/:restaurantId', authenticateToken, async (req, res) => {
   try {
     const restaurantId = resolveRestaurantId(req.params.restaurantId);
     const userId = req.userId;
 
-    // Check if restaurant exists
     const restaurant = await Restaurant.findByPk(restaurantId);
     if (!restaurant) {
       return res.status(404).json({
@@ -63,7 +59,6 @@ router.post('/:restaurantId', authenticateToken, async (req, res) => {
       });
     }
 
-    // Check if already favorited
     const existingFavorite = await UserRestaurantFavorite.findOne({
       where: { userId, restaurantId }
     });
@@ -75,7 +70,6 @@ router.post('/:restaurantId', authenticateToken, async (req, res) => {
       });
     }
 
-    // Add to favorites
     const favorite = await UserRestaurantFavorite.create({
       userId,
       restaurantId
@@ -96,7 +90,6 @@ router.post('/:restaurantId', authenticateToken, async (req, res) => {
   }
 });
 
-// Remove restaurant from favorites
 router.delete('/:restaurantId', authenticateToken, async (req, res) => {
   try {
     const restaurantId = resolveRestaurantId(req.params.restaurantId);
@@ -127,13 +120,11 @@ router.delete('/:restaurantId', authenticateToken, async (req, res) => {
   }
 });
 
-// Toggle favorite status
 router.post('/:restaurantId/toggle', authenticateToken, async (req, res) => {
   try {
     const restaurantId = resolveRestaurantId(req.params.restaurantId);
     const userId = req.userId;
 
-    // Check if restaurant exists
     const restaurant = await Restaurant.findByPk(restaurantId);
     if (!restaurant) {
       return res.status(404).json({
@@ -142,13 +133,11 @@ router.post('/:restaurantId/toggle', authenticateToken, async (req, res) => {
       });
     }
 
-    // Check if already favorited
     const existingFavorite = await UserRestaurantFavorite.findOne({
       where: { userId, restaurantId }
     });
 
     if (existingFavorite) {
-      // Remove from favorites
       await existingFavorite.destroy();
       
       res.json({
@@ -157,7 +146,6 @@ router.post('/:restaurantId/toggle', authenticateToken, async (req, res) => {
         message: 'Restaurant removed from favorites'
       });
     } else {
-      // Add to favorites
       const favorite = await UserRestaurantFavorite.create({
         userId,
         restaurantId
@@ -180,7 +168,6 @@ router.post('/:restaurantId/toggle', authenticateToken, async (req, res) => {
   }
 });
 
-// Get all user favorites (just the restaurant IDs for quick lookup)
 router.get('/ids', authenticateToken, async (req, res) => {
   try {
     const favorites = await UserRestaurantFavorite.findAll({

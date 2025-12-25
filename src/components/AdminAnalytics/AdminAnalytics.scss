@@ -124,7 +124,6 @@
         transform: translateY(-2px);
       }
 
-      // Order Status Card Colors
       &.pending {
         border-left: 4px solid #f59e0b;
         .metric-icon {
@@ -232,7 +231,6 @@
         }
       }
 
-      // Card type specific colors
       &.revenue .metric-icon {
         background: rgba(16, 185, 129, 0.1);
         color: #059669;
@@ -331,7 +329,6 @@
       }
     }
 
-    // Ensure chart content fills available space
     > div:not(.chart-header) {
       flex: 1;
     }
@@ -496,7 +493,6 @@
     }
   }
 
-  // Tab-specific sections
   .revenue-overview,
   .orders-overview,
   .users-overview,
@@ -543,7 +539,6 @@
     }
   }
 
-  // Loading and Error States
   .admin-analytics-loading,
   .admin-analytics-error {
     display: flex;
@@ -569,7 +564,6 @@
     }
   }
 
-  // Responsive Design
   @media (max-width: 768px) {
     padding: 16px;
 

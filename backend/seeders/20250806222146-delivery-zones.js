@@ -2,12 +2,11 @@
 
 const { v4: uuidv4 } = require('uuid');
 
-/** @type {import('sequelize-cli').Migration} */
+
 module.exports = {
   async up (queryInterface, Sequelize) {
     const deliveryZones = [];
     
-    // WESTCHESTER COUNTY - $28.00 delivery fee
     const westchesterZips = [
       '10501', '10502', '10503', '10504', '10505', '10506', '10507', '10510', '10511', '10514', 
       '10517', '10518', '10519', '10520', '10521', '10522', '10523', '10526', '10527', '10528', 
@@ -32,7 +31,6 @@ module.exports = {
       });
     });
 
-    // NEW YORK COUNTY (MANHATTAN) - $28.00 delivery fee  
     const manhattanZips = [
       '10001', '10002', '10003', '10004', '10005', '10006', '10007', '10008', '10009', '10010', 
       '10011', '10012', '10013', '10014', '10015', '10016', '10017', '10018', '10019', '10020', 
@@ -62,7 +60,6 @@ module.exports = {
       });
     });
 
-    // NASSAU COUNTY (LOCAL AREA) - FREE delivery
     const nassauZips = [
       '11001', '11002', '11003', '11004', '11005', '11010', '11020', '11021', '11022', '11023', 
       '11024', '11025', '11026', '11027', '11030', '11040', '11042', '11050', '11051', '11052', 

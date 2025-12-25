@@ -16,13 +16,11 @@ const Header = () => {
   const dropdownRef = useRef(null);
 
   const currentAddress = getCurrentAddress();
-  // Ensure all addresses have IDs using consistent generation
   const savedAddresses = (profile?.addresses || []).map((address, index) => {
     if (address.id) {
-      return address; // Already has an ID
+      return address;
     }
     
-    // Generate a consistent ID based on address content
     const streetPart = (address.street || address.address?.street || 'unknown').replace(/\s+/g, '_').toLowerCase();
     const cityPart = (address.city || address.address?.city || 'city').replace(/\s+/g, '_').toLowerCase();
     
@@ -35,13 +33,11 @@ const Header = () => {
   const extractAddressData = (address) => {
     if (!address) return null;
     
-    // Handle nested structure
     let addressData = address;
     if (address?.address && typeof address.address === 'object') {
       addressData = address.address;
     }
     
-    // Try different field name variations
     const street = addressData?.street || addressData?.address_line_1 || addressData?.line1 || addressData?.street_address || 'Unknown Street';
     const apartment = addressData?.apartment || addressData?.address_line_2 || addressData?.line2 || addressData?.unit || addressData?.apt;
     const city = addressData?.city || addressData?.locality || 'Unknown City';
@@ -69,34 +65,28 @@ const Header = () => {
   };
 
   const formatCurrentAddress = () => {
-    // Get fresh address data on each call to prevent stale state
     const address = getCurrentAddress();
     
     if (!address) return "Enter delivery address";
     
-    // Handle string addresses (temp addresses)
     if (typeof address === 'string') {
       return address.length > 30 ? address.substring(0, 30) + "..." : address;
     }
     
-    // Handle object addresses - ensure we always return a string
     if (typeof address === 'object' && address !== null) {
       const parts = [];
       
-      // Extract address parts safely
       if (address.street) parts.push(address.street);
       if (address.apartment) parts.push(address.apartment);
       if (address.city) parts.push(address.city);
       if (address.state) parts.push(address.state);
       if (address.zip_code) parts.push(address.zip_code);
       
-      // If we have parts, join them
       if (parts.length > 0) {
         const fullAddress = parts.join(', ');
         return fullAddress.length > 30 ? fullAddress.substring(0, 30) + "..." : fullAddress;
       }
       
-      // If no standard parts found, try to get street directly
       if (address.address && typeof address.address === 'object') {
         const nestedAddress = address.address;
         const nestedParts = [];
@@ -154,7 +144,6 @@ const Header = () => {
     return "No delivery address selected";
   };
 
-  // Close location dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -273,7 +262,7 @@ const Header = () => {
                     </div>
                   )}
 
-                  {/* Show all saved addresses for easy selection */}
+                  {}
                   {savedAddresses.length > 0 && (
                     <div className="saved-addresses">
                       <h4>Saved addresses</h4>
@@ -356,7 +345,7 @@ const Header = () => {
         </div>
       </header>
 
-      {/* Modals */}
+      {}
       {showAddressModal && (
       <AddressManagementModal
         isOpen={showAddressModal}

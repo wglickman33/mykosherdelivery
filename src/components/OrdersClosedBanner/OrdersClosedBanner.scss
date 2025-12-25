@@ -33,7 +33,7 @@
     align-items: center;
     gap: 10px;
     position: relative;
-    pointer-events: auto; /* Re-enable clicks on the banner content */
+    pointer-events: auto; 
     
     &::before {
       content: '';
@@ -87,7 +87,6 @@
     }
   }
 
-  // Responsive design
   @media (max-width: 768px) {
     padding: 12px 16px;
 
@@ -136,7 +135,6 @@
   }
 }
 
-// Animation for banner appearance
 @keyframes slideDown {
   from {
     transform: translateY(-100%);
@@ -148,10 +146,8 @@
   }
 }
 
-// Ensure banner doesn't interfere with header
 .app-container {
   .orders-closed-banner {
-    // Position below header (assuming header is around 60-80px)
     margin-top: 0;
   }
 }

@@ -7,7 +7,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     userId: {
       type: DataTypes.UUID,
-      allowNull: true, // Allow null for guest orders
+      allowNull: true,
       field: 'user_id',
       references: {
         model: 'profiles',
@@ -16,7 +16,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     restaurantId: {
       type: DataTypes.STRING,
-      allowNull: true, // Now nullable for multi-restaurant orders
+      allowNull: true,
       field: 'restaurant_id',
       references: {
         model: 'restaurants',
@@ -139,19 +139,16 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   Order.associate = function(models) {
-    // Order belongs to Profile
     Order.belongsTo(models.Profile, {
       foreignKey: 'userId',
       as: 'user'
     });
     
-    // Order belongs to Restaurant
     Order.belongsTo(models.Restaurant, {
       foreignKey: 'restaurantId',
       as: 'restaurant'
     });
     
-    // Order has many refunds
     Order.hasMany(models.Refund, {
       foreignKey: 'orderId',
       as: 'refunds'

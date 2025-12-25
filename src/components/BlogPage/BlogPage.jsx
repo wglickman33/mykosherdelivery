@@ -10,12 +10,10 @@ const BlogPage = () => {
   const [filteredPosts, setFilteredPosts] = useState(blogPosts);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Scroll to top when component mounts or when slug changes
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [slug]);
 
-  // Handle category filtering
   useEffect(() => {
     let filtered = getBlogPostsByCategory(selectedCategory);
     
@@ -30,7 +28,6 @@ const BlogPage = () => {
     setFilteredPosts(filtered);
   }, [selectedCategory, searchTerm]);
 
-  // If we have a slug, show individual blog post
   if (slug) {
     const post = getBlogPostBySlug(slug);
     
@@ -53,7 +50,6 @@ const BlogPage = () => {
       );
     }
 
-    // Validate that post has required content
     if (!post.content || typeof post.content !== 'string') {
       console.error('Blog post content is missing or invalid:', post);
       return (
@@ -74,7 +70,6 @@ const BlogPage = () => {
       );
     }
 
-    // Debug logging for content
     console.log('Blog post content:', {
       title: post.title,
       contentLength: post.content.length,
@@ -82,18 +77,17 @@ const BlogPage = () => {
       hasHtmlTags: /<[^>]*>/.test(post.content)
     });
 
-    // Basic content sanitization - remove any potentially dangerous scripts
     const sanitizedContent = post.content
-      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove script tags
-      .replace(/javascript:/gi, '') // Remove javascript: protocols
-      .replace(/on\w+\s*=/gi, '') // Remove event handlers
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/javascript:/gi, '')
+      .replace(/on\w+\s*=/gi, '')
       .trim();
 
     return (
       <div className="blog-page">
         <div className="blog-container">
           <div className="blog-content">
-            {/* Back to blog navigation */}
+            {}
             <div className="blog-nav">
               <Link to="/blog" className="back-to-blog">
                 <svg viewBox="0 0 24 24" width="20" height="20">
@@ -103,7 +97,7 @@ const BlogPage = () => {
               </Link>
             </div>
 
-            {/* Blog post header */}
+            {}
             <article className="blog-post">
               <header className="blog-post-header">
                 <div className="blog-post-meta">
@@ -127,7 +121,7 @@ const BlogPage = () => {
                 </div>
               </header>
 
-              {/* Blog post content */}
+              {}
               <div className="blog-post-content">
                 <div className="blog-post-excerpt">
                   <p>{post.excerpt}</p>
@@ -139,7 +133,7 @@ const BlogPage = () => {
                 />
               </div>
 
-              {/* Blog post footer */}
+              {}
               <footer className="blog-post-footer">
                 <div className="blog-post-tags">
                   <span className="tags-label">Tags:</span>
@@ -158,7 +152,7 @@ const BlogPage = () => {
               </footer>
             </article>
 
-            {/* Related posts */}
+            {}
             <section className="related-posts">
               <h3>More Articles</h3>
               <div className="related-posts-grid">
@@ -196,18 +190,17 @@ const BlogPage = () => {
     );
   }
 
-  // Default blog listing view
   return (
     <div className="blog-page">
       <div className="blog-container">
         <div className="blog-content">
-          {/* Blog header */}
+          {}
           <div className="blog-header">
             <h1>MKD Blog</h1>
             <p>Insights, recipes, and stories from the world of kosher food delivery</p>
           </div>
 
-          {/* Search and filters */}
+          {}
           <div className="blog-filters">
             <div className="blog-search">
               <div className="search-input-container">
@@ -237,7 +230,7 @@ const BlogPage = () => {
             </div>
           </div>
 
-          {/* Featured post */}
+          {}
           {selectedCategory === 'All' && !searchTerm && (
             <section className="featured-post">
               <h2>Featured Article</h2>
@@ -264,7 +257,7 @@ const BlogPage = () => {
             </section>
           )}
 
-          {/* Blog posts grid */}
+          {}
           <section className="blog-posts">
             <div className="blog-posts-header">
               <h2>

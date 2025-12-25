@@ -6,16 +6,7 @@ const logger = require("../utils/logger");
 
 const router = express.Router();
 
-/**
- * Calculate tax using Stripe Tax API
- * POST /api/tax/calculate
- * Body: {
- *   items: [{ amount: number, description: string }],
- *   currency: string (default: 'usd'),
- *   customer: { address: { line1, city, state, postal_code, country } },
- *   shipping: { address: { line1, city, state, postal_code, country } } (optional)
- * }
- */
+
 router.post(
   "/calculate",
   authenticateToken,
@@ -49,7 +40,6 @@ router.post(
         shipping,
       } = req.body;
 
-      // Validate required fields
       if (!customer || !customer.address) {
         logger.error("Missing customer address in tax calculation request:", { body: req.body });
         return res.status(400).json({
@@ -66,7 +56,6 @@ router.post(
         });
       }
 
-      // Validate address fields are not empty
       const address = customer.address;
       if (!address.line1 || !address.city || !address.state || !address.postal_code) {
         logger.error("Invalid customer address fields:", { address });
@@ -76,7 +65,6 @@ router.post(
         });
       }
 
-      // Validate items have valid amounts
       const invalidItems = items.filter(item => !item.amount || item.amount <= 0);
       if (invalidItems.length > 0) {
         logger.error("Invalid item amounts:", { invalidItems });
@@ -86,7 +74,6 @@ router.post(
         });
       }
 
-      // Log the request for debugging (without sensitive data)
       logger.debug("Creating Stripe tax calculation", {
         itemCount: items.length,
         hasShipping: !!shipping,
@@ -95,13 +82,11 @@ router.post(
         shippingAmount: shipping?.amount,
       });
 
-      // Prepare line items for Stripe
       const lineItems = items.map((item) => ({
-        amount: Math.round((item.amount || 0) * 100), // Convert to cents
+        amount: Math.round((item.amount || 0) * 100),
         reference: item.description || item.id || `item_${Date.now()}`,
       }));
 
-      // Prepare customer details
       const customerDetails = {
         address: {
           line1: address.line1.trim(),
@@ -113,15 +98,13 @@ router.post(
         address_source: "shipping",
       };
 
-      // Add shipping as a line item instead of shipping_cost
       if (shipping && shipping.amount > 0) {
         lineItems.push({
-          amount: Math.round(shipping.amount * 100), // Convert to cents
+          amount: Math.round(shipping.amount * 100),
           reference: 'shipping_delivery_fee',
         });
       }
 
-      // Create Stripe Tax Calculation payload
       const stripePayload = {
         currency,
         line_items: lineItems,
@@ -134,18 +117,15 @@ router.post(
         hasShipping: shipping && shipping.amount > 0,
       });
 
-      // Create a Stripe Tax Calculation
       const calculation = await stripe.tax.calculations.create(stripePayload);
 
-      // Extract tax breakdown
-      const taxAmount = calculation.tax_amount_exclusive / 100; // Convert back to dollars
+      const taxAmount = calculation.tax_amount_exclusive / 100;
       const totalAmount = calculation.amount_total / 100;
       const subtotal = calculation.amount_subtotal / 100;
 
-      // Get tax breakdown by jurisdiction
       const taxBreakdown = calculation.tax_breakdown?.map((breakdown) => ({
         jurisdiction: breakdown.jurisdiction,
-        taxRate: breakdown.tax_rate / 10000, // Convert from basis points to decimal
+        taxRate: breakdown.tax_rate / 10000,
         taxAmount: breakdown.tax_amount / 100,
         taxableAmount: breakdown.taxable_amount / 100,
       })) || [];

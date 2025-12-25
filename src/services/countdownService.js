@@ -1,18 +1,16 @@
 import apiClient from '../lib/api';
 
-// Get current countdown settings
 export const getCountdownSettings = async () => {
   try {
     const response = await apiClient.get('/countdown/settings');
     return response;
   } catch (error) {
     console.error('Error fetching countdown settings:', error);
-    // Return default settings if API fails
     return {
-      targetDay: 4, // Thursday
-      targetTime: '18:00', // 6:00 PM
-      resetDay: 6, // Saturday
-      resetTime: '00:00', // 12:00 AM
+      targetDay: 4,
+      targetTime: '18:00',
+      resetDay: 6,
+      resetTime: '00:00',
       timezone: 'America/New_York',
       targetDayName: 'Thursday',
       resetDayName: 'Saturday',
@@ -20,7 +18,6 @@ export const getCountdownSettings = async () => {
   }
 };
 
-// Update countdown settings (admin only)
 export const updateCountdownSettings = async (settings) => {
   try {
     const response = await apiClient.put('/countdown/settings', settings);
@@ -31,7 +28,6 @@ export const updateCountdownSettings = async (settings) => {
   }
 };
 
-// Reset countdown settings to defaults (admin only)
 export const resetCountdownSettings = async () => {
   try {
     const response = await apiClient.post('/countdown/settings/reset');
@@ -42,19 +38,16 @@ export const resetCountdownSettings = async () => {
   }
 };
 
-// Helper function to convert day number to name
 export const getDayName = (dayNumber) => {
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   return days[dayNumber] || 'Unknown';
 };
 
-// Helper function to convert day name to number
 export const getDayNumber = (dayName) => {
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   return days.indexOf(dayName);
 };
 
-// Helper function to format time for display
 export const formatTimeForDisplay = (timeString) => {
   if (!timeString) return '';
   const [hours, minutes] = timeString.split(':');
@@ -64,7 +57,6 @@ export const formatTimeForDisplay = (timeString) => {
   return `${displayHour}:${minutes} ${ampm}`;
 };
 
-// Helper function to convert display time to 24-hour format
 export const parseDisplayTime = (displayTime) => {
   if (!displayTime) return '00:00';
   const [time, ampm] = displayTime.split(' ');

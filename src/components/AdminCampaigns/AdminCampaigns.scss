@@ -89,7 +89,7 @@
   transition: all 0.2s ease;
   display: flex;
   flex-direction: column;
-  height: 320px; // Increased height to accommodate all information
+  height: 320px;
 
   &:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -159,11 +159,11 @@
 .campaign-details,
 .template-details {
   margin-bottom: 20px;
-  flex: 1; // Take up available space
-  overflow-y: auto; // Allow scrolling if content is too long
+  flex: 1;
+  overflow-y: auto;
 
   p {
-    margin: 0 0 6px 0; // Reduced margin for tighter spacing
+    margin: 0 0 6px 0;
     font-size: 0.875rem;
     color: #6b7280;
     line-height: 1.4;
@@ -183,9 +183,9 @@
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  margin-top: auto; // Push to bottom of card
-  padding-top: 16px; // Add some top padding for visual separation
-  border-top: 1px solid #f3f4f6; // Subtle border to separate from content
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid #f3f4f6;
 }
 
 .btn {
@@ -200,8 +200,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 36px; // Consistent button height
-  flex-shrink: 0; // Prevent buttons from shrinking
+  min-height: 36px;
+  flex-shrink: 0;
 
   &:disabled {
     opacity: 0.5;
@@ -309,7 +309,6 @@
   font-size: 0.875rem;
 }
 
-// Modal Styles
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -427,7 +426,6 @@
   }
 }
 
-// Template list for use template modal
 .template-list {
   max-height: 400px;
   overflow-y: auto;
@@ -458,7 +456,6 @@
   }
 }
 
-// Responsive Design
 @media (max-width: 768px) {
   .admin-campaigns {
     padding: 16px;

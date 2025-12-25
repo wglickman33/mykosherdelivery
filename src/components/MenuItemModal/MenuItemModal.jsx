@@ -10,21 +10,19 @@ const labelMap = AVAILABLE_LABELS;
 
 const MenuItemModal = ({ item, restaurant, isOpen, onClose, onAdd }) => {
   const [quantity, setQuantity] = useState(1);
-  const [isAdded, setIsAdded] = useState(false); // Track if item was added
-  const [selectedVariant, setSelectedVariant] = useState(null); // Track selected variant for variety items
-  const [selectedConfigurations, setSelectedConfigurations] = useState({}); // Track selected configurations for builder items
+  const [isAdded, setIsAdded] = useState(false);
+  const [selectedVariant, setSelectedVariant] = useState(null);
+  const [selectedConfigurations, setSelectedConfigurations] = useState({});
   const { addToCart: contextAddToCart } = useCart();
   
-  // Use custom onAdd callback if provided, otherwise use context addToCart
   const addToCart = onAdd || contextAddToCart;
 
-  // Reset quantity to 1 whenever the modal opens or the item changes
   useEffect(() => {
     if (isOpen) {
       setQuantity(1);
-      setIsAdded(false); // Reset added state when modal opens
-      setSelectedVariant(null); // Reset variant selection
-      setSelectedConfigurations({}); // Reset configuration selections
+      setIsAdded(false);
+      setSelectedVariant(null);
+      setSelectedConfigurations({});
     }
   }, [isOpen, item]);
 
@@ -37,7 +35,6 @@ const MenuItemModal = ({ item, restaurant, isOpen, onClose, onAdd }) => {
     }
   };
 
-  // Handle configuration selection for builder items
   const handleConfigurationChange = (categoryIndex, optionIndex, isSelected) => {
     setSelectedConfigurations(prev => {
       const newConfigurations = { ...prev };
@@ -48,12 +45,10 @@ const MenuItemModal = ({ item, restaurant, isOpen, onClose, onAdd }) => {
       }
       
       if (isSelected) {
-        // Add option if not already selected
         if (!newConfigurations[categoryKey].includes(optionIndex)) {
           newConfigurations[categoryKey] = [...newConfigurations[categoryKey], optionIndex];
         }
       } else {
-        // Remove option
         newConfigurations[categoryKey] = newConfigurations[categoryKey].filter(idx => idx !== optionIndex);
       }
       
@@ -63,23 +58,20 @@ const MenuItemModal = ({ item, restaurant, isOpen, onClose, onAdd }) => {
 
   const handleAddToCart = () => {
     let itemToAdd = item;
-    const basePrice = item.price; // Store original base price
+    const basePrice = item.price;
     let finalPrice = item.price;
     
-    // Handle variety items
     if (item.itemType === 'variety' && selectedVariant) {
       finalPrice += selectedVariant.priceModifier || 0;
       itemToAdd = { 
         ...item, 
         selectedVariant, 
-        basePrice, // Store original base price
+        basePrice,
         price: finalPrice 
       };
     }
     
-    // Handle builder items
     if (item.itemType === 'builder' && item.options?.configurations) {
-      // Calculate total price with selected configurations
       let configurationPrice = 0;
       const selectedOptions = [];
       
@@ -105,15 +97,12 @@ const MenuItemModal = ({ item, restaurant, isOpen, onClose, onAdd }) => {
         ...item, 
         selectedConfigurations: selectedOptions,
         configurationPrice,
-        basePrice, // Store original base price
+        basePrice,
         price: finalPrice
       };
     }
     
-    // If custom callback is provided, call it with the configured item
-    // Otherwise use the context addToCart
     if (onAdd) {
-      // Custom callback - pass the configured item with quantity and restaurant info
       onAdd({
         ...itemToAdd,
         quantity,
@@ -121,31 +110,25 @@ const MenuItemModal = ({ item, restaurant, isOpen, onClose, onAdd }) => {
         restaurantName: restaurant?.name
       });
     } else {
-      // Context addToCart expects (item, quantity, restaurant)
     addToCart(itemToAdd, quantity, restaurant);
     }
     
-    // Show "Added" feedback
     setIsAdded(true);
     
-    // Remove "Added" feedback after 1.5 seconds
     setTimeout(() => {
       setIsAdded(false);
       onClose();
-      setQuantity(1); // Reset quantity for next time
+      setQuantity(1);
     }, 1500);
   };
 
-  // Calculate current price based on selected variant or configurations
   const getCurrentPrice = () => {
     let basePrice = item.price;
     
-    // Add variant price modifier
     if (item.itemType === 'variety' && selectedVariant) {
       basePrice += selectedVariant.priceModifier || 0;
     }
     
-    // Add configuration price modifiers
     if (item.itemType === 'builder' && item.options?.configurations) {
       item.options.configurations.forEach((config, categoryIndex) => {
         const categoryKey = `category_${categoryIndex}`;
@@ -163,22 +146,19 @@ const MenuItemModal = ({ item, restaurant, isOpen, onClose, onAdd }) => {
     return basePrice;
   };
 
-  // Validate builder configuration
   const isBuilderConfigurationValid = () => {
     if (item.itemType !== 'builder' || !item.options?.configurations) {
-      return true; // Not a builder item, so it's valid
+      return true;
     }
     
     return item.options.configurations.every((config, categoryIndex) => {
       const categoryKey = `category_${categoryIndex}`;
       const selectedCount = selectedConfigurations[categoryKey]?.length || 0;
       
-      // Check if required categories have selections
       if (config.required && selectedCount === 0) {
         return false;
       }
       
-      // Check if selections don't exceed max
       if (selectedCount > config.maxSelections) {
         return false;
       }
@@ -230,7 +210,6 @@ const MenuItemModal = ({ item, restaurant, isOpen, onClose, onAdd }) => {
 
           <p className="modal-description">{item.description}</p>
           
-          {/* Variant Selection for Variety Items */}
           {item.itemType === 'variety' && item.options?.variants && item.options.variants.length > 0 && (
             <div className="modal-variants">
               <h4 className="variants-title">Choose Your Option:</h4>
@@ -245,7 +224,7 @@ const MenuItemModal = ({ item, restaurant, isOpen, onClose, onAdd }) => {
                       <span className="variant-name">{variant.name}</span>
                       {variant.priceModifier !== 0 && variant.priceModifier !== null && variant.priceModifier !== undefined && (
                         <span className="variant-price-modifier">
-                          {variant.priceModifier > 0 ? `+$${variant.priceModifier.toFixed(2)}` : `-$${Math.abs(variant.priceModifier).toFixed(2)}`}
+                          {variant.priceModifier > 0 ? `+${variant.priceModifier.toFixed(2)}` : `-${Math.abs(variant.priceModifier).toFixed(2)}`}
                         </span>
                       )}
                     </div>
@@ -258,7 +237,6 @@ const MenuItemModal = ({ item, restaurant, isOpen, onClose, onAdd }) => {
             </div>
           )}
 
-          {/* Configuration Selection for Builder Items */}
           {item.itemType === 'builder' && item.options?.configurations && item.options.configurations.length > 0 && (
             <div className="modal-configurations">
               <h4 className="configurations-title">Customize Your Order:</h4>
@@ -294,7 +272,7 @@ const MenuItemModal = ({ item, restaurant, isOpen, onClose, onAdd }) => {
                             <span className="option-name">{option.name}</span>
                             {option.priceModifier !== 0 && (
                               <span className="option-price-modifier">
-                                {option.priceModifier > 0 ? `+$${option.priceModifier.toFixed(2)}` : `-$${Math.abs(option.priceModifier).toFixed(2)}`}
+                                {option.priceModifier > 0 ? `+${option.priceModifier.toFixed(2)}` : `-${Math.abs(option.priceModifier).toFixed(2)}`}
                               </span>
                             )}
                           </div>
@@ -350,7 +328,7 @@ const MenuItemModal = ({ item, restaurant, isOpen, onClose, onAdd }) => {
             {isAdded ? 'Added!' : 
              item.itemType === 'variety' && !selectedVariant ? 'Please select an option' :
              item.itemType === 'builder' && !isBuilderConfigurationValid() ? 'Please complete required selections' :
-             `Add to Cart - $${totalPrice}`}
+             `Add to Cart - ${totalPrice}`}
           </button>
         </div>
       </div>

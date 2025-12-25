@@ -1,6 +1,6 @@
 .partner-with-us-page {
   min-height: 100vh;
-  padding-top: 80px; // Account for fixed header
+  padding-top: 80px;
   padding-left: 0;
   background: linear-gradient(135deg, #5fb4f9 0%, #4a9eff 100%);
   color: #061757;
@@ -8,42 +8,38 @@
   display: flex;
   flex-direction: column;
   
-  // Match sidebar responsiveness breakpoints exactly
   @media screen and (min-width: 1111px) {
-    padding-left: 240px; // Full sidebar width
+    padding-left: 240px;
   }
   
   @media screen and (min-width: 641px) and (max-width: 1110px) {
-    padding-left: 60px; // Icon sidebar width
+    padding-left: 60px;
   }
   
   @media screen and (max-width: 640px) {
-    padding-left: 0; // No sidebar on mobile
+    padding-left: 0;
   }
 }
 
 .partner-with-us-container {
-  max-width: none; // Remove max-width constraint to fill available space
+  max-width: none;
   margin: 0;
   padding: 2rem;
-  flex: 1; // Take up available space, pushing footer to bottom
+  flex: 1;
   
-  // Responsive padding management
   @media screen and (min-width: 1111px) {
-    max-width: 900px; // Centered with max-width only on desktop
+    max-width: 900px;
     margin: 0 auto;
     padding: 2rem;
   }
   
   @media screen and (min-width: 641px) and (max-width: 1110px) {
-    // Fill the available space on tablet with icon sidebar
     max-width: none;
     margin: 0;
-    padding: 2rem 3rem; // More padding to use the space better
+    padding: 2rem 3rem;
   }
   
   @media screen and (max-width: 640px) {
-    // Mobile - no sidebar
     padding: 1rem;
   }
   
@@ -58,15 +54,13 @@
   border-radius: 20px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
   border: 1px solid rgba(0, 0, 0, 0.08);
-  margin-bottom: 2rem; // Space before footer
+  margin-bottom: 2rem;
   
   @media screen and (min-width: 641px) and (max-width: 1110px) {
-    // Tablet with icon sidebar - adjust padding
     padding: 2.5rem;
   }
   
   @media screen and (max-width: 640px) {
-    // Mobile - no sidebar
     padding: 2rem 1.5rem;
     border-radius: 15px;
     margin-bottom: 1.5rem;
@@ -203,7 +197,7 @@
     }
     
     textarea {
-      resize: none; // Remove resize ability
+      resize: none;
       min-height: 120px;
       font-family: inherit;
       line-height: 1.5;
@@ -308,7 +302,6 @@
   }
 }
 
-// Footer override for partner page to ensure it doesn't have left margin
 .partner-with-us-page .footer {
   margin-left: 0 !important;
   width: 100%;

@@ -70,13 +70,11 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   Refund.associate = function(models) {
-    // Refund belongs to Order
     Refund.belongsTo(models.Order, {
       foreignKey: 'orderId',
       as: 'order'
     });
     
-    // Refund belongs to Profile (processed by admin)
     Refund.belongsTo(models.Profile, {
       foreignKey: 'processedBy',
       as: 'processor'

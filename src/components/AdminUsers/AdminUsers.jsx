@@ -53,7 +53,6 @@ const AdminUsers = () => {
     const result = await updateUserProfile(selectedUser.id, formData);
     
     if (result.success) {
-      // Log admin action
       await logAdminAction(
         adminUser.id,
         'UPDATE',
@@ -63,7 +62,6 @@ const AdminUsers = () => {
         formData
       );
       
-      // Update local state
       setUsers(users.map(user => 
         user.id === selectedUser.id ? { ...user, ...formData } : user
       ));
@@ -71,10 +69,8 @@ const AdminUsers = () => {
       setShowEditModal(false);
       setSelectedUser(null);
       
-      // Refresh notifications
       window.dispatchEvent(new CustomEvent('mkd-refresh-notifications'));
       
-      // Show success notification
       showNotification('User updated successfully', 'success');
     } else {
       showNotification(`Failed to update user: ${result.error}`, 'error');
@@ -85,7 +81,6 @@ const AdminUsers = () => {
     const result = await createUser(formData);
     
     if (result.success) {
-      // Log admin action
       await logAdminAction(
         adminUser.id,
         'CREATE',
@@ -95,7 +90,6 @@ const AdminUsers = () => {
         formData
       );
       
-      // Update local state
       setUsers([result.data, ...users]);
       
       setShowCreateModal(false);
@@ -109,10 +103,8 @@ const AdminUsers = () => {
       });
       setShowPassword(false);
       
-      // Refresh notifications
       window.dispatchEvent(new CustomEvent('mkd-refresh-notifications'));
       
-      // Show success notification
       showNotification('User created successfully', 'success');
     } else {
       showNotification(`Failed to create user: ${result.error}`, 'error');
@@ -123,7 +115,6 @@ const AdminUsers = () => {
     const result = await deleteUser(selectedUser.id);
     
     if (result.success) {
-      // Log admin action
       await logAdminAction(
         adminUser.id,
         'DELETE',
@@ -133,16 +124,13 @@ const AdminUsers = () => {
         null
       );
       
-      // Update local state
       setUsers(users.filter(user => user.id !== selectedUser.id));
       
       setShowDeleteConfirm(false);
       setSelectedUser(null);
       
-      // Refresh notifications
       window.dispatchEvent(new CustomEvent('mkd-refresh-notifications'));
       
-      // Show success notification
       showNotification('User deleted successfully', 'success');
     } else {
       console.error('Failed to delete user:', result.error);
@@ -191,7 +179,7 @@ const AdminUsers = () => {
         </div>
       </div>
 
-      {/* Stats Grid */}
+      {}
       <div className="stats-grid">
         <div className="stat-card">
           <span className="stat-label">Total Users</span>
@@ -217,7 +205,7 @@ const AdminUsers = () => {
         </div>
       </div>
 
-      {/* Filters */}
+      {}
       <div className="users-filters">
         <div className="filter-group">
           <label>Role</label>
@@ -256,7 +244,7 @@ const AdminUsers = () => {
         </div>
       </div>
 
-      {/* Users Table */}
+      {}
       <div className="users-table-container">
         {loading ? (
           <div className="users-loading">
@@ -357,7 +345,7 @@ const AdminUsers = () => {
               </table>
             </div>
 
-            {/* Pagination */}
+            {}
             <div className="pagination">
               <div className="pagination-info">
                 Showing {((pagination.page - 1) * pagination.limit) + 1} to{' '}
@@ -386,7 +374,7 @@ const AdminUsers = () => {
         )}
       </div>
 
-      {/* User Details Modal */}
+      {}
       {showUserModal && selectedUser && (
         <div className="admin-users__overlay" onClick={() => setShowUserModal(false)}>
           <div className="admin-users__modal admin-users__modal--view" onClick={(e) => e.stopPropagation()}>
@@ -437,7 +425,7 @@ const AdminUsers = () => {
         </div>
       )}
 
-      {/* Edit User Modal */}
+      {}
       {showEditModal && selectedUser && (
         <div className="admin-users__overlay" onClick={() => setShowEditModal(false)}>
           <div className="admin-users__modal admin-users__modal--edit" onClick={(e) => e.stopPropagation()}>
@@ -523,7 +511,7 @@ const AdminUsers = () => {
         </div>
       )}
 
-      {/* Create User Modal */}
+      {}
       {showCreateModal && (
         <div className="admin-users__overlay" onClick={() => setShowCreateModal(false)}>
           <div className="admin-users__modal admin-users__modal--edit" onClick={(e) => e.stopPropagation()}>
@@ -645,7 +633,7 @@ const AdminUsers = () => {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
+      {}
       {showDeleteConfirm && selectedUser && (
         <div className="admin-users__overlay" onClick={() => setShowDeleteConfirm(false)}>
           <div className="admin-users__modal admin-users__modal--delete" onClick={(e) => e.stopPropagation()}>
@@ -678,7 +666,7 @@ const AdminUsers = () => {
         </div>
       )}
       
-      {/* Notification Toast */}
+      {}
       <NotificationToast 
         notification={notification} 
         onClose={hideNotification} 

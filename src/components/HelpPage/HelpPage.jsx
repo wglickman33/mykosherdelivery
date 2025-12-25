@@ -22,7 +22,7 @@ const HelpPage = () => {
           title: 'Welcome Tour',
           description: 'Take a quick tour of the MKD platform',
           duration: '3:45',
-          videoUrl: '/videos/welcome-tour.mp4', // Placeholder - replace with actual video URLs
+          videoUrl: '/videos/welcome-tour.mp4',
           thumbnail: '/thumbnails/welcome-tour.jpg'
         },
         {
@@ -157,7 +157,7 @@ const HelpPage = () => {
     <div className="help-page">
       <div className="help-page__container">
         <div className="help-page__content">
-          {/* Help Header */}
+          {}
           <div className="help-page__header">
             <h1 className="help-page__header-title">How to Use MKD</h1>
             <p className="help-page__header-description">Step-by-step video tutorials to help you get the most out of our kosher food delivery platform</p>
@@ -171,7 +171,7 @@ const HelpPage = () => {
             </div>
           </div>
 
-          {/* Tutorial Sections */}
+          {}
           <div className="help-page__tutorial-sections">
             {tutorialSections.map((section) => (
               <div key={section.id} className="help-page__tutorial-section">
@@ -208,7 +208,7 @@ const HelpPage = () => {
             ))}
           </div>
 
-          {/* Additional Help Resources */}
+          {}
           <div className="help-page__resources">
             <h2 className="help-page__resources-title">Need More Help?</h2>
             <div className="help-page__resource-cards">
@@ -236,7 +236,7 @@ const HelpPage = () => {
         </div>
       </div>
 
-      {/* Video Modal */}
+      {}
       {activeVideo && (
         <div className="help-page__video-modal-overlay" onClick={closeVideo}>
           <div className="help-page__video-modal" onClick={(e) => e.stopPropagation()}>

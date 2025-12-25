@@ -1,6 +1,6 @@
 'use strict';
 
-/** @type {import('sequelize-cli').Migration} */
+
 module.exports = {
   async up (queryInterface, Sequelize) {
     await queryInterface.createTable('delivery_zones', {
@@ -37,7 +37,6 @@ module.exports = {
       }
     });
 
-    // Add indexes
     await queryInterface.addIndex('delivery_zones', ['zip_code'], {
       unique: true,
       name: 'delivery_zones_zip_code_unique'

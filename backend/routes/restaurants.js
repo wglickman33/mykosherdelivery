@@ -1,4 +1,4 @@
-/* eslint-env node */
+
 const express = require('express');
 const { Op, sequelize } = require('sequelize');
 const { Restaurant, MenuItem, UserRestaurantFavorite } = require('../models');
@@ -27,7 +27,6 @@ const normalizeMenuItem = (mi) => {
 
 const mapRestaurant = (req, restaurantInstance) => {
   const r = restaurantInstance.toJSON();
-  // Prefer stored filename; fallback to extracting filename from any existing absolute URL
   const storedFile = r.logo_url || null;
   const extracted = (!storedFile && r.logoUrl) ? String(r.logoUrl).split('/').pop() : null;
   const logoFile = storedFile || extracted || null;
@@ -39,12 +38,11 @@ const mapRestaurant = (req, restaurantInstance) => {
     ...r,
     ...withMenu,
     logoFile,
-    logo: logoUrl, // Set logo field for frontend compatibility
+    logo: logoUrl,
     logoUrl: logoUrl,
   };
 };
 
-// Known id aliases to tolerate mismatches from frontend routes
 const RESTAURANT_ID_ALIASES = {
   'five-fifty-pizza': 'five-fifty',
   'stop-chop': 'stop-chop-and-roll'
@@ -56,7 +54,6 @@ const resolveRestaurantId = (rawId) => {
   return RESTAURANT_ID_ALIASES[lowered] || lowered;
 };
 
-// Get all restaurants (with optional favorites for authenticated users)
 router.get('/', optionalAuth, async (req, res) => {
   try {
     const { featured, search, limit = 50, offset = 0 } = req.query;
@@ -70,7 +67,6 @@ router.get('/', optionalAuth, async (req, res) => {
       whereClause.name = { [Op.iLike]: `%${search}%` };
     }
 
-    // Only show active restaurants to customers (non-admin users)
     if (!req.userId || !req.userRole || req.userRole !== 'admin') {
       whereClause.active = true;
     }
@@ -85,12 +81,11 @@ router.get('/', optionalAuth, async (req, res) => {
           model: MenuItem,
           as: 'menuItems',
           required: false,
-          limit: 5 // Just a few sample items for preview
+          limit: 5
         }
       ]
     });
 
-    // If user is authenticated, add their favorites
     let restaurantsWithFavorites = restaurants;
     if (req.userId) {
       const userFavorites = await UserRestaurantFavorite.findAll({
@@ -118,7 +113,6 @@ router.get('/', optionalAuth, async (req, res) => {
   }
 });
 
-// Get single restaurant by ID
 router.get('/:id', optionalAuth, async (req, res) => {
   try {
     const restaurantId = resolveRestaurantId(req.params.id);
@@ -144,7 +138,6 @@ router.get('/:id', optionalAuth, async (req, res) => {
 
     let restaurantData = mapRestaurant(req, restaurant);
 
-    // If user is authenticated, check if restaurant is favorited
     if (req.userId) {
       const favorite = await UserRestaurantFavorite.findOne({
         where: { 
@@ -166,7 +159,6 @@ router.get('/:id', optionalAuth, async (req, res) => {
   }
 });
 
-// Get featured restaurants
 router.get('/featured/list', optionalAuth, async (req, res) => {
   try {
     const restaurants = await Restaurant.findAll({
@@ -177,12 +169,11 @@ router.get('/featured/list', optionalAuth, async (req, res) => {
           model: MenuItem,
           as: 'menuItems',
           required: false,
-          limit: 3 // Just a few sample items
+          limit: 3
         }
       ]
     });
 
-    // If user is authenticated, add their favorites
     let restaurantsWithFavorites = restaurants;
     if (req.userId) {
       const userFavorites = await UserRestaurantFavorite.findAll({
@@ -210,13 +201,11 @@ router.get('/featured/list', optionalAuth, async (req, res) => {
   }
 });
 
-// Get restaurant menu items with enhanced type support
 router.get('/:id/menu', async (req, res) => {
   try {
     const restaurantId = resolveRestaurantId(req.params.id);
     const { category, available = true, itemType, search } = req.query;
 
-    // Verify restaurant exists
     const restaurant = await Restaurant.findByPk(restaurantId);
     if (!restaurant) {
       return res.status(404).json({
@@ -259,11 +248,9 @@ router.get('/:id/menu', async (req, res) => {
       ]
     });
 
-    // Enhanced normalization for different item types
     const enhancedMenuItems = menuItems.map(item => {
       const normalized = normalizeMenuItem(item);
       
-      // Add type-specific enhancements
       if (normalized.itemType === 'variety' && normalized.options?.variants) {
         normalized.variants = normalized.options.variants.map(variant => ({
           id: variant.id || `variant-${Math.random().toString(36).substr(2, 9)}`,
@@ -310,12 +297,10 @@ router.get('/:id/menu', async (req, res) => {
   }
 });
 
-// Get menu categories for a restaurant
 router.get('/:id/menu/categories', async (req, res) => {
   try {
     const restaurantId = resolveRestaurantId(req.params.id);
     
-    // Verify restaurant exists
     const restaurant = await Restaurant.findByPk(restaurantId);
     if (!restaurant) {
       return res.status(404).json({
@@ -353,7 +338,6 @@ router.get('/:id/menu/categories', async (req, res) => {
   }
 });
 
-// Get single menu item with full details (for item modals)
 router.get('/:id/menu/:itemId', async (req, res) => {
   try {
     const restaurantId = resolveRestaurantId(req.params.id);
@@ -383,7 +367,6 @@ router.get('/:id/menu/:itemId', async (req, res) => {
 
     const normalized = normalizeMenuItem(menuItem);
     
-    // Add type-specific enhancements
     if (normalized.itemType === 'variety' && normalized.options?.variants) {
       normalized.variants = normalized.options.variants.map(variant => ({
         id: variant.id || `variant-${Math.random().toString(36).substr(2, 9)}`,

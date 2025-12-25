@@ -1,6 +1,6 @@
 'use strict';
 
-/** @type {import('sequelize-cli').Migration} */
+
 module.exports = {
   async up (queryInterface, Sequelize) {
     await queryInterface.createTable('user_login_activities', {
@@ -39,7 +39,6 @@ module.exports = {
       }
     });
 
-    // Add indexes
     await queryInterface.addIndex('user_login_activities', ['user_id']);
     await queryInterface.addIndex('user_login_activities', ['login_time']);
     await queryInterface.addIndex('user_login_activities', ['success']);

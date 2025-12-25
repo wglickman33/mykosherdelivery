@@ -10,24 +10,18 @@ const IconSidebar = () => {
   const location = useLocation();
   const [activeItem, setActiveItem] = useState("/home");
 
-  // Update active item based on current path
   useEffect(() => {
-    // Get the current path
     const path = location.pathname;
     setActiveItem(path);
   }, [location]);
 
-  // Function to check if a menu item is active
   const isActive = (path) => {
     if (path === "/home" && (activeItem === "/home" || activeItem === "/")) {
       return true;
     }
-    // For other paths, check if the current path starts with the menu item path
-    // This handles nested routes (e.g. /blog/post-1 should still highlight the Blog item)
     return path !== "/home" && activeItem.startsWith(path);
   };
 
-  // Handler for link clicks to close the menu when navigating
   const handleLinkClick = () => {
     if (window.innerWidth <= 1110) {
       closeMobileMenu();

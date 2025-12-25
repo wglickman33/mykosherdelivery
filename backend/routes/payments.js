@@ -8,7 +8,6 @@ const { sendOrderToShipday } = require("../services/shipdayService");
 
 const router = express.Router();
 
-// Validate Stripe configuration
 if (
   !process.env.STRIPE_SECRET_KEY ||
   process.env.STRIPE_SECRET_KEY.includes("placeholder")
@@ -16,7 +15,6 @@ if (
   logger.error("Stripe secret key not configured properly");
 }
 
-// Create payment intent (secure server-side payment processing)
 router.post(
   "/create-intent",
   authenticateToken,
@@ -25,7 +23,6 @@ router.post(
       .isNumeric()
       .custom((value) => {
         if (value <= 0 || value > 999999) {
-          // Max $9,999.99
           throw new Error("Invalid payment amount");
         }
         return true;
@@ -47,7 +44,6 @@ router.post(
       const { amount, currency, orderIds, paymentMethodId } = req.body;
       const userId = req.userId;
 
-      // Verify orders belong to user
       const orders = await Order.findAll({
         where: {
           id: orderIds,
@@ -63,12 +59,11 @@ router.post(
         });
       }
 
-      // Calculate total from orders (security check)
       const calculatedTotal = orders.reduce(
         (sum, order) => sum + parseFloat(order.total),
         0
       );
-      const providedTotal = amount / 100; // Convert from cents
+      const providedTotal = amount / 100;
 
       if (Math.abs(calculatedTotal - providedTotal) > 0.01) {
         logger.warn("Payment amount mismatch", {
@@ -82,9 +77,8 @@ router.post(
         });
       }
 
-      // Create payment intent
       const paymentIntentData = {
-        amount: Math.round(amount), // Ensure integer cents
+        amount: Math.round(amount),
         currency: currency || "usd",
         metadata: {
           userId: userId,
@@ -96,9 +90,7 @@ router.post(
         },
       };
 
-      // If payment method provided, attach it
       if (paymentMethodId) {
-        // Verify payment method belongs to user
         const paymentMethod = await PaymentMethod.findOne({
           where: {
             stripePaymentMethodId: paymentMethodId,
@@ -122,7 +114,6 @@ router.post(
         paymentIntentData
       );
 
-      // Log payment intent creation
       logger.info("Payment intent created", {
         userId,
         paymentIntentId: paymentIntent.id,
@@ -132,7 +123,6 @@ router.post(
         confirmed: paymentIntentData.confirm === true
       });
 
-      // If payment was confirmed immediately (saved payment method), send to Shipday
       if (paymentIntent.status === "succeeded" && paymentIntentData.confirm === true) {
         logger.info("Payment succeeded immediately (saved payment method) - preparing to send orders to Shipday", {
           userId,
@@ -140,7 +130,6 @@ router.post(
           orderIds: orderIds.join(',')
         });
         
-        // Send orders to Shipday (non-blocking)
         try {
           const orders = await Order.findAll({
             where: { id: orderIds },
@@ -165,7 +154,6 @@ router.post(
             orderNumbers: orders.map(o => o.orderNumber)
           });
 
-          // Send each order to Shipday
           for (const order of orders) {
             try {
               logger.info("Sending order to Shipday (saved payment method)", {
@@ -200,7 +188,6 @@ router.post(
                 errorMessage: shipdayError.message,
                 stack: shipdayError.stack
               });
-              // Don't throw - payment succeeded even if Shipday fails
             }
           }
         } catch (error) {
@@ -209,7 +196,6 @@ router.post(
             errorMessage: error.message,
             stack: error.stack
           });
-          // Don't throw - payment succeeded even if Shipday fails
         }
       }
 
@@ -225,7 +211,6 @@ router.post(
         body: req.body,
       });
 
-      // Handle Stripe-specific errors
       if (error.type === "StripeCardError") {
         return res.status(400).json({
           error: "Card error",
@@ -248,7 +233,6 @@ router.post(
   }
 );
 
-// Confirm payment intent
 router.post(
   "/confirm-intent",
   authenticateToken,
@@ -266,12 +250,10 @@ router.post(
       const { paymentIntentId } = req.body;
       const userId = req.userId;
 
-      // Retrieve payment intent
       const paymentIntent = await stripe.paymentIntents.retrieve(
         paymentIntentId
       );
 
-      // Verify payment intent belongs to user
       if (paymentIntent.metadata.userId !== userId) {
         return res.status(403).json({
           error: "Access denied",
@@ -279,14 +261,12 @@ router.post(
         });
       }
 
-      // If payment succeeded, update orders
-      // NOTE: Keep status as "pending" - it will change to "confirmed" when admin assigns driver in Shipday (via webhook)
       if (paymentIntent.status === "succeeded") {
         const orderIds = paymentIntent.metadata.orderIds.split(",");
 
         await Order.update(
           {
-            status: "pending", // Keep as pending until driver is assigned in Shipday
+            status: "pending",
             stripePaymentIntentId: paymentIntentId,
             paymentAmount: paymentIntent.amount / 100,
             updatedAt: new Date(),
@@ -306,8 +286,6 @@ router.post(
           amount: paymentIntent.amount / 100,
         });
 
-        // Send orders to Shipday (non-blocking)
-        // IMPORTANT: Orders are sent to Shipday AFTER payment succeeds
         logger.info("Payment succeeded - preparing to send orders to Shipday", {
           userId,
           paymentIntentId,
@@ -338,7 +316,6 @@ router.post(
             orderNumbers: orders.map(o => o.orderNumber)
           });
 
-          // Send each order to Shipday
           for (const order of orders) {
             try {
               logger.info("Sending order to Shipday", {
@@ -373,7 +350,6 @@ router.post(
                 errorMessage: shipdayError.message,
                 stack: shipdayError.stack
               });
-              // Don't throw - order is confirmed even if Shipday fails
             }
           }
         } catch (error) {
@@ -382,7 +358,6 @@ router.post(
             errorMessage: error.message,
             stack: error.stack
           });
-          // Don't throw - order confirmation should succeed even if Shipday fails
         }
       }
 
@@ -405,7 +380,6 @@ router.post(
   }
 );
 
-// Webhook endpoint for Stripe events
 router.post(
   "/webhook",
   express.raw({ type: "application/json" }),
@@ -424,18 +398,16 @@ router.post(
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
-    // Handle the event
     switch (event.type) {
       case "payment_intent.succeeded": {
         const paymentIntent = event.data.object;
 
-        // Update orders - keep status as "pending" until driver is assigned in Shipday (via webhook)
         if (paymentIntent.metadata.orderIds) {
           const orderIds = paymentIntent.metadata.orderIds.split(",");
 
           await Order.update(
             {
-              status: "pending", // Keep as pending until driver is assigned in Shipday
+              status: "pending",
               stripePaymentIntentId: paymentIntent.id,
               paymentAmount: paymentIntent.amount / 100,
               updatedAt: new Date(),
@@ -454,8 +426,6 @@ router.post(
             userId: paymentIntent.metadata.userId,
           });
 
-          // Send orders to Shipday (non-blocking)
-          // IMPORTANT: Orders are sent to Shipday AFTER payment succeeds via webhook
           logger.info("Payment succeeded via webhook - preparing to send orders to Shipday", {
             paymentIntentId: paymentIntent.id,
             orderIds: orderIds.join(','),
@@ -484,7 +454,6 @@ router.post(
               orderNumbers: orders.map(o => o.orderNumber)
             });
 
-            // Send each order to Shipday
             for (const order of orders) {
               try {
                 logger.info("Sending order to Shipday via webhook", {
@@ -519,7 +488,6 @@ router.post(
                   errorMessage: shipdayError.message,
                   stack: shipdayError.stack
                 });
-                // Don't throw - order is confirmed even if Shipday fails
               }
             }
           } catch (error) {
@@ -528,7 +496,6 @@ router.post(
               errorMessage: error.message,
               stack: error.stack
             });
-            // Don't throw - order confirmation should succeed even if Shipday fails
           }
         }
         break;
@@ -553,7 +520,6 @@ router.post(
   }
 );
 
-// Get user payment methods
 router.get("/methods", authenticateToken, async (req, res) => {
   try {
     const paymentMethods = await PaymentMethod.findAll({
@@ -579,7 +545,6 @@ router.get("/methods", authenticateToken, async (req, res) => {
   }
 });
 
-// Add payment method
 router.post(
   "/methods",
   authenticateToken,
@@ -600,17 +565,13 @@ router.post(
       const { paymentMethodId, isDefault = false } = req.body;
       const userId = req.userId;
 
-      // Get user info
       const user = await Profile.findByPk(userId);
 
-      // Retrieve payment method from Stripe
       const stripePaymentMethod = await stripe.paymentMethods.retrieve(
         paymentMethodId
       );
 
-      // Attach to customer if not already attached
       if (!stripePaymentMethod.customer) {
-        // Get or create Stripe customer
         let customer;
 
         if (user.stripeCustomerId) {
@@ -622,17 +583,14 @@ router.post(
             metadata: { userId: userId },
           });
 
-          // Save customer ID to user profile
           await user.update({ stripeCustomerId: customer.id });
         }
 
-        // Attach payment method to customer
         await stripe.paymentMethods.attach(paymentMethodId, {
           customer: customer.id,
         });
       }
 
-      // If setting as default, unset other defaults
       if (isDefault) {
         await PaymentMethod.update(
           { isDefault: false },
@@ -640,7 +598,6 @@ router.post(
         );
       }
 
-      // Save payment method to database
       const paymentMethod = await PaymentMethod.create({
         userId: userId,
         stripePaymentMethodId: paymentMethodId,
@@ -685,13 +642,11 @@ router.post(
   }
 );
 
-// Set default payment method
 router.patch("/methods/:id/default", authenticateToken, async (req, res) => {
   try {
     const paymentMethodId = req.params.id;
     const userId = req.userId;
 
-    // Find payment method
     const paymentMethod = await PaymentMethod.findOne({
       where: {
         id: paymentMethodId,
@@ -706,13 +661,11 @@ router.patch("/methods/:id/default", authenticateToken, async (req, res) => {
       });
     }
 
-    // Unset all other defaults for this user
     await PaymentMethod.update(
       { isDefault: false },
       { where: { userId: userId } }
     );
 
-    // Set this one as default
     await paymentMethod.update({ isDefault: true });
 
     logger.info("Default payment method updated", {
@@ -736,13 +689,11 @@ router.patch("/methods/:id/default", authenticateToken, async (req, res) => {
   }
 });
 
-// Delete payment method
 router.delete("/methods/:id", authenticateToken, async (req, res) => {
   try {
     const paymentMethodId = req.params.id;
     const userId = req.userId;
 
-    // Find payment method
     const paymentMethod = await PaymentMethod.findOne({
       where: {
         id: paymentMethodId,
@@ -757,15 +708,12 @@ router.delete("/methods/:id", authenticateToken, async (req, res) => {
       });
     }
 
-    // Detach from Stripe
     try {
       await stripe.paymentMethods.detach(paymentMethod.stripePaymentMethodId);
     } catch (stripeError) {
       logger.warn("Failed to detach payment method from Stripe:", stripeError);
-      // Continue with database deletion even if Stripe fails
     }
 
-    // Delete from database
     await paymentMethod.destroy();
 
     logger.info("Payment method deleted", {

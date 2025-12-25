@@ -2,7 +2,6 @@ import './AdminOrders.scss';
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchAllOrders, updateOrderStatus, fetchAllRestaurants, deleteOrder } from '../../services/adminServices';
-// import { useAuth } from '../../hooks/useAuth';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import NotificationToast from '../NotificationToast/NotificationToast';
 import { useNotification } from '../../hooks/useNotification';
@@ -16,33 +15,27 @@ const getOrderDateValue = (order) => {
 
 const getActiveOrdersCount = (orders) => orders.filter(o => !['delivered', 'cancelled'].includes(o.status)).length;
 
-// Compute MKD week window: Friday 6:00 PM to the following Thursday 6:00 PM (local time)
 const getMKDWeekWindow = (offsetWeeks = 0) => {
   const now = new Date();
   const todayMid = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const day = todayMid.getDay(); // 0 Sun .. 6 Sat
+  const day = todayMid.getDay();
 
-  // Days since last Friday
-  const daysSinceFri = (day + 2) % 7; // Fri(5)->0, Sat(6)->1, Sun(0)->2, ... Thu(4)->6
+  const daysSinceFri = (day + 2) % 7;
 
-  // Candidate last Friday 18:00
   const start = new Date(todayMid);
   start.setDate(todayMid.getDate() - daysSinceFri);
   start.setHours(18, 0, 0, 0);
 
-  // If it's earlier than this Friday 18:00, roll back one week
   if (now < start) {
     start.setDate(start.getDate() - 7);
   }
 
-  // Apply offset weeks into the past
   if (offsetWeeks && Number.isFinite(offsetWeeks)) {
     start.setDate(start.getDate() - (7 * offsetWeeks));
   }
 
-  // End = Thursday 18:00 following that Friday
   const end = new Date(start);
-  end.setDate(start.getDate() + 6); // Fri -> Thu
+  end.setDate(start.getDate() + 6);
   end.setHours(18, 0, 0, 0);
 
   return { start, end };
@@ -51,7 +44,7 @@ const getMKDWeekWindow = (offsetWeeks = 0) => {
 const monthKey = (date) => {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
-  return `${y}-${m}`; // YYYY-MM
+  return `${y}-${m}`;
 };
 
 const buildMonthOptions = (count = 12) => {
@@ -76,9 +69,9 @@ const AdminOrders = () => {
   const { notification, showNotification, hideNotification } = useNotification();
   const [filters, setFilters] = useState({
     status: 'all',
-    timeMode: 'all', // 'all' | 'week' | 'month'
-    weekOffset: 0,   // for timeMode === 'week'
-    monthKey: monthKey(new Date()), // for timeMode === 'month'
+    timeMode: 'all',
+    weekOffset: 0,
+    monthKey: monthKey(new Date()),
     restaurant: '',
     orderNumber: '',
     page: 1,
@@ -86,9 +79,7 @@ const AdminOrders = () => {
   });
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 0 });
   const [restaurants, setRestaurants] = useState([]);
-  // const { user } = useAuth();
 
-  // Emit active orders count whenever the full list changes
   useEffect(() => {
     const count = getActiveOrdersCount(allOrders);
     window.dispatchEvent(new CustomEvent('mkd-admin-active-orders', { detail: { count } }));
@@ -114,13 +105,11 @@ const AdminOrders = () => {
     }
   };
 
-  // Initial data fetch
   useEffect(() => {
     fetchOrders();
     fetchRestaurants();
   }, []);
 
-  // Close export dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       const dropdown = document.querySelector('.export-dropdown');
@@ -137,11 +126,9 @@ const AdminOrders = () => {
 
   const normalizeStatusForUI = (status) => (status === 'ready' ? 'preparing' : status);
 
-  // Get orders filtered by current week (for export)
   const getWeekOrders = useCallback(() => {
     let list = [...allOrders];
     
-    // Apply week filter
     if (filters.timeMode === 'week') {
       const { start, end } = getMKDWeekWindow(filters.weekOffset || 0);
       list = list.filter(o => {
@@ -149,7 +136,6 @@ const AdminOrders = () => {
         return d && d >= start && d <= end;
       });
     } else {
-      // If not in week mode, use current week
       const { start, end } = getMKDWeekWindow(0);
       list = list.filter(o => {
         const d = getOrderDateValue(o);
@@ -160,15 +146,12 @@ const AdminOrders = () => {
     return list;
   }, [allOrders, filters.timeMode, filters.weekOffset]);
 
-  // Get restaurant name for an item
   const getRestaurantNameForItem = (order, item) => {
-    // Check if item has restaurantId
     if (item.restaurantId) {
       const restaurant = restaurants.find(r => r.id === item.restaurantId);
       if (restaurant) return restaurant.name;
     }
     
-    // Check restaurantGroups
     if (order.restaurantGroups) {
       for (const [restaurantId, group] of Object.entries(order.restaurantGroups)) {
         const groupItems = Array.isArray(group.items) ? group.items : Object.values(group.items || {});
@@ -180,7 +163,6 @@ const AdminOrders = () => {
       }
     }
     
-    // Fallback to order restaurant
     if (order.restaurant?.name) return order.restaurant.name;
     if (order.restaurants && Array.isArray(order.restaurants) && order.restaurants.length > 0) {
       return order.restaurants[0].name;
@@ -189,21 +171,17 @@ const AdminOrders = () => {
     return 'Unknown Restaurant';
   };
 
-  // Export individual orders breakdown
   const exportIndividualOrders = () => {
     const weekOrders = getWeekOrders();
     
-    // Build data array
     const exportData = [];
     
     weekOrders.forEach(order => {
       const lastName = order.user?.lastName || order.guestInfo?.lastName || 'Unknown';
       
-      // Get all items from the order
       let allItems = [];
       
       if (order.restaurantGroups) {
-        // Multi-restaurant order
         Object.entries(order.restaurantGroups).forEach(([, group]) => {
           const groupItems = Array.isArray(group.items) ? group.items : Object.values(group.items || {});
           groupItems.forEach(item => {
@@ -215,7 +193,6 @@ const AdminOrders = () => {
           });
         });
       } else if (Array.isArray(order.items)) {
-        // Single restaurant order with items array
         order.items.forEach(item => {
           const restaurantName = getRestaurantNameForItem(order, item);
           allItems.push({
@@ -225,33 +202,27 @@ const AdminOrders = () => {
         });
       }
       
-      // Create one row per item
       allItems.forEach((item, index) => {
         exportData.push({
-          'Last Name': index === 0 ? lastName : '', // Only show last name on first item
+          'Last Name': index === 0 ? lastName : '',
           'Qty/Item': `${item.quantity}x ${item.name} (${item.restaurantName})`
         });
       });
     });
     
-    // Create workbook and worksheet
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Orders');
     
-    // Generate filename with week info
     const { start, end } = getMKDWeekWindow(filters.timeMode === 'week' ? filters.weekOffset : 0);
     const filename = `orders_individual_${start.toISOString().split('T')[0]}_to_${end.toISOString().split('T')[0]}.xlsx`;
     
-    // Download
     XLSX.writeFile(wb, filename);
   };
 
-  // Export totalled items per restaurant
   const exportTotalledItems = () => {
     const weekOrders = getWeekOrders();
     
-    // Aggregate items by restaurant
     const restaurantTotals = {};
     
     weekOrders.forEach(order => {
@@ -278,7 +249,6 @@ const AdminOrders = () => {
         });
       }
       
-      // Aggregate by restaurant and item name
       allItems.forEach(item => {
         const restaurantName = item.restaurantName || 'Unknown Restaurant';
         const itemKey = `${restaurantName}|||${item.name}`;
@@ -295,7 +265,6 @@ const AdminOrders = () => {
       });
     });
     
-    // Convert to array and group by restaurant
     const restaurantGroups = {};
     Object.values(restaurantTotals).forEach(entry => {
       if (!restaurantGroups[entry.restaurant]) {
@@ -304,7 +273,6 @@ const AdminOrders = () => {
       restaurantGroups[entry.restaurant].push(`${entry.quantity}x ${entry.item}`);
     });
     
-    // Build export data
     const exportData = [];
     Object.entries(restaurantGroups).forEach(([restaurant, items]) => {
       exportData.push({
@@ -313,16 +281,13 @@ const AdminOrders = () => {
       });
     });
     
-    // Create workbook and worksheet
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Totals');
     
-    // Generate filename
     const { start, end } = getMKDWeekWindow(filters.timeMode === 'week' ? filters.weekOffset : 0);
     const filename = `orders_totalled_${start.toISOString().split('T')[0]}_to_${end.toISOString().split('T')[0]}.xlsx`;
     
-    // Download
     XLSX.writeFile(wb, filename);
   };
 
@@ -343,7 +308,6 @@ const AdminOrders = () => {
       });
     }
 
-    // Order number filter
     if (filters.orderNumber && filters.orderNumber.trim() !== '') {
       const q = filters.orderNumber.trim().toLowerCase();
       list = list.filter(o => (
@@ -353,7 +317,6 @@ const AdminOrders = () => {
       ));
     }
 
-    // Time filters
     if (filters.timeMode === 'week') {
       const { start, end } = getMKDWeekWindow(filters.weekOffset || 0);
       list = list.filter(o => {
@@ -368,14 +331,12 @@ const AdminOrders = () => {
       });
     }
 
-    // Sort by date desc
     list.sort((a, b) => {
       const da = getOrderDateValue(a)?.getTime() || 0;
       const db = getOrderDateValue(b)?.getTime() || 0;
       return db - da;
     });
 
-    // Paginate
     const total = list.length;
     const limit = filters.limit || 20;
     const page = Math.max(1, Math.min(filters.page || 1, Math.max(1, Math.ceil(total / limit))));
@@ -389,7 +350,6 @@ const AdminOrders = () => {
     applyFiltersAndPaginate();
   }, [applyFiltersAndPaginate]);
 
-  // Real-time updates via SSE (unchanged)
   useEffect(() => {
     const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
     const startStream = async () => {
@@ -440,18 +400,14 @@ const AdminOrders = () => {
       const result = await deleteOrder(selectedOrder.id);
       
       if (result.success) {
-        // Remove the order from the local state
         setOrders(orders.filter(order => order.id !== selectedOrder.id));
         setAllOrders(allOrders.filter(order => order.id !== selectedOrder.id));
         
-        // Close the modal
         setShowDeleteConfirm(false);
         setSelectedOrder(null);
         
-        // Refresh notifications
         window.dispatchEvent(new CustomEvent('mkd-refresh-notifications'));
         
-        // Show success notification
         showNotification('Order deleted successfully', 'success');
       } else {
         showNotification('Failed to delete order: ' + result.error, 'error');
@@ -559,7 +515,7 @@ const AdminOrders = () => {
         </div>
       </div>
 
-      {/* Filters */}
+      {}
       <div className="orders-filters">
         <div className="filter-group">
           <label>Status</label>
@@ -647,7 +603,7 @@ const AdminOrders = () => {
         </div>
       </div>
 
-      {/* Orders Table */}
+      {}
       <div className="orders-table-container">
         {loading ? (
           <div className="orders-loading">
@@ -765,7 +721,7 @@ const AdminOrders = () => {
               </table>
             </div>
 
-            {/* Pagination */}
+            {}
             <div className="pagination">
               <div className="pagination-info">
                 Showing {pagination.total > 0 ? ((pagination.page - 1) * pagination.limit) + 1 : 0} to{' '}
@@ -794,7 +750,7 @@ const AdminOrders = () => {
         )}
       </div>
 
-      {/* Order Details Modal */}
+      {}
       {showOrderModal && selectedOrder && (
         <div className="account-modal-overlay" onClick={() => setShowOrderModal(false)}>
           <div className="account-modal account-modal--order-details" onClick={(e) => e.stopPropagation()}>
@@ -898,7 +854,7 @@ const AdminOrders = () => {
                             <div className="item-details">
                             <div className="item-name">{item.name}</div>
                               
-                              {/* Display selected variant for variety items */}
+                              {}
                               {item.itemType === 'variety' && item.selectedVariant && (
                                 <div className="item-variant">
                                   <span className="variant-label">Variant:</span>
@@ -911,7 +867,7 @@ const AdminOrders = () => {
                                 </div>
                               )}
                               
-                              {/* Display selected configurations for builder items */}
+                              {}
                               {item.itemType === 'builder' && item.selectedConfigurations && item.selectedConfigurations.length > 0 && (
                                 <div className="item-customizations">
                                   <div className="customizations-label">Customizations:</div>
@@ -931,11 +887,10 @@ const AdminOrders = () => {
                                 </div>
                               )}
                               
-                              {/* Price breakdown for variable/configurable items */}
+                              {}
                               {(item.itemType === 'variety' || item.itemType === 'builder') && (
                                 <div className="item-price-breakdown">
                                   {(() => {
-                                    // Use stored basePrice if available, otherwise calculate it
                                     const basePrice = item.basePrice !== undefined 
                                       ? item.basePrice
                                       : (item.itemType === 'variety' 
@@ -993,7 +948,7 @@ const AdminOrders = () => {
                         <div className="item-details">
                         <div className="item-name">{item.name}</div>
                           
-                          {/* Display selected variant for variety items */}
+                          {}
                           {item.itemType === 'variety' && item.selectedVariant && (
                             <div className="item-variant">
                               <span className="variant-label">Variant:</span>
@@ -1006,7 +961,7 @@ const AdminOrders = () => {
                             </div>
                           )}
                           
-                          {/* Display selected configurations for builder items */}
+                          {}
                           {item.itemType === 'builder' && item.selectedConfigurations && item.selectedConfigurations.length > 0 && (
                             <div className="item-customizations">
                               <div className="customizations-label">Customizations:</div>
@@ -1026,11 +981,10 @@ const AdminOrders = () => {
                             </div>
                           )}
                           
-                          {/* Price breakdown for variable/configurable items */}
+                          {}
                           {(item.itemType === 'variety' || item.itemType === 'builder') && (
                             <div className="item-price-breakdown">
                               {(() => {
-                                // Use stored basePrice if available, otherwise calculate it
                                 const basePrice = item.basePrice !== undefined 
                                   ? item.basePrice
                                   : (item.itemType === 'variety' 
@@ -1073,7 +1027,7 @@ const AdminOrders = () => {
                 )}
               </div>
 
-              {/* Detailed Price Breakdown */}
+              {}
               <div className="price-breakdown">
                 <h4>Order Summary</h4>
                 <div className="breakdown-line">
@@ -1110,7 +1064,7 @@ const AdminOrders = () => {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
+      {}
       {showDeleteConfirm && selectedOrder && (
         <div className="account-modal-overlay" onClick={() => setShowDeleteConfirm(false)}>
           <div className="account-modal" onClick={(e) => e.stopPropagation()}>
@@ -1159,7 +1113,7 @@ const AdminOrders = () => {
         </div>
       )}
 
-      {/* Notification Toast */}
+      {}
       <NotificationToast 
         notification={notification} 
         onClose={hideNotification} 

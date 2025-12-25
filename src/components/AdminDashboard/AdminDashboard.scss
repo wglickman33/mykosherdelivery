@@ -42,7 +42,6 @@
     }
   }
 
-  // Metrics Grid
   .metrics-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -150,7 +149,6 @@
     }
   }
 
-  // Dashboard Content
   .dashboard-content {
     display: grid;
     grid-template-columns: 1.5fr 1.5fr;
@@ -161,7 +159,6 @@
     }
   }
 
-  // Chart Section
   .chart-section {
     display: grid;
     grid-template-columns: 1fr;
@@ -242,7 +239,6 @@
     }
   }
 
-  // Recent Activity
   .recent-activity {
     .activity-card {
       background: white;

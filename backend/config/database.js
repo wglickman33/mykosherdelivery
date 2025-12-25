@@ -2,13 +2,11 @@ require('dotenv').config();
 
 const logger = require('../utils/logger');
 
-// Validate DB config
 if (!process.env.DATABASE_URL) {
   logger.error('DATABASE_URL environment variable is required');
   process.exit(1);
 }
 
-// DB config
 const commonConfig = {
   dialect: 'postgres',
   define: {

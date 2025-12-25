@@ -11,10 +11,8 @@ const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 
-// Helper function to log admin actions
 const logAdminAction = async (adminId, action, tableName, recordId, oldValues, newValues, req = null) => {
   try {
-    // Get IP address and user agent from request
     const ipAddress = req ? req.ip || req.connection.remoteAddress : null;
     const userAgent = req ? req.get('User-Agent') : null;
     
@@ -39,18 +37,17 @@ const logAdminAction = async (adminId, action, tableName, recordId, oldValues, n
     });
   } catch (error) {
     logger.error('Error logging admin action:', error);
-    throw error; // Re-throw to be caught by calling function
+    throw error;
   }
 };
 
-// Helper function to create global admin notifications
 async function createGlobalAdminNotification(payload) {
   try {
     const notif = await AdminNotification.create({
       type: payload.type,
       title: payload.title,
       message: payload.body || payload.message || '',
-      readBy: [], // Empty array means no admin has read it yet
+      readBy: [],
       data: payload.ref || null
     });
     
@@ -90,7 +87,6 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 
-// Get all users
 router.get('/users', requireAdmin, async (req, res) => {
   try {
     const { role, limit = 20, offset = 0, search, page = 1 } = req.query;
@@ -112,10 +108,8 @@ router.get('/users', requireAdmin, async (req, res) => {
     const limitNum = parseInt(limit);
     const offsetNum = parseInt(offset) || (parseInt(page) - 1) * limitNum;
 
-    // Get total count for pagination
     const total = await Profile.count({ where: whereClause });
     
-    // Get users with last login information
     const users = await Profile.findAll({
       where: whereClause,
       attributes: { 
@@ -138,7 +132,6 @@ router.get('/users', requireAdmin, async (req, res) => {
       offset: offsetNum
     });
 
-    // Transform users to match frontend expectations
     const transformedUsers = users.map(user => {
       const userData = user.toJSON();
       return {
@@ -178,16 +171,13 @@ router.get('/users', requireAdmin, async (req, res) => {
   }
 });
 
-// Update user profile
 router.put('/users/:userId', requireAdmin, async (req, res) => {
   try {
     const { userId } = req.params;
     const updates = req.body;
 
-    // Remove password from updates if present (should be handled separately)
     delete updates.password;
 
-    // Transform frontend field names to backend field names
     const transformedUpdates = {};
     if (updates.first_name !== undefined) transformedUpdates.firstName = updates.first_name;
     if (updates.last_name !== undefined) transformedUpdates.lastName = updates.last_name;
@@ -203,13 +193,11 @@ router.put('/users/:userId', requireAdmin, async (req, res) => {
       });
     }
 
-    // Store old values for audit logging
     const oldValues = user.toJSON();
-    delete oldValues.password; // Don't log password changes
+    delete oldValues.password;
 
     await user.update(transformedUpdates);
 
-    // Log the admin action with before/after values
     try {
       await logAdminAction(
         req.user.id,
@@ -222,10 +210,8 @@ router.put('/users/:userId', requireAdmin, async (req, res) => {
       );
     } catch (auditError) {
       logger.error('Failed to log admin action for user update:', auditError);
-      // Don't fail the request if audit logging fails
     }
 
-    // Create notification for user update
     try {
       await createGlobalAdminNotification({
         type: 'user.updated',
@@ -237,7 +223,6 @@ router.put('/users/:userId', requireAdmin, async (req, res) => {
       logger.warn('Failed to create user update notification:', notifError);
     }
 
-    // Transform response back to frontend format
     const userData = user.toJSON();
     delete userData.password;
     const transformedUser = {
@@ -269,7 +254,6 @@ router.put('/users/:userId', requireAdmin, async (req, res) => {
   }
 });
 
-// Update user role
 router.patch('/users/:userId/role', requireAdmin, [
   body('role').isIn(['user', 'restaurant_owner', 'admin'])
 ], async (req, res) => {
@@ -294,13 +278,11 @@ router.patch('/users/:userId/role', requireAdmin, [
       });
     }
 
-    // Store old values for audit logging
     const oldValues = user.toJSON();
-    delete oldValues.password; // Don't log password changes
+    delete oldValues.password;
 
     await user.update({ role });
 
-    // Log the admin action with before/after values
     try {
       await logAdminAction(
         req.user.id,
@@ -313,7 +295,6 @@ router.patch('/users/:userId/role', requireAdmin, [
       );
     } catch (auditError) {
       logger.error('Failed to log admin action for role update:', auditError);
-      // Don't fail the request if audit logging fails
     }
 
     const safeUserJson = user.toJSON();
@@ -335,7 +316,6 @@ router.patch('/users/:userId/role', requireAdmin, [
   }
 });
 
-// Create user (admin only)
 router.post('/users', requireAdmin, [
   body('email').isEmail().normalizeEmail(),
   body('password')
@@ -360,7 +340,6 @@ router.post('/users', requireAdmin, [
 
     const { email, password, firstName, lastName, role, phone } = req.body;
 
-    // Check if user already exists
     const existingUser = await Profile.findOne({ where: { email } });
     if (existingUser) {
       return res.status(400).json({
@@ -369,11 +348,9 @@ router.post('/users', requireAdmin, [
       });
     }
 
-    // Hash password
     const bcrypt = require('bcryptjs');
     const hashedPassword = await bcrypt.hash(password, parseInt(process.env.BCRYPT_SALT_ROUNDS) || 12);
 
-    // Create user
     const user = await Profile.create({
       email,
       password: hashedPassword,
@@ -383,7 +360,6 @@ router.post('/users', requireAdmin, [
       phone: phone || null
     });
 
-    // Log admin action
     await logAdminAction(
       req.user.id,
       'CREATE',
@@ -394,7 +370,6 @@ router.post('/users', requireAdmin, [
       req
     );
 
-    // Create notification for user creation
     try {
       await createGlobalAdminNotification({
         type: 'user.created',
@@ -406,7 +381,6 @@ router.post('/users', requireAdmin, [
       logger.warn('Failed to create user creation notification:', notifError);
     }
 
-    // Transform response to frontend format
     const userData = user.toJSON();
     delete userData.password;
     const transformedUser = {
@@ -438,7 +412,6 @@ router.post('/users', requireAdmin, [
   }
 });
 
-// Delete user
 router.delete('/users/:userId', requireAdmin, async (req, res) => {
   try {
     const { userId } = req.params;
@@ -451,7 +424,6 @@ router.delete('/users/:userId', requireAdmin, async (req, res) => {
       });
     }
 
-    // Don't allow deleting the last admin
     if (user.role === 'admin') {
       const adminCount = await Profile.count({ where: { role: 'admin' } });
       if (adminCount <= 1) {
@@ -462,7 +434,6 @@ router.delete('/users/:userId', requireAdmin, async (req, res) => {
       }
     }
 
-    // Create notification for user deletion (before deleting)
     try {
       await createGlobalAdminNotification({
         type: 'user.deleted',
@@ -474,7 +445,6 @@ router.delete('/users/:userId', requireAdmin, async (req, res) => {
       logger.warn('Failed to create user deletion notification:', notifError);
     }
 
-    // Delete related records first to avoid foreign key constraints
     const relatedTables = [
       { model: Notification, field: 'userId', name: 'notifications' },
       { model: UserRestaurantFavorite, field: 'userId', name: 'restaurant favorites' },
@@ -487,7 +457,6 @@ router.delete('/users/:userId', requireAdmin, async (req, res) => {
       { model: SupportTicket, field: 'assignedTo', name: 'support tickets (as assigned admin)' }
     ];
 
-    // Also need to handle tables where this user might be referenced by other fields
     const additionalCleanup = [
       { model: AdminAuditLog, field: 'adminId', name: 'admin audit logs' },
       { model: MenuChangeRequest, field: 'requestedBy', name: 'menu change requests (as requester)' },
@@ -496,7 +465,6 @@ router.delete('/users/:userId', requireAdmin, async (req, res) => {
       { model: TicketResponse, field: 'responderId', name: 'ticket responses' }
     ];
 
-    // Combine all cleanup tasks
     const allCleanupTasks = [...relatedTables, ...additionalCleanup];
 
     for (const { model, field, name } of allCleanupTasks) {
@@ -511,11 +479,7 @@ router.delete('/users/:userId', requireAdmin, async (req, res) => {
       }
     }
 
-    // Handle orders - DELETE them entirely using raw SQL to bypass any constraints
-    // The foreign key constraint is set to ON DELETE SET NULL, but user_id has NOT NULL constraint
-    // This creates a conflict, so we must delete orders BEFORE deleting the user
     try {
-      // First, check how many orders exist
       const orderCountResult = await sequelize.query(
         'SELECT COUNT(*) as count FROM orders WHERE user_id = :userId',
         {
@@ -528,7 +492,6 @@ router.delete('/users/:userId', requireAdmin, async (req, res) => {
       if (orderCount > 0) {
         logger.info(`Found ${orderCount} orders for user ${userId}, deleting them using raw SQL`);
         
-        // Use raw SQL to delete orders - this bypasses Sequelize hooks and constraints
         await sequelize.query(
           'DELETE FROM orders WHERE user_id = :userId',
           {
@@ -539,7 +502,6 @@ router.delete('/users/:userId', requireAdmin, async (req, res) => {
         
         logger.info(`Deleted orders for user ${userId} using raw SQL`);
         
-        // Verify deletion worked
         const verifyResult = await sequelize.query(
           'SELECT COUNT(*) as count FROM orders WHERE user_id = :userId',
           {
@@ -567,7 +529,6 @@ router.delete('/users/:userId', requireAdmin, async (req, res) => {
       });
     }
     
-    // Log admin action before deletion (temporarily disabled for debugging)
     try {
       await logAdminAction(
         req.user.id,
@@ -580,10 +541,8 @@ router.delete('/users/:userId', requireAdmin, async (req, res) => {
       );
     } catch (auditError) {
       logger.error('Audit logging failed:', auditError);
-      // Continue with deletion even if audit logging fails
     }
 
-    // Before deletion, verify all references are cleaned up
     logger.info(`Verifying all references are cleaned up for user ${userId}`);
     const remainingChecks = {
       orders: await Order.count({ where: { userId: userId } }),
@@ -612,23 +571,20 @@ router.delete('/users/:userId', requireAdmin, async (req, res) => {
       });
     }
 
-    // Permanently delete user - use raw SQL if Sequelize fails due to constraint
     try {
     await user.destroy({ force: true });
       logger.info(`Successfully deleted user ${userId} using Sequelize`);
     } catch (deleteError) {
       logger.warn(`Sequelize deletion failed for user ${userId}, trying raw SQL:`, deleteError.message);
       
-      // Check if this is a constraint error
       const isConstraintError = deleteError.name === 'SequelizeDatabaseError' && 
         (deleteError.message.includes('foreign key') || 
          deleteError.message.includes('constraint') ||
          deleteError.message.includes('not-null') ||
-         deleteError.original?.code === '23503' || // Foreign key violation
-         deleteError.original?.code === '23502');  // Not null violation
+         deleteError.original?.code === '23503' ||
+         deleteError.original?.code === '23502');
       
       if (isConstraintError) {
-        // Try using raw SQL to delete the user, which bypasses Sequelize constraint handling
         try {
           logger.info(`Attempting raw SQL deletion for user ${userId} to bypass constraint`);
           
@@ -644,7 +600,6 @@ router.delete('/users/:userId', requireAdmin, async (req, res) => {
         } catch (rawSqlError) {
           logger.error(`Raw SQL deletion also failed for user ${userId}:`, rawSqlError);
           
-          // Final check - maybe there are still orders we missed
           const finalOrderCheck = await sequelize.query(
             'SELECT COUNT(*) as count FROM orders WHERE user_id = :userId',
             {
@@ -667,7 +622,6 @@ router.delete('/users/:userId', requireAdmin, async (req, res) => {
           });
         }
       } else {
-        // Not a constraint error, re-throw
         throw deleteError;
       }
     }
@@ -688,13 +642,10 @@ router.delete('/users/:userId', requireAdmin, async (req, res) => {
   }
 });
 
-// Get platform analytics
 router.get('/analytics', requireAdmin, async (req, res) => {
   try {
-    // Total users
     const totalUsers = await Profile.count();
     
-    // Users by role
     const usersByRole = await Profile.findAll({
       attributes: [
         'role',
@@ -703,10 +654,8 @@ router.get('/analytics', requireAdmin, async (req, res) => {
       group: ['role']
     });
 
-    // Total orders
     const totalOrders = await Order.count();
     
-    // Orders by status
     const ordersByStatus = await Order.findAll({
       attributes: [
         'status',
@@ -715,12 +664,10 @@ router.get('/analytics', requireAdmin, async (req, res) => {
       group: ['status']
     });
 
-    // Total revenue
     const totalRevenue = await Order.sum('total', {
       where: { status: ['delivered', 'confirmed'] }
     }) || 0;
 
-    // Recent orders (last 7 days)
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const recentOrders = await Order.count({
       where: {
@@ -728,7 +675,6 @@ router.get('/analytics', requireAdmin, async (req, res) => {
       }
     });
 
-    // Total active restaurants
     const totalRestaurants = await Restaurant.count({
       where: { 
         active: true,
@@ -736,7 +682,6 @@ router.get('/analytics', requireAdmin, async (req, res) => {
       }
     });
     
-    // Featured restaurants (only active)
     const featuredRestaurants = await Restaurant.count({
       where: { 
         featured: true,
@@ -779,7 +724,6 @@ router.get('/analytics', requireAdmin, async (req, res) => {
   }
 });
 
-// Manage restaurants
 router.post('/restaurants', requireAdmin, [
   body('id').notEmpty(),
   body('name').notEmpty(),
@@ -801,7 +745,6 @@ router.post('/restaurants', requireAdmin, [
 
     const restaurant = await Restaurant.create(req.body);
 
-    // Log admin action
     try {
       await logAdminAction(
         req.user.id,
@@ -816,7 +759,6 @@ router.post('/restaurants', requireAdmin, [
       logger.warn('Failed to log admin action for restaurant creation:', auditError);
     }
 
-    // Create notification for restaurant creation
     try {
       await createGlobalAdminNotification({
         type: 'restaurant.created',
@@ -843,12 +785,10 @@ router.post('/restaurants', requireAdmin, [
   }
 });
 
-// Update restaurant
 router.put('/restaurants/:restaurantId', requireAdmin, async (req, res) => {
   try {
     const { restaurantId } = req.params;
     
-    // Get the restaurant before updating to capture the name
     const originalRestaurant = await Restaurant.findByPk(restaurantId);
     if (!originalRestaurant) {
       return res.status(404).json({
@@ -871,7 +811,6 @@ router.put('/restaurants/:restaurantId', requireAdmin, async (req, res) => {
 
     const updatedRestaurant = await Restaurant.findByPk(restaurantId);
 
-    // Log admin action
     try {
       await logAdminAction(
         req.user.id,
@@ -886,7 +825,6 @@ router.put('/restaurants/:restaurantId', requireAdmin, async (req, res) => {
       logger.warn('Failed to log admin action for restaurant update:', auditError);
     }
 
-    // Create notification for restaurant update
     try {
       await createGlobalAdminNotification({
         type: 'restaurant.updated',
@@ -913,12 +851,10 @@ router.put('/restaurants/:restaurantId', requireAdmin, async (req, res) => {
   }
 });
 
-// Delete restaurant
 router.delete('/restaurants/:restaurantId', requireAdmin, async (req, res) => {
   try {
     const { restaurantId } = req.params;
 
-    // Get the restaurant before deleting to capture the name
     const restaurantToDelete = await Restaurant.findByPk(restaurantId);
     if (!restaurantToDelete) {
       return res.status(404).json({
@@ -929,23 +865,18 @@ router.delete('/restaurants/:restaurantId', requireAdmin, async (req, res) => {
 
     const restaurantName = restaurantToDelete.name;
 
-    // Clear FK references in orders
     await Order.update({ restaurantId: null }, { where: { restaurantId } });
 
-    // Remove dependent rows to prevent FK issues (include soft-deleted scope)
     await UserRestaurantFavorite.destroy({ where: { restaurantId } });
     await MenuItem.destroy({ where: { restaurantId } });
 
-    // Hard delete restaurant (bypass paranoid)
     const deletedRows = await Restaurant.destroy({ where: { id: restaurantId }, force: true, individualHooks: false });
 
     if (deletedRows === 0) {
-      // Try deleting a soft-deleted row explicitly
       const victim = await Restaurant.findOne({ where: { id: restaurantId }, paranoid: false });
       if (victim) {
         await victim.destroy({ force: true });
         
-        // Log admin action
         try {
           await logAdminAction(
             req.user.id,
@@ -960,7 +891,6 @@ router.delete('/restaurants/:restaurantId', requireAdmin, async (req, res) => {
           logger.warn('Failed to log admin action for restaurant deletion:', auditError);
         }
         
-        // Create notification for restaurant deletion
         try {
           await createGlobalAdminNotification({
             type: 'restaurant.deleted',
@@ -977,7 +907,6 @@ router.delete('/restaurants/:restaurantId', requireAdmin, async (req, res) => {
       return res.status(404).json({ error: 'Restaurant not found', message: 'Restaurant does not exist' });
     }
 
-    // Log admin action
     try {
       await logAdminAction(
         req.user.id,
@@ -992,7 +921,6 @@ router.delete('/restaurants/:restaurantId', requireAdmin, async (req, res) => {
       logger.warn('Failed to log admin action for restaurant deletion:', auditError);
     }
 
-    // Create notification for restaurant deletion
     try {
       await createGlobalAdminNotification({
         type: 'restaurant.deleted',
@@ -1012,7 +940,6 @@ router.delete('/restaurants/:restaurantId', requireAdmin, async (req, res) => {
   }
 });
 
-// Cleanup route: delete by name (exact match)
 router.delete('/restaurants/by-name/:name', requireAdmin, async (req, res) => {
   try {
     const { name } = req.params;
@@ -1032,13 +959,10 @@ router.delete('/restaurants/by-name/:name', requireAdmin, async (req, res) => {
   }
 });
 
-// ==================== MENU ITEM MANAGEMENT ====================
 
-// Helper function to validate menu item data based on type
 const validateMenuItemData = (data) => {
   const errors = [];
   
-  // Common validation
   if (!data.name || data.name.trim().length === 0) {
     errors.push('Item name is required');
   }
@@ -1056,7 +980,6 @@ const validateMenuItemData = (data) => {
     errors.push('Category is required');
   }
   
-  // Type-specific validation
   if (data.itemType === 'variety') {
     if (!data.options || !data.options.variants || !Array.isArray(data.options.variants)) {
       errors.push('Variants are required for variety items');
@@ -1111,7 +1034,6 @@ const validateMenuItemData = (data) => {
   return errors;
 };
 
-// Helper function to normalize menu item data
 const normalizeMenuItemData = (data) => {
   const normalized = {
     name: data.name?.trim(),
@@ -1119,13 +1041,12 @@ const normalizeMenuItemData = (data) => {
     price: parseFloat(data.price),
     category: data.category?.trim(),
     imageUrl: data.imageUrl?.trim() || null,
-    available: data.available !== false, // default to true
+    available: data.available !== false,
     itemType: data.itemType,
     options: data.options || null,
     labels: data.labels || []
   };
   
-  // Ensure options is properly structured for each type
   if (normalized.itemType === 'variety' && normalized.options) {
     normalized.options = {
       variants: normalized.options.variants || []
@@ -1141,13 +1062,11 @@ const normalizeMenuItemData = (data) => {
   return normalized;
 };
 
-// Get all menu items for a restaurant (admin)
 router.get('/restaurants/:restaurantId/menu-items', requireAdmin, async (req, res) => {
   try {
     const { restaurantId } = req.params;
     const { category, available, itemType, search, limit = 50, offset = 0 } = req.query;
     
-    // Verify restaurant exists
     const restaurant = await Restaurant.findByPk(restaurantId);
     if (!restaurant) {
       return res.status(404).json({
@@ -1192,10 +1111,8 @@ router.get('/restaurants/:restaurantId/menu-items', requireAdmin, async (req, re
       ]
     });
     
-    // Get total count for pagination
     const total = await MenuItem.count({ where: whereClause });
     
-    // Normalize menu items data (especially labels field)
     const normalizedMenuItems = menuItems.map(item => {
       const normalized = item.toJSON();
       let labels = normalized.labels;
@@ -1234,7 +1151,6 @@ router.get('/restaurants/:restaurantId/menu-items', requireAdmin, async (req, re
   }
 });
 
-// Get single menu item (admin)
 router.get('/restaurants/:restaurantId/menu-items/:itemId', requireAdmin, async (req, res) => {
   try {
     const { restaurantId, itemId } = req.params;
@@ -1260,7 +1176,6 @@ router.get('/restaurants/:restaurantId/menu-items/:itemId', requireAdmin, async 
       });
     }
     
-    // Normalize menu item data (especially labels field)
     const normalizedMenuItem = menuItem.toJSON();
     let labels = normalizedMenuItem.labels;
     if (typeof labels === 'string') {
@@ -1286,7 +1201,6 @@ router.get('/restaurants/:restaurantId/menu-items/:itemId', requireAdmin, async 
   }
 });
 
-// Create new menu item (admin)
 router.post('/restaurants/:restaurantId/menu-items', requireAdmin, [
   body('name').notEmpty().trim().isLength({ min: 1, max: 255 }),
   body('itemType').isIn(['simple', 'variety', 'builder']),
@@ -1297,7 +1211,7 @@ router.post('/restaurants/:restaurantId/menu-items', requireAdmin, [
   body('category').notEmpty().trim().isLength({ min: 1, max: 100 }),
   body('description').optional().isString().isLength({ max: 1000 }),
   body('imageUrl').optional().custom((value) => {
-    if (!value || value.trim() === '') return true; // Allow empty/null
+    if (!value || value.trim() === '') return true;
     try {
       new URL(value);
       return true;
@@ -1326,7 +1240,6 @@ router.post('/restaurants/:restaurantId/menu-items', requireAdmin, [
     
     const { restaurantId } = req.params;
     
-    // Verify restaurant exists
     const restaurant = await Restaurant.findByPk(restaurantId);
     if (!restaurant) {
       return res.status(404).json({
@@ -1335,7 +1248,6 @@ router.post('/restaurants/:restaurantId/menu-items', requireAdmin, [
       });
     }
     
-    // Validate menu item data
     const validationErrors = validateMenuItemData(req.body);
     if (validationErrors.length > 0) {
       return res.status(400).json({
@@ -1344,14 +1256,12 @@ router.post('/restaurants/:restaurantId/menu-items', requireAdmin, [
       });
     }
     
-    // Normalize and create menu item
     const normalizedData = normalizeMenuItemData(req.body);
     const menuItem = await MenuItem.create({
       ...normalizedData,
       restaurantId
     });
     
-    // Log admin action
     await logAdminAction(
       req.user.id,
       'CREATE',
@@ -1362,7 +1272,6 @@ router.post('/restaurants/:restaurantId/menu-items', requireAdmin, [
       req
     );
     
-    // Create notification for menu item creation
     try {
       await createGlobalAdminNotification({
         type: 'menu_item.created',
@@ -1380,7 +1289,6 @@ router.post('/restaurants/:restaurantId/menu-items', requireAdmin, [
       logger.warn('Failed to create menu item notification:', notifError);
     }
 
-    // Emit SSE event for real-time updates
     try {
       appEvents.emit('menu_item.created', {
         type: 'menu_item.created',
@@ -1415,7 +1323,6 @@ router.post('/restaurants/:restaurantId/menu-items', requireAdmin, [
   }
 });
 
-// Update menu item (admin)
 router.put('/restaurants/:restaurantId/menu-items/:itemId', requireAdmin, [
   body('name').optional().trim().isLength({ min: 1, max: 255 }),
   body('itemType').optional().isIn(['simple', 'variety', 'builder']),
@@ -1426,7 +1333,7 @@ router.put('/restaurants/:restaurantId/menu-items/:itemId', requireAdmin, [
   body('category').optional().trim().isLength({ min: 1, max: 100 }),
   body('description').optional().isString().isLength({ max: 1000 }),
   body('imageUrl').optional().custom((value) => {
-    if (!value || value.trim() === '') return true; // Allow empty/null
+    if (!value || value.trim() === '') return true;
     try {
       new URL(value);
       return true;
@@ -1455,7 +1362,6 @@ router.put('/restaurants/:restaurantId/menu-items/:itemId', requireAdmin, [
     
     const { restaurantId, itemId } = req.params;
     
-    // Find existing menu item
     const existingItem = await MenuItem.findOne({
       where: { 
         id: itemId,
@@ -1477,10 +1383,8 @@ router.put('/restaurants/:restaurantId/menu-items/:itemId', requireAdmin, [
       });
     }
     
-    // Merge with existing data for validation
     const mergedData = { ...existingItem.toJSON(), ...req.body };
     
-    // Validate merged data
     const validationErrors = validateMenuItemData(mergedData);
     if (validationErrors.length > 0) {
       return res.status(400).json({
@@ -1489,13 +1393,11 @@ router.put('/restaurants/:restaurantId/menu-items/:itemId', requireAdmin, [
       });
     }
     
-    // Normalize and update menu item
     const normalizedData = normalizeMenuItemData(mergedData);
     const oldValues = existingItem.toJSON();
     
     await existingItem.update(normalizedData);
     
-    // Log admin action
     await logAdminAction(
       req.user.id,
       'UPDATE',
@@ -1506,7 +1408,6 @@ router.put('/restaurants/:restaurantId/menu-items/:itemId', requireAdmin, [
       req
     );
     
-    // Create notification for menu item update
     try {
       await createGlobalAdminNotification({
         type: 'menu_item.updated',
@@ -1524,7 +1425,6 @@ router.put('/restaurants/:restaurantId/menu-items/:itemId', requireAdmin, [
       logger.warn('Failed to create menu item update notification:', notifError);
     }
 
-    // Emit SSE event for real-time updates
     try {
       appEvents.emit('menu_item.updated', {
         type: 'menu_item.updated',
@@ -1559,12 +1459,10 @@ router.put('/restaurants/:restaurantId/menu-items/:itemId', requireAdmin, [
   }
 });
 
-// Delete menu item (admin)
 router.delete('/restaurants/:restaurantId/menu-items/:itemId', requireAdmin, async (req, res) => {
   try {
     const { restaurantId, itemId } = req.params;
     
-    // Find existing menu item
     const existingItem = await MenuItem.findOne({
       where: { 
         id: itemId,
@@ -1589,10 +1487,8 @@ router.delete('/restaurants/:restaurantId/menu-items/:itemId', requireAdmin, asy
     const itemName = existingItem.name;
     const restaurantName = existingItem.restaurant.name;
     
-    // Delete menu item
     await existingItem.destroy();
     
-    // Log admin action
     await logAdminAction(
       req.user.id,
       'DELETE',
@@ -1603,7 +1499,6 @@ router.delete('/restaurants/:restaurantId/menu-items/:itemId', requireAdmin, asy
       req
     );
     
-    // Create notification for menu item deletion
     try {
       await createGlobalAdminNotification({
         type: 'menu_item.deleted',
@@ -1621,7 +1516,6 @@ router.delete('/restaurants/:restaurantId/menu-items/:itemId', requireAdmin, asy
       logger.warn('Failed to create menu item deletion notification:', notifError);
     }
 
-    // Emit SSE event for real-time updates
     try {
       appEvents.emit('menu_item.deleted', {
         type: 'menu_item.deleted',
@@ -1655,7 +1549,6 @@ router.delete('/restaurants/:restaurantId/menu-items/:itemId', requireAdmin, asy
   }
 });
 
-// Bulk update menu items (admin) - for reordering, bulk availability changes, etc.
 router.patch('/restaurants/:restaurantId/menu-items/bulk', requireAdmin, [
   body('updates').isArray().isLength({ min: 1 }),
   body('updates.*.id').isUUID(),
@@ -1673,7 +1566,6 @@ router.patch('/restaurants/:restaurantId/menu-items/bulk', requireAdmin, [
     const { restaurantId } = req.params;
     const { updates } = req.body;
     
-    // Verify restaurant exists
     const restaurant = await Restaurant.findByPk(restaurantId);
     if (!restaurant) {
       return res.status(404).json({
@@ -1701,7 +1593,6 @@ router.patch('/restaurants/:restaurantId/menu-items/bulk', requireAdmin, [
         const oldValues = menuItem.toJSON();
         await menuItem.update(update.changes);
         
-        // Log admin action
         await logAdminAction(
           req.user.id,
           'UPDATE',
@@ -1735,12 +1626,9 @@ router.patch('/restaurants/:restaurantId/menu-items/bulk', requireAdmin, [
   }
 });
 
-// ==================== REAL-TIME UPDATES ====================
 
-// Server-Sent Events stream for menu updates
 router.get('/menu-updates/stream', requireAdmin, async (req, res) => {
   try {
-    // Set SSE headers
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
@@ -1749,10 +1637,8 @@ router.get('/menu-updates/stream', requireAdmin, async (req, res) => {
       'Access-Control-Allow-Headers': 'Cache-Control'
     });
 
-    // Send initial connection message
     res.write(`data: ${JSON.stringify({ type: 'connected', message: 'Menu updates stream connected' })}\n\n`);
 
-    // Create event listener for menu updates
     const menuUpdateHandler = (data) => {
       try {
         res.write(`data: ${JSON.stringify(data)}\n\n`);
@@ -1761,19 +1647,16 @@ router.get('/menu-updates/stream', requireAdmin, async (req, res) => {
       }
     };
 
-    // Listen for menu item events
     appEvents.on('menu_item.created', menuUpdateHandler);
     appEvents.on('menu_item.updated', menuUpdateHandler);
     appEvents.on('menu_item.deleted', menuUpdateHandler);
 
-    // Handle client disconnect
     req.on('close', () => {
       appEvents.off('menu_item.created', menuUpdateHandler);
       appEvents.off('menu_item.updated', menuUpdateHandler);
       appEvents.off('menu_item.deleted', menuUpdateHandler);
     });
 
-    // Keep connection alive with periodic ping
     const pingInterval = setInterval(() => {
       try {
         res.write(`data: ${JSON.stringify({ type: 'ping', timestamp: Date.now() })}\n\n`);
@@ -1781,7 +1664,7 @@ router.get('/menu-updates/stream', requireAdmin, async (req, res) => {
         console.warn('Error sending ping:', pingError);
         clearInterval(pingInterval);
       }
-    }, 30000); // Ping every 30 seconds
+    }, 30000);
 
     req.on('close', () => {
       clearInterval(pingInterval);
@@ -1796,7 +1679,6 @@ router.get('/menu-updates/stream', requireAdmin, async (req, res) => {
   }
 });
 
-// Public SSE stream for user-facing menu updates (no auth required)
 router.get('/public/menu-updates/stream', async (req, res) => {
   try {
     const { restaurantId } = req.query;
@@ -1808,7 +1690,6 @@ router.get('/public/menu-updates/stream', async (req, res) => {
       });
     }
 
-    // Verify restaurant exists
     const restaurant = await Restaurant.findByPk(restaurantId);
     if (!restaurant) {
       return res.status(404).json({
@@ -1817,7 +1698,6 @@ router.get('/public/menu-updates/stream', async (req, res) => {
       });
     }
 
-    // Set SSE headers
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
@@ -1826,17 +1706,14 @@ router.get('/public/menu-updates/stream', async (req, res) => {
       'Access-Control-Allow-Headers': 'Cache-Control'
     });
 
-    // Send initial connection message
     res.write(`data: ${JSON.stringify({ 
       type: 'connected', 
       message: 'Menu updates stream connected',
       restaurantId: restaurantId 
     })}\n\n`);
 
-    // Create event listener for menu updates (filtered by restaurant)
     const menuUpdateHandler = (data) => {
       try {
-        // Only send updates for the specific restaurant
         if (data.ref && data.ref.restaurantId === restaurantId) {
           res.write(`data: ${JSON.stringify(data)}\n\n`);
         }
@@ -1845,19 +1722,16 @@ router.get('/public/menu-updates/stream', async (req, res) => {
       }
     };
 
-    // Listen for menu item events
     appEvents.on('menu_item.created', menuUpdateHandler);
     appEvents.on('menu_item.updated', menuUpdateHandler);
     appEvents.on('menu_item.deleted', menuUpdateHandler);
 
-    // Handle client disconnect
     req.on('close', () => {
       appEvents.off('menu_item.created', menuUpdateHandler);
       appEvents.off('menu_item.updated', menuUpdateHandler);
       appEvents.off('menu_item.deleted', menuUpdateHandler);
     });
 
-    // Keep connection alive with periodic ping
     const pingInterval = setInterval(() => {
       try {
         res.write(`data: ${JSON.stringify({ type: 'ping', timestamp: Date.now() })}\n\n`);
@@ -1865,7 +1739,7 @@ router.get('/public/menu-updates/stream', async (req, res) => {
         console.warn('Error sending ping:', pingError);
         clearInterval(pingInterval);
       }
-    }, 30000); // Ping every 30 seconds
+    }, 30000);
 
     req.on('close', () => {
       clearInterval(pingInterval);
@@ -1880,7 +1754,6 @@ router.get('/public/menu-updates/stream', async (req, res) => {
   }
 });
 
-// Manage delivery zones
 router.get('/delivery-zones', requireAdmin, async (req, res) => {
   try {
     const deliveryZones = await DeliveryZone.findAll({
@@ -1897,7 +1770,6 @@ router.get('/delivery-zones', requireAdmin, async (req, res) => {
   }
 });
 
-// Add delivery zone
 router.post('/delivery-zones', requireAdmin, [
   body('zipCode').notEmpty(),
   body('city').notEmpty(),
@@ -1916,7 +1788,6 @@ router.post('/delivery-zones', requireAdmin, [
 
     const deliveryZone = await DeliveryZone.create(req.body);
 
-    // Log admin action
     try {
       await logAdminAction(
         req.user.id,
@@ -1946,12 +1817,10 @@ router.post('/delivery-zones', requireAdmin, [
   }
 });
 
-// Update delivery zone
 router.put('/delivery-zones/:zoneId', requireAdmin, async (req, res) => {
   try {
     const { zoneId } = req.params;
     
-    // Get original zone before updating
     const originalZone = await DeliveryZone.findByPk(zoneId);
     if (!originalZone) {
       return res.status(404).json({
@@ -1974,7 +1843,6 @@ router.put('/delivery-zones/:zoneId', requireAdmin, async (req, res) => {
 
     const updatedZone = await DeliveryZone.findByPk(zoneId);
 
-    // Log admin action
     try {
       await logAdminAction(
         req.user.id,
@@ -2004,12 +1872,10 @@ router.put('/delivery-zones/:zoneId', requireAdmin, async (req, res) => {
   }
 });
 
-// Dashboard stats endpoint
 router.get('/dashboard/stats', requireAdmin, async (req, res) => {
   try {
     const { timeRange = '7d' } = req.query;
     
-    // Calculate date range
     const now = new Date();
     let startDate;
     
@@ -2030,19 +1896,16 @@ router.get('/dashboard/stats', requireAdmin, async (req, res) => {
         startDate = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
     }
 
-    // Get orders in time range
     const orders = await Order.findAll({
       where: {
         createdAt: { [Op.gte]: startDate }
       }
     });
 
-    // Calculate stats
     const totalOrders = orders.length;
     const totalRevenue = orders.reduce((sum, order) => sum + parseFloat(order.total || 0), 0);
     const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
-    // Get total counts
     const totalUsers = await Profile.count();
     const totalRestaurants = await Restaurant.count({
       where: { 
@@ -2051,7 +1914,6 @@ router.get('/dashboard/stats', requireAdmin, async (req, res) => {
       }
     });
 
-    // Calculate growth (compare with previous period)
     const previousPeriodStart = new Date(startDate.getTime() - (now.getTime() - startDate.getTime()));
     const previousOrders = await Order.findAll({
       where: {
@@ -2074,7 +1936,7 @@ router.get('/dashboard/stats', requireAdmin, async (req, res) => {
       averageOrderValue,
       ordersGrowth,
       revenueGrowth,
-      usersGrowth: 0 // Would need user creation tracking
+      usersGrowth: 0
     });
 
   } catch (error) {
@@ -2086,14 +1948,12 @@ router.get('/dashboard/stats', requireAdmin, async (req, res) => {
   }
 });
 
-// Recent orders endpoint
 router.get('/orders/recent', requireAdmin, async (req, res) => {
   try {
     const { limit = 10, startDate, endDate } = req.query;
 
     const whereClause = {};
     
-    // Handle explicit startDate and endDate parameters
     if (startDate || endDate) {
       const dateFilter = {};
       if (startDate) {
@@ -2143,7 +2003,6 @@ router.get('/orders/recent', requireAdmin, async (req, res) => {
   }
 });
 
-// All orders with filters
 router.get('/orders', requireAdmin, async (req, res) => {
   try {
     const { 
@@ -2171,7 +2030,6 @@ router.get('/orders', requireAdmin, async (req, res) => {
       }
     ];
 
-    // Apply filters
     if (status && status !== 'all') {
       whereClause.status = status;
     }
@@ -2201,7 +2059,6 @@ router.get('/orders', requireAdmin, async (req, res) => {
       }
     }
 
-    // Handle explicit startDate and endDate parameters
     if (queryStartDate || queryEndDate) {
       const dateFilter = {};
       if (queryStartDate) {
@@ -2228,12 +2085,10 @@ router.get('/orders', requireAdmin, async (req, res) => {
       offset
     });
 
-    // Enhance orders with restaurant information for multi-restaurant orders
     const enhancedOrders = await Promise.all(rows.map(async (order) => {
       const orderData = order.toJSON();
       
       if (orderData.restaurantGroups && Object.keys(orderData.restaurantGroups).length > 0) {
-        // Multi-restaurant order - fetch all restaurant details
         const restaurantIds = Object.keys(orderData.restaurantGroups);
         const restaurants = await Restaurant.findAll({
           where: { id: restaurantIds },
@@ -2243,7 +2098,6 @@ router.get('/orders', requireAdmin, async (req, res) => {
         orderData.restaurants = restaurants;
         orderData.isMultiRestaurant = restaurants.length > 1;
       } else if (orderData.restaurant) {
-        // Single restaurant order - use existing association
         orderData.restaurants = [orderData.restaurant];
         orderData.isMultiRestaurant = false;
       }
@@ -2270,7 +2124,6 @@ router.get('/orders', requireAdmin, async (req, res) => {
   }
 });
 
-// Get single order by ID
 router.get('/orders/:orderId', requireAdmin, async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -2299,9 +2152,7 @@ router.get('/orders/:orderId', requireAdmin, async (req, res) => {
 
     const orderData = order.toJSON();
 
-    // Enhance order with restaurant information for multi-restaurant orders
     if (orderData.restaurantGroups && Object.keys(orderData.restaurantGroups).length > 0) {
-      // Multi-restaurant order - fetch all restaurant details
       const restaurantIds = Object.keys(orderData.restaurantGroups);
       const restaurants = await Restaurant.findAll({
         where: { id: restaurantIds },
@@ -2311,7 +2162,6 @@ router.get('/orders/:orderId', requireAdmin, async (req, res) => {
       orderData.restaurants = restaurants;
       orderData.isMultiRestaurant = restaurants.length > 1;
     } else if (orderData.restaurant) {
-      // Single restaurant order - use existing association
       orderData.restaurants = [orderData.restaurant];
       orderData.isMultiRestaurant = false;
     }
@@ -2326,13 +2176,11 @@ router.get('/orders/:orderId', requireAdmin, async (req, res) => {
   }
 });
 
-// Get menu items for a specific restaurant
 router.get('/restaurants/:restaurantId/menu', requireAdmin, async (req, res) => {
   try {
     const { restaurantId } = req.params;
     const { category, available = true, search } = req.query;
 
-    // Verify restaurant exists
     const restaurant = await Restaurant.findByPk(restaurantId);
     if (!restaurant) {
       return res.status(404).json({
@@ -2370,7 +2218,6 @@ router.get('/restaurants/:restaurantId/menu', requireAdmin, async (req, res) => 
       order: [['category', 'ASC'], ['name', 'ASC']]
     });
 
-    // Group items by category
     const groupedItems = menuItems.reduce((acc, item) => {
       const category = item.category || 'Uncategorized';
       if (!acc[category]) {
@@ -2400,7 +2247,6 @@ router.get('/restaurants/:restaurantId/menu', requireAdmin, async (req, res) => 
   }
 });
 
-// Get all menu items across all restaurants (for admin browsing)
 router.get('/menu-items', requireAdmin, async (req, res) => {
   try {
     const { restaurantId, category, available, search, page = 1, limit = 50 } = req.query;
@@ -2469,7 +2315,6 @@ router.get('/menu-items', requireAdmin, async (req, res) => {
   }
 });
 
-// Update order (full order update)
 router.put('/orders/:orderId', requireAdmin, async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -2483,20 +2328,15 @@ router.put('/orders/:orderId', requireAdmin, async (req, res) => {
       });
     }
 
-    // Preserve the original total - don't allow updating it via this endpoint
-    // The total should remain as the original paid amount for refund purposes
     const originalTotal = order.total;
-    delete updateData.total; // Remove total from update data to preserve original
+    delete updateData.total;
 
-    // Update the order with the provided data (excluding total)
     await order.update(updateData);
     
-    // Restore the original total if it was changed
     if (order.total !== originalTotal) {
       await order.update({ total: originalTotal });
     }
 
-    // Log admin action
     try {
       await logAdminAction(
         req.user.id,
@@ -2525,7 +2365,6 @@ router.put('/orders/:orderId', requireAdmin, async (req, res) => {
   }
 });
 
-// Delete order
 router.delete('/orders/:orderId', requireAdmin, async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -2534,7 +2373,6 @@ router.delete('/orders/:orderId', requireAdmin, async (req, res) => {
       return res.status(404).json({ error: 'Order not found', message: 'Order does not exist' });
     }
     
-    // Store order data for audit logging before deletion
     const orderData = order.toJSON();
     
     await order.destroy();
@@ -2552,14 +2390,13 @@ router.delete('/orders/:orderId', requireAdmin, async (req, res) => {
   }
 });
 
-// Update order status
 router.patch('/orders/:orderId/status', requireAdmin, [
   body('status').isIn(['pending', 'confirmed', 'preparing', 'out_for_delivery', 'delivered', 'cancelled'])
 ], async (req, res) => {
     console.log("Restaurant creation request body:", req.body);
   try {
     const { orderId } = req.params;
-    const requestedStatus = req.body.status; // keep original for display
+    const requestedStatus = req.body.status;
 
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -2580,7 +2417,6 @@ router.patch('/orders/:orderId/status', requireAdmin, [
     const prev = order.status;
     await order.update({ status: requestedStatus });
 
-    // Log admin action
     try {
       await logAdminAction(
         req.user.id,
@@ -2595,7 +2431,6 @@ router.patch('/orders/:orderId/status', requireAdmin, [
       logger.warn('Failed to log admin action for order status update:', auditError);
     }
 
-    // Emit notification to all admins with prev -> new (humanized)
     const humanize = (s) => (s || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     const actor = `${req.user?.firstName || 'Admin'} ${req.user?.lastName || ''}`.trim();
     try {
@@ -2607,15 +2442,10 @@ router.patch('/orders/:orderId/status', requireAdmin, [
       });
     } catch (err) { logger.warn('admin order.status_changed notification failed', err); }
 
-    // Sync status to Shipday if order has a shipdayOrderId (non-blocking)
-    // NOTE: Status changes should primarily come FROM Shipday via webhooks, not TO Shipday
-    // When admin assigns driver in Shipday dashboard, webhook will update our system
-    // This sync is only for manual admin overrides (like cancelling)
     if (order.shipdayOrderId) {
       try {
         const { updateShipdayOrderStatus, cancelShipdayOrder } = require('../services/shipdayService');
         
-        // For cancelled orders, use the cancel endpoint
         if (requestedStatus === 'cancelled') {
           const cancelResult = await cancelShipdayOrder(order.shipdayOrderId);
           if (cancelResult.success) {
@@ -2631,8 +2461,6 @@ router.patch('/orders/:orderId/status', requireAdmin, [
             });
           }
         } else {
-          // For other statuses, attempt to sync (may not be supported by Shipday API)
-          // Status changes should come from Shipday dashboard actions via webhooks
           const shipdayResult = await updateShipdayOrderStatus(order.shipdayOrderId, requestedStatus);
           
           if (shipdayResult.success) {
@@ -2653,7 +2481,6 @@ router.patch('/orders/:orderId/status', requireAdmin, [
         logger.error('Error syncing order status to Shipday (non-blocking):', shipdayError, {
           orderId: order.id
         });
-        // Don't throw - admin action should succeed even if Shipday sync fails
       }
     }
 
@@ -2672,7 +2499,6 @@ router.patch('/orders/:orderId/status', requireAdmin, [
   }
 });
 
-// Process refund for an order
 router.post('/orders/:orderId/refund', requireAdmin, [
   body('amount').isFloat({ min: 0.01 }).withMessage('Refund amount must be greater than 0'),
   body('reason').notEmpty().withMessage('Refund reason is required'),
@@ -2691,7 +2517,6 @@ router.post('/orders/:orderId/refund', requireAdmin, [
     const { amount, reason, refundType } = req.body;
     const adminId = req.user.id;
 
-    // Find order
     const order = await Order.findByPk(orderId, {
       include: [
         {
@@ -2709,20 +2534,16 @@ router.post('/orders/:orderId/refund', requireAdmin, [
       });
     }
 
-    // Validate refund amount
     const orderTotal = parseFloat(order.total || 0);
     const refundAmount = parseFloat(amount);
     
-    // Check for existing refunds
     const existingRefunds = await Refund.findAll({
       where: { orderId: orderId, status: 'processed' }
     });
     const totalRefunded = existingRefunds.reduce((sum, refund) => sum + parseFloat(refund.amount), 0);
     const remainingRefundable = orderTotal - totalRefunded;
     
-    // For full refund, it should match the remaining refundable amount (not necessarily the full order total if partial refunds were made)
     if (refundType === 'full') {
-      // Full refund should refund the remaining amount (could be less than order total if partial refunds were made)
       if (Math.abs(refundAmount - remainingRefundable) > 0.01) {
       return res.status(400).json({
         error: 'Invalid refund amount',
@@ -2731,7 +2552,6 @@ router.post('/orders/:orderId/refund', requireAdmin, [
       }
     }
 
-    // Validate refund amount doesn't exceed remaining refundable
     if (refundAmount > remainingRefundable) {
       return res.status(400).json({
         error: 'Invalid refund amount',
@@ -2739,25 +2559,20 @@ router.post('/orders/:orderId/refund', requireAdmin, [
       });
     }
 
-    // Get payment intent ID - try from order first, then look up from Stripe
     let paymentIntentId = order.stripePaymentIntentId || order.stripe_payment_intent_id;
     
-    // If not stored in order, try to find it from Stripe using order ID in metadata
     if (!paymentIntentId) {
       try {
         logger.info('Payment intent ID not found in order, searching Stripe...', { orderId });
         
-        // Try searching by metadata first (if Stripe search API is available)
         let matchingIntent = null;
         
         try {
-          // Search for payment intents with this order ID in metadata
           const paymentIntents = await stripe.paymentIntents.search({
             query: `metadata['orderIds']:'${orderId}'`,
             limit: 10
           });
           
-          // Find the payment intent that succeeded and matches this order
           matchingIntent = paymentIntents.data.find(pi => {
             if (pi.status !== 'succeeded') return false;
             const orderIds = pi.metadata?.orderIds?.split(',') || [];
@@ -2769,15 +2584,13 @@ router.post('/orders/:orderId/refund', requireAdmin, [
       });
     }
 
-        // If search didn't work or didn't find anything, try listing by date/amount
         if (!matchingIntent) {
           const orderDate = new Date(order.createdAt);
-          const startDate = new Date(orderDate.getTime() - 48 * 60 * 60 * 1000); // 48 hours before
-          const endDate = new Date(orderDate.getTime() + 1 * 60 * 60 * 1000); // 1 hour after
+          const startDate = new Date(orderDate.getTime() - 48 * 60 * 60 * 1000);
+          const endDate = new Date(orderDate.getTime() + 1 * 60 * 60 * 1000);
           
           const amountInCents = Math.round(orderTotal * 100);
           
-          // List payment intents in the time window
           const paymentIntentsList = await stripe.paymentIntents.list({
             created: {
               gte: Math.floor(startDate.getTime() / 1000),
@@ -2786,12 +2599,9 @@ router.post('/orders/:orderId/refund', requireAdmin, [
             limit: 100
           });
           
-          // Find matching payment intent by amount and order ID in metadata
           matchingIntent = paymentIntentsList.data.find(pi => {
             if (pi.status !== 'succeeded') return false;
-            // Check if amount matches (allow small difference for rounding)
-            if (Math.abs(pi.amount - amountInCents) > 5) return false; // Allow 5 cent difference
-            // Check if order ID is in metadata
+            if (Math.abs(pi.amount - amountInCents) > 5) return false;
             const orderIds = pi.metadata?.orderIds?.split(',') || [];
             return orderIds.includes(orderId);
           });
@@ -2806,16 +2616,13 @@ router.post('/orders/:orderId/refund', requireAdmin, [
             status: matchingIntent.status
           });
           
-          // Update the order with the found payment intent ID for future use
           try {
-            // Try to update the order - handle both camelCase and snake_case field names
             const updateData = {};
             if (order.rawAttributes?.stripePaymentIntentId) {
               updateData.stripePaymentIntentId = paymentIntentId;
             } else if (order.rawAttributes?.stripe_payment_intent_id) {
               updateData.stripe_payment_intent_id = paymentIntentId;
             } else {
-              // Try both in case the field exists but isn't in the model definition
               updateData.stripePaymentIntentId = paymentIntentId;
             }
             await order.update(updateData);
@@ -2826,7 +2633,6 @@ router.post('/orders/:orderId/refund', requireAdmin, [
               paymentIntentId, 
               error: updateError.message 
             });
-            // Continue anyway - we have the payment intent ID
           }
         }
       } catch (stripeError) {
@@ -2838,7 +2644,6 @@ router.post('/orders/:orderId/refund', requireAdmin, [
       }
     }
     
-    // If still no payment intent ID found, return error
     if (!paymentIntentId) {
       return res.status(400).json({
         error: 'No payment found',
@@ -2847,7 +2652,6 @@ router.post('/orders/:orderId/refund', requireAdmin, [
     }
 
 
-    // Create refund record in database first
     const refundRecord = await Refund.create({
       orderId: orderId,
       amount: refundAmount,
@@ -2857,10 +2661,9 @@ router.post('/orders/:orderId/refund', requireAdmin, [
     });
 
     try {
-      // Process refund through Stripe
       const stripeRefund = await stripe.refunds.create({
         payment_intent: paymentIntentId,
-        amount: Math.round(refundAmount * 100), // Convert to cents
+        amount: Math.round(refundAmount * 100),
         reason: 'requested_by_customer',
         metadata: {
           orderId: orderId,
@@ -2870,18 +2673,15 @@ router.post('/orders/:orderId/refund', requireAdmin, [
         }
       });
 
-      // Update refund record with Stripe refund ID
       await refundRecord.update({
         stripeRefundId: stripeRefund.id,
         status: 'processed'
       });
 
-      // Update order status if full refund
       if (refundType === 'full' || Math.abs(refundAmount - remainingRefundable) < 0.01) {
         await order.update({ status: 'cancelled' });
       }
 
-      // Log admin action
       try {
         await logAdminAction(adminId, 'CREATE', 'refunds', refundRecord.id, null, {
           orderId: orderId,
@@ -2914,7 +2714,6 @@ router.post('/orders/:orderId/refund', requireAdmin, [
         message: 'Refund processed successfully'
       });
     } catch (stripeError) {
-      // Update refund record to failed status
       await refundRecord.update({ status: 'failed' });
 
       logger.error('Stripe refund failed:', stripeError, {
@@ -2937,7 +2736,6 @@ router.post('/orders/:orderId/refund', requireAdmin, [
   }
 });
 
-// Get refunds for an order
 router.get('/orders/:orderId/refunds', requireAdmin, async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -2967,7 +2765,6 @@ router.get('/orders/:orderId/refunds', requireAdmin, async (req, res) => {
   }
 });
 
-// Get all restaurants for admin
 router.get('/restaurants', requireAdmin, async (req, res) => {
   try {
     const { page = 1, limit = 20, search } = req.query;
@@ -3008,7 +2805,6 @@ router.get('/restaurants', requireAdmin, async (req, res) => {
   }
 });
 
-// Toggle restaurant featured status
 router.patch('/restaurants/:restaurantId/featured', requireAdmin, async (req, res) => {
   try {
     const { restaurantId } = req.params;
@@ -3024,7 +2820,6 @@ router.patch('/restaurants/:restaurantId/featured', requireAdmin, async (req, re
     const oldFeatured = restaurant.featured;
     await restaurant.update({ featured: !restaurant.featured });
 
-    // Log admin action
     try {
       await logAdminAction(
         req.user.id,
@@ -3054,13 +2849,11 @@ router.patch('/restaurants/:restaurantId/featured', requireAdmin, async (req, re
   }
 });
 
-// Upload restaurant logo
 router.post('/restaurants/logo/upload', requireAdmin, upload.single('logo'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
     const filename = req.file.filename;
     
-    // Log admin action (logo upload is a restaurant update operation)
     try {
       const restaurantId = req.body.restaurantId;
       if (restaurantId) {
@@ -3085,7 +2878,6 @@ router.post('/restaurants/logo/upload', requireAdmin, upload.single('logo'), asy
   }
 });
 
-// ===== GLOBAL ADMIN NOTIFICATIONS =====
 router.get('/notifications', requireAdmin, async (req, res) => {
   try {
     const { limit = 250, offset = 0 } = req.query;
@@ -3095,7 +2887,6 @@ router.get('/notifications', requireAdmin, async (req, res) => {
       offset: parseInt(offset)
     });
     
-    // Calculate unread count for this admin (count all notifications, not just returned items)
     const allNotifications = await AdminNotification.findAll({
       order: [['createdAt', 'DESC']]
     });
@@ -3126,7 +2917,6 @@ router.patch('/notifications/:id/read', requireAdmin, async (req, res) => {
     
     await notif.update({ readBy: updatedReadBy });
     
-    // Log admin action
     try {
       await logAdminAction(
         req.user.id,
@@ -3141,7 +2931,6 @@ router.patch('/notifications/:id/read', requireAdmin, async (req, res) => {
       logger.warn('Failed to log admin action for notification read update:', auditError);
     }
     
-    // Calculate unread count for this admin (count all notifications, not just first 20)
     const allNotifications = await AdminNotification.findAll({
       order: [['createdAt', 'DESC']]
     });
@@ -3167,7 +2956,6 @@ router.patch('/notifications/read-all', requireAdmin, async (req, res) => {
         const updatedReadBy = [...notif.readBy, currentUserId];
         await notif.update({ readBy: updatedReadBy });
         
-        // Log admin action for each notification marked as read
         try {
           await logAdminAction(
             req.user.id,
@@ -3191,14 +2979,12 @@ router.patch('/notifications/read-all', requireAdmin, async (req, res) => {
   }
 });
 
-// Delete a global admin notification
 router.delete('/notifications/:id', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const notif = await AdminNotification.findByPk(id);
     if (!notif) return res.status(404).json({ error: 'Not found' });
     
-    // Log admin action before deletion
     try {
       await logAdminAction(
         req.user.id,
@@ -3215,7 +3001,6 @@ router.delete('/notifications/:id', requireAdmin, async (req, res) => {
     
     await notif.destroy({ force: true });
     
-    // Calculate unread count for this admin
     const allNotifications = await AdminNotification.findAll({
       order: [['createdAt', 'DESC']]
     });
@@ -3230,9 +3015,7 @@ router.delete('/notifications/:id', requireAdmin, async (req, res) => {
   }
 });
 
-// ===== SUPPORT TICKETS (ADMIN) =====
 
-// List tickets (basic pagination + include requester info)
 router.get('/support/tickets', requireAdmin, async (req, res) => {
   try {
     const { page = 1, limit = 20, status } = req.query;
@@ -3256,16 +3039,13 @@ router.get('/support/tickets', requireAdmin, async (req, res) => {
     });
 
     const data = rows.map(t => {
-      // Extract requester info from message if no customer association
       let requester_name = '';
       let requester_email = '';
       
       if (t.customer) {
-        // Ticket associated with user account
         requester_name = `${t.customer.firstName || ''} ${t.customer.lastName || ''}`.trim();
         requester_email = t.customer.email || '';
       } else {
-        // Guest ticket - extract info from message
         const messageLines = t.message.split('\n');
         const fromLine = messageLines.find(line => line.startsWith('From: '));
         if (fromLine) {
@@ -3304,7 +3084,6 @@ router.get('/support/tickets', requireAdmin, async (req, res) => {
   }
 });
 
-// Update ticket status
 router.patch('/support/tickets/:ticketId/status', requireAdmin, [
   body('status').isString()
 ], async (req, res) => {
@@ -3315,11 +3094,10 @@ router.patch('/support/tickets/:ticketId/status', requireAdmin, [
       return res.status(400).json({ error: 'Validation failed', details: errors.array() });
     }
     const { ticketId } = req.params;
-    const requested = req.body.status; // preserve for display
+    const requested = req.body.status;
     const prevDisplay = typeof req.body.prevDisplay === 'string' ? req.body.prevDisplay : null;
     let status = requested;
     
-    // Validate status - allow all valid statuses including 'waiting'
     if (!['open','in_progress','waiting','resolved','closed'].includes(status)) {
       return res.status(400).json({ error: 'Invalid status' });
     }
@@ -3327,12 +3105,10 @@ router.patch('/support/tickets/:ticketId/status', requireAdmin, [
     const ticket = await SupportTicket.findByPk(ticketId);
     if (!ticket) return res.status(404).json({ error: 'Ticket not found' });
     
-    // Store old values for audit logging
     const prev = ticket.status;
     
     await ticket.update({ status });
     
-    // Log the admin action with before/after values
     try {
       await logAdminAction(
         req.user.id,
@@ -3345,13 +3121,11 @@ router.patch('/support/tickets/:ticketId/status', requireAdmin, [
       );
     } catch (auditError) {
       logger.error('Failed to log admin action for ticket status update:', auditError);
-      // Don't fail the request if audit logging fails
     }
     const humanize = (s) => (s || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-    const displayNew = requested; // show what the admin selected
-    const displayPrev = prevDisplay || prev; // prefer UI column name if provided
+    const displayNew = requested;
+    const displayPrev = prevDisplay || prev;
     const actor = `${req.user?.firstName || 'Admin'} ${req.user?.lastName || ''}`.trim();
-    // notify all admins
     await createGlobalAdminNotification({
       type: 'ticket.status_changed',
       title: `Ticket ${ticket.id.slice(0,8)} ${humanize(displayPrev)} → ${humanize(displayNew)}`,
@@ -3365,7 +3139,6 @@ router.patch('/support/tickets/:ticketId/status', requireAdmin, [
   }
 });
 
-// Add ticket response
 router.post('/support/tickets/:ticketId/responses', requireAdmin, [
   body('message').isString().isLength({ min: 1 }),
   body('isInternal').optional().isBoolean()
@@ -3387,7 +3160,6 @@ router.post('/support/tickets/:ticketId/responses', requireAdmin, [
       isInternal
     });
     
-    // Log admin action
     try {
       await logAdminAction(
         req.user.id,
@@ -3409,10 +3181,8 @@ router.post('/support/tickets/:ticketId/responses', requireAdmin, [
   }
 });
 
-// Bulk delete all closed tickets
 router.delete('/support/tickets/closed', requireAdmin, async (req, res) => {
   try {
-    // Get closed tickets before deletion for audit logging
     const closedTickets = await SupportTicket.findAll({ 
       where: { status: 'closed' },
       attributes: ['id', 'subject', 'status', 'createdAt']
@@ -3420,7 +3190,6 @@ router.delete('/support/tickets/closed', requireAdmin, async (req, res) => {
     
     const count = await SupportTicket.destroy({ where: { status: 'closed' }, force: true });
     
-    // Log the admin action for bulk deletion
     if (count > 0) {
       try {
         await logAdminAction(
@@ -3433,16 +3202,14 @@ router.delete('/support/tickets/closed', requireAdmin, async (req, res) => {
             count: count,
             deletedTicketIds: closedTickets.map(ticket => ticket.id)
           },
-          null, // No new values for deletion
+          null,
           req
         );
       } catch (auditError) {
         logger.error('Failed to log admin action for bulk ticket deletion:', auditError);
-        // Don't fail the request if audit logging fails
       }
     }
     
-    // Create notification for closed tickets deletion
     if (count > 0) {
       try {
         await createGlobalAdminNotification({
@@ -3463,7 +3230,6 @@ router.delete('/support/tickets/closed', requireAdmin, async (req, res) => {
   }
 });
 
-// Utility function for relative time
 const getRelativeTime = (dateString) => {
   const date = new Date(dateString);
   const now = new Date();
@@ -3480,7 +3246,7 @@ router.post('/orders/stream-token', requireAdmin, async (req, res) => {
     const token = jwt.sign(
       { userId: req.user.id, scope: 'orders_stream' },
       process.env.JWT_SECRET,
-      { expiresIn: '1h' } // Extended to 1 hour for long-lived SSE connections
+      { expiresIn: '1h' }
     );
     res.json({ token });
   } catch (error) {
@@ -3553,22 +3319,18 @@ router.get('/orders/stream', async (req, res) => {
   });
 });
 
-// ===== SUPPORT TICKETS ENDPOINTS =====
 
-// Get support tickets with filtering
 router.get('/support-tickets', requireAdmin, async (req, res) => {
   try {
     const { status, priority, page = 1, limit = 20 } = req.query;
     
     const whereClause = {};
     
-    // Handle status filter (can be comma-separated)
     if (status) {
       const statuses = status.split(',').map(s => s.trim());
       whereClause.status = { [Op.in]: statuses };
     }
     
-    // Handle priority filter
     if (priority) {
       whereClause.priority = priority;
     }
@@ -3616,22 +3378,18 @@ router.get('/support-tickets', requireAdmin, async (req, res) => {
   }
 });
 
-// ===== MENU CHANGE REQUESTS ENDPOINTS =====
 
-// Get menu change requests with filtering
 router.get('/menu-change-requests', requireAdmin, async (req, res) => {
   try {
     const { status, changeType, page = 1, limit = 20 } = req.query;
     
     const whereClause = {};
     
-    // Handle status filter (can be comma-separated)
     if (status) {
       const statuses = status.split(',').map(s => s.trim());
       whereClause.status = { [Op.in]: statuses };
     }
     
-    // Handle change type filter
     if (changeType) {
       whereClause.changeType = changeType;
     }
@@ -3684,9 +3442,7 @@ router.get('/menu-change-requests', requireAdmin, async (req, res) => {
   }
 });
 
-// ===== SSE STREAMS FOR REQUESTS =====
 
-// SSE stream for requests updates (admin only)
 router.get('/requests/stream', requireAdmin, (req, res) => {
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
@@ -3701,7 +3457,6 @@ router.get('/requests/stream', requireAdmin, (req, res) => {
     res.write(`data: ${JSON.stringify(data)}\n\n`);
   };
 
-  // Send initial count
   const sendInitialCount = async () => {
     try {
       const [supportTicketsResp, menuRequestsResp] = await Promise.all([
@@ -3718,13 +3473,11 @@ router.get('/requests/stream', requireAdmin, (req, res) => {
 
   sendInitialCount();
 
-  // Heartbeat to keep connection alive
   const heartbeat = setInterval(() => {
     res.write('event: heartbeat\n');
     res.write('data: {}\n\n');
   }, 30000);
 
-  // Event handlers
   const onSupportTicketCreated = (payload) => {
     if (payload.status === 'open' || payload.status === 'in_progress') {
       sendEvent('requests.count', { count: 'increment' });
@@ -3760,10 +3513,8 @@ router.get('/requests/stream', requireAdmin, (req, res) => {
   });
 });
 
-// MailChimp Integration Routes
 const mailchimpService = require('../services/mailchimpService');
 
-// Campaign routes
 router.get('/mailchimp/campaigns', requireAdmin, async (req, res) => {
   try {
     const { count = 10, offset = 0, status, type } = req.query;
@@ -3843,7 +3594,6 @@ router.post('/mailchimp/campaigns/:id/test', requireAdmin, async (req, res) => {
   }
 });
 
-// Template routes
 router.get('/mailchimp/templates', requireAdmin, async (req, res) => {
   try {
     const { count = 10, offset = 0 } = req.query;
@@ -3889,7 +3639,6 @@ router.delete('/mailchimp/templates/:id', requireAdmin, async (req, res) => {
   }
 });
 
-// List routes
 router.get('/mailchimp/lists', requireAdmin, async (req, res) => {
   try {
     const lists = await mailchimpService.getLists();
@@ -3947,7 +3696,6 @@ router.delete('/mailchimp/lists/:id/members/:email', requireAdmin, async (req, r
   }
 });
 
-// Account info
 router.get('/mailchimp/account', requireAdmin, async (req, res) => {
   try {
     const accountInfo = await mailchimpService.getAccountInfo();
@@ -3958,11 +3706,9 @@ router.get('/mailchimp/account', requireAdmin, async (req, res) => {
   }
 });
 
-// GET /api/admin/audit-logs - Fetch audit logs with filtering and pagination
 router.get('/audit-logs', requireAdmin, async (req, res) => {
   try {
     
-    // Parse query parameters
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const action = req.query.action || 'all';
@@ -3971,7 +3717,6 @@ router.get('/audit-logs', requireAdmin, async (req, res) => {
     const endDate = req.query.endDate;
     const adminId = req.query.adminId;
     
-    // Build where clause
     const whereClause = {};
     
     if (action !== 'all') {
@@ -3996,10 +3741,8 @@ router.get('/audit-logs', requireAdmin, async (req, res) => {
       }
     }
     
-    // Get total count
     const total = await AdminAuditLog.count({ where: whereClause });
     
-    // Get audit logs with admin information
     const auditLogs = await AdminAuditLog.findAll({
       where: whereClause,
       include: [{
@@ -4012,7 +3755,6 @@ router.get('/audit-logs', requireAdmin, async (req, res) => {
       offset: (page - 1) * limit
     });
     
-    // Transform the data
     const transformedLogs = auditLogs.map(log => {
       const logData = log.toJSON();
       return {
@@ -4055,9 +3797,7 @@ router.get('/audit-logs', requireAdmin, async (req, res) => {
   }
 });
 
-// ==================== PROMO CODE MANAGEMENT ====================
 
-// Get all promo codes
 router.get('/promo-codes', requireAdmin, async (req, res) => {
   try {
     const { page = 1, limit = 20, search = '', active } = req.query;
@@ -4100,7 +3840,6 @@ router.get('/promo-codes', requireAdmin, async (req, res) => {
   }
 });
 
-// Get single promo code
 router.get('/promo-codes/:id', requireAdmin, async (req, res) => {
   try {
     const promoCode = await PromoCode.findByPk(req.params.id);
@@ -4125,7 +3864,6 @@ router.get('/promo-codes/:id', requireAdmin, async (req, res) => {
   }
 });
 
-// Create new promo code
 router.post('/promo-codes', requireAdmin, [
   body('code').notEmpty().isLength({ min: 1, max: 50 }).withMessage('Code must be 1-50 characters'),
   body('discountType').isIn(['percentage', 'fixed']).withMessage('Discount type must be percentage or fixed'),
@@ -4154,7 +3892,6 @@ router.post('/promo-codes', requireAdmin, [
       stackable = false
     } = req.body;
 
-    // Check if code already exists (case-insensitive)
     const existingCode = await PromoCode.findOne({ 
       where: sequelize.where(
         sequelize.fn('UPPER', sequelize.col('code')),
@@ -4202,7 +3939,6 @@ router.post('/promo-codes', requireAdmin, [
   }
 });
 
-// Update promo code
 router.put('/promo-codes/:id', requireAdmin, [
   body('code').optional().isLength({ min: 1, max: 50 }).withMessage('Code must be 1-50 characters'),
   body('discountType').optional().isIn(['percentage', 'fixed']).withMessage('Discount type must be percentage or fixed'),
@@ -4222,7 +3958,6 @@ router.put('/promo-codes/:id', requireAdmin, [
       });
     }
 
-    // Clean the ID parameter (handle cases where ID might be malformed)
     const promoId = String(req.params.id).split(':')[0];
     
     const promoCode = await PromoCode.findByPk(promoId);
@@ -4236,18 +3971,15 @@ router.put('/promo-codes/:id', requireAdmin, [
     const oldValues = promoCode.toJSON();
     const updateData = { ...req.body };
     
-    // Remove null/empty values to avoid validation issues
     Object.keys(updateData).forEach(key => {
       if (updateData[key] === null || updateData[key] === '' || updateData[key] === undefined) {
         delete updateData[key];
       }
     });
     
-    // Convert code to uppercase if provided
     if (updateData.code) {
       updateData.code = updateData.code.toUpperCase();
       
-      // Check if new code already exists (excluding current record, case-insensitive)
       const existingCode = await PromoCode.findOne({ 
         where: { 
           [Op.and]: [
@@ -4293,7 +4025,6 @@ router.put('/promo-codes/:id', requireAdmin, [
   }
 });
 
-// Delete promo code
 router.delete('/promo-codes/:id', requireAdmin, async (req, res) => {
   try {
     const promoCode = await PromoCode.findByPk(req.params.id);
@@ -4330,4 +4061,4 @@ router.delete('/promo-codes/:id', requireAdmin, async (req, res) => {
   }
 });
 
-module.exports = router; 
+module.exports = router;

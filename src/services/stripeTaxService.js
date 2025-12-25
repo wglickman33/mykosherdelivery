@@ -1,15 +1,7 @@
 import apiClient from '../lib/api';
 import logger from '../utils/logger';
 
-/**
- * Calculate tax using Stripe Tax API
- * @param {Object} params - Tax calculation parameters
- * @param {Array} params.items - Array of items with amount and description
- * @param {Object} params.customerAddress - Customer delivery address
- * @param {number} params.deliveryFee - Delivery fee amount
- * @param {string} params.currency - Currency code (default: 'usd')
- * @returns {Promise<Object>} Tax calculation result
- */
+
 export const calculateTaxWithStripe = async ({
   items,
   customerAddress,
@@ -25,14 +17,12 @@ export const calculateTaxWithStripe = async ({
       throw new Error('Customer address is required');
     }
 
-    // Prepare items for Stripe Tax API
     const stripeItems = items.map((item) => ({
       amount: item.amount || item.price * (item.quantity || 1),
       description: item.description || item.name || 'Item',
       id: item.id,
     }));
 
-    // Prepare customer address
     const customer = {
       address: {
         line1: customerAddress.line1 || customerAddress.street || customerAddress.address,
@@ -43,7 +33,6 @@ export const calculateTaxWithStripe = async ({
       },
     };
 
-    // Prepare shipping cost if delivery fee exists
     const shipping = deliveryFee > 0 ? {
       amount: deliveryFee,
     } : null;
@@ -80,7 +69,6 @@ export const calculateTaxWithStripe = async ({
     return {
       success: false,
       error: error.message || 'Failed to calculate tax',
-      // Fallback to zero tax if calculation fails
       subtotal: items.reduce((sum, item) => sum + (item.amount || item.price * (item.quantity || 1)), 0),
       taxAmount: 0,
       totalAmount: items.reduce((sum, item) => sum + (item.amount || item.price * (item.quantity || 1)), 0) + deliveryFee,
@@ -89,12 +77,7 @@ export const calculateTaxWithStripe = async ({
   }
 };
 
-/**
- * Calculate tax rate from Stripe Tax calculation
- * @param {Object} taxResult - Result from calculateTaxWithStripe
- * @param {number} subtotal - Subtotal amount
- * @returns {number} Tax rate as decimal (e.g., 0.0825 for 8.25%)
- */
+
 export const getTaxRateFromStripe = (taxResult, subtotal) => {
   if (!taxResult.success || !taxResult.taxAmount || subtotal === 0) {
     return 0;

@@ -359,7 +359,6 @@
     }
   }
 
-  // Modal Styles (matching AdminRestaurants)
   &__overlay {
     position: fixed; top: 0; left: 0; right: 0; bottom: 0; 
     background: rgba(6, 23, 87, 0.4); display: flex; align-items: center; justify-content: center; 
@@ -422,7 +421,6 @@
     border-bottom-right-radius: 16px;
   }
 
-  // View details content blocks
   &__overview { 
     h3 { font-size: 1.35rem; font-weight: 800; color: #061757; margin: 0 0 8px 0; }
   }
@@ -436,7 +434,6 @@
     span { font-size: 1rem; font-weight: 700; color: #061757; }
   }
 
-  // Edit/Create form
   &__form-grid { 
     display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px 18px; margin-bottom: 18px; 
   }
@@ -514,7 +511,6 @@
     max-width: fit-content;
   }
 
-  // Animations scoped to this component
   @keyframes admin-users__fadeIn {
     from { opacity: 0; } to { opacity: 1; }
   }
@@ -522,7 +518,6 @@
     from { transform: translateY(8px); opacity: 0.96; } to { transform: translateY(0); opacity: 1; }
   }
 
-  // Responsive breakpoints
   @media (max-width: 1200px) {
     .stats-grid {
       grid-template-columns: repeat(2, 1fr);

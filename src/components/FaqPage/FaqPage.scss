@@ -1,7 +1,6 @@
 .faq-page {
-  // Account for fixed header and sidebar positioning
-  margin-top: 60px; // Height of the fixed header
-  margin-left: 240px; // Width of the desktop sidebar
+  margin-top: 60px;
+  margin-left: 240px;
   min-height: calc(100vh - 60px);
   background-color: #f8f9fa;
   transition: margin-left 0.3s ease;
@@ -116,7 +115,7 @@
     background: white;
 
     &.expanded {
-      max-height: 500px; // Adjust based on content
+      max-height: 500px;
     }
 
     .answer-content {
@@ -186,9 +185,8 @@
     }
   }
 
-  // Tablet view adjustments
   @media screen and (min-width: 641px) and (max-width: 1110px) {
-    margin-left: 60px; // Icon sidebar width
+    margin-left: 60px;
 
     .faq-content {
       padding: 40px 20px 0;
@@ -207,7 +205,6 @@
     }
   }
 
-  // Mobile view adjustments  
   @media screen and (max-width: 640px) {
     margin-left: 0;
 

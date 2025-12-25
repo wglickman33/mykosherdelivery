@@ -1,7 +1,6 @@
 .home-page {
-  // Account for fixed header and sidebar positioning
-  margin-top: 60px; // Height of the fixed header
-  margin-left: 240px; // Width of the desktop sidebar
+  margin-top: 60px;
+  margin-left: 240px;
   min-height: calc(100vh - 60px);
   background-color: #f8f9fa;
   transition: margin-left 0.3s ease;
@@ -95,7 +94,6 @@
   .countdown-section {
     margin-bottom: 60px;
     
-    // Ensure countdown blends well with HomePage design
     .countdown-container.homepage {
       max-width: 800px;
       margin: 0 auto;
@@ -328,17 +326,15 @@
   }
 }
 
-// Responsive adjustments for tablet view (icon sidebar visible)
 @media screen and (min-width: 641px) and (max-width: 1110px) {
   .home-page {
-    margin-left: 60px; // Width of the icon sidebar
+    margin-left: 60px;
   }
 }
 
-// Mobile view adjustments
 @media screen and (max-width: 640px) {
   .home-page {
-    margin-left: 0; // No sidebar on mobile
+    margin-left: 0;
 
     .home-content {
       padding: 0 12px;
@@ -420,7 +416,6 @@
   }
 }
 
-// Very small mobile adjustments
 @media screen and (max-width: 410px) {
   .home-page {
     .hero-section {

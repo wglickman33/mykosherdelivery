@@ -26,7 +26,7 @@ const OrderSummary = ({
       </h3>
       
       <div className="summary-content">
-        {/* Items */}
+        {}
         <div className="order-items">
           {items.map((item) => (
             <div key={item.id} className="order-item">
@@ -69,7 +69,7 @@ const OrderSummary = ({
 
         <div className="summary-divider" />
 
-        {/* Promo Code */}
+        {}
         <div className="promo-section">
           {!appliedPromo ? (
             <div className="promo-input-group">
@@ -94,7 +94,7 @@ const OrderSummary = ({
                 <span className="promo-discount-text">
                   -{appliedPromo.discountType === 'percentage' 
                     ? `${appliedPromo.discountValue}%` 
-                    : `$${appliedPromo.discountValue}`}
+                    : `${appliedPromo.discountValue}`}
                 </span>
               </div>
               <button className="promo-remove-button" onClick={onRemovePromo}>
@@ -111,7 +111,7 @@ const OrderSummary = ({
 
         <div className="summary-divider" />
 
-        {/* Pricing Breakdown */}
+        {}
         <div className="pricing-breakdown">
           <div className="pricing-line">
             <span className="pricing-label">Subtotal</span>
@@ -143,7 +143,7 @@ const OrderSummary = ({
 
         <div className="summary-divider" />
 
-        {/* Total */}
+        {}
         <div className="total-line">
           <span className="total-label">Total</span>
           <span className="total-value">${total.toFixed(2)}</span>

@@ -23,13 +23,10 @@ const AddressModal = ({ isOpen, onClose, mode = 'add', addressToEdit = null }) =
 
   useEffect(() => {
     if (mode === 'edit' && addressToEdit) {
-      // Handle both old nested structure {id, label, address: {...}} and new flat structure {id, label, street, city, ...}
       let addressData;
       if (addressToEdit?.address && typeof addressToEdit.address === 'object') {
-        // Old nested structure
         addressData = addressToEdit.address;
       } else {
-        // New flat structure
         addressData = addressToEdit;
       }
       
@@ -51,11 +48,8 @@ const AddressModal = ({ isOpen, onClose, mode = 'add', addressToEdit = null }) =
         deliveryInstructions: ''
       });
     } else if (!user && tempAddress) {
-      // Guest user editing their temp address
-      // Parse the address string to extract components
       const currentAddr = getCurrentAddress();
       if (typeof currentAddr === 'string') {
-        // Try to parse the address string
         const parts = currentAddr.split(', ');
         const street = parts[0] || '';
         const cityStateZip = parts.slice(1).join(', ');
@@ -70,7 +64,6 @@ const AddressModal = ({ isOpen, onClose, mode = 'add', addressToEdit = null }) =
           deliveryInstructions: ''
         });
       } else {
-        // Clear form for guests
         setFormData({
           street: '',
           apartment: '',
@@ -91,7 +84,6 @@ const AddressModal = ({ isOpen, onClose, mode = 'add', addressToEdit = null }) =
       [name]: value
     }));
     
-    // Clear validation error when user starts typing
     if (validationErrors[name]) {
       setValidationErrors(prev => ({
         ...prev,
@@ -107,7 +99,6 @@ const AddressModal = ({ isOpen, onClose, mode = 'add', addressToEdit = null }) =
       [name]: true
     }));
     
-    // Validate field on blur
     validateField(name, value);
   };
 
@@ -144,7 +135,6 @@ const AddressModal = ({ isOpen, onClose, mode = 'add', addressToEdit = null }) =
   const validateForm = () => {
     let isValid = true;
     
-    // Validate required fields
     const requiredFields = ['street', 'city', 'state', 'zipCode'];
     requiredFields.forEach(field => {
       if (!validateField(field, formData[field])) {
@@ -152,7 +142,6 @@ const AddressModal = ({ isOpen, onClose, mode = 'add', addressToEdit = null }) =
       }
     });
     
-    // Additional delivery area validation
     if (formData.street && formData.city && formData.state && formData.zipCode) {
       const fullAddress = `${formData.street}, ${formData.city}, ${formData.state} ${formData.zipCode}`;
       const deliveryValidation = validateDeliveryAddress(fullAddress);
@@ -166,7 +155,6 @@ const AddressModal = ({ isOpen, onClose, mode = 'add', addressToEdit = null }) =
       }
     }
     
-    // Mark all fields as touched to show validation errors
     const touchedFields = {};
     requiredFields.forEach(field => {
       touchedFields[field] = true;
@@ -189,12 +177,10 @@ const AddressModal = ({ isOpen, onClose, mode = 'add', addressToEdit = null }) =
 
     try {
       if (!user) {
-        // Guest user - update temp address
         const fullAddress = `${formData.street.trim()}${formData.apartment.trim() ? `, ${formData.apartment.trim()}` : ''}, ${formData.city.trim()}, ${formData.state.trim()} ${formData.zipCode.trim()}`;
         setTempAddress(fullAddress);
         onClose();
       } else {
-        // Authenticated user - use existing logic
         const addressData = {
           street: formData.street.trim(),
           apartment: formData.apartment.trim(),
@@ -353,7 +339,7 @@ const AddressModal = ({ isOpen, onClose, mode = 'add', addressToEdit = null }) =
                 <option value="CT">Connecticut</option>
                 <option value="CA">California</option>
                 <option value="FL">Florida</option>
-                {/* Add more states as needed */}
+                {}
               </select>
               {touched.state && validationErrors.state && (
                 <div className="field-error">{validationErrors.state}</div>
@@ -443,7 +429,7 @@ const AddressModal = ({ isOpen, onClose, mode = 'add', addressToEdit = null }) =
         </form>
       </div>
 
-      {/* Delete Confirmation Modal */}
+      {}
       <DeleteConfirmModal
         isOpen={showDeleteModal}
         onClose={cancelDelete}

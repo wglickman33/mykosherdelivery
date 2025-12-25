@@ -20,14 +20,14 @@ $box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 html, body {
   height: 100%;
   overflow-x: hidden;
-  overflow-y: auto; /* Allow vertical scrolling for countdown section */
+  overflow-y: auto; 
 }
 
 body {
   background-color: $white;
 }
 
-/* Wrapper for both landing page and countdown */
+
 .landing-page-wrapper {
   min-height: 100vh;
   display: flex;
@@ -42,7 +42,7 @@ body {
   position: relative;
   display: flex;
   flex-direction: column;
-  flex-shrink: 0; /* Prevent shrinking */
+  flex-shrink: 0; 
 }
 
 .landing-page__background-elements {
@@ -356,7 +356,7 @@ body {
 
 }
 
-/* Countdown section styling */
+
 .landing-page__countdown-section {
   background-color: $white;
   width: 100%;
@@ -364,20 +364,20 @@ body {
   flex-shrink: 0;
 }
 
-/* About section styling */
+
 .landing-page__about-section {
   background-color: $white;
   width: 100%;
   flex-shrink: 0;
 }
 
-/* Contact section styling */
+
 .landing-page__contact-section {
   width: 100%;
   flex-shrink: 0;
 }
 
-/* Countdown component styles */
+
 .countdown-container {
   font-family: 'Arial', sans-serif;
   max-width: 1200px;
@@ -490,11 +490,11 @@ body {
   }
 }
 
-/* Adjust top square position at 450px and below */
+
 @media (max-width: 450px) {
   .landing-page__square {
     &--1 {
-      top: 15vh; /* Lowered from -5vh to 15vh (about 20% down) */
+      top: 15vh; 
     }
   }
 }
@@ -560,13 +560,13 @@ body {
   
   .landing-page__square {
     &--1 {
-      /* Keep the top square at the lowered position from 450px breakpoint */
-      display: block; /* Override the display: none */
+      
+      display: block; 
     }
     
     &--2 {
-      bottom: calc(15% - 14px); /* Lower by 14px from original position */
-      display: block; /* Override the display: none */
+      bottom: calc(15% - 14px); 
+      display: block; 
     }
     
     &--3, &--4 {
@@ -629,7 +629,7 @@ body {
   }
 }
 
-/* Countdown responsive styles */
+
 @media (max-width: 768px) {
   .countdown-header {
     font-size: 1.8rem;
@@ -766,7 +766,7 @@ body {
   }
 }
 
-/* Google Places suggestions dropdown - seamlessly integrated with original design */
+
 .landing-page__input-container {
   position: relative;
   flex: 1;

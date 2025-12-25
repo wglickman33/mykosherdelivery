@@ -1,13 +1,11 @@
 import apiClient from '../lib/api';
 import logger from '../utils/logger';
 
-// Authentication service for Express backend
 let lastSessionCheck = 0;
 let lastSessionResult = null;
-const SESSION_CHECK_COOLDOWN = 30 * 1000; // 30 seconds minimum between session checks
+const SESSION_CHECK_COOLDOWN = 30 * 1000;
 
 export const authService = {
-  // Sign up a new user
   async signUp(email, password, firstName, lastName) {
     try {
       const response = await apiClient.post('/auth/signup', {
@@ -33,7 +31,6 @@ export const authService = {
     }
   },
 
-  // Sign in existing user
   async signIn(email, password) {
     try {
       const response = await apiClient.post('/auth/signin', {
@@ -57,7 +54,6 @@ export const authService = {
     }
   },
 
-  // Get current session with token validation
   async getSession() {
     try {
       const token = apiClient.getToken();
@@ -65,29 +61,24 @@ export const authService = {
         return { success: false, user: null };
       }
 
-      // Prevent too frequent session checks (but allow initial page loads)
       const now = Date.now();
       if (now - lastSessionCheck < SESSION_CHECK_COOLDOWN && lastSessionCheck > 0 && lastSessionResult) {
         logger.debug('Session check skipped due to cooldown, returning cached result');
-        // Return the last known session state
         return lastSessionResult;
       }
       lastSessionCheck = now;
 
-      // Check if token is close to expiring and refresh if needed
       try {
         const tokenPayload = JSON.parse(atob(token.split('.')[1]));
-        const expiresAt = tokenPayload.exp * 1000; // Convert to milliseconds
+        const expiresAt = tokenPayload.exp * 1000;
         const timeUntilExpiry = expiresAt - now;
         
-        // If token expires in less than 1 hour, try to refresh it
         if (timeUntilExpiry < 60 * 60 * 1000) {
           logger.debug('Token expires soon, attempting refresh', {
             expiresAt: new Date(expiresAt).toISOString(),
             timeUntilExpiry: Math.floor(timeUntilExpiry / 1000 / 60) + ' minutes'
           });
           
-          // Try to refresh the session
           const refreshResponse = await apiClient.post('/auth/refresh');
           if (refreshResponse.data && refreshResponse.data.session) {
             apiClient.setToken(refreshResponse.data.session.access_token);
@@ -116,32 +107,27 @@ export const authService = {
       
       const result = { success: false, user: null };
       
-      // Only cache failure result if it's a real auth error
       if (error.message.includes('Token expired') || 
           error.message.includes('Invalid token')) {
         lastSessionResult = result;
         return result;
       }
       
-      // For network errors, etc., don't cache the failure and don't immediately fail the session
       logger.warn('Session check failed but may be temporary:', error.message);
       return result;
     }
   },
 
-  // Sign out user
   async signOut() {
     try {
       await apiClient.post('/auth/signout');
     } catch (error) {
       console.error('Signout error:', error);
     } finally {
-      // Always clear the token locally
       apiClient.setToken(null);
     }
   },
 
-  // Update user profile
   async updateProfile(updates) {
     try {
       const response = await apiClient.put('/profiles/me', updates);
@@ -152,7 +138,6 @@ export const authService = {
     }
   },
 
-  // Add new address
   async addAddress(addressData) {
     try {
       const response = await apiClient.post('/profiles/me/addresses', addressData);
@@ -163,7 +148,6 @@ export const authService = {
     }
   },
 
-  // Update address
   async updateAddress(addressId, updates) {
     try {
       const response = await apiClient.put(`/profiles/me/addresses/${addressId}`, updates);
@@ -174,7 +158,6 @@ export const authService = {
     }
   },
 
-  // Delete address
   async deleteAddress(addressId) {
     try {
       await apiClient.delete(`/profiles/me/addresses/${addressId}`);
@@ -185,7 +168,6 @@ export const authService = {
     }
   },
 
-  // Set primary address
   async setPrimaryAddress(addressId) {
     try {
       const response = await apiClient.patch(`/profiles/me/addresses/${addressId}/primary`);
@@ -196,7 +178,6 @@ export const authService = {
     }
   },
 
-  // Get current token (for client-side validation)
   getToken() {
     return apiClient.getToken();
   }

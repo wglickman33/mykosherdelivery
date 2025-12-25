@@ -2,18 +2,13 @@ import apiClient from '../lib/api';
 import logger from '../utils/logger';
 import { calculateTaxWithStripe, getTaxRateFromStripe } from './stripeTaxService';
 
-// Cache for delivery zones to avoid repeated API calls
 let deliveryZonesCache = null;
 let cacheTimestamp = null;
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 5 * 60 * 1000;
 
-/**
- * Fetch all delivery zones from the backend
- * @returns {Promise<Array>} Array of delivery zone objects
- */
+
 export const fetchDeliveryZones = async () => {
   try {
-    // Check if we have valid cached data
     if (deliveryZonesCache && cacheTimestamp && (Date.now() - cacheTimestamp) < CACHE_DURATION) {
       return { success: true, data: deliveryZonesCache };
     }
@@ -29,7 +24,6 @@ export const fetchDeliveryZones = async () => {
     return { success: false, error: 'Invalid response format' };
   } catch (error) {
     logger.error('Error fetching delivery zones:', error);
-    // If it's an authentication error, return success: false without logging as error
     if (error.message?.includes('Access token required') || error.message?.includes('authentication')) {
       return { success: false, error: 'Authentication required' };
     }
@@ -37,11 +31,7 @@ export const fetchDeliveryZones = async () => {
   }
 };
 
-/**
- * Get delivery zone information for a specific zip code
- * @param {string} zipCode - The zip code to look up
- * @returns {Promise<Object|null>} Delivery zone info or null if not found
- */
+
 export const getDeliveryZoneByZipCode = async (zipCode) => {
   try {
     if (!zipCode) return null;
@@ -70,7 +60,6 @@ export const getDeliveryZoneByZipCode = async (zipCode) => {
     
     return null;
   } catch (error) {
-    // Don't log authentication errors as errors, they're expected for unauthenticated users
     if (error.message?.includes('Access token required') || error.message?.includes('authentication')) {
       return null;
     }
@@ -79,17 +68,12 @@ export const getDeliveryZoneByZipCode = async (zipCode) => {
   }
 };
 
-/**
- * Validate if a zip code is in a valid delivery zone
- * @param {string} zipCode - The zip code to validate
- * @returns {Promise<boolean>} True if zip code is valid for delivery
- */
+
 export const isValidDeliveryZipCode = async (zipCode) => {
   try {
     const zone = await getDeliveryZoneByZipCode(zipCode);
     return zone !== null;
   } catch (error) {
-    // Don't log authentication errors as errors, they're expected for unauthenticated users
     if (error.message?.includes('Access token required') || error.message?.includes('authentication')) {
       return false;
     }
@@ -98,10 +82,7 @@ export const isValidDeliveryZipCode = async (zipCode) => {
   }
 };
 
-/**
- * Get all valid zip codes for delivery
- * @returns {Promise<Set>} Set of valid zip codes
- */
+
 export const getValidZipCodes = async () => {
   try {
     const result = await fetchDeliveryZones();
@@ -123,28 +104,21 @@ export const getValidZipCodes = async () => {
   }
 };
 
-/**
- * Calculate delivery fee for a zip code
- * @param {string} zipCode - The zip code
- * @returns {Promise<number>} Delivery fee amount
- */
+
 export const calculateDeliveryFee = async (zipCode) => {
   try {
     if (!zipCode) {
-      return 5.99; // Default fallback
+      return 5.99;
     }
     
-    // First try to get from API
     const zone = await getDeliveryZoneByZipCode(zipCode);
     if (zone && zone.deliveryFee) {
       return zone.deliveryFee;
     }
     
-    // Fallback to static data if API fails
     const { DELIVERY_ZONES } = await import('../data/deliveryZones');
     const cleanZip = zipCode.toString().replace(/\s+/g, '').slice(0, 5);
     
-    // Check each zone for the zip code
     for (const zoneKey in DELIVERY_ZONES) {
       const zone = DELIVERY_ZONES[zoneKey];
       if (zone.zipCodes && zone.zipCodes.includes(cleanZip)) {
@@ -152,11 +126,9 @@ export const calculateDeliveryFee = async (zipCode) => {
       }
     }
     
-    // Default fallback
     return 5.99;
   } catch (error) {
     logger.error('Error calculating delivery fee:', error);
-    // Fallback to static data on error
     try {
       const { DELIVERY_ZONES } = await import('../data/deliveryZones');
       const cleanZip = zipCode.toString().replace(/\s+/g, '').slice(0, 5);
@@ -169,25 +141,18 @@ export const calculateDeliveryFee = async (zipCode) => {
     } catch (importError) {
       logger.error('Error importing delivery zones:', importError);
     }
-    return 5.99; // Final fallback
+    return 5.99;
   }
 };
 
-/**
- * Calculate tax rate for a zip code using Stripe Tax
- * @param {string} zipCode - The zip code
- * @param {Array} items - Optional items array for accurate tax calculation
- * @param {Object} address - Optional full address object
- * @returns {Promise<number>} Tax rate (e.g., 0.0825 for 8.25%)
- */
+
 export const calculateTaxRate = async (zipCode, items = null, address = null) => {
   try {
     const zone = await getDeliveryZoneByZipCode(zipCode);
     if (!zone) {
-      return 0.0825; // Default fallback if zone not found
+      return 0.0825;
     }
 
-    // If items and address are provided, use Stripe Tax for accurate calculation
     if (items && items.length > 0 && address) {
       try {
         const taxResult = await calculateTaxWithStripe({
@@ -202,7 +167,7 @@ export const calculateTaxRate = async (zipCode, items = null, address = null) =>
             postal_code: zipCode,
             country: 'US',
           },
-          deliveryFee: 0, // Don't include delivery fee in tax rate calculation
+          deliveryFee: 0,
         });
 
         if (taxResult.success && taxResult.taxAmount > 0) {
@@ -214,17 +179,14 @@ export const calculateTaxRate = async (zipCode, items = null, address = null) =>
       }
     }
 
-    // Fallback to default NY tax rate
     return 0.0825;
   } catch (error) {
     logger.error('Error calculating tax rate:', error);
-    return 0.0825; // Default fallback
+    return 0.0825;
   }
 };
 
-/**
- * Clear the delivery zones cache (useful for testing or when data changes)
- */
+
 export const clearDeliveryZonesCache = () => {
   deliveryZonesCache = null;
   cacheTimestamp = null;

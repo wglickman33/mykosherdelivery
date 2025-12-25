@@ -38,13 +38,11 @@ const AdminAnalyticsOrders = () => {
     try {
       setLoading(true);
       
-      // Fetch comprehensive analytics for overview
       const analyticsResult = await fetchComprehensiveAnalytics();
       if (analyticsResult.success) {
         setAnalyticsData(analyticsResult.data);
       }
 
-      // Fetch all orders-related data
       const [
         volumeResult,
         sizeResult,
@@ -99,7 +97,7 @@ const AdminAnalyticsOrders = () => {
     <div className="admin-analytics">
       <AnalyticsNavigation />
       <div className="analytics-content">
-        {/* Orders Overview Cards */}
+        {}
         <div className="metrics-grid">
           <div className="metric-card revenue">
             <div className="metric-icon">
@@ -153,7 +151,7 @@ const AdminAnalyticsOrders = () => {
           </div>
         </div>
 
-        {/* Order Volume Trends Chart */}
+        {}
         <div className="chart-section">
           <div className="chart-header">
             <h3>Order Volume Trends by {orderVolumePeriod.charAt(0).toUpperCase() + orderVolumePeriod.slice(1)}</h3>
@@ -209,7 +207,7 @@ const AdminAnalyticsOrders = () => {
           </ThemeProvider>
         </div>
 
-        {/* Order Size Distribution Chart */}
+        {}
         <div className="chart-section">
           <div className="chart-header">
             <h3>Order Size Distribution</h3>
@@ -254,7 +252,7 @@ const AdminAnalyticsOrders = () => {
           </ThemeProvider>
         </div>
 
-        {/* Orders by Day of Week Chart */}
+        {}
         <div className="chart-section">
           <div className="chart-header">
             <h3>Orders by Day of Week</h3>
@@ -299,7 +297,7 @@ const AdminAnalyticsOrders = () => {
           </ThemeProvider>
         </div>
 
-        {/* Order Status Distribution Chart */}
+        {}
         <div className="chart-section">
           <div className="chart-header">
             <h3>Order Status Distribution</h3>
@@ -339,7 +337,7 @@ const AdminAnalyticsOrders = () => {
           </ThemeProvider>
         </div>
 
-        {/* Order Type Distribution Chart */}
+        {}
         <div className="chart-section">
           <div className="chart-header">
             <h3>Multi-Restaurant vs Single Restaurant Orders</h3>
@@ -378,7 +376,7 @@ const AdminAnalyticsOrders = () => {
           </ThemeProvider>
         </div>
 
-        {/* Top Ordering Users Chart */}
+        {}
         <div className="chart-section">
           <div className="chart-header">
             <h3>Top 10 Ordering Users</h3>
@@ -423,7 +421,7 @@ const AdminAnalyticsOrders = () => {
           </ThemeProvider>
         </div>
 
-        {/* Orders by Time of Day Chart */}
+        {}
         <div className="chart-section">
           <div className="chart-header">
             <h3>Orders by Time of Day</h3>
@@ -432,7 +430,6 @@ const AdminAnalyticsOrders = () => {
           <ThemeProvider theme={AdminAnalyticsTheme}>
             <MaterialChart
               data={(() => {
-                // Aggregate orders by hour only (not by day)
                 const hourlyData = Array(24).fill(0).map((_, hour) => ({
                   hour: hour,
                   time: hour === 0 ? '12:00 AM' : 
@@ -443,13 +440,11 @@ const AdminAnalyticsOrders = () => {
                   revenue: 0
                 }));
 
-                // Aggregate all orders by hour
                 ordersByTimeAndDay.forEach(item => {
                   hourlyData[item.hour].orders += item.orders;
                   hourlyData[item.hour].revenue += item.revenue;
                 });
 
-                // Calculate average order value
                 hourlyData.forEach(hour => {
                   hour.avgOrderValue = hour.orders > 0 ? hour.revenue / hour.orders : 0;
                 });

@@ -9,7 +9,6 @@ const { appEvents } = require('../utils/events');
 
 const router = express.Router();
 
-// Helper function to generate JWT token
 const generateToken = (userId) => {
   return jwt.sign(
     { userId }, 
@@ -18,7 +17,6 @@ const generateToken = (userId) => {
   );
 };
 
-// Helper function to log login activity
 const logLoginActivity = async (userId, req, success = true) => {
   try {
     await UserLoginActivity.create({
@@ -28,18 +26,17 @@ const logLoginActivity = async (userId, req, success = true) => {
       success
     });
   } catch {
-    // Non-blocking
+    void 0;
   }
 };
 
-// Helper function to create global admin notifications
 async function createGlobalAdminNotification(payload) {
   try {
     const notif = await AdminNotification.create({
       type: payload.type,
       title: payload.title,
       message: payload.body || payload.message || '',
-      readBy: [], // Empty array means no admin has read it yet
+      readBy: [],
       data: payload.ref || null
     });
     
@@ -63,7 +60,6 @@ async function createGlobalAdminNotification(payload) {
   }
 }
 
-// Sign Up Route
 router.post('/signup', [
   body('email').isEmail().normalizeEmail(),
   body('password')
@@ -87,7 +83,6 @@ router.post('/signup', [
 
     const { email, password, firstName, lastName } = req.body;
 
-    // Check if user already exists
     const existingUser = await Profile.findOne({ where: { email } });
     if (existingUser) {
       return res.status(400).json({
@@ -96,10 +91,8 @@ router.post('/signup', [
       });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, parseInt(process.env.BCRYPT_SALT_ROUNDS) || 12);
 
-    // Create user profile
     const user = await Profile.create({
       email,
       password: hashedPassword,
@@ -108,13 +101,10 @@ router.post('/signup', [
       role: 'user'
     });
 
-    // Generate JWT token
     const token = generateToken(user.id);
 
-    // Log login activity
     await logLoginActivity(user.id, req);
 
-    // Create notification for user signup
     try {
       await createGlobalAdminNotification({
         type: 'user.created',
@@ -126,7 +116,6 @@ router.post('/signup', [
       logger.warn('Failed to create user signup notification:', notifError);
     }
 
-    // Return user data (excluding password)
     const userData = user.toJSON();
     delete userData.password;
 
@@ -150,7 +139,6 @@ router.post('/signup', [
   }
 });
 
-// Sign In Route
 router.post('/signin', [
   body('email').isEmail().normalizeEmail(),
   body('password').notEmpty()
@@ -166,7 +154,6 @@ router.post('/signin', [
 
     const { email, password } = req.body;
 
-    // Find user by email
     const user = await Profile.findOne({ where: { email } });
     if (!user) {
       await logLoginActivity(null, req, false);
@@ -176,7 +163,6 @@ router.post('/signin', [
       });
     }
 
-    // Verify password
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
       await logLoginActivity(user.id, req, false);
@@ -186,13 +172,10 @@ router.post('/signin', [
       });
     }
 
-    // Generate JWT token
     const token = generateToken(user.id);
 
-    // Log successful login
     await logLoginActivity(user.id, req);
 
-    // Return user data (excluding password)
     const userData = user.toJSON();
     delete userData.password;
 
@@ -216,7 +199,6 @@ router.post('/signin', [
   }
 });
 
-// Get Session Route (verify current token)
 router.get('/session', authenticateToken, async (req, res) => {
   try {
     const userData = req.user.toJSON();
@@ -240,13 +222,10 @@ router.get('/session', authenticateToken, async (req, res) => {
   }
 });
 
-// Refresh Token Route
 router.post('/refresh', authenticateToken, async (req, res) => {
   try {
-    // Generate a new token for the authenticated user
     const newToken = generateToken(req.userId);
     
-    // Get fresh user data
     const userData = req.user.toJSON();
     delete userData.password;
 
@@ -271,10 +250,8 @@ router.post('/refresh', authenticateToken, async (req, res) => {
   }
 });
 
-// Sign Out Route (client-side token removal, but we log it)
 router.post('/signout', authenticateToken, async (req, res) => {
   try {
-    // Add token to blacklist to prevent reuse
     if (req.token) {
       const { blacklistToken } = require('../middleware/auth');
       blacklistToken(req.token);

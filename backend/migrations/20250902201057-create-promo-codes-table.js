@@ -1,6 +1,6 @@
 'use strict';
 
-/** @type {import('sequelize-cli').Migration} */
+
 module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable('promo_codes', {
@@ -54,7 +54,6 @@ module.exports = {
       }
     });
 
-    // Add index on code for faster lookups
     await queryInterface.addIndex('promo_codes', ['code']);
   },
 

@@ -1,26 +1,22 @@
-const { Order, Profile, Restaurant, MenuItem } = require('../models');
+const { Order, Profile, Restaurant } = require('../models');
 const { sequelize } = require('../models');
 
 async function createConfigurableOrder() {
   try {
-    // Find an existing user (don't create new one to avoid password requirement)
     let user = await Profile.findOne({ where: { role: 'user' } });
     if (!user) {
       console.log('No users found. Please create a user first through the app.');
       return;
     }
 
-    // Find a restaurant (or use the first one)
     const restaurant = await Restaurant.findOne();
     if (!restaurant) {
       console.log('No restaurants found. Please create a restaurant first.');
       return;
     }
 
-    // Create order with configurable item
     const orderNumber = `ORD-${Date.now()}`;
     
-    // Calculate the configuration price correctly
     const selectedConfigurations = [
       { category: 'Base', option: 'Brown Rice', priceModifier: 0 },
       { category: 'Protein', option: 'Salmon', priceModifier: 2.00 },
@@ -31,7 +27,7 @@ async function createConfigurableOrder() {
       { category: 'Sauce', option: 'Spicy Mayo', priceModifier: 0 }
     ];
 
-    const basePrice = 21.54; // This should be the actual base price
+    const basePrice = 21.54;
     const configurationPrice = selectedConfigurations.reduce((total, config) => total + config.priceModifier, 0);
     const finalPrice = basePrice + configurationPrice;
 
@@ -52,7 +48,7 @@ async function createConfigurableOrder() {
     const subtotal = finalPrice * configurableItem.quantity;
     const deliveryFee = 3.99;
     const tip = 4.00;
-    const tax = subtotal * 0.0825; // 8.25% tax
+    const tax = subtotal * 0.0825;
     const total = subtotal + deliveryFee + tip + tax;
 
     const order = await Order.create({
@@ -82,16 +78,16 @@ async function createConfigurableOrder() {
       if (!configsByCategory[config.category]) {
         configsByCategory[config.category] = [];
       }
-      configsByCategory[config.category].push(`${config.option} (+$${config.priceModifier})`);
+      configsByCategory[config.category].push(`${config.option} (+${config.priceModifier})`);
     });
     Object.entries(configsByCategory).forEach(([category, options]) => {
       console.log(`  ${category}: ${options.join(', ')}`);
     });
-    console.log(`Base Price: $${configurableItem.basePrice.toFixed(2)}`);
-    console.log(`Configuration Price: +$${configurableItem.configurationPrice.toFixed(2)}`);
-    console.log(`Final Price: $${configurableItem.price.toFixed(2)}`);
-    console.log(`Subtotal: $${parseFloat(order.subtotal).toFixed(2)}`);
-    console.log(`Total Order: $${parseFloat(order.total).toFixed(2)}`);
+    console.log(`Base Price: ${configurableItem.basePrice.toFixed(2)}`);
+    console.log(`Configuration Price: +${configurableItem.configurationPrice.toFixed(2)}`);
+    console.log(`Final Price: ${configurableItem.price.toFixed(2)}`);
+    console.log(`Subtotal: ${parseFloat(order.subtotal).toFixed(2)}`);
+    console.log(`Total Order: ${parseFloat(order.total).toFixed(2)}`);
 
   } catch (error) {
     console.error('Error creating configurable order:', error);

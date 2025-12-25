@@ -1,13 +1,8 @@
-// Checkout Page Styles - Converted from Tailwind to SCSS
-// Compatible with app layout (header + sidebar positioning)
-
 .checkout-page {
-  // Global responsive utilities
   * {
     box-sizing: border-box;
   }
   
-  // Ensure all flex containers fill properly
   .checkout-transition,
   .address-step,
   .contact-step,
@@ -20,18 +15,17 @@
     background-color: #ffffff;
   }
   
-  // Account for fixed header (60px) and sidebar
   & {
     margin-top: 60px;
     margin-left: 240px;
   }
   
   @media (max-width: 1111px) {
-    margin-left: 60px; // Icon sidebar width
+    margin-left: 60px;
   }
   
   @media (max-width: 768px) {
-    margin-left: 0; // No sidebar on mobile
+    margin-left: 0;
   }
   
   .checkout-container {
@@ -40,7 +34,7 @@
     padding: 1.5rem;
     width: 100%;
     box-sizing: border-box;
-    overflow-x: hidden; // Prevent horizontal overflow
+    overflow-x: hidden;
     
     @media (max-width: 768px) {
       padding: 1rem;
@@ -63,7 +57,6 @@
     }
   }
   
-  // Header Section
   .checkout-header {
     position: relative;
     display: flex;
@@ -171,7 +164,6 @@
     }
   }
   
-  // Progress Section
   .checkout-progress-container {
     width: 100%;
     padding: 1.5rem 0;
@@ -358,23 +350,22 @@
     }
   }
   
-  // Main Content Layout
   .checkout-content {
     display: grid;
     grid-template-columns: 1fr auto;
     gap: 2rem;
     margin-top: 2rem;
     align-items: start;
-    min-height: 60vh; // Ensure minimum height for better container filling
-    max-width: 100%; // Prevent content from exceeding container
-    overflow: hidden; // Prevent horizontal overflow
+    min-height: 60vh;
+    max-width: 100%;
+    overflow: hidden;
     
     @media (max-width: 1220px) and (min-width: 1112px) {
-      gap: 1.5rem; // Reduce gap in problematic range
+      gap: 1.5rem;
     }
     
     @media (max-width: 1111px) and (min-width: 1025px) {
-      gap: 1rem; // Further reduce gap
+      gap: 1rem;
     }
     
     @media (max-width: 1024px) {
@@ -428,7 +419,6 @@
         max-width: 800px;
       }
       
-      // Adjust max-width in the problematic range to prevent overflow
       @media (max-width: 1220px) and (min-width: 1112px) {
         max-width: 720px;
       }
@@ -448,10 +438,9 @@
     }
   }
   
-  // Step Components Shared Styles
   .step-header {
     margin-bottom: 1.5rem;
-    width: 100%; // Ensure header fills container
+    width: 100%;
     
     @media (max-width: 640px) {
       margin-bottom: 1rem;
@@ -483,10 +472,9 @@
     }
   }
   
-  // Form Elements
   .form-group {
     margin-bottom: 1rem;
-    width: 100%; // Ensure form groups fill container
+    width: 100%;
     
     @media (max-width: 640px) {
       margin-bottom: 0.75rem;
@@ -518,7 +506,7 @@
       font-size: 0.875rem;
       transition: all 0.2s;
       background: white;
-      box-sizing: border-box; // Ensure proper sizing
+      box-sizing: border-box;
       
       @media (max-width: 640px) {
         padding: 0.75rem;
@@ -560,7 +548,7 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1rem;
-    width: 100%; // Ensure grid fills container
+    width: 100%;
     
     @media (max-width: 768px) {
       grid-template-columns: 1fr;
@@ -578,7 +566,6 @@
     gap: 1rem;
   }
   
-  // Card Styles
   .address-card, .payment-card {
     cursor: pointer;
     transition: all 0.3s;
@@ -586,7 +573,7 @@
     border-radius: 0.75rem;
     background: white;
     margin-bottom: 0.75rem;
-    width: 100%; // Ensure cards fill container
+    width: 100%;
     box-sizing: border-box;
     
     @media (max-width: 640px) {
@@ -692,13 +679,12 @@
     }
   }
   
-     // Address Step Specific
    .address-step {
     width: 100%;
-    max-width: none; // Remove width restriction to fill container
+    max-width: none;
     
     @media (min-width: 1400px) {
-      max-width: 1000px; // Only restrict on very large screens
+      max-width: 1000px;
     }
 
      .addresses-list {
@@ -710,15 +696,13 @@
      }
      
      .address-card {
-       // Improve mobile spacing
        @media (max-width: 500px) {
          margin-bottom: 0.5rem;
        }
        
        .address-content {
-         // Add specific mobile padding adjustments
          @media (max-width: 500px) {
-           padding: 0.75rem 0.625rem; // Reduce horizontal padding to give more space for text
+           padding: 0.75rem 0.625rem;
          }
          .address-row {
            display: flex;
@@ -726,7 +710,7 @@
            gap: 0.75rem;
            
            @media (max-width: 500px) {
-             gap: 0.5rem; // Reduce gap on small screens
+             gap: 0.5rem;
            }
            
            .address-icon {
@@ -746,11 +730,11 @@
              align-items: center;
              gap: 0.75rem;
              flex: 1;
-             min-width: 0; // Allow shrinking
+             min-width: 0;
              
              @media (max-width: 500px) {
                gap: 0.5rem;
-               flex-wrap: wrap; // Allow wrapping on very small screens
+               flex-wrap: wrap;
              }
              
              .address-type {
@@ -761,7 +745,6 @@
                
                @media (max-width: 500px) {
                  font-size: 0.8125rem;
-                 // Allow address type to wrap if needed
                  white-space: normal;
                  max-width: 80px;
                  overflow: hidden;
@@ -798,7 +781,6 @@
                
                @media (max-width: 500px) {
                  font-size: 0.75rem;
-                 // Ensure ellipsis works properly on mobile
                  max-width: 120px;
                }
              }
@@ -897,13 +879,12 @@
     }
   }
   
-  // Contact Step Specific
   .contact-step {
     width: 100%;
-    max-width: none; // Remove width restriction to fill container
+    max-width: none;
     
     @media (min-width: 1400px) {
-      max-width: 1000px; // Only restrict on very large screens
+      max-width: 1000px;
     }
     
     .contact-form-card {
@@ -912,7 +893,7 @@
       border-radius: 0.75rem;
       padding: 1.5rem;
       margin-bottom: 1.5rem;
-      width: 100%; // Ensure card fills container
+      width: 100%;
       
       @media (max-width: 640px) {
         padding: 1rem;
@@ -959,18 +940,17 @@
     }
   }
   
-     // Payment Step Specific
    .payment-step {
      width: 100%;
-     max-width: none; // Remove width restriction to fill container
+     max-width: none;
      
      @media (min-width: 1400px) {
-       max-width: 1000px; // Only restrict on very large screens
+       max-width: 1000px;
      }
      
      .payment-methods {
        margin-bottom: 1.5rem;
-       width: 100%; // Ensure methods section fills container
+      width: 100%;
        
        @media (max-width: 640px) {
          margin-bottom: 1rem;
@@ -1147,7 +1127,6 @@
     }
   }
   
-  // Order Summary Styles
   .order-summary {
     background: white;
     border: 1px solid #e5e7eb;
@@ -1360,7 +1339,6 @@
         }
       }
 
-      // Tip Section - Enhanced Styling
       .tip-section {
         margin-bottom: 1.5rem;
         padding: 1.5rem;
@@ -1581,7 +1559,6 @@
     }
   }
   
-  // Mobile Summary
   .mobile-summary {
     display: none;
     
@@ -1617,7 +1594,6 @@
 
 }
 
-// PaymentStep specific tip styling (top-level to avoid nesting issues)
 .checkout-page .payment-tip-section {
   margin-bottom: 1.5rem;
   padding: 1.5rem;
@@ -1806,7 +1782,6 @@
   }
 }
 
-// Keyframes for tip section animation
 @keyframes tipSectionFadeIn {
   from {
     opacity: 0;
@@ -1829,7 +1804,6 @@
   } 
 }
 
-// Stripe Payment Form Styles
 .stripe-payment-form {
   max-width: 500px;
   margin: 0 auto;
@@ -1893,7 +1867,6 @@
   }
 }
 
-// Stripe Elements specific styling
 .StripeElement {
   box-sizing: border-box;
   height: 40px;

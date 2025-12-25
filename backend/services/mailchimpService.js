@@ -1,6 +1,5 @@
 const logger = require('../utils/logger');
 
-// MailChimp API integration service
 class MailChimpService {
   constructor() {
     this.apiKey = process.env.MAILCHIMP_API_KEY;
@@ -8,14 +7,12 @@ class MailChimpService {
     if (!this.apiKey) {
       logger.warn('⚠️ MailChimp API key not found in environment variables');
     } else {
-      // Extract server prefix from API key (format: xxxxxxxx-us1)
       const keyParts = this.apiKey.split('-');
       this.serverPrefix = keyParts[keyParts.length - 1] || 'us1';
       this.baseUrl = `https://${this.serverPrefix}.api.mailchimp.com/3.0`;
     }
   }
 
-  // Helper method to make API requests
   async makeRequest(endpoint, method = 'GET', data = null) {
     if (!this.apiKey) {
       throw new Error('MailChimp API key not configured');
@@ -49,7 +46,6 @@ class MailChimpService {
     }
   }
 
-  // Campaign methods
   async getCampaigns(options = {}) {
     try {
       logger.info('📧 Fetching MailChimp campaigns');
@@ -74,12 +70,11 @@ class MailChimpService {
     try {
       logger.info('📧 Creating MailChimp campaign:', campaignData.subject);
       
-      // First, get the default list if no listId provided
       let listId = campaignData.listId;
       if (!listId) {
         const lists = await this.getLists();
         if (lists.lists && lists.lists.length > 0) {
-          listId = lists.lists[0].id; // Use first available list
+          listId = lists.lists[0].id;
         } else {
           throw new Error('No mailing lists found. Please create a list in MailChimp first.');
         }
@@ -100,7 +95,6 @@ class MailChimpService {
 
       const campaign = await this.makeRequest('/campaigns', 'POST', campaignPayload);
       
-      // Set content if provided
       if (campaignData.content) {
         await this.setCampaignContent(campaign.id, campaignData.content);
       }
@@ -157,7 +151,6 @@ class MailChimpService {
     }
   }
 
-  // Template methods
   async getTemplates(options = {}) {
     try {
       logger.info('📧 Fetching MailChimp templates');
@@ -218,7 +211,6 @@ class MailChimpService {
     }
   }
 
-  // List methods
   async getLists() {
     try {
       logger.info('📧 Fetching MailChimp lists');
@@ -292,7 +284,6 @@ class MailChimpService {
     }
   }
 
-  // Test email methods
   async sendTestEmail(campaignId, testEmails) {
     try {
       logger.info('📧 Sending test email for campaign:', campaignId);
@@ -309,7 +300,6 @@ class MailChimpService {
     }
   }
 
-  // Account info
   async getAccountInfo() {
     try {
       logger.info('📧 Fetching MailChimp account info');

@@ -22,7 +22,6 @@ export default function RestaurantsPage() {
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Smart cuisine categories based on existing typeOfFood data
   const cuisineCategories = {
     'all': { label: 'All Restaurants', keywords: [] },
     'favorites': { label: 'Favorites', keywords: [] },
@@ -52,7 +51,6 @@ export default function RestaurantsPage() {
     console.log('🔄 Loading user favorites...');
     
     try {
-      // Fetch all user favorites (returns an array of restaurantId strings)
       const userFavoriteIds = await fetchUserFavorites(user.id);
       
       const favoriteIds = new Set(
@@ -82,14 +80,12 @@ export default function RestaurantsPage() {
 
   const handleFavoriteToggle = async (restaurantId) => {
     if (!user) {
-      // You could show a login modal here
       alert('Please log in to add favorites');
       return;
     }
 
     const isFavorite = favorites.has(restaurantId);
     
-    // Optimistically update the UI
     if (isFavorite) {
       setFavorites(prev => {
         const newFavorites = new Set(prev);
@@ -109,7 +105,6 @@ export default function RestaurantsPage() {
       }
       
       if (!result.success) {
-        // Revert the optimistic update if the API call failed
         if (isFavorite) {
           setFavorites(prev => new Set(prev).add(restaurantId));
         } else {
@@ -122,7 +117,6 @@ export default function RestaurantsPage() {
         console.error('Failed to update favorite:', result.error);
       }
     } catch (error) {
-      // Revert the optimistic update if there was an error
       if (isFavorite) {
         setFavorites(prev => new Set(prev).add(restaurantId));
       } else {
@@ -145,7 +139,6 @@ export default function RestaurantsPage() {
     if (filter === 'favorites') return matchesSearch && favorites.has(restaurant.id);
     if (filter === 'featured') return matchesSearch && restaurant.featured;
     
-    // Check cuisine category keywords
     const category = cuisineCategories[filter];
     if (category && category.keywords.length > 0) {
       const restaurantType = restaurant.typeOfFood?.toLowerCase() || '';
@@ -192,10 +185,8 @@ export default function RestaurantsPage() {
 
           <div className="filter-tabs">
             {Object.entries(cuisineCategories).map(([key, category]) => {
-              // Skip favorites filter if user is not logged in
               if (key === 'favorites' && !user) return null;
               
-              // Show favorites count for logged-in users
               const label = key === 'favorites' && user 
                 ? `${category.label} (${favoritesLoading ? '...' : favorites.size})`
                 : category.label;

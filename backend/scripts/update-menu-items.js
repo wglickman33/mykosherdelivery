@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 require('dotenv').config();
 const { Sequelize } = require('sequelize');
 
@@ -9,7 +7,6 @@ async function updateMenuItems() {
   try {
     console.log('Starting menu items data update...');
     
-    // Update existing menu items to ensure all fields have proper values
     const updateQuery = `
       UPDATE menu_items 
       SET 
@@ -40,11 +37,9 @@ async function updateMenuItems() {
     const [results] = await sequelize.query(updateQuery);
     console.log(`Updated ${results.rowCount || 0} menu items`);
     
-    // Check current menu items
     const [menuItems] = await sequelize.query('SELECT COUNT(*) as count FROM menu_items');
     console.log(`Total menu items: ${menuItems[0].count}`);
     
-    // Show sample of menu items
     const [sample] = await sequelize.query(`
       SELECT id, name, price, item_type, category, available 
       FROM menu_items 
@@ -53,7 +48,7 @@ async function updateMenuItems() {
     
     console.log('Sample menu items:');
     sample.forEach(item => {
-      console.log(`- ${item.name}: $${item.price} (${item.item_type}) - ${item.category}`);
+      console.log(`- ${item.name}: ${item.price} (${item.item_type}) - ${item.category}`);
     });
     
     console.log('Menu items data update completed successfully!');

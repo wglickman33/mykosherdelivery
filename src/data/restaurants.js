@@ -1,4 +1,3 @@
-// Import all restaurant logos
 import alansBakeryLogo from '../assets/restaurantlogos/alansBakeryLogo.jpg';
 import bagelBoysLogo from '../assets/restaurantlogos/bagelBoysLogo.jpg';
 import centralPerkLogo from '../assets/restaurantlogos/centralPerkLogo.jpg';

@@ -9,11 +9,9 @@ const logger = require('../utils/logger');
 
 const router = express.Router();
 
-// Image storage configuration
 const createStorageConfig = (subDir) => {
   const uploadsDir = path.resolve(__dirname, '..', 'public', 'images', subDir);
   
-  // Ensure directory exists
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
   }
@@ -28,7 +26,6 @@ const createStorageConfig = (subDir) => {
   });
 };
 
-// Multer configurations for different image types
 const restaurantLogoUpload = multer({
   storage: createStorageConfig('restaurant-logos'),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
@@ -55,7 +52,6 @@ const menuItemImageUpload = multer({
   }
 });
 
-// Image optimization function
 const optimizeImage = async (inputPath, outputPath, options = {}) => {
   const {
     width = 800,
@@ -72,7 +68,6 @@ const optimizeImage = async (inputPath, outputPath, options = {}) => {
     .toFile(outputPath);
 };
 
-// Generate optimized versions
 const generateImageVariants = async (originalPath, filename, subDir) => {
   const variants = [];
   const baseName = path.parse(filename).name;
@@ -83,17 +78,14 @@ const generateImageVariants = async (originalPath, filename, subDir) => {
     fs.mkdirSync(variantsDir, { recursive: true });
   }
 
-  // Thumbnail (200x200)
   const thumbnailPath = path.join(variantsDir, `${baseName}_thumb${ext}`);
   await optimizeImage(originalPath, thumbnailPath, { width: 200, height: 200, quality: 80 });
   variants.push({ type: 'thumbnail', path: `images/${subDir}/variants/${baseName}_thumb${ext}` });
 
-  // Medium (400x300)
   const mediumPath = path.join(variantsDir, `${baseName}_medium${ext}`);
   await optimizeImage(originalPath, mediumPath, { width: 400, height: 300, quality: 85 });
   variants.push({ type: 'medium', path: `images/${subDir}/variants/${baseName}_medium${ext}` });
 
-  // Original optimized (800x600)
   const optimizedPath = path.join(variantsDir, `${baseName}_optimized${ext}`);
   await optimizeImage(originalPath, optimizedPath, { width: 800, height: 600, quality: 90 });
   variants.push({ type: 'optimized', path: `images/${subDir}/variants/${baseName}_optimized${ext}` });
@@ -101,7 +93,6 @@ const generateImageVariants = async (originalPath, filename, subDir) => {
   return variants;
 };
 
-// Upload restaurant logo
 router.post('/restaurant-logo', requireAdmin, restaurantLogoUpload.single('logo'), async (req, res) => {
   try {
     if (!req.file) {
@@ -115,10 +106,8 @@ router.post('/restaurant-logo', requireAdmin, restaurantLogoUpload.single('logo'
     const originalPath = req.file.path;
     const subDir = 'restaurant-logos';
 
-    // Generate optimized variants
     const variants = await generateImageVariants(originalPath, filename, subDir);
 
-    // Delete original file after optimization
     fs.unlinkSync(originalPath);
 
     res.json({
@@ -133,7 +122,6 @@ router.post('/restaurant-logo', requireAdmin, restaurantLogoUpload.single('logo'
   } catch (error) {
     logger.error('Error uploading restaurant logo:', error);
     
-    // Clean up uploaded file if it exists
     if (req.file && fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);
     }
@@ -145,7 +133,6 @@ router.post('/restaurant-logo', requireAdmin, restaurantLogoUpload.single('logo'
   }
 });
 
-// Upload menu item image
 router.post('/menu-item', requireAdmin, menuItemImageUpload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
@@ -159,10 +146,8 @@ router.post('/menu-item', requireAdmin, menuItemImageUpload.single('image'), asy
     const originalPath = req.file.path;
     const subDir = 'menu-items';
 
-    // Generate optimized variants
     const variants = await generateImageVariants(originalPath, filename, subDir);
 
-    // Delete original file after optimization
     fs.unlinkSync(originalPath);
 
     res.json({
@@ -177,7 +162,6 @@ router.post('/menu-item', requireAdmin, menuItemImageUpload.single('image'), asy
   } catch (error) {
     logger.error('Error uploading menu item image:', error);
     
-    // Clean up uploaded file if it exists
     if (req.file && fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);
     }
@@ -189,7 +173,6 @@ router.post('/menu-item', requireAdmin, menuItemImageUpload.single('image'), asy
   }
 });
 
-// Get image info
 router.get('/info/:type/:filename', async (req, res) => {
   try {
     const { type, filename } = req.params;
@@ -207,7 +190,6 @@ router.get('/info/:type/:filename', async (req, res) => {
       optimized: `images/${type}/variants/${baseName}_optimized.jpg`
     };
 
-    // Check which variants exist
     const existingVariants = {};
     for (const [variantType, variantPath] of Object.entries(variants)) {
       const fullPath = path.resolve(__dirname, '..', 'public', variantPath);
@@ -230,7 +212,6 @@ router.get('/info/:type/:filename', async (req, res) => {
   }
 });
 
-// Delete image
 router.delete('/:type/:filename', requireAdmin, async (req, res) => {
   try {
     const { type, filename } = req.params;
@@ -243,7 +224,6 @@ router.delete('/:type/:filename', requireAdmin, async (req, res) => {
     const baseName = path.parse(filename).name;
     const variantsDir = path.resolve(__dirname, '..', 'public', 'images', type, 'variants');
     
-    // Delete all variants
     const variants = ['thumbnail', 'medium', 'optimized'];
     let deletedCount = 0;
     
@@ -267,7 +247,6 @@ router.delete('/:type/:filename', requireAdmin, async (req, res) => {
   }
 });
 
-// List images by type
 router.get('/list/:type', requireAdmin, async (req, res) => {
   try {
     const { type } = req.params;

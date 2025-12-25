@@ -14,7 +14,6 @@ const AnalyticsChart = ({
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
 
-  // Helper function to adjust color brightness
   const adjustColor = (color, amount) => {
     const usePound = color[0] === '#';
     const col = usePound ? color.slice(1) : color;
@@ -44,14 +43,12 @@ const AnalyticsChart = ({
     setHoveredIndex(index);
     const rect = event.currentTarget.getBoundingClientRect();
     
-    // For line charts, position tooltips above the dots
     if (chartType === 'line') {
       setTooltipPosition({
         x: rect.left + rect.width / 2,
         y: rect.top - 80
       });
     } else {
-      // For bar charts, use smart positioning
       const tooltipHeight = 80;
       const wouldGoOffBottom = rect.top - tooltipHeight < 0;
       
@@ -97,12 +94,11 @@ const AnalyticsChart = ({
   };
 
   const renderLineChart = () => {
-    // Dynamic viewBox width based on period to prevent squishing
-    let viewBoxWidth = 160; // Default for quarterly (4 data points)
+    let viewBoxWidth = 160;
     if (period === 'monthly') {
-      viewBoxWidth = 195; // Slightly wider for monthly (12 data points)
+      viewBoxWidth = 195;
     } else if (period === 'weekly') {
-      viewBoxWidth = 195; // Slightly wider for weekly (12 data points)
+      viewBoxWidth = 195;
     }
     
     const points = data.map((item, index) => {
@@ -111,7 +107,6 @@ const AnalyticsChart = ({
       return `${x},${y}`;
     }).join(' ');
 
-    // Create area path for gradient fill
     const areaPoints = data.map((item, index) => {
       const x = (index / Math.max(data.length - 1, 1)) * viewBoxWidth;
       const y = maxVal > 0 ? 100 - ((item[valueKey] || 0) / maxVal) * 100 : 100;
@@ -122,7 +117,7 @@ const AnalyticsChart = ({
     return (
       <div className="analytics-chart-container">
         <svg className="analytics-line-chart" viewBox={`0 0 ${viewBoxWidth} 100`} preserveAspectRatio="xMidYMid meet">
-          {/* Define gradients */}
+          {}
           <defs>
             <linearGradient id={`analyticsGradient-${chartColor.slice(1)}`} x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor={chartColor} stopOpacity="0.8" />
@@ -135,14 +130,14 @@ const AnalyticsChart = ({
             </linearGradient>
           </defs>
           
-          {/* Area fill */}
+          {}
           <path
             d={areaPath}
             fill={`url(#analyticsAreaGradient-${chartColor.slice(1)})`}
             className="analytics-chart-area"
           />
           
-          {/* Main line */}
+          {}
           <polyline
             points={points}
             fill="none"
@@ -153,7 +148,7 @@ const AnalyticsChart = ({
             className="analytics-chart-line"
           />
           
-          {/* Data points */}
+          {}
           {data.map((item, index) => {
             const x = (index / Math.max(data.length - 1, 1)) * viewBoxWidth;
             const y = maxVal > 0 ? 100 - ((item[valueKey] || 0) / maxVal) * 100 : 100;
@@ -223,7 +218,7 @@ const AnalyticsChart = ({
         {chartType === 'bar' ? renderBarChart() : renderLineChart()}
       </div>
 
-      {/* Tooltip */}
+      {}
       {hoveredIndex !== null && hoveredIndex >= 0 && hoveredIndex < data.length && (
         <div 
           className="analytics-chart-tooltip"

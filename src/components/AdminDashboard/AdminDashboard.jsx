@@ -19,7 +19,6 @@ const AdminDashboard = () => {
       setError(null);
       
       try {
-        // Fetch dashboard stats, recent orders, and chart data
         const [statsResult, ordersResult, revenueData, ordersData] = await Promise.all([
           fetchDashboardStats(timeRange),
           fetchRecentOrders(10, timeRange),
@@ -88,13 +87,11 @@ const AdminDashboard = () => {
             recentOrders
           });
 
-          // Set chart data
           setChartData({
             revenue: revenueData.success ? revenueData.data : [],
             orders: ordersData.success ? ordersData.data : []
           });
         } else {
-          // Check if it's a rate limiting error
           if (statsResult.error === 'rate_limit') {
             setError('Rate limit exceeded. Please wait a moment and refresh the page.');
           } else {
@@ -143,19 +140,19 @@ const AdminDashboard = () => {
 
   const getStatusColor = (status) => {
     switch (status.toLowerCase()) {
-      case 'delivered': return '#047857'; // Darker, more authoritative green
-      case 'out_for_delivery': return '#10b981'; // Original lighter green
-      case 'preparing': return '#f59e0b'; // Orange/amber
-      case 'confirmed': return '#3b82f6'; // Blue
-      case 'pending': return '#6b7280'; // Gray
-      case 'cancelled': return '#dc2626'; // Error red
-      case 'canceled': return '#dc2626'; // Error red (alternative spelling)
-      case 'failed': return '#dc2626'; // Error red
-      case 'rejected': return '#dc2626'; // Error red
-      case 'ready': return '#059669'; // Green for ready
-      case 'in_progress': return '#3b82f6'; // Blue
-      case 'processing': return '#3b82f6'; // Blue
-      default: return '#6b7280'; // Default gray
+      case 'delivered': return '#047857';
+      case 'out_for_delivery': return '#10b981';
+      case 'preparing': return '#f59e0b';
+      case 'confirmed': return '#3b82f6';
+      case 'pending': return '#6b7280';
+      case 'cancelled': return '#dc2626';
+      case 'canceled': return '#dc2626';
+      case 'failed': return '#dc2626';
+      case 'rejected': return '#dc2626';
+      case 'ready': return '#059669';
+      case 'in_progress': return '#3b82f6';
+      case 'processing': return '#3b82f6';
+      default: return '#6b7280';
     }
   };
 
@@ -180,7 +177,7 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* Key Metrics Grid */}
+      {}
       <div className="metrics-grid">
         <div className="metric-card revenue">
           <div className="metric-icon">
@@ -268,7 +265,7 @@ const AdminDashboard = () => {
 
       </div>
 
-      {/* Charts and Recent Activity */}
+      {}
       <div className="dashboard-content">
         <div className="chart-section">
           <Chart
