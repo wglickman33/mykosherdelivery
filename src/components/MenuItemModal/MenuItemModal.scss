@@ -10,9 +10,6 @@
   justify-content: center;
   z-index: 10000;
   padding: 1rem;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
 
   @media (min-width: 1111px) {
     left: 240px;
@@ -27,8 +24,6 @@
   @media (max-width: 640px) {
     left: 0;
     padding-top: calc(60px + 1rem);
-    padding-bottom: 2rem;
-    align-items: center;
   }
 }
 
@@ -39,18 +34,12 @@
   width: 100%;
   max-height: 87.5vh;
   overflow-y: auto;
-  overflow-x: hidden;
   position: relative;
   box-shadow: 0 8px 32px rgba(6, 23, 87, 0.18);
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
   
   @media (max-width: 640px) {
     max-width: 95vw;
-    max-height: 90vh;
-    height: auto;
-    display: flex;
-    flex-direction: column;
+    max-height: 95vh;
   }
 }
 
@@ -111,12 +100,9 @@
 
 .modal-content {
   padding: 2rem;
-  padding-bottom: 2.5rem;
   
   @media (max-width: 640px) {
     padding: 1.5rem;
-    padding-bottom: 2rem;
-    min-height: fit-content;
   }
 }
 
@@ -563,4 +549,4 @@
       }
     }
   }
-} 
+}
