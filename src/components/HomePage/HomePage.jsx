@@ -205,7 +205,7 @@ const HomePage = () => {
           <div className="cta-content">
             <h2>Ready to Order?</h2>
             <p>Join thousands of satisfied customers who trust My Kosher Delivery for their meals.</p>
-            <Link to="/restaurants" className="primary-button">My Kosher Delivery</Link>
+            <Link to="/restaurants" className="primary-button">Get Started</Link>
           </div>
         </section>
       </div>
