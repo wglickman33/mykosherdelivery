@@ -108,7 +108,7 @@ const HomePage = () => {
       <div className="home-content">
         <section className="hero-section">
           <div className="hero-content">
-            <h1>Welcome to My Kosher Delivery</h1>
+            <h1>Welcome to<br />My Kosher Delivery</h1>
             <p>Discover the finest kosher restaurants and get your favorite meals delivered fresh to your door.</p>
             <div className="hero-actions">
               <Link to="/restaurants" className="primary-button">Order Now</Link>
