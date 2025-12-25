@@ -41,6 +41,11 @@ const Landing = () => {
         return;
       }
 
+      window.gm_authFailure = () => {
+        console.error('Google Maps API authentication failed. The API key may not be configured correctly for this domain.');
+        setAddressError("Address autocomplete is temporarily unavailable. Please enter your full address manually.");
+      };
+
       const script = document.createElement("script");
       script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geocoding&callback=initGoogleMaps`;
       script.async = true;
@@ -50,6 +55,8 @@ const Landing = () => {
       window.initGoogleMaps = () => {
         if (window.google && window.google.maps && window.google.maps.places) {
           console.log('Google Maps API loaded successfully');
+        } else {
+          console.warn('Google Maps API loaded but places library not available');
         }
         delete window.initGoogleMaps;
       };
@@ -100,11 +107,15 @@ const Landing = () => {
               setSuggestions(formattedSuggestions);
               setShowSuggestions(formattedSuggestions.length > 0);
             } else if (status === window.google.maps.places.PlacesServiceStatus.REQUEST_DENIED) {
-              console.warn('Google Maps API request denied. Please check API key configuration in Google Cloud Console.');
+              console.warn('Google Maps API request denied. The API key may not be configured correctly for this domain.');
+              setAddressError("Address autocomplete is temporarily unavailable. Please enter your full address manually.");
               setSuggestions([]);
               setShowSuggestions(false);
             } else if (status === window.google.maps.places.PlacesServiceStatus.OVER_QUERY_LIMIT) {
               console.warn('Google Maps API quota exceeded');
+              setSuggestions([]);
+              setShowSuggestions(false);
+            } else if (status === window.google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
               setSuggestions([]);
               setShowSuggestions(false);
             } else {
