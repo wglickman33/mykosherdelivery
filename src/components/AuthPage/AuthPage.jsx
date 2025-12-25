@@ -173,7 +173,7 @@ const AuthPage = () => {
         console.log(`${mode} successful`);
         setSubmitStatus('success');
         
-        if (result.data?.user) {
+        if (result.user || result.success) {
           console.log(`${mode} successful, navigating to homepage`);
           navigate('/home', { replace: true });
         }

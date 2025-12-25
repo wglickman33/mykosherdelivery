@@ -38,23 +38,25 @@ app.use(cors({
 
 app.use(validateRateLimit(15 * 60 * 1000, 500));
 
-// IMPORTANT: Webhook route must handle raw body BEFORE express.json() 
-// to receive raw body for Stripe signature verification
+// IMPORTANT: Apply raw body parser ONLY to webhook route BEFORE express.json()
+// Stripe webhooks need raw body for signature verification
 app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
 
-// Apply JSON parsing, but skip for webhook route (it needs raw body)
+// Apply JSON parsing to all routes EXCEPT webhook (webhook needs raw body)
 app.use((req, res, next) => {
-  if (req.path === '/api/payments/webhook') {
+  // Skip JSON parsing for Stripe webhook (needs raw body)
+  if (req.originalUrl === '/api/payments/webhook' || req.path === '/api/payments/webhook' || req.url === '/api/payments/webhook') {
     return next();
   }
-  return express.json({ limit: '10mb' })(req, res, next);
+  express.json({ limit: '10mb' })(req, res, next);
 });
 
 app.use((req, res, next) => {
-  if (req.path === '/api/payments/webhook') {
+  // Skip urlencoded parsing for Stripe webhook
+  if (req.originalUrl === '/api/payments/webhook' || req.path === '/api/payments/webhook' || req.url === '/api/payments/webhook') {
     return next();
   }
-  return express.urlencoded({ extended: true, limit: '10mb' })(req, res, next);
+  express.urlencoded({ extended: true, limit: '10mb' })(req, res, next);
 });
 
 app.use(sanitizeInput);
