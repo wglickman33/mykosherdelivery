@@ -23,9 +23,10 @@
 
   @media (max-width: 640px) {
     left: 0;
-    padding-top: calc(60px + 1rem);
-    padding-bottom: 1rem;
+    padding: 0.5rem;
     align-items: center;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 }
 
@@ -41,8 +42,10 @@
   
   @media (max-width: 640px) {
     max-width: 95vw;
-    max-height: calc(100dvh - 100px);
-    margin: auto;
+    max-height: 90vh;
+    margin: 0.5rem auto;
+    display: flex;
+    flex-direction: column;
   }
 }
 
@@ -103,10 +106,14 @@
 
 .modal-content {
   padding: 2rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   
   @media (max-width: 640px) {
     padding: 1.5rem;
-    padding-bottom: 4rem;
+    padding-bottom: 2rem;
+    min-height: 0;
   }
 }
 
@@ -346,6 +353,14 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+  margin-top: auto;
+  
+  @media (max-width: 640px) {
+    position: sticky;
+    bottom: 0;
+    margin-top: 1rem;
+    z-index: 5;
+  }
   
   &:hover {
     background: #061757;
