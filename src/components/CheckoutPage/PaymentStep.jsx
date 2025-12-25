@@ -568,12 +568,14 @@ const PaymentStep = ({
             className={`payment-card ${
               selectedMethod === 'new-card' ? "selected" : ""
             }`}
-                                       onClick={() => {
+          >
+            <div 
+              className="payment-content"
+              onClick={() => {
                 if (error) clearError();
                 setSelectedMethod('new-card');
               }}
-          >
-            <div className="payment-content">
+            >
               <div className="payment-info">
                 <input
                   type="radio"
@@ -591,10 +593,7 @@ const PaymentStep = ({
             </div>
             
             {selectedMethod === 'new-card' && (
-              <div 
-                className="new-card-form"
-                onClick={(e) => e.stopPropagation()}
-              >
+              <div className="new-card-form">
                 <div className="form-divider"></div>
                 <Elements stripe={stripePromise}>
                   <StripeCardForm
