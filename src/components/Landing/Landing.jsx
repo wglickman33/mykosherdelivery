@@ -37,6 +37,7 @@ const Landing = () => {
       const apiKey = import.meta.env.VITE_GOOGLE_PLACES_API_KEY;
       
       if (!apiKey || apiKey === 'your_api_key_here') {
+        console.warn('Google Places API key not configured');
         return;
       }
 
@@ -47,11 +48,15 @@ const Landing = () => {
       script.id = "google-maps-script";
       
       window.initGoogleMaps = () => {
+        if (window.google && window.google.maps && window.google.maps.places) {
+          console.log('Google Maps API loaded successfully');
+        }
         delete window.initGoogleMaps;
       };
       
-      script.onerror = () => {
-        console.error("Failed to load Google Places API");
+      script.onerror = (error) => {
+        console.error("Failed to load Google Places API:", error);
+        setAddressError("Address autocomplete is temporarily unavailable. Please enter your full address manually.");
       };
       
       document.head.appendChild(script);
@@ -74,36 +79,51 @@ const Landing = () => {
     setIsLoading(true);
 
     if (window.google && window.google.maps && window.google.maps.places && window.google.maps.places.AutocompleteService) {
-      const service = new window.google.maps.places.AutocompleteService();
-      
-      service.getPlacePredictions(
-        {
-          input: value,
-          types: ['address'],
-          componentRestrictions: { country: 'us' }
-        },
-        (predictions, status) => {
-          if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
-            const formattedSuggestions = predictions.slice(0, 10).map(prediction => ({
-              id: prediction.place_id,
-              description: prediction.description,
-              main_text: prediction.structured_formatting.main_text,
-              secondary_text: prediction.structured_formatting.secondary_text
-            }));
-            
-            setSuggestions(formattedSuggestions);
-            setShowSuggestions(formattedSuggestions.length > 0);
-          } else {
-            setSuggestions([]);
-            setShowSuggestions(false);
+      try {
+        const service = new window.google.maps.places.AutocompleteService();
+        
+        service.getPlacePredictions(
+          {
+            input: value,
+            types: ['address'],
+            componentRestrictions: { country: 'us' }
+          },
+          (predictions, status) => {
+            if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
+              const formattedSuggestions = predictions.slice(0, 10).map(prediction => ({
+                id: prediction.place_id,
+                description: prediction.description,
+                main_text: prediction.structured_formatting.main_text,
+                secondary_text: prediction.structured_formatting.secondary_text
+              }));
+              
+              setSuggestions(formattedSuggestions);
+              setShowSuggestions(formattedSuggestions.length > 0);
+            } else if (status === window.google.maps.places.PlacesServiceStatus.REQUEST_DENIED) {
+              console.warn('Google Maps API request denied. Please check API key configuration in Google Cloud Console.');
+              setSuggestions([]);
+              setShowSuggestions(false);
+            } else if (status === window.google.maps.places.PlacesServiceStatus.OVER_QUERY_LIMIT) {
+              console.warn('Google Maps API quota exceeded');
+              setSuggestions([]);
+              setShowSuggestions(false);
+            } else {
+              setSuggestions([]);
+              setShowSuggestions(false);
+            }
+            setIsLoading(false);
           }
-          setIsLoading(false);
-        }
-      );
+        );
+      } catch (error) {
+        console.error('Error using Google Places AutocompleteService:', error);
+        setSuggestions([]);
+        setShowSuggestions(false);
+        setIsLoading(false);
+      }
     } else {
       setSuggestions([]);
       setShowSuggestions(false);
-        setIsLoading(false);
+      setIsLoading(false);
     }
   };
 
