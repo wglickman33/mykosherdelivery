@@ -113,6 +113,7 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
+// eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
   logger.error('Unhandled error:', err);
   
