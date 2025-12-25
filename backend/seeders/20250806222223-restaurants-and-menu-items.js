@@ -4,7 +4,7 @@ const { v4: uuidv4 } = require('uuid');
 
 
 module.exports = {
-  async up (queryInterface, Sequelize) {
+  async up (queryInterface) {
     const now = new Date();
 
     await queryInterface.bulkDelete('menu_items', null, {});
@@ -501,7 +501,7 @@ module.exports = {
     await queryInterface.bulkInsert('menu_items', menuItems, {});
   },
 
-  async down (queryInterface, Sequelize) {
+  async down (queryInterface) {
     await queryInterface.bulkDelete('menu_items', null, {});
     await queryInterface.bulkDelete('restaurants', null, {});
   }

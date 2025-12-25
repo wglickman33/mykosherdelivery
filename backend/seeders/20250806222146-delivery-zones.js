@@ -4,7 +4,7 @@ const { v4: uuidv4 } = require('uuid');
 
 
 module.exports = {
-  async up (queryInterface, Sequelize) {
+  async up (queryInterface) {
     const deliveryZones = [];
     
     const westchesterZips = [
@@ -87,7 +87,7 @@ module.exports = {
     await queryInterface.bulkInsert('delivery_zones', deliveryZones, {});
   },
 
-  async down (queryInterface, Sequelize) {
+  async down (queryInterface) {
     await queryInterface.bulkDelete('delivery_zones', null, {});
   }
 };

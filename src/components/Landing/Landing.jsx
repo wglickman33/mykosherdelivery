@@ -77,7 +77,7 @@ const Landing = () => {
 
       const scriptUrl = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geocoding&loading=async&callback=initGoogleMaps`;
       console.log('[Google Places] Loading script:', scriptUrl.replace(apiKey, 'API_KEY_HIDDEN'));
-      
+
       const script = document.createElement("script");
       script.src = scriptUrl;
       script.async = true;
@@ -166,19 +166,19 @@ const Landing = () => {
           if (window.google.maps.places.AutocompleteService) {
             console.log('[Google Autocomplete] AutocompleteService available, making request...');
             try {
-              const service = new window.google.maps.places.AutocompleteService();
+      const service = new window.google.maps.places.AutocompleteService();
               console.log('[Google Autocomplete] Service created, calling getPlacePredictions...');
-              
+      
               const request = {
-                input: value,
-                types: ['address'],
-                componentRestrictions: { country: 'us' }
+          input: value,
+          types: ['address'],
+          componentRestrictions: { country: 'us' }
               };
               console.log('[Google Autocomplete] Request:', request);
               
               service.getPlacePredictions(
                 request,
-                (predictions, status) => {
+        (predictions, status) => {
                   console.log('[Google Autocomplete] Response received:', {
                     status,
                     statusName: Object.keys(window.google.maps.places.PlacesServiceStatus).find(
@@ -188,18 +188,18 @@ const Landing = () => {
                     hasPredictions: !!predictions
                   });
                   
-                  if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
+          if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
                     console.log('[Google Autocomplete] Success! Processing', predictions.length, 'predictions');
-                    const formattedSuggestions = predictions.slice(0, 10).map(prediction => ({
-                      id: prediction.place_id,
-                      description: prediction.description,
-                      main_text: prediction.structured_formatting.main_text,
-                      secondary_text: prediction.structured_formatting.secondary_text
-                    }));
-                    
+            const formattedSuggestions = predictions.slice(0, 10).map(prediction => ({
+              id: prediction.place_id,
+              description: prediction.description,
+              main_text: prediction.structured_formatting.main_text,
+              secondary_text: prediction.structured_formatting.secondary_text
+            }));
+            
                     console.log('[Google Autocomplete] Formatted suggestions:', formattedSuggestions);
-                    setSuggestions(formattedSuggestions);
-                    setShowSuggestions(formattedSuggestions.length > 0);
+            setSuggestions(formattedSuggestions);
+            setShowSuggestions(formattedSuggestions.length > 0);
                   } else if (status === window.google.maps.places.PlacesServiceStatus.REQUEST_DENIED) {
                     console.error('[Google Autocomplete] REQUEST_DENIED');
                     console.error('[Google Autocomplete] This means the API key is not authorized for this domain');
@@ -269,7 +269,7 @@ const Landing = () => {
       console.error('[Google Autocomplete] API may still be loading or failed to load');
       setSuggestions([]);
       setShowSuggestions(false);
-      setIsLoading(false);
+        setIsLoading(false);
     }
   };
 

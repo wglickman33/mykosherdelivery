@@ -8,8 +8,8 @@ module.exports = {
       discount_type: 'percentage',
       discount_value: 15.00,
       active: true,
-      expires_at: null, // Never expires
-      usage_limit: null, // Unlimited usage
+      expires_at: null,
+      usage_limit: null,
       usage_count: 0,
       created_at: new Date(),
       updated_at: new Date()
