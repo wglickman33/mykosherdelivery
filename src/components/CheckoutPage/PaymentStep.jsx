@@ -591,7 +591,10 @@ const PaymentStep = ({
             </div>
             
             {selectedMethod === 'new-card' && (
-              <div className="new-card-form">
+              <div 
+                className="new-card-form"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <div className="form-divider"></div>
                 <Elements stripe={stripePromise}>
                   <StripeCardForm
