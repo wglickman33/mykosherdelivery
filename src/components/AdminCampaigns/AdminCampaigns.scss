@@ -73,14 +73,18 @@
 }
 
 .campaigns-grid,
-.templates-grid {
+.templates-grid,
+.segments-grid,
+.automations-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
   gap: 24px;
 }
 
 .campaign-card,
-.template-card {
+.template-card,
+.segment-card,
+.automation-card {
   background: white;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
@@ -512,5 +516,355 @@
   .modal-body,
   .modal-footer {
     padding: 16px;
+  }
+}
+
+.segments-tab,
+.automations-tab,
+.analytics-tab,
+.audience-tab {
+  padding: 0;
+}
+
+.list-selector {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  background: white;
+  color: #111827;
+}
+
+.segment-type {
+  padding: 4px 8px;
+  background: #e5e7eb;
+  color: #374151;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.condition-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  align-items: center;
+
+  select,
+  input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.875rem;
+  }
+}
+
+.automation-templates {
+  margin-bottom: 40px;
+}
+
+.templates-grid {
+  margin-top: 24px;
+}
+
+.automation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.automation-details {
+  margin-bottom: 20px;
+  flex: 1;
+}
+
+.automation-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.automation-info {
+  margin-bottom: 24px;
+
+  p {
+    margin: 8px 0;
+    font-size: 0.875rem;
+    color: #6b7280;
+  }
+}
+
+.automation-emails {
+  margin-top: 24px;
+
+  h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: #111827;
+  }
+}
+
+.email-item {
+  padding: 12px;
+  background: #f9fafb;
+  border-radius: 6px;
+  margin-bottom: 8px;
+
+  p {
+    margin: 4px 0;
+    font-size: 0.875rem;
+    color: #6b7280;
+  }
+}
+
+.analytics-overview {
+  margin-bottom: 40px;
+}
+
+.campaigns-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.campaign-analytics-card {
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+  }
+
+  &.selected {
+    border-color: #3b82f6;
+    background: #eff6ff;
+  }
+}
+
+.campaign-name {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+
+  h4 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
+  }
+}
+
+.campaign-date {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.analytics-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 16px;
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.metric-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.metric-value {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.detailed-analytics {
+  margin-top: 40px;
+  padding-top: 40px;
+  border-top: 2px solid #e5e7eb;
+}
+
+.analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.analytics-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+
+  h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #111827;
+    margin: 0 0 16px 0;
+  }
+}
+
+.metric-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 0.875rem;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  span:first-child {
+    color: #6b7280;
+  }
+
+  span:last-child {
+    font-weight: 600;
+    color: #111827;
+  }
+}
+
+.audience-info {
+  margin-bottom: 32px;
+}
+
+.info-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+
+  h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #111827;
+    margin: 0 0 16px 0;
+  }
+
+  p {
+    margin: 8px 0;
+    font-size: 0.875rem;
+    color: #6b7280;
+
+    strong {
+      color: #374151;
+    }
+  }
+}
+
+.members-section {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+
+  h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #111827;
+    margin: 0 0 24px 0;
+  }
+}
+
+.members-table {
+  overflow-x: auto;
+}
+
+.members-table table {
+  width: 100%;
+  border-collapse: collapse;
+
+  thead {
+    background: #f9fafb;
+  }
+
+  th {
+    padding: 12px;
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #e5e7eb;
+  }
+
+  td {
+    padding: 12px;
+    font-size: 0.875rem;
+    color: #111827;
+    border-bottom: 1px solid #f3f4f6;
+  }
+
+  tr:hover {
+    background: #f9fafb;
+  }
+}
+
+.sync-progress {
+  background: #dbeafe;
+  color: #1e40af;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  font-size: 0.875rem;
+
+  details {
+    margin-top: 8px;
+
+    summary {
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    ul {
+      margin: 8px 0 0 20px;
+      list-style: disc;
+    }
+  }
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  min-height: 28px;
+}
+
+.btn-outline {
+  background: white;
+  border: 1px solid #d1d5db;
+  color: #374151;
+
+  &:hover:not(:disabled) {
+    background: #f9fafb;
+    border-color: #9ca3af;
+  }
+}
+
+.form-group {
+  small {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.75rem;
+    color: #6b7280;
   }
 }

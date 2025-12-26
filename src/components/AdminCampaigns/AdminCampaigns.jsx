@@ -1,5 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import mailchimpService from '../../services/mailchimpService';
+import SegmentsTab from './SegmentsTab';
+import AutomationWorkflows from './AutomationWorkflows';
+import CampaignAnalytics from './CampaignAnalytics';
+import AudienceTab from './AudienceTab';
 import './AdminCampaigns.scss';
 
 const AdminCampaigns = () => {
@@ -17,10 +21,15 @@ const AdminCampaigns = () => {
     subject: '',
     templateId: '',
     listId: '',
+    segmentId: '',
     content: '',
     fromName: 'My Kosher Delivery',
-    fromEmail: 'noreply@mykosherdelivery.com'
+    fromEmail: 'noreply@mykosherdelivery.com',
+    scheduleTime: '',
+    usePersonalization: false
   });
+  const [lists, setLists] = useState([]);
+  const [segments, setSegments] = useState([]);
 
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState(null);
@@ -96,12 +105,50 @@ const AdminCampaigns = () => {
   useEffect(() => {
     if (!dataLoaded) {
       const loadData = async () => {
-        await Promise.all([loadCampaigns(), loadTemplates()]);
+        await Promise.all([loadCampaigns(), loadTemplates(), loadLists()]);
         setDataLoaded(true);
       };
       loadData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadCampaigns, loadTemplates, dataLoaded]);
+
+  const loadLists = useCallback(async () => {
+    try {
+      const response = await mailchimpService.getLists();
+      if (response.success && response.data.lists) {
+        setLists(response.data.lists);
+        if (response.data.lists.length > 0) {
+          setCampaignForm(prev => {
+            if (!prev.listId) {
+              return { ...prev, listId: response.data.lists[0].id };
+            }
+            return prev;
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Error loading lists:', err);
+    }
+  }, []);
+
+  const loadSegments = async (listId) => {
+    if (!listId) return;
+    try {
+      const response = await mailchimpService.getSegments(listId);
+      if (response.success && response.data.segments) {
+        setSegments(response.data.segments);
+      }
+    } catch (err) {
+      console.error('Error loading segments:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (campaignForm.listId) {
+      loadSegments(campaignForm.listId);
+    }
+  }, [campaignForm.listId]);
 
   const handleUseTemplate = useCallback((template) => {
     setCampaignForm(prev => ({
@@ -120,10 +167,13 @@ const AdminCampaigns = () => {
       name: '',
       subject: '',
       templateId: '',
-      listId: '',
+      listId: lists.length > 0 ? lists[0].id : '',
+      segmentId: '',
       content: '',
       fromName: 'My Kosher Delivery',
-      fromEmail: 'noreply@mykosherdelivery.com'
+      fromEmail: 'noreply@mykosherdelivery.com',
+      scheduleTime: '',
+      usePersonalization: false
     });
     setEditingCampaign(null);
   };
@@ -145,7 +195,9 @@ const AdminCampaigns = () => {
             content: campaignForm.content,
             fromName: campaignForm.fromName,
             fromEmail: campaignForm.fromEmail,
-            listId: campaignForm.listId
+            listId: campaignForm.listId,
+            segmentId: campaignForm.segmentId || undefined,
+            scheduleTime: campaignForm.scheduleTime || undefined
           })
         : await mailchimpService.createCampaign({
             name: campaignForm.name,
@@ -153,7 +205,9 @@ const AdminCampaigns = () => {
             content: campaignForm.content,
             fromName: campaignForm.fromName,
             fromEmail: campaignForm.fromEmail,
-            listId: campaignForm.listId
+            listId: campaignForm.listId,
+            segmentId: campaignForm.segmentId || undefined,
+            scheduleTime: campaignForm.scheduleTime || undefined
           });
       
       if (response.success) {
@@ -457,6 +511,30 @@ const AdminCampaigns = () => {
         >
           Templates
         </button>
+        <button
+          className={`tab-button ${activeTab === 'segments' ? 'active' : ''}`}
+          onClick={() => setActiveTab('segments')}
+        >
+          Segments
+        </button>
+        <button
+          className={`tab-button ${activeTab === 'automations' ? 'active' : ''}`}
+          onClick={() => setActiveTab('automations')}
+        >
+          Automations
+        </button>
+        <button
+          className={`tab-button ${activeTab === 'analytics' ? 'active' : ''}`}
+          onClick={() => setActiveTab('analytics')}
+        >
+          Analytics
+        </button>
+        <button
+          className={`tab-button ${activeTab === 'audience' ? 'active' : ''}`}
+          onClick={() => setActiveTab('audience')}
+        >
+          Audience
+        </button>
       </div>
 
       {error && (
@@ -551,6 +629,14 @@ const AdminCampaigns = () => {
         </div>
       )}
 
+      {activeTab === 'segments' && <SegmentsTab />}
+
+      {activeTab === 'automations' && <AutomationWorkflows />}
+
+      {activeTab === 'analytics' && <CampaignAnalytics />}
+
+      {activeTab === 'audience' && <AudienceTab />}
+
       {}
       {showCampaignModal && (
         <div className="modal-overlay">
@@ -587,6 +673,36 @@ const AdminCampaigns = () => {
                 />
               </div>
               <div className="form-group">
+                <label>Mailing List</label>
+                <select
+                  value={campaignForm.listId}
+                  onChange={(e) => setCampaignForm({...campaignForm, listId: e.target.value, segmentId: ''})}
+                >
+                  <option value="">Select a list</option>
+                  {lists.map(list => (
+                    <option key={list.id} value={list.id}>
+                      {list.name} ({list.stats?.member_count || 0} members)
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Target Segment (Optional)</label>
+                <select
+                  value={campaignForm.segmentId}
+                  onChange={(e) => setCampaignForm({...campaignForm, segmentId: e.target.value})}
+                  disabled={!campaignForm.listId}
+                >
+                  <option value="">All subscribers</option>
+                  {segments.map(segment => (
+                    <option key={segment.id} value={segment.id}>
+                      {segment.name} ({segment.member_count || 0} members)
+                    </option>
+                  ))}
+                </select>
+                <small>Leave empty to send to all subscribers, or select a segment for targeted campaigns</small>
+              </div>
+              <div className="form-group">
                 <label>Template</label>
                 <select
                   value={campaignForm.templateId}
@@ -605,9 +721,19 @@ const AdminCampaigns = () => {
                 <textarea
                   value={campaignForm.content}
                   onChange={(e) => setCampaignForm({...campaignForm, content: e.target.value})}
-                  placeholder="Enter email content (HTML supported)"
+                  placeholder="Enter email content (HTML supported). Use {{FNAME}}, {{LNAME}}, {{FAVREST}}, etc. for personalization."
                   rows="8"
                 />
+                <small>Available merge fields: {'{{FNAME}}'}, {'{{LNAME}}'}, {'{{FAVREST}}'}, {'{{TOTALSPENT}}'}, {'{{ORDERCOUNT}}'}</small>
+              </div>
+              <div className="form-group">
+                <label>Schedule Campaign (Optional)</label>
+                <input
+                  type="datetime-local"
+                  value={campaignForm.scheduleTime}
+                  onChange={(e) => setCampaignForm({...campaignForm, scheduleTime: e.target.value})}
+                />
+                <small>Leave empty to send immediately or save as draft</small>
               </div>
             </div>
             <div className="modal-footer">

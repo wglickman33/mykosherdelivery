@@ -119,8 +119,11 @@ router.post('/', authenticateToken, [
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      console.error('Order validation failed:', errors.array());
-      console.error('Request body:', JSON.stringify(req.body, null, 2));
+      const { maskSensitiveData } = require('../utils/maskSensitiveData');
+      logger.warn('Order validation failed:', {
+        errors: errors.array(),
+        body: maskSensitiveData(req.body)
+      });
       return res.status(400).json({
         error: 'Validation failed',
         details: errors.array()
@@ -638,11 +641,12 @@ router.post('/send-confirmation', authenticateToken, [
 
 router.post('/webhooks/shipday', async (req, res) => {
   try {
+    const { maskSensitiveData } = require('../utils/maskSensitiveData');
     logger.info('🔔 Shipday webhook endpoint hit', {
       method: req.method,
       path: req.path,
-      headers: JSON.stringify(req.headers, null, 2),
-      body: JSON.stringify(req.body, null, 2),
+      headers: maskSensitiveData(req.headers),
+      body: maskSensitiveData(req.body),
       ip: req.ip,
       timestamp: new Date().toISOString()
     });

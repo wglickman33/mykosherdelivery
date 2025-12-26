@@ -271,13 +271,18 @@ const sendOrderToShipday = async (order) => {
       data: responseData
     };
   } catch (error) {
+    const { maskSensitiveData } = require('../utils/maskSensitiveData');
+    
+    const safeErrorResponse = error.response?.data ? maskSensitiveData(error.response.data) : null;
+    const safeErrorHeaders = error.response?.headers ? maskSensitiveData(error.response.headers) : null;
+    
     const errorDetails = {
       orderId: order.id || order.orderId,
       orderNumber: order.orderNumber,
       errorMessage: error.message,
-      errorResponse: error.response?.data ? JSON.stringify(error.response.data, null, 2) : null,
+      errorResponse: safeErrorResponse ? JSON.stringify(safeErrorResponse, null, 2) : null,
       errorStatus: error.response?.status,
-      errorHeaders: error.response?.headers,
+      errorHeaders: safeErrorHeaders,
       apiUrl: `${SHIPDAY_BASE_URL}/orders`
     };
     
@@ -287,7 +292,7 @@ const sendOrderToShipday = async (order) => {
     return {
       success: false,
       error: errorMessage,
-      details: error.response?.data || error,
+      details: safeErrorResponse || error.message,
       statusCode: error.response?.status
     };
   }

@@ -41,7 +41,12 @@ class MailChimpService {
 
       return responseData;
     } catch (error) {
-      logger.error('❌ MailChimp API request failed:', error);
+      const safeError = {
+        message: error.message,
+        endpoint: endpoint,
+        method: method
+      };
+      logger.error('❌ MailChimp API request failed:', safeError);
       throw error;
     }
   }
@@ -80,11 +85,18 @@ class MailChimpService {
         }
       }
       
+      let recipients = { list_id: listId };
+      if (campaignData.segmentId) {
+        recipients = {
+          segment_opts: {
+            saved_segment_id: parseInt(campaignData.segmentId)
+          }
+        };
+      }
+
       const campaignPayload = {
         type: 'regular',
-        recipients: {
-          list_id: listId
-        },
+        recipients: recipients,
         settings: {
           subject_line: campaignData.subject,
           from_name: campaignData.fromName || 'My Kosher Delivery',
@@ -97,6 +109,12 @@ class MailChimpService {
       
       if (campaignData.content) {
         await this.setCampaignContent(campaign.id, campaignData.content);
+      }
+
+      if (campaignData.scheduleTime) {
+        await this.makeRequest(`/campaigns/${campaign.id}/actions/schedule`, 'POST', {
+          schedule_time: campaignData.scheduleTime
+        });
       }
 
       return campaign;
@@ -306,6 +324,312 @@ class MailChimpService {
       return await this.makeRequest('/');
     } catch (error) {
       logger.error('❌ Error fetching account info:', error);
+      throw error;
+    }
+  }
+
+  async getSegments(listId, options = {}) {
+    try {
+      logger.info('📊 Fetching MailChimp segments:', listId);
+      const params = new URLSearchParams();
+      
+      if (options.count) params.append('count', options.count);
+      if (options.offset) params.append('offset', options.offset);
+      if (options.type) params.append('type', options.type);
+      
+      const queryString = params.toString();
+      const endpoint = `/lists/${listId}/segments${queryString ? `?${queryString}` : ''}`;
+      
+      return await this.makeRequest(endpoint);
+    } catch (error) {
+      logger.error('❌ Error fetching segments:', error);
+      throw error;
+    }
+  }
+
+  async createSegment(listId, segmentData) {
+    try {
+      logger.info('📊 Creating MailChimp segment:', segmentData.name);
+      
+      const segmentPayload = {
+        name: segmentData.name,
+        static_segment: segmentData.staticSegment || []
+      };
+
+      if (segmentData.options) {
+        segmentPayload.options = segmentData.options;
+      }
+
+      return await this.makeRequest(`/lists/${listId}/segments`, 'POST', segmentPayload);
+    } catch (error) {
+      logger.error('❌ Error creating segment:', error);
+      throw error;
+    }
+  }
+
+  async updateSegment(listId, segmentId, segmentData) {
+    try {
+      logger.info('📊 Updating MailChimp segment:', segmentId);
+      return await this.makeRequest(`/lists/${listId}/segments/${segmentId}`, 'PATCH', segmentData);
+    } catch (error) {
+      logger.error('❌ Error updating segment:', error);
+      throw error;
+    }
+  }
+
+  async deleteSegment(listId, segmentId) {
+    try {
+      logger.info('📊 Deleting MailChimp segment:', segmentId);
+      return await this.makeRequest(`/lists/${listId}/segments/${segmentId}`, 'DELETE');
+    } catch (error) {
+      logger.error('❌ Error deleting segment:', error);
+      throw error;
+    }
+  }
+
+  async addSegmentMembers(listId, segmentId, emails) {
+    try {
+      logger.info('📊 Adding members to segment:', segmentId);
+      
+      const payload = {
+        members_to_add: emails
+      };
+
+      return await this.makeRequest(`/lists/${listId}/segments/${segmentId}`, 'POST', payload);
+    } catch (error) {
+      logger.error('❌ Error adding segment members:', error);
+      throw error;
+    }
+  }
+
+  async getMemberTags(listId, subscriberHash) {
+    try {
+      logger.info('🏷️ Fetching member tags:', subscriberHash);
+      return await this.makeRequest(`/lists/${listId}/members/${subscriberHash}/tags`);
+    } catch (error) {
+      logger.error('❌ Error fetching member tags:', error);
+      throw error;
+    }
+  }
+
+  async addMemberTags(listId, subscriberHash, tags) {
+    try {
+      logger.info('🏷️ Adding tags to member:', subscriberHash);
+      
+      const payload = {
+        tags: tags.map(tag => ({ name: tag, status: 'active' }))
+      };
+
+      return await this.makeRequest(`/lists/${listId}/members/${subscriberHash}/tags`, 'POST', payload);
+    } catch (error) {
+      logger.error('❌ Error adding member tags:', error);
+      throw error;
+    }
+  }
+
+  async removeMemberTags(listId, subscriberHash, tags) {
+    try {
+      logger.info('🏷️ Removing tags from member:', subscriberHash);
+      
+      const payload = {
+        tags: tags.map(tag => ({ name: tag, status: 'inactive' }))
+      };
+
+      return await this.makeRequest(`/lists/${listId}/members/${subscriberHash}/tags`, 'POST', payload);
+    } catch (error) {
+      logger.error('❌ Error removing member tags:', error);
+      throw error;
+    }
+  }
+
+  async getAllTags(listId) {
+    try {
+      logger.info('🏷️ Fetching all tags for list:', listId);
+      return await this.makeRequest(`/lists/${listId}/segments?type=static&count=1000`);
+    } catch (error) {
+      logger.error('❌ Error fetching tags:', error);
+      throw error;
+    }
+  }
+
+  async updateMemberWithMergeFields(listId, email, mergeFields, tags = []) {
+    try {
+      logger.info('👤 Updating member with merge fields:', email);
+      
+      const crypto = require('crypto');
+      const subscriberHash = crypto.createHash('md5').update(email.toLowerCase()).digest('hex');
+      
+      const memberPayload = {
+        merge_fields: mergeFields
+      };
+
+      const member = await this.makeRequest(`/lists/${listId}/members/${subscriberHash}`, 'PATCH', memberPayload);
+
+      if (tags.length > 0) {
+        await this.addMemberTags(listId, subscriberHash, tags);
+      }
+
+      return member;
+    } catch (error) {
+      logger.error('❌ Error updating member with merge fields:', error);
+      throw error;
+    }
+  }
+
+  async getMemberByEmail(listId, email) {
+    try {
+      logger.info('👤 Fetching member by email:', email);
+      
+      const crypto = require('crypto');
+      const subscriberHash = crypto.createHash('md5').update(email.toLowerCase()).digest('hex');
+      
+      return await this.makeRequest(`/lists/${listId}/members/${subscriberHash}`);
+    } catch (error) {
+      logger.error('❌ Error fetching member by email:', error);
+      throw error;
+    }
+  }
+
+  async getAutomations(options = {}) {
+    try {
+      logger.info('🤖 Fetching MailChimp automations');
+      const params = new URLSearchParams();
+      
+      if (options.count) params.append('count', options.count);
+      if (options.offset) params.append('offset', options.offset);
+      
+      const queryString = params.toString();
+      const endpoint = `/automations${queryString ? `?${queryString}` : ''}`;
+      
+      return await this.makeRequest(endpoint);
+    } catch (error) {
+      logger.error('❌ Error fetching automations:', error);
+      throw error;
+    }
+  }
+
+  async getAutomation(automationId) {
+    try {
+      logger.info('🤖 Fetching MailChimp automation:', automationId);
+      return await this.makeRequest(`/automations/${automationId}`);
+    } catch (error) {
+      logger.error('❌ Error fetching automation:', error);
+      throw error;
+    }
+  }
+
+  async startAutomation(automationId) {
+    try {
+      logger.info('🤖 Starting MailChimp automation:', automationId);
+      return await this.makeRequest(`/automations/${automationId}/actions/start`, 'POST');
+    } catch (error) {
+      logger.error('❌ Error starting automation:', error);
+      throw error;
+    }
+  }
+
+  async pauseAutomation(automationId) {
+    try {
+      logger.info('🤖 Pausing MailChimp automation:', automationId);
+      return await this.makeRequest(`/automations/${automationId}/actions/pause`, 'POST');
+    } catch (error) {
+      logger.error('❌ Error pausing automation:', error);
+      throw error;
+    }
+  }
+
+  async getAutomationEmails(automationId) {
+    try {
+      logger.info('🤖 Fetching automation emails:', automationId);
+      return await this.makeRequest(`/automations/${automationId}/emails`);
+    } catch (error) {
+      logger.error('❌ Error fetching automation emails:', error);
+      throw error;
+    }
+  }
+
+  async updateCampaign(campaignId, campaignData) {
+    try {
+      logger.info('📧 Updating MailChimp campaign:', campaignId);
+      
+      const campaignPayload = {
+        settings: {}
+      };
+
+      if (campaignData.subject) {
+        campaignPayload.settings.subject_line = campaignData.subject;
+      }
+      if (campaignData.fromName) {
+        campaignPayload.settings.from_name = campaignData.fromName;
+      }
+      if (campaignData.fromEmail) {
+        campaignPayload.settings.reply_to = campaignData.fromEmail;
+      }
+      if (campaignData.name) {
+        campaignPayload.settings.title = campaignData.name;
+      }
+
+      if (campaignData.segmentId) {
+        campaignPayload.recipients = {
+          segment_opts: {
+            saved_segment_id: parseInt(campaignData.segmentId)
+          }
+        };
+      } else if (campaignData.listId) {
+        campaignPayload.recipients = {
+          list_id: campaignData.listId
+        };
+      }
+
+      if (campaignData.scheduleTime) {
+        await this.makeRequest(`/campaigns/${campaignId}/actions/schedule`, 'POST', {
+          schedule_time: campaignData.scheduleTime
+        });
+      }
+
+      return await this.makeRequest(`/campaigns/${campaignId}`, 'PATCH', campaignPayload);
+    } catch (error) {
+      logger.error('❌ Error updating campaign:', error);
+      throw error;
+    }
+  }
+
+  async getCampaignReport(campaignId) {
+    try {
+      logger.info('📊 Fetching campaign report:', campaignId);
+      return await this.makeRequest(`/reports/${campaignId}`);
+    } catch (error) {
+      logger.error('❌ Error fetching campaign report:', error);
+      throw error;
+    }
+  }
+
+  async getCampaignClickDetails(campaignId) {
+    try {
+      logger.info('📊 Fetching campaign click details:', campaignId);
+      return await this.makeRequest(`/reports/${campaignId}/click-details`);
+    } catch (error) {
+      logger.error('❌ Error fetching campaign click details:', error);
+      throw error;
+    }
+  }
+
+  async getCampaignOpenDetails(campaignId) {
+    try {
+      logger.info('📊 Fetching campaign open details:', campaignId);
+      return await this.makeRequest(`/reports/${campaignId}/open-details`);
+    } catch (error) {
+      logger.error('❌ Error fetching campaign open details:', error);
+      throw error;
+    }
+  }
+
+  async getCampaignEcommerceActivity(campaignId) {
+    try {
+      logger.info('📊 Fetching campaign ecommerce activity:', campaignId);
+      return await this.makeRequest(`/reports/${campaignId}/ecommerce-product-activity`);
+    } catch (error) {
+      logger.error('❌ Error fetching campaign ecommerce activity:', error);
       throw error;
     }
   }

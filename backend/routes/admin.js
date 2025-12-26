@@ -3,7 +3,7 @@ const { Op, QueryTypes } = require('sequelize');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { Profile, Order, Restaurant, DeliveryZone, SupportTicket, TicketResponse, AdminNotification, Notification, AdminAuditLog, sequelize, MenuItem, MenuItemOption, UserRestaurantFavorite, MenuChangeRequest, UserLoginActivity, UserPreference, UserAnalytic, PaymentMethod, RestaurantOwner, Refund, PromoCode } = require('../models');
 const { requireAdmin } = require('../middleware/auth');
-const { body, validationResult } = require('express-validator');
+const { body, param, validationResult } = require('express-validator');
 const logger = require('../utils/logger');
 const jwt = require('jsonwebtoken');
 const { appEvents } = require('../utils/events');
@@ -3526,14 +3526,26 @@ router.get('/mailchimp/campaigns', requireAdmin, async (req, res) => {
   }
 });
 
-router.post('/mailchimp/campaigns', requireAdmin, async (req, res) => {
+router.post('/mailchimp/campaigns', requireAdmin, [
+  body('name').trim().isLength({ min: 1, max: 255 }).withMessage('Campaign name is required and must be less than 255 characters'),
+  body('subject').trim().isLength({ min: 1, max: 255 }).withMessage('Subject is required and must be less than 255 characters'),
+  body('content').optional().isLength({ max: 100000 }).withMessage('Content must be less than 100KB'),
+  body('fromEmail').optional().isEmail().withMessage('From email must be a valid email address'),
+  body('listId').optional().isString(),
+  body('segmentId').optional().isString(),
+  body('scheduleTime').optional().isISO8601().withMessage('Schedule time must be a valid ISO 8601 date')
+], async (req, res) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, error: 'Validation failed', details: errors.array() });
+    }
     const campaignData = req.body;
     const campaign = await mailchimpService.createCampaign(campaignData);
     res.json({ success: true, data: campaign });
   } catch (error) {
     logger.error('Error creating campaign:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'production' ? 'Failed to create campaign' : error.message });
   }
 });
 
@@ -3582,15 +3594,22 @@ router.get('/mailchimp/campaigns/:id/analytics', requireAdmin, async (req, res) 
   }
 });
 
-router.post('/mailchimp/campaigns/:id/test', requireAdmin, async (req, res) => {
+router.post('/mailchimp/campaigns/:id/test', requireAdmin, [
+  body('test_emails').isArray({ min: 1, max: 5 }).withMessage('Test emails must be an array with 1-5 email addresses'),
+  body('test_emails.*').isEmail().normalizeEmail().withMessage('All test emails must be valid email addresses')
+], async (req, res) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, error: 'Validation failed', details: errors.array() });
+    }
     const { id } = req.params;
     const { test_emails } = req.body;
     const result = await mailchimpService.sendTestEmail(id, test_emails);
     res.json({ success: true, data: result });
   } catch (error) {
     logger.error('Error sending test email:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'production' ? 'Failed to send test email' : error.message });
   }
 });
 
@@ -3605,14 +3624,21 @@ router.get('/mailchimp/templates', requireAdmin, async (req, res) => {
   }
 });
 
-router.post('/mailchimp/templates', requireAdmin, async (req, res) => {
+router.post('/mailchimp/templates', requireAdmin, [
+  body('name').trim().isLength({ min: 1, max: 255 }).withMessage('Template name is required and must be less than 255 characters'),
+  body('content').optional().isLength({ max: 100000 }).withMessage('Content must be less than 100KB')
+], async (req, res) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, error: 'Validation failed', details: errors.array() });
+    }
     const templateData = req.body;
     const template = await mailchimpService.createTemplate(templateData);
     res.json({ success: true, data: template });
   } catch (error) {
     logger.error('Error creating template:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'production' ? 'Failed to create template' : error.message });
   }
 });
 
@@ -3661,38 +3687,68 @@ router.get('/mailchimp/lists/:id/members', requireAdmin, async (req, res) => {
   }
 });
 
-router.post('/mailchimp/lists/:id/members', requireAdmin, async (req, res) => {
+router.post('/mailchimp/lists/:id/members', requireAdmin, [
+  body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+  body('status').optional().isIn(['subscribed', 'unsubscribed', 'cleaned', 'pending']).withMessage('Invalid status'),
+  body('mergeFields').optional().isObject().withMessage('Merge fields must be an object')
+], async (req, res) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, error: 'Validation failed', details: errors.array() });
+    }
     const { id } = req.params;
     const memberData = req.body;
     const member = await mailchimpService.addListMember(id, memberData);
     res.json({ success: true, data: member });
   } catch (error) {
     logger.error('Error adding list member:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'production' ? 'Failed to add member' : error.message });
   }
 });
 
-router.put('/mailchimp/lists/:id/members/:email', requireAdmin, async (req, res) => {
+router.put('/mailchimp/lists/:id/members/:email', requireAdmin, [
+  param('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+  body('status').optional().isIn(['subscribed', 'unsubscribed', 'cleaned', 'pending']).withMessage('Invalid status'),
+  body('mergeFields').optional().isObject().withMessage('Merge fields must be an object')
+], async (req, res) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, error: 'Validation failed', details: errors.array() });
+    }
     const { id, email } = req.params;
+    const decodedEmail = decodeURIComponent(email);
+    if (!decodedEmail.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      return res.status(400).json({ success: false, error: 'Invalid email format' });
+    }
     const memberData = req.body;
-    const member = await mailchimpService.updateListMember(id, email, memberData);
+    const member = await mailchimpService.updateListMember(id, decodedEmail, memberData);
     res.json({ success: true, data: member });
   } catch (error) {
     logger.error('Error updating list member:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'production' ? 'Failed to update member' : error.message });
   }
 });
 
-router.delete('/mailchimp/lists/:id/members/:email', requireAdmin, async (req, res) => {
+router.delete('/mailchimp/lists/:id/members/:email', requireAdmin, [
+  param('email').isEmail().normalizeEmail().withMessage('Valid email is required')
+], async (req, res) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, error: 'Validation failed', details: errors.array() });
+    }
     const { id, email } = req.params;
-    await mailchimpService.removeListMember(id, email);
+    const decodedEmail = decodeURIComponent(email);
+    if (!decodedEmail.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      return res.status(400).json({ success: false, error: 'Invalid email format' });
+    }
+    await mailchimpService.removeListMember(id, decodedEmail);
     res.json({ success: true });
   } catch (error) {
     logger.error('Error removing list member:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'production' ? 'Failed to remove member' : error.message });
   }
 });
 
@@ -3702,6 +3758,327 @@ router.get('/mailchimp/account', requireAdmin, async (req, res) => {
     res.json({ success: true, data: accountInfo });
   } catch (error) {
     logger.error('Error fetching account info:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Segments
+router.get('/mailchimp/lists/:listId/segments', requireAdmin, async (req, res) => {
+  try {
+    const { listId } = req.params;
+    const { count, offset, type } = req.query;
+    const segments = await mailchimpService.getSegments(listId, { count, offset, type });
+    res.json({ success: true, data: segments });
+  } catch (error) {
+    logger.error('Error fetching segments:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post('/mailchimp/lists/:listId/segments', requireAdmin, [
+  body('name').trim().isLength({ min: 1, max: 255 }).withMessage('Segment name is required and must be less than 255 characters'),
+  body('type').isIn(['static', 'saved']).withMessage('Segment type must be static or saved'),
+  body('conditions').optional().isArray().withMessage('Conditions must be an array'),
+  body('staticSegment').optional().isArray().withMessage('Static segment must be an array')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, error: 'Validation failed', details: errors.array() });
+    }
+    const { listId } = req.params;
+    const segmentData = req.body;
+    const segment = await mailchimpService.createSegment(listId, segmentData);
+    res.json({ success: true, data: segment });
+  } catch (error) {
+    logger.error('Error creating segment:', error);
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'production' ? 'Failed to create segment' : error.message });
+  }
+});
+
+router.put('/mailchimp/lists/:listId/segments/:segmentId', requireAdmin, async (req, res) => {
+  try {
+    const { listId, segmentId } = req.params;
+    const segmentData = req.body;
+    const segment = await mailchimpService.updateSegment(listId, segmentId, segmentData);
+    res.json({ success: true, data: segment });
+  } catch (error) {
+    logger.error('Error updating segment:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.delete('/mailchimp/lists/:listId/segments/:segmentId', requireAdmin, async (req, res) => {
+  try {
+    const { listId, segmentId } = req.params;
+    await mailchimpService.deleteSegment(listId, segmentId);
+    res.json({ success: true });
+  } catch (error) {
+    logger.error('Error deleting segment:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post('/mailchimp/lists/:listId/segments/:segmentId/members', requireAdmin, [
+  body('emails').isArray({ min: 1, max: 1000 }).withMessage('Emails must be an array with 1-1000 items'),
+  body('emails.*').isEmail().normalizeEmail().withMessage('All emails must be valid email addresses')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, error: 'Validation failed', details: errors.array() });
+    }
+    const { listId, segmentId } = req.params;
+    const { emails } = req.body;
+    const result = await mailchimpService.addSegmentMembers(listId, segmentId, emails);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    logger.error('Error adding segment members:', error);
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'production' ? 'Failed to add segment members' : error.message });
+  }
+});
+
+// Tags
+router.get('/mailchimp/lists/:listId/members/:email/tags', requireAdmin, [
+  param('email').isEmail().normalizeEmail().withMessage('Valid email is required')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, error: 'Validation failed', details: errors.array() });
+    }
+    const { listId, email } = req.params;
+    const decodedEmail = decodeURIComponent(email);
+    if (!decodedEmail.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      return res.status(400).json({ success: false, error: 'Invalid email format' });
+    }
+    const crypto = require('crypto');
+    const subscriberHash = crypto.createHash('md5').update(decodedEmail.toLowerCase()).digest('hex');
+    const tags = await mailchimpService.getMemberTags(listId, subscriberHash);
+    res.json({ success: true, data: tags });
+  } catch (error) {
+    logger.error('Error fetching member tags:', error);
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'production' ? 'Failed to fetch tags' : error.message });
+  }
+});
+
+router.post('/mailchimp/lists/:listId/members/:email/tags', requireAdmin, [
+  param('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+  body('tags').isArray({ min: 1, max: 50 }).withMessage('Tags must be an array with 1-50 items'),
+  body('tags.*').trim().isLength({ min: 1, max: 100 }).withMessage('Each tag must be 1-100 characters')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, error: 'Validation failed', details: errors.array() });
+    }
+    const { listId, email } = req.params;
+    const decodedEmail = decodeURIComponent(email);
+    if (!decodedEmail.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      return res.status(400).json({ success: false, error: 'Invalid email format' });
+    }
+    const { tags } = req.body;
+    const crypto = require('crypto');
+    const subscriberHash = crypto.createHash('md5').update(decodedEmail.toLowerCase()).digest('hex');
+    const result = await mailchimpService.addMemberTags(listId, subscriberHash, tags);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    logger.error('Error adding member tags:', error);
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'production' ? 'Failed to add tags' : error.message });
+  }
+});
+
+router.delete('/mailchimp/lists/:listId/members/:email/tags', requireAdmin, [
+  param('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+  body('tags').isArray({ min: 1, max: 50 }).withMessage('Tags must be an array with 1-50 items'),
+  body('tags.*').trim().isLength({ min: 1, max: 100 }).withMessage('Each tag must be 1-100 characters')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, error: 'Validation failed', details: errors.array() });
+    }
+    const { listId, email } = req.params;
+    const decodedEmail = decodeURIComponent(email);
+    if (!decodedEmail.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      return res.status(400).json({ success: false, error: 'Invalid email format' });
+    }
+    const { tags } = req.body;
+    const crypto = require('crypto');
+    const subscriberHash = crypto.createHash('md5').update(decodedEmail.toLowerCase()).digest('hex');
+    const result = await mailchimpService.removeMemberTags(listId, subscriberHash, tags);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    logger.error('Error removing member tags:', error);
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'production' ? 'Failed to remove tags' : error.message });
+  }
+});
+
+router.get('/mailchimp/lists/:listId/tags', requireAdmin, async (req, res) => {
+  try {
+    const { listId } = req.params;
+    const tags = await mailchimpService.getAllTags(listId);
+    res.json({ success: true, data: tags });
+  } catch (error) {
+    logger.error('Error fetching tags:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Customer Sync
+const customerSyncService = require('../services/customerSyncService');
+
+router.post('/mailchimp/sync/customer/:userId', requireAdmin, [
+  param('userId').isUUID().withMessage('User ID must be a valid UUID'),
+  body('listId').optional().isString().withMessage('List ID must be a string')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, error: 'Validation failed', details: errors.array() });
+    }
+    const { userId } = req.params;
+    const { listId } = req.body;
+    
+    if (!listId) {
+      const defaultListId = await customerSyncService.getOrCreateDefaultList();
+      const result = await customerSyncService.syncCustomerToMailChimp(userId, defaultListId);
+      res.json({ success: true, data: result });
+    } else {
+      const result = await customerSyncService.syncCustomerToMailChimp(userId, listId);
+      res.json({ success: true, data: result });
+    }
+  } catch (error) {
+    logger.error('Error syncing customer:', error);
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'production' ? 'Failed to sync customer' : error.message });
+  }
+});
+
+router.post('/mailchimp/sync/batch', requireAdmin, [
+  body('listId').optional().isString().withMessage('List ID must be a string'),
+  body('userIds').optional().isArray({ max: 1000 }).withMessage('User IDs must be an array with max 1000 items'),
+  body('userIds.*').optional().isUUID().withMessage('All user IDs must be valid UUIDs'),
+  body('batchSize').optional().isInt({ min: 1, max: 100 }).withMessage('Batch size must be between 1 and 100')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, error: 'Validation failed', details: errors.array() });
+    }
+    const { listId, userIds, batchSize = 50 } = req.body;
+    const safeBatchSize = Math.min(Math.max(1, parseInt(batchSize) || 50), 100);
+    
+    if (!listId) {
+      const defaultListId = await customerSyncService.getOrCreateDefaultList();
+      const result = await customerSyncService.batchSyncCustomers(defaultListId, userIds, safeBatchSize);
+      res.json({ success: true, data: result });
+    } else {
+      const result = await customerSyncService.batchSyncCustomers(listId, userIds, safeBatchSize);
+      res.json({ success: true, data: result });
+    }
+  } catch (error) {
+    logger.error('Error batch syncing customers:', error);
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'production' ? 'Failed to sync customers' : error.message });
+  }
+});
+
+// Automations
+router.get('/mailchimp/automations', requireAdmin, async (req, res) => {
+  try {
+    const { count, offset } = req.query;
+    const automations = await mailchimpService.getAutomations({ count, offset });
+    res.json({ success: true, data: automations });
+  } catch (error) {
+    logger.error('Error fetching automations:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.get('/mailchimp/automations/:id', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const automation = await mailchimpService.getAutomation(id);
+    res.json({ success: true, data: automation });
+  } catch (error) {
+    logger.error('Error fetching automation:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post('/mailchimp/automations/:id/start', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await mailchimpService.startAutomation(id);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    logger.error('Error starting automation:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post('/mailchimp/automations/:id/pause', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await mailchimpService.pauseAutomation(id);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    logger.error('Error pausing automation:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.get('/mailchimp/automations/:id/emails', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const emails = await mailchimpService.getAutomationEmails(id);
+    res.json({ success: true, data: emails });
+  } catch (error) {
+    logger.error('Error fetching automation emails:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Enhanced Analytics
+router.get('/mailchimp/campaigns/:id/report', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const report = await mailchimpService.getCampaignReport(id);
+    res.json({ success: true, data: report });
+  } catch (error) {
+    logger.error('Error fetching campaign report:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.get('/mailchimp/campaigns/:id/clicks', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const clicks = await mailchimpService.getCampaignClickDetails(id);
+    res.json({ success: true, data: clicks });
+  } catch (error) {
+    logger.error('Error fetching campaign clicks:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.get('/mailchimp/campaigns/:id/opens', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const opens = await mailchimpService.getCampaignOpenDetails(id);
+    res.json({ success: true, data: opens });
+  } catch (error) {
+    logger.error('Error fetching campaign opens:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.get('/mailchimp/campaigns/:id/ecommerce', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const ecommerce = await mailchimpService.getCampaignEcommerceActivity(id);
+    res.json({ success: true, data: ecommerce });
+  } catch (error) {
+    logger.error('Error fetching campaign ecommerce:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });

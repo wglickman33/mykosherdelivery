@@ -206,9 +206,13 @@ router.post(
         status: paymentIntent.status,
       });
     } catch (error) {
-      logger.error("Payment intent creation failed:", error, {
+      const { maskSensitiveData } = require('../utils/maskSensitiveData');
+      logger.error("Payment intent creation failed:", {
+        message: error.message,
+        type: error.type,
+        code: error.code,
         userId: req.userId,
-        body: req.body,
+        body: maskSensitiveData(req.body),
       });
 
       if (error.type === "StripeCardError") {

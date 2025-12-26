@@ -17,6 +17,15 @@ export const mailchimpService = {
     try {
       logger.info('📧 Creating MailChimp campaign:', campaignData.name);
       const response = await apiClient.post('/admin/mailchimp/campaigns', campaignData);
+      
+      // If segment targeting or scheduling is specified, update the campaign
+      if (campaignData.segmentId || campaignData.scheduleTime) {
+        await this.updateCampaign(response.data.id, {
+          segmentId: campaignData.segmentId,
+          scheduleTime: campaignData.scheduleTime
+        });
+      }
+      
       return response;
     } catch (error) {
       logger.error('❌ Error creating campaign:', error);
@@ -187,6 +196,231 @@ export const mailchimpService = {
       return response;
     } catch (error) {
       logger.error('❌ Error fetching account info:', error);
+      throw error;
+    }
+  },
+
+  // Segments
+  async getSegments(listId, options = {}) {
+    try {
+      logger.info('📊 Fetching MailChimp segments');
+      const response = await apiClient.get(`/admin/mailchimp/lists/${listId}/segments`, { params: options });
+      return response;
+    } catch (error) {
+      logger.error('❌ Error fetching segments:', error);
+      throw error;
+    }
+  },
+
+  async createSegment(listId, segmentData) {
+    try {
+      logger.info('📊 Creating MailChimp segment');
+      const response = await apiClient.post(`/admin/mailchimp/lists/${listId}/segments`, segmentData);
+      return response;
+    } catch (error) {
+      logger.error('❌ Error creating segment:', error);
+      throw error;
+    }
+  },
+
+  async updateSegment(listId, segmentId, segmentData) {
+    try {
+      logger.info('📊 Updating MailChimp segment');
+      const response = await apiClient.put(`/admin/mailchimp/lists/${listId}/segments/${segmentId}`, segmentData);
+      return response;
+    } catch (error) {
+      logger.error('❌ Error updating segment:', error);
+      throw error;
+    }
+  },
+
+  async deleteSegment(listId, segmentId) {
+    try {
+      logger.info('📊 Deleting MailChimp segment');
+      const response = await apiClient.delete(`/admin/mailchimp/lists/${listId}/segments/${segmentId}`);
+      return response;
+    } catch (error) {
+      logger.error('❌ Error deleting segment:', error);
+      throw error;
+    }
+  },
+
+  async addSegmentMembers(listId, segmentId, emails) {
+    try {
+      logger.info('📊 Adding members to segment');
+      const response = await apiClient.post(`/admin/mailchimp/lists/${listId}/segments/${segmentId}/members`, { emails });
+      return response;
+    } catch (error) {
+      logger.error('❌ Error adding segment members:', error);
+      throw error;
+    }
+  },
+
+  // Tags
+  async getMemberTags(listId, email) {
+    try {
+      logger.info('🏷️ Fetching member tags');
+      const response = await apiClient.get(`/admin/mailchimp/lists/${listId}/members/${encodeURIComponent(email)}/tags`);
+      return response;
+    } catch (error) {
+      logger.error('❌ Error fetching member tags:', error);
+      throw error;
+    }
+  },
+
+  async addMemberTags(listId, email, tags) {
+    try {
+      logger.info('🏷️ Adding tags to member');
+      const response = await apiClient.post(`/admin/mailchimp/lists/${listId}/members/${encodeURIComponent(email)}/tags`, { tags });
+      return response;
+    } catch (error) {
+      logger.error('❌ Error adding member tags:', error);
+      throw error;
+    }
+  },
+
+  async removeMemberTags(listId, email, tags) {
+    try {
+      logger.info('🏷️ Removing tags from member');
+      const response = await apiClient.delete(`/admin/mailchimp/lists/${listId}/members/${encodeURIComponent(email)}/tags`, { data: { tags } });
+      return response;
+    } catch (error) {
+      logger.error('❌ Error removing member tags:', error);
+      throw error;
+    }
+  },
+
+  async getAllTags(listId) {
+    try {
+      logger.info('🏷️ Fetching all tags');
+      const response = await apiClient.get(`/admin/mailchimp/lists/${listId}/tags`);
+      return response;
+    } catch (error) {
+      logger.error('❌ Error fetching tags:', error);
+      throw error;
+    }
+  },
+
+  // Customer Sync
+  async syncCustomer(userId, listId) {
+    try {
+      logger.info('🔄 Syncing customer to MailChimp');
+      const response = await apiClient.post(`/admin/mailchimp/sync/customer/${userId}`, { listId });
+      return response;
+    } catch (error) {
+      logger.error('❌ Error syncing customer:', error);
+      throw error;
+    }
+  },
+
+  async batchSyncCustomers(listId, userIds = null, batchSize = 50) {
+    try {
+      logger.info('🔄 Batch syncing customers to MailChimp');
+      const response = await apiClient.post('/admin/mailchimp/sync/batch', { listId, userIds, batchSize });
+      return response;
+    } catch (error) {
+      logger.error('❌ Error batch syncing customers:', error);
+      throw error;
+    }
+  },
+
+  // Automations
+  async getAutomations(options = {}) {
+    try {
+      logger.info('🤖 Fetching MailChimp automations');
+      const response = await apiClient.get('/admin/mailchimp/automations', { params: options });
+      return response;
+    } catch (error) {
+      logger.error('❌ Error fetching automations:', error);
+      throw error;
+    }
+  },
+
+  async getAutomation(automationId) {
+    try {
+      logger.info('🤖 Fetching MailChimp automation');
+      const response = await apiClient.get(`/admin/mailchimp/automations/${automationId}`);
+      return response;
+    } catch (error) {
+      logger.error('❌ Error fetching automation:', error);
+      throw error;
+    }
+  },
+
+  async startAutomation(automationId) {
+    try {
+      logger.info('🤖 Starting MailChimp automation');
+      const response = await apiClient.post(`/admin/mailchimp/automations/${automationId}/start`);
+      return response;
+    } catch (error) {
+      logger.error('❌ Error starting automation:', error);
+      throw error;
+    }
+  },
+
+  async pauseAutomation(automationId) {
+    try {
+      logger.info('🤖 Pausing MailChimp automation');
+      const response = await apiClient.post(`/admin/mailchimp/automations/${automationId}/pause`);
+      return response;
+    } catch (error) {
+      logger.error('❌ Error pausing automation:', error);
+      throw error;
+    }
+  },
+
+  async getAutomationEmails(automationId) {
+    try {
+      logger.info('🤖 Fetching automation emails');
+      const response = await apiClient.get(`/admin/mailchimp/automations/${automationId}/emails`);
+      return response;
+    } catch (error) {
+      logger.error('❌ Error fetching automation emails:', error);
+      throw error;
+    }
+  },
+
+  // Enhanced Analytics
+  async getCampaignReport(campaignId) {
+    try {
+      logger.info('📊 Fetching campaign report');
+      const response = await apiClient.get(`/admin/mailchimp/campaigns/${campaignId}/report`);
+      return response;
+    } catch (error) {
+      logger.error('❌ Error fetching campaign report:', error);
+      throw error;
+    }
+  },
+
+  async getCampaignClicks(campaignId) {
+    try {
+      logger.info('📊 Fetching campaign clicks');
+      const response = await apiClient.get(`/admin/mailchimp/campaigns/${campaignId}/clicks`);
+      return response;
+    } catch (error) {
+      logger.error('❌ Error fetching campaign clicks:', error);
+      throw error;
+    }
+  },
+
+  async getCampaignOpens(campaignId) {
+    try {
+      logger.info('📊 Fetching campaign opens');
+      const response = await apiClient.get(`/admin/mailchimp/campaigns/${campaignId}/opens`);
+      return response;
+    } catch (error) {
+      logger.error('❌ Error fetching campaign opens:', error);
+      throw error;
+    }
+  },
+
+  async getCampaignEcommerce(campaignId) {
+    try {
+      logger.info('📊 Fetching campaign ecommerce');
+      const response = await apiClient.get(`/admin/mailchimp/campaigns/${campaignId}/ecommerce`);
+      return response;
+    } catch (error) {
+      logger.error('❌ Error fetching campaign ecommerce:', error);
       throw error;
     }
   }

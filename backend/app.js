@@ -38,13 +38,9 @@ app.use(cors({
 
 app.use(validateRateLimit(15 * 60 * 1000, 500));
 
-// IMPORTANT: Apply raw body parser ONLY to webhook route BEFORE express.json()
-// Stripe webhooks need raw body for signature verification
 app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
 
-// Apply JSON parsing to all routes EXCEPT webhook (webhook needs raw body)
 app.use((req, res, next) => {
-  // Skip JSON parsing for Stripe webhook (needs raw body)
   if (req.originalUrl === '/api/payments/webhook' || req.path === '/api/payments/webhook' || req.url === '/api/payments/webhook') {
     return next();
   }
@@ -52,7 +48,6 @@ app.use((req, res, next) => {
 });
 
 app.use((req, res, next) => {
-  // Skip urlencoded parsing for Stripe webhook
   if (req.originalUrl === '/api/payments/webhook' || req.path === '/api/payments/webhook' || req.url === '/api/payments/webhook') {
     return next();
   }
@@ -70,11 +65,17 @@ app.use('/static', (req, res, next) => {
 }, express.static('public'));
 
 app.use((req, res, next) => {
-  logger.info(`${req.method} ${req.path}`, {
+  const { maskSensitiveData } = require('./utils/maskSensitiveData');
+  const logData = {
     ip: req.ip,
-    userAgent: req.get('User-Agent'),
-    body: req.method !== 'GET' ? req.body : undefined
-  });
+    userAgent: req.get('User-Agent')
+  };
+  
+  if (req.method !== 'GET' && req.body) {
+    logData.body = maskSensitiveData(req.body);
+  }
+  
+  logger.info(`${req.method} ${req.path}`, logData);
   next();
 });
 
@@ -100,28 +101,30 @@ app.get('/api/health', async (req, res) => {
     res.status(200).json({
       status: 'OK',
       timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV,
       database: dbStatus
     });
   } catch {
     res.status(200).json({
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV,
+      status: 'OK',
+      timestamp: new Date().toISOString(),
       database: 'checking'
-  });
+    });
   }
 });
 
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
-  logger.error('Unhandled error:', err);
+  const safeError = {
+    message: err.message,
+    status: err.status,
+    name: err.name,
+  };
+  logger.error('Unhandled error:', safeError);
   
   res.status(err.status || 500).json({
     error: process.env.NODE_ENV === 'production' 
       ? 'Internal server error' 
       : err.message,
-    ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
   });
 });
 

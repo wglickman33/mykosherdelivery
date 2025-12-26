@@ -141,22 +141,23 @@ router.post(
         },
       });
     } catch (error) {
+      const { maskSensitiveData } = require('../utils/maskSensitiveData');
       logger.error("Error calculating tax with Stripe:", {
         error: error.message,
-        stack: error.stack,
         type: error.type,
         code: error.code,
-        requestBody: {
+        requestBody: maskSensitiveData({
           itemCount: req.body?.items?.length,
           hasCustomer: !!req.body?.customer,
           hasShipping: !!req.body?.shipping,
-        },
+        }),
       });
       res.status(500).json({
         success: false,
         error: "Failed to calculate tax",
-        message: error.message || "An unexpected error occurred",
-        ...(process.env.NODE_ENV === 'development' && { details: error.stack }),
+        message: process.env.NODE_ENV === 'production' 
+          ? "An unexpected error occurred" 
+          : error.message,
       });
     }
   }
