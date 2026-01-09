@@ -402,125 +402,145 @@ router.post(
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
-    switch (event.type) {
-      case "payment_intent.succeeded": {
-        const paymentIntent = event.data.object;
+    try {
+      switch (event.type) {
+        case "payment_intent.succeeded": {
+          const paymentIntent = event.data.object;
 
-        if (paymentIntent.metadata.orderIds) {
-          const orderIds = paymentIntent.metadata.orderIds.split(",");
+          if (paymentIntent.metadata.orderIds) {
+            const orderIds = paymentIntent.metadata.orderIds.split(",");
 
-          await Order.update(
-            {
-              status: "pending",
-              stripePaymentIntentId: paymentIntent.id,
-              paymentAmount: paymentIntent.amount / 100,
-              updatedAt: new Date(),
-            },
-            {
-              where: {
-                id: orderIds,
-                userId: paymentIntent.metadata.userId,
-              },
-            }
-          );
-
-          logger.info("Orders confirmed via webhook", {
-            paymentIntentId: paymentIntent.id,
-            orderIds,
-            userId: paymentIntent.metadata.userId,
-          });
-
-          logger.info("Payment succeeded via webhook - preparing to send orders to Shipday", {
-            paymentIntentId: paymentIntent.id,
-            orderIds: orderIds.join(','),
-            userId: paymentIntent.metadata.userId
-          });
-          
-          try {
-            const orders = await Order.findAll({
-              where: { id: orderIds },
-              include: [
+            try {
+              await Order.update(
                 {
-                  model: Profile,
-                  as: 'user',
-                  attributes: ['id', 'firstName', 'lastName', 'email', 'phone']
+                  status: "pending",
+                  stripePaymentIntentId: paymentIntent.id,
+                  paymentAmount: paymentIntent.amount / 100,
+                  updatedAt: new Date(),
                 },
                 {
-                  model: Restaurant,
-                  as: 'restaurant',
-                  attributes: ['id', 'name', 'address', 'phone']
+                  where: {
+                    id: orderIds,
+                    userId: paymentIntent.metadata.userId,
+                  },
                 }
-              ]
-            });
+              );
 
-            logger.info(`Found ${orders.length} order(s) to send to Shipday via webhook`, {
-              orderIds: orders.map(o => o.id),
-              orderNumbers: orders.map(o => o.orderNumber)
-            });
+              logger.info("Orders confirmed via webhook", {
+                paymentIntentId: paymentIntent.id,
+                orderIds,
+                userId: paymentIntent.metadata.userId,
+              });
 
-            for (const order of orders) {
+              logger.info("Payment succeeded via webhook - preparing to send orders to Shipday", {
+                paymentIntentId: paymentIntent.id,
+                orderIds: orderIds.join(','),
+                userId: paymentIntent.metadata.userId
+              });
+              
               try {
-                logger.info("Sending order to Shipday via webhook", {
-                  orderId: order.id,
-                  orderNumber: order.orderNumber,
-                  hasUser: !!order.user,
-                  hasRestaurant: !!order.restaurant
+                const orders = await Order.findAll({
+                  where: { id: orderIds },
+                  include: [
+                    {
+                      model: Profile,
+                      as: 'user',
+                      attributes: ['id', 'firstName', 'lastName', 'email', 'phone']
+                    },
+                    {
+                      model: Restaurant,
+                      as: 'restaurant',
+                      attributes: ['id', 'name', 'address', 'phone']
+                    }
+                  ]
                 });
-                
-                const shipdayResult = await sendOrderToShipday(order);
-                
-                if (shipdayResult.success && shipdayResult.shipdayOrderId) {
-                  await order.update({ shipdayOrderId: shipdayResult.shipdayOrderId });
-                  logger.info("✅ Order sent to Shipday successfully via webhook", {
-                    orderId: order.id,
-                    orderNumber: order.orderNumber,
-                    shipdayOrderId: shipdayResult.shipdayOrderId
-                  });
-                } else {
-                  logger.error("❌ Failed to send order to Shipday via webhook", {
-                    orderId: order.id,
-                    orderNumber: order.orderNumber,
-                    error: shipdayResult.error,
-                    details: shipdayResult.details,
-                    statusCode: shipdayResult.statusCode
-                  });
+
+                logger.info(`Found ${orders.length} order(s) to send to Shipday via webhook`, {
+                  orderIds: orders.map(o => o.id),
+                  orderNumbers: orders.map(o => o.orderNumber)
+                });
+
+                for (const order of orders) {
+                  try {
+                    logger.info("Sending order to Shipday via webhook", {
+                      orderId: order.id,
+                      orderNumber: order.orderNumber,
+                      hasUser: !!order.user,
+                      hasRestaurant: !!order.restaurant
+                    });
+                    
+                    const shipdayResult = await sendOrderToShipday(order);
+                    
+                    if (shipdayResult.success && shipdayResult.shipdayOrderId) {
+                      await order.update({ shipdayOrderId: shipdayResult.shipdayOrderId });
+                      logger.info("✅ Order sent to Shipday successfully via webhook", {
+                        orderId: order.id,
+                        orderNumber: order.orderNumber,
+                        shipdayOrderId: shipdayResult.shipdayOrderId
+                      });
+                    } else {
+                      logger.error("❌ Failed to send order to Shipday via webhook", {
+                        orderId: order.id,
+                        orderNumber: order.orderNumber,
+                        error: shipdayResult.error,
+                        details: shipdayResult.details,
+                        statusCode: shipdayResult.statusCode
+                      });
+                    }
+                  } catch (shipdayError) {
+                    logger.error("❌ Exception sending order to Shipday via webhook", shipdayError, {
+                      orderId: order.id,
+                      orderNumber: order.orderNumber,
+                      errorMessage: shipdayError.message,
+                      stack: shipdayError.stack
+                    });
+                  }
                 }
-              } catch (shipdayError) {
-                logger.error("❌ Exception sending order to Shipday via webhook", shipdayError, {
-                  orderId: order.id,
-                  orderNumber: order.orderNumber,
-                  errorMessage: shipdayError.message,
-                  stack: shipdayError.stack
+              } catch (error) {
+                logger.error("❌ Error processing Shipday integration via webhook", error, {
+                  orderIds: orderIds.join(','),
+                  errorMessage: error.message,
+                  stack: error.stack
                 });
               }
+            } catch (updateError) {
+              logger.error("❌ Error updating orders via webhook", updateError, {
+                paymentIntentId: paymentIntent.id,
+                orderIds: orderIds.join(','),
+                userId: paymentIntent.metadata.userId,
+                errorMessage: updateError.message,
+                stack: updateError.stack
+              });
             }
-          } catch (error) {
-            logger.error("❌ Error processing Shipday integration via webhook", error, {
-              orderIds: orderIds.join(','),
-              errorMessage: error.message,
-              stack: error.stack
-            });
           }
+          break;
         }
-        break;
+
+        case "payment_intent.payment_failed": {
+          const failedPayment = event.data.object;
+
+          logger.warn("Payment failed", {
+            paymentIntentId: failedPayment.id,
+            userId: failedPayment.metadata.userId,
+            error: failedPayment.last_payment_error,
+          });
+          break;
+        }
+
+        default:
+          logger.debug("Unhandled webhook event type:", event.type);
       }
 
-      case "payment_intent.payment_failed": {
-        const failedPayment = event.data.object;
-
-        logger.warn("Payment failed", {
-          paymentIntentId: failedPayment.id,
-          userId: failedPayment.metadata.userId,
-          error: failedPayment.last_payment_error,
-        });
-        break;
-      }
-
-      default:
-        logger.debug("Unhandled webhook event type:", event.type);
+      res.json({ received: true });
+    } catch (error) {
+      logger.error("❌ Error processing webhook event", error, {
+        eventType: event.type,
+        eventId: event.id,
+        errorMessage: error.message,
+        stack: error.stack
+      });
+      res.json({ received: true });
     }
-
-    res.json({ received: true });
   }
 );
 
