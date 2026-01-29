@@ -181,8 +181,60 @@ export const validateDeliveryAddress = (address) => {
   };
 }; 
 
+const waitForGoogleMaps = (maxWait = 5000) => {
+  return new Promise((resolve, reject) => {
+    if (window.google && window.google.maps && window.google.maps.Geocoder) {
+      resolve();
+      return;
+    }
+
+    const startTime = Date.now();
+    const checkInterval = setInterval(() => {
+      if (window.google && window.google.maps && window.google.maps.Geocoder) {
+        clearInterval(checkInterval);
+        resolve();
+      } else if (Date.now() - startTime > maxWait) {
+        clearInterval(checkInterval);
+        reject(new Error('Google Maps API did not load in time'));
+      }
+    }, 100);
+  });
+};
+
 export const validateAddressWithGeocoding = async (address) => {
   try {
+    // Check if Google Maps is available, wait for it if loading
+    try {
+      await waitForGoogleMaps(3000);
+    } catch (waitError) {
+      // Google Maps not available, fall back to static validation
+      console.warn('Google Maps not available, using static validation:', waitError);
+      const staticResult = validateDeliveryAddress(address);
+      // Convert static result to match geocoding format
+      return {
+        isValid: staticResult.isValid,
+        reason: staticResult.isValid ? 'zip_code' : 'outside_delivery_area',
+        zipCode: staticResult.zipCode,
+        zone: staticResult.zone,
+        coordinates: null,
+        formattedAddress: address
+      };
+    }
+
+    // Verify Google Maps is actually available
+    if (!window.google || !window.google.maps || !window.google.maps.Geocoder) {
+      // Fall back to static validation
+      const staticResult = validateDeliveryAddress(address);
+      return {
+        isValid: staticResult.isValid,
+        reason: staticResult.isValid ? 'zip_code' : 'outside_delivery_area',
+        zipCode: staticResult.zipCode,
+        zone: staticResult.zone,
+        coordinates: null,
+        formattedAddress: address
+      };
+    }
+
     const geocoder = new window.google.maps.Geocoder();
     
     return new Promise((resolve, reject) => {
@@ -236,12 +288,32 @@ export const validateAddressWithGeocoding = async (address) => {
             });
           }
         } else {
-          reject(new Error(`Geocoding failed: ${status}`));
+          // Geocoding failed, fall back to static validation
+          console.warn(`Geocoding failed with status: ${status}, falling back to static validation`);
+          const staticResult = validateDeliveryAddress(address);
+          resolve({
+            isValid: staticResult.isValid,
+            reason: staticResult.isValid ? 'zip_code' : 'outside_delivery_area',
+            zipCode: staticResult.zipCode,
+            zone: staticResult.zone,
+            coordinates: null,
+            formattedAddress: address
+          });
         }
       });
     });
   } catch (error) {
-    throw new Error(`Geocoding error: ${error.message}`);
+    // If geocoding fails completely, fall back to static validation
+    console.warn('Geocoding error, falling back to static validation:', error);
+    const staticResult = validateDeliveryAddress(address);
+    return {
+      isValid: staticResult.isValid,
+      reason: staticResult.isValid ? 'zip_code' : 'outside_delivery_area',
+      zipCode: staticResult.zipCode,
+      zone: staticResult.zone,
+      coordinates: null,
+      formattedAddress: address
+    };
   }
 };
 

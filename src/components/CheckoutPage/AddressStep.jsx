@@ -29,6 +29,53 @@ const AddressStep = ({ onNext }) => {
     onNext(address);
   };
 
+  const parseAddress = (addressString, validationResult) => {
+    // Try to extract components from the formatted address
+    const address = addressString || "";
+    
+    // Extract zip code first (most reliable)
+    const zipMatch = address.match(/\b(\d{5}(?:-\d{4})?)\b/);
+    const zip_code = zipMatch ? zipMatch[1] : (validationResult?.zipCode || "");
+    
+    // Extract state (2-letter code before zip)
+    const stateMatch = address.match(/\b([A-Z]{2})\s+\d{5}/);
+    const state = stateMatch ? stateMatch[1] : "";
+    
+    // Split by comma and try to parse
+    const parts = address.split(',').map(p => p.trim()).filter(p => p);
+    
+    let street = "";
+    let city = "";
+    
+    if (parts.length >= 3) {
+      // Format: "Street, City, State ZIP"
+      street = parts[0];
+      city = parts[1];
+    } else if (parts.length === 2) {
+      // Format: "Street, City State ZIP" or "Street, City"
+      street = parts[0];
+      const cityStateZip = parts[1];
+      // Try to extract city (everything before state)
+      const cityMatch = cityStateZip.match(/^(.+?)\s+[A-Z]{2}\s+\d{5}/);
+      city = cityMatch ? cityMatch[1].trim() : cityStateZip.replace(/\s+[A-Z]{2}\s+\d{5}.*$/, '').trim();
+    } else if (parts.length === 1) {
+      // Single part - might be just street or full address
+      street = parts[0].replace(/\s+[A-Z]{2}\s+\d{5}.*$/, '').trim();
+    }
+    
+    // Fallback: use original address if parsing fails
+    if (!street && address) {
+      street = address.replace(/,\s*[^,]+,\s*[A-Z]{2}\s+\d{5}.*$/, '').trim() || address;
+    }
+    
+    return {
+      street: street || formData.address.trim(),
+      city: city || "",
+      state: state || "",
+      zip_code: zip_code || ""
+    };
+  };
+
   const handleAddNewAddress = async (e) => {
     if (e) {
       e.preventDefault();
@@ -52,34 +99,31 @@ const AddressStep = ({ onNext }) => {
       
       if (validation.isValid) {
         const validatedAddress = validation.formattedAddress || formData.address.trim();
-        
-        const addressParts = validatedAddress.split(',').map(part => part.trim());
-        const street = addressParts[0] || formData.address.trim();
-        const city = addressParts[1] || "";
-        const stateZip = addressParts[2] || "";
-        const stateZipMatch = stateZip.match(/^([A-Z]{2})\s*(\d{5}(?:-\d{4})?)?/);
-        const state = stateZipMatch ? stateZipMatch[1] : "";
-        const zip_code = stateZipMatch ? stateZipMatch[2] : (validation.zipCode || "");
+        const parsed = parseAddress(validatedAddress, validation);
 
         const newAddress = {
           id: Date.now().toString(),
           type: formData.type || "New Address",
           address: validatedAddress,
           details: formData.details,
-          street: street,
+          street: parsed.street,
           apartment: formData.details,
-          city: city,
-          state: state,
-          zip_code: zip_code,
+          city: parsed.city,
+          state: parsed.state,
+          zip_code: parsed.zip_code,
           zone: validation.zone
         };
         onNext(newAddress);
       } else {
-        setAddressError(validation.error || "Sorry, we don't deliver to this area yet. Please try a different address.");
+        // Show the specific validation error
+        const errorMessage = validation.error || "Sorry, we don't deliver to this area yet. Please try a different address.";
+        setAddressError(errorMessage);
       }
     } catch (error) {
       console.error("Address validation error:", error);
-      setAddressError("Unable to validate address. Please try again or enter a different address.");
+      // Provide more specific error message
+      const errorMessage = error.message || "Unable to validate address. Please check your connection and try again.";
+      setAddressError(errorMessage);
     } finally {
       setIsValidating(false);
     }
@@ -136,7 +180,15 @@ const AddressStep = ({ onNext }) => {
       {!showAddForm ? (
         <button
           className="add-address-button"
-          onClick={() => setShowAddForm(true)}
+          onClick={() => {
+            setShowAddForm(true);
+            setAddressError("");
+            setFormData({
+              type: "",
+              address: "",
+              details: ""
+            });
+          }}
         >
           <Plus className="plus-icon" />
           Add New Address
@@ -166,11 +218,14 @@ const AddressStep = ({ onNext }) => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="address" className="form-label">Street Address</label>
+              <label htmlFor="address" className="form-label">
+                Full Address *
+                <span className="label-hint">(Street, City, State, ZIP Code)</span>
+              </label>
               <input
                 id="address"
                 className={`form-input ${addressError ? 'error' : ''}`}
-                placeholder="Enter your address"
+                placeholder="Enter complete address: 123 Main St, New York, NY 10001"
                 value={formData.address}
                 onChange={(e) => {
                   setFormData({ ...formData, address: e.target.value });
@@ -178,10 +233,15 @@ const AddressStep = ({ onNext }) => {
                 }}
                 onKeyDown={handleKeyDown}
                 required
+                disabled={isValidating}
               />
-              {addressError && (
+              {addressError ? (
                 <p className="error-text">
                   {addressError}
+                </p>
+              ) : (
+                <p className="form-hint">
+                  Please include street address, city, state, and ZIP code
                 </p>
               )}
             </div>
@@ -197,10 +257,13 @@ const AddressStep = ({ onNext }) => {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
-                    handleAddNewAddress(e);
+                    if (!isValidating) {
+                      handleAddNewAddress(e);
+                    }
                   }
                 }}
                 rows={2}
+                disabled={isValidating}
               />
             </div>
 
@@ -215,7 +278,16 @@ const AddressStep = ({ onNext }) => {
               <button
                 type="button"
                 className="cancel-button"
-                onClick={() => setShowAddForm(false)}
+                onClick={() => {
+                  setShowAddForm(false);
+                  setAddressError("");
+                  setFormData({
+                    type: "",
+                    address: "",
+                    details: ""
+                  });
+                }}
+                disabled={isValidating}
               >
                 Cancel
               </button>
