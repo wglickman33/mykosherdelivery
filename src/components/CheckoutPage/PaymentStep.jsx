@@ -183,7 +183,18 @@ const PaymentStep = ({
             total: 0
           };
         }
-        restaurantGroups[restaurantId].items.push(item);
+        // Ensure all item data including variants and configurations is included
+        const fullItem = {
+          ...item,
+          itemType: item.itemType,
+          selectedVariant: item.selectedVariant,
+          selectedConfigurations: item.selectedConfigurations,
+          basePrice: item.basePrice,
+          configurationPrice: item.configurationPrice,
+          menuItemId: item.menuItemId || item.id,
+          options: item.options
+        };
+        restaurantGroups[restaurantId].items.push(fullItem);
         restaurantGroups[restaurantId].total += item.price * item.quantity;
       });
 
@@ -360,8 +371,19 @@ const PaymentStep = ({
           };
         }
         
-        const itemWithIndex = { ...item, orderIndex: index };
-        restaurantGroups[restaurantId].items.push(itemWithIndex);
+        // Ensure all item data including variants and configurations is included
+        const fullItem = {
+          ...item,
+          orderIndex: index,
+          itemType: item.itemType,
+          selectedVariant: item.selectedVariant,
+          selectedConfigurations: item.selectedConfigurations,
+          basePrice: item.basePrice,
+          configurationPrice: item.configurationPrice,
+          menuItemId: item.menuItemId || item.id,
+          options: item.options
+        };
+        restaurantGroups[restaurantId].items.push(fullItem);
         restaurantGroups[restaurantId].subtotal += item.price * item.quantity;
       });
 

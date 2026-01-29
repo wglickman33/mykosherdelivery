@@ -227,14 +227,22 @@ const CheckoutPage = () => {
   const total = discountedSubtotal + deliveryFee + tip + tax;
 
   const orderItems = cartItems.map(item => ({
-    id: item.cartItemId,
+    id: item.cartItemId || item.id,
     name: item.name,
     quantity: item.quantity,
     price: item.price,
-    image: item.image,
+    image: item.image || item.imageUrl,
     restaurantId: item.restaurantId,
     restaurantName: item.restaurantName,
-    customizations: item.customizations || []
+    customizations: item.customizations || [],
+    // Include item type and variant/configuration data
+    itemType: item.itemType,
+    selectedVariant: item.selectedVariant,
+    selectedConfigurations: item.selectedConfigurations,
+    basePrice: item.basePrice,
+    configurationPrice: item.configurationPrice,
+    menuItemId: item.menuItemId || item.id,
+    options: item.options
   }));
 
 

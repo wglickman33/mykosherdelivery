@@ -308,7 +308,11 @@
         text-overflow: ellipsis;
       }
 
-      .order-items { color: #64748b; font-size: 0.9rem; text-align: right; }
+      .order-items { 
+        color: #64748b; 
+        font-size: 0.9rem; 
+        text-align: right; 
+      }
       .order-total { font-weight: 600; color: #1e293b; font-size: 1rem; text-align: right; }
 
       .order-status {
@@ -817,6 +821,19 @@
             color: #061757;
             margin-bottom: 0.5rem;
             font-size: 1rem;
+            
+            .item-variant-inline {
+              font-weight: 500;
+              color: #64748b;
+              margin-left: 0.25rem;
+            }
+            
+            .item-config-inline {
+              font-weight: 500;
+              color: #64748b;
+              margin-left: 0.25rem;
+              font-size: 0.9375rem;
+            }
           }
 
           .item-variant {

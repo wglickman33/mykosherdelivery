@@ -15,6 +15,50 @@ const getOrderDateValue = (order) => {
 
 const getActiveOrdersCount = (orders) => orders.filter(o => !['delivered', 'cancelled'].includes(o.status)).length;
 
+const formatItemDetails = (item) => {
+  let details = item.name || 'Unknown Item';
+  
+  const variant = item.selectedVariant || item.variant || item.type;
+  if (variant) {
+    const variantName = variant.name || (typeof variant === 'string' ? variant : null);
+    if (variantName) {
+      details += ` - ${variantName}`;
+    }
+  }
+  
+  const configs = item.selectedConfigurations || item.configurations || item.config || item.selections;
+  if (configs) {
+    let configStrings = [];
+    if (Array.isArray(configs) && configs.length > 0) {
+      configStrings = configs.map(config => {
+        if (typeof config === 'object' && config.category && config.option) {
+          return `${config.category}: ${config.option}`;
+        } else if (typeof config === 'string') {
+          return config;
+        } else if (config && config.name) {
+          return config.name;
+        }
+        return String(config);
+      }).filter(Boolean);
+    } else if (typeof configs === 'object' && Object.keys(configs).length > 0) {
+      configStrings = Object.entries(configs).map(([key, value]) => {
+        if (typeof value === 'object' && value.category && value.option) {
+          return `${value.category}: ${value.option}`;
+        } else if (typeof value === 'string') {
+          return `${key}: ${value}`;
+        }
+        return `${key}: ${String(value)}`;
+      }).filter(Boolean);
+    }
+    
+    if (configStrings.length > 0) {
+      details += ` (${configStrings.join(', ')})`;
+    }
+  }
+  
+  return details;
+};
+
 const getMKDWeekWindow = (offsetWeeks = 0) => {
   const now = new Date();
   const todayMid = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -203,9 +247,10 @@ const AdminOrders = () => {
       }
       
       allItems.forEach((item, index) => {
+        const itemDetails = formatItemDetails(item);
         exportData.push({
           'Last Name': index === 0 ? lastName : '',
-          'Qty/Item': `${item.quantity}x ${item.name} (${item.restaurantName})`
+          'Qty/Item': `${item.quantity}x ${itemDetails} (${item.restaurantName})`
         });
       });
     });
@@ -251,12 +296,13 @@ const AdminOrders = () => {
       
       allItems.forEach(item => {
         const restaurantName = item.restaurantName || 'Unknown Restaurant';
-        const itemKey = `${restaurantName}|||${item.name}`;
+        const itemDetails = formatItemDetails(item);
+        const itemKey = `${restaurantName}|||${itemDetails}`;
         
         if (!restaurantTotals[itemKey]) {
           restaurantTotals[itemKey] = {
             restaurant: restaurantName,
-            item: item.name,
+            item: itemDetails,
             quantity: 0
           };
         }
@@ -701,7 +747,20 @@ const AdminOrders = () => {
                         {order.restaurant?.name || (order.restaurants && Array.isArray(order.restaurants) ? order.restaurants.map(r => r.name).join(', ') : (order.restaurants?.name || '—'))}
                       </td>
                       <td className="order-items">
-                        {Array.isArray(order.items) ? order.items.length : (order.items ? Object.keys(order.items).length : 0)} items
+                        {(() => {
+                          let itemCount = 0;
+                          if (order.restaurantGroups) {
+                            Object.entries(order.restaurantGroups).forEach(([, group]) => {
+                              const groupItems = Array.isArray(group.items) ? group.items : Object.values(group.items || {});
+                              itemCount += groupItems.length;
+                            });
+                          } else if (Array.isArray(order.items)) {
+                            itemCount = order.items.length;
+                          } else if (order.items && typeof order.items === 'object') {
+                            itemCount = Object.keys(order.items).length;
+                          }
+                          return `${itemCount} item${itemCount !== 1 ? 's' : ''}`;
+                        })()}
                       </td>
                       <td className="order-total" title={String(formatCurrency(parseFloat(order.total || order.orderTotal || 0)))}>
                         {formatCurrency(parseFloat(order.total || order.orderTotal || 0))}
@@ -892,37 +951,122 @@ const AdminOrders = () => {
                         {groupItems.length > 0 ? groupItems.map((item, index) => (
                           <div key={`${restaurantId}-${index}`} className="order-item">
                             <div className="item-details">
-                            <div className="item-name">{item.name}</div>
+                            <div className="item-name">
+                              {item.name}
+                              {(() => {
+                                // Debug: log item structure to see what we're working with
+                                if (import.meta.env.DEV) {
+                                  console.log('Item data:', {
+                                    name: item.name,
+                                    itemType: item.itemType,
+                                    selectedVariant: item.selectedVariant,
+                                    variant: item.variant,
+                                    type: item.type,
+                                    selectedConfigurations: item.selectedConfigurations,
+                                    configurations: item.configurations,
+                                    config: item.config,
+                                    selections: item.selections,
+                                    options: item.options,
+                                    fullItem: item
+                                  });
+                                }
+                                
+                                // Check for variant (bagel type, etc.) - try multiple possible property names
+                                const variant = item.selectedVariant || item.variant || item.type || 
+                                               (item.options && item.options.selectedVariant) ||
+                                               (item.options && item.options.variant);
+                                if (variant) {
+                                  const variantName = (typeof variant === 'object' && variant.name) 
+                                    ? variant.name 
+                                    : (typeof variant === 'string' ? variant : null);
+                                  if (variantName) {
+                                    return <span className="item-variant-inline"> - {variantName}</span>;
+                                  }
+                                }
+                                
+                                // Check for configurations (size, toppings, etc.)
+                                const configs = item.selectedConfigurations || item.configurations || item.config || item.selections ||
+                                               (item.options && item.options.selectedConfigurations) ||
+                                               (item.options && item.options.configurations);
+                                if (configs) {
+                                  let configStrings = [];
+                                  if (Array.isArray(configs) && configs.length > 0) {
+                                    configStrings = configs.map((config) => {
+                                      if (typeof config === 'object' && config.category && config.option) {
+                                        return `${config.category}: ${config.option}`;
+                                      } else if (typeof config === 'object' && config.name) {
+                                        return config.name;
+                                      } else if (typeof config === 'string') {
+                                        return config;
+                                      }
+                                      return String(config);
+                                    }).filter(Boolean);
+                                  } else if (typeof configs === 'object' && !Array.isArray(configs)) {
+                                    configStrings = Object.entries(configs).map(([key, value]) => {
+                                      if (typeof value === 'object' && value.category && value.option) {
+                                        return `${value.category}: ${value.option}`;
+                                      } else if (typeof value === 'object' && value.name) {
+                                        return `${key}: ${value.name}`;
+                                      } else if (typeof value === 'string') {
+                                        return `${key}: ${value}`;
+                                      } else if (Array.isArray(value)) {
+                                        return `${key}: ${value.join(', ')}`;
+                                      }
+                                      return `${key}: ${String(value)}`;
+                                    }).filter(Boolean);
+                                  }
+                                  
+                                  if (configStrings.length > 0) {
+                                    return <span className="item-config-inline"> ({configStrings.join(', ')})</span>;
+                                  }
+                                }
+                                
+                                return null;
+                              })()}
+                            </div>
                               
                               {}
-                              {item.itemType === 'variety' && item.selectedVariant && (
+                              {item.itemType === 'variety' && item.selectedVariant && item.selectedVariant.priceModifier !== 0 && (
                                 <div className="item-variant">
                                   <span className="variant-label">Variant:</span>
                                   <span className="variant-name">{item.selectedVariant.name}</span>
-                                  {item.selectedVariant.priceModifier !== 0 && (
-                                    <span className="variant-price-modifier">
-                                      ({item.selectedVariant.priceModifier > 0 ? '+' : ''}${item.selectedVariant.priceModifier.toFixed(2)})
-                                    </span>
-                                  )}
+                                  <span className="variant-price-modifier">
+                                    ({item.selectedVariant.priceModifier > 0 ? '+' : ''}${item.selectedVariant.priceModifier.toFixed(2)})
+                                  </span>
                                 </div>
                               )}
                               
                               {}
                               {item.itemType === 'builder' && item.selectedConfigurations && item.selectedConfigurations.length > 0 && (
                                 <div className="item-customizations">
-                                  <div className="customizations-label">Customizations:</div>
+                                  <div className="customizations-label">Size & Options:</div>
                                   <div className="customization-list">
-                                    {item.selectedConfigurations.map((config, idx) => (
-                                      <div key={idx} className="customization-item">
-                                        <span className="customization-category">{config.category}:</span>
-                                        <span className="customization-option">{config.option}</span>
-                                        {config.priceModifier !== 0 && (
-                                          <span className="customization-price-modifier">
-                                            ({config.priceModifier > 0 ? '+' : ''}${config.priceModifier.toFixed(2)})
-                                          </span>
-                                        )}
-                                      </div>
-                                    ))}
+                                    {Array.isArray(item.selectedConfigurations) ? (
+                                      item.selectedConfigurations.map((config, idx) => (
+                                        <div key={idx} className="customization-item">
+                                          <span className="customization-category">{config.category}:</span>
+                                          <span className="customization-option">{config.option}</span>
+                                          {config.priceModifier !== 0 && (
+                                            <span className="customization-price-modifier">
+                                              ({config.priceModifier > 0 ? '+' : ''}${config.priceModifier.toFixed(2)})
+                                            </span>
+                                          )}
+                                        </div>
+                                      ))
+                                    ) : (
+                                      Object.entries(item.selectedConfigurations).map(([key, configs]) => (
+                                        <div key={key} className="customization-category">
+                                          {Array.isArray(configs) && configs.length > 0 && (
+                                            <span>{configs.map(idx => {
+                                              const categoryIndex = parseInt(key.replace('category_', ''));
+                                              const category = item.options?.configurations?.[categoryIndex];
+                                              const option = category?.options?.[idx];
+                                              return option?.name;
+                                            }).filter(Boolean).join(', ')}</span>
+                                          )}
+                                        </div>
+                                      ))
+                                    )}
                                   </div>
                                 </div>
                               )}
@@ -986,37 +1130,105 @@ const AdminOrders = () => {
                     return itemsToDisplay.length > 0 ? itemsToDisplay.map((item, index) => (
                       <div key={index} className="order-item">
                         <div className="item-details">
-                        <div className="item-name">{item.name}</div>
+                        <div className="item-name">
+                          {item.name}
+                          {(() => {
+                            // Check for variant (bagel type, etc.) - try multiple possible property names
+                            const variant = item.selectedVariant || item.variant || item.type || 
+                                           (item.options && item.options.selectedVariant) ||
+                                           (item.options && item.options.variant);
+                            if (variant) {
+                              const variantName = (typeof variant === 'object' && variant.name) 
+                                ? variant.name 
+                                : (typeof variant === 'string' ? variant : null);
+                              if (variantName) {
+                                return <span className="item-variant-inline"> - {variantName}</span>;
+                              }
+                            }
+                            
+                            // Check for configurations (size, toppings, etc.)
+                            const configs = item.selectedConfigurations || item.configurations || item.config || item.selections ||
+                                           (item.options && item.options.selectedConfigurations) ||
+                                           (item.options && item.options.configurations);
+                            if (configs) {
+                              let configStrings = [];
+                              if (Array.isArray(configs) && configs.length > 0) {
+                                configStrings = configs.map((config) => {
+                                  if (typeof config === 'object' && config.category && config.option) {
+                                    return `${config.category}: ${config.option}`;
+                                  } else if (typeof config === 'object' && config.name) {
+                                    return config.name;
+                                  } else if (typeof config === 'string') {
+                                    return config;
+                                  }
+                                  return String(config);
+                                }).filter(Boolean);
+                              } else if (typeof configs === 'object' && !Array.isArray(configs)) {
+                                configStrings = Object.entries(configs).map(([key, value]) => {
+                                  if (typeof value === 'object' && value.category && value.option) {
+                                    return `${value.category}: ${value.option}`;
+                                  } else if (typeof value === 'object' && value.name) {
+                                    return `${key}: ${value.name}`;
+                                  } else if (typeof value === 'string') {
+                                    return `${key}: ${value}`;
+                                  } else if (Array.isArray(value)) {
+                                    return `${key}: ${value.join(', ')}`;
+                                  }
+                                  return `${key}: ${String(value)}`;
+                                }).filter(Boolean);
+                              }
+                              
+                              if (configStrings.length > 0) {
+                                return <span className="item-config-inline"> ({configStrings.join(', ')})</span>;
+                              }
+                            }
+                            
+                            return null;
+                          })()}
+                        </div>
                           
                           {}
-                          {item.itemType === 'variety' && item.selectedVariant && (
+                          {item.itemType === 'variety' && item.selectedVariant && item.selectedVariant.priceModifier !== 0 && (
                             <div className="item-variant">
                               <span className="variant-label">Variant:</span>
                               <span className="variant-name">{item.selectedVariant.name}</span>
-                              {item.selectedVariant.priceModifier !== 0 && (
-                                <span className="variant-price-modifier">
-                                  ({item.selectedVariant.priceModifier > 0 ? '+' : ''}${item.selectedVariant.priceModifier.toFixed(2)})
-                                </span>
-                              )}
+                              <span className="variant-price-modifier">
+                                ({item.selectedVariant.priceModifier > 0 ? '+' : ''}${item.selectedVariant.priceModifier.toFixed(2)})
+                              </span>
                             </div>
                           )}
                           
                           {}
                           {item.itemType === 'builder' && item.selectedConfigurations && item.selectedConfigurations.length > 0 && (
                             <div className="item-customizations">
-                              <div className="customizations-label">Customizations:</div>
+                              <div className="customizations-label">Size & Options:</div>
                               <div className="customization-list">
-                                {item.selectedConfigurations.map((config, idx) => (
-                                  <div key={idx} className="customization-item">
-                                    <span className="customization-category">{config.category}:</span>
-                                    <span className="customization-option">{config.option}</span>
-                                    {config.priceModifier !== 0 && (
-                                      <span className="customization-price-modifier">
-                                        ({config.priceModifier > 0 ? '+' : ''}${config.priceModifier.toFixed(2)})
-                                      </span>
-                                    )}
-                                  </div>
-                                ))}
+                                {Array.isArray(item.selectedConfigurations) ? (
+                                  item.selectedConfigurations.map((config, idx) => (
+                                    <div key={idx} className="customization-item">
+                                      <span className="customization-category">{config.category}:</span>
+                                      <span className="customization-option">{config.option}</span>
+                                      {config.priceModifier !== 0 && (
+                                        <span className="customization-price-modifier">
+                                          ({config.priceModifier > 0 ? '+' : ''}${config.priceModifier.toFixed(2)})
+                                        </span>
+                                      )}
+                                    </div>
+                                  ))
+                                ) : (
+                                  Object.entries(item.selectedConfigurations).map(([key, configs]) => (
+                                    <div key={key} className="customization-category">
+                                      {Array.isArray(configs) && configs.length > 0 && (
+                                        <span>{configs.map(idx => {
+                                          const categoryIndex = parseInt(key.replace('category_', ''));
+                                          const category = item.options?.configurations?.[categoryIndex];
+                                          const option = category?.options?.[idx];
+                                          return option?.name;
+                                        }).filter(Boolean).join(', ')}</span>
+                                      )}
+                                    </div>
+                                  ))
+                                )}
                               </div>
                             </div>
                           )}

@@ -7,6 +7,35 @@ import NotificationToast from '../NotificationToast/NotificationToast';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import MenuItemBrowser from '../MenuItemBrowser/MenuItemBrowser';
 
+// Helper function to format item details for display
+const formatItemDetails = (item) => {
+  let details = item.name || 'Unknown Item';
+  
+  // Add variant (e.g., bagel type) for variety items
+  if (item.itemType === 'variety' && item.selectedVariant) {
+    details += ` - ${item.selectedVariant.name}`;
+  }
+  
+  // Add configurations (e.g., size, toppings) for builder items
+  if (item.itemType === 'builder' && item.selectedConfigurations) {
+    const configs = Array.isArray(item.selectedConfigurations) 
+      ? item.selectedConfigurations 
+      : Object.values(item.selectedConfigurations);
+    
+    if (configs.length > 0) {
+      const configStrings = configs.map(config => {
+        if (typeof config === 'object' && config.category && config.option) {
+          return `${config.category}: ${config.option}`;
+        }
+        return String(config);
+      });
+      details += ` (${configStrings.join(', ')})`;
+    }
+  }
+  
+  return details;
+};
+
 const AdminOrderEdit = () => {
   const { orderId } = useParams();
   const navigate = useNavigate();
@@ -493,42 +522,127 @@ const AdminOrderEdit = () => {
                           />
                         </div>
                         <div className="item-info-controls">
-                          <div className="item-name">{item.name}</div>
+                          <div className="item-name" title={formatItemDetails(item)}>
+                            {item.name}
+                            {(() => {
+                              // Check for variant (bagel type, etc.) - try multiple possible property names
+                              const variant = item.selectedVariant || item.variant || item.type || 
+                                             (item.options && item.options.selectedVariant) ||
+                                             (item.options && item.options.variant);
+                              if (variant) {
+                                const variantName = (typeof variant === 'object' && variant.name) 
+                                  ? variant.name 
+                                  : (typeof variant === 'string' ? variant : null);
+                                if (variantName) {
+                                  return <span className="item-variant-inline"> - {variantName}</span>;
+                                }
+                              }
+                              return null;
+                            })()}
+                            {(() => {
+                              const configs = item.selectedConfigurations || item.configurations || item.config || item.selections ||
+                                             (item.options && item.options.selectedConfigurations) ||
+                                             (item.options && item.options.configurations);
+                              if (configs) {
+                                let configStrings = [];
+                                if (Array.isArray(configs) && configs.length > 0) {
+                                  configStrings = configs.map((config) => {
+                                    if (typeof config === 'object' && config.category && config.option) {
+                                      return `${config.category}: ${config.option}`;
+                                    } else if (typeof config === 'object' && config.name) {
+                                      return config.name;
+                                    } else if (typeof config === 'string') {
+                                      return config;
+                                    }
+                                    return String(config);
+                                  }).filter(Boolean);
+                                } else if (typeof configs === 'object' && !Array.isArray(configs)) {
+                                  configStrings = Object.entries(configs).map(([key, value]) => {
+                                    if (typeof value === 'object' && value.category && value.option) {
+                                      return `${value.category}: ${value.option}`;
+                                    } else if (typeof value === 'object' && value.name) {
+                                      return `${key}: ${value.name}`;
+                                    } else if (typeof value === 'string') {
+                                      return `${key}: ${value}`;
+                                    } else if (Array.isArray(value)) {
+                                      return `${key}: ${value.join(', ')}`;
+                                    }
+                                    return `${key}: ${String(value)}`;
+                                  }).filter(Boolean);
+                                }
+                                
+                                if (configStrings.length > 0) {
+                                  return <span className="item-config-inline"> ({configStrings.join(', ')})</span>;
+                                }
+                              }
+                              return null;
+                            })()}
+                          </div>
                           {}
-                          {item.itemType === 'variety' && item.selectedVariant && (
-                            <div className="item-customization">
-                              <span className="customization-label">Variant:</span>
-                              <span className="customization-value">{item.selectedVariant.name}</span>
-                            </div>
-                          )}
+                          {(() => {
+                            const variant = item.selectedVariant || item.variant || item.type || 
+                                           (item.options && item.options.selectedVariant) ||
+                                           (item.options && item.options.variant);
+                            if (variant) {
+                              const variantName = (typeof variant === 'object' && variant.name) 
+                                ? variant.name 
+                                : (typeof variant === 'string' ? variant : null);
+                              if (variantName) {
+                                return (
+                                  <div className="item-customization">
+                                    <span className="customization-label">Type/Variant:</span>
+                                    <span className="customization-value">{variantName}</span>
+                                  </div>
+                                );
+                              }
+                            }
+                            return null;
+                          })()}
                           {}
-                          {item.itemType === 'builder' && item.selectedConfigurations && (
-                            <div className="item-customization">
-                              <span className="customization-label">Customizations:</span>
-                              <div className="customization-list">
-                                {Array.isArray(item.selectedConfigurations) ? (
-                                  item.selectedConfigurations.map((config, idx) => (
-                                    <div key={idx} className="customization-item">
-                                      <span>{config.category}: {config.option}</span>
-                                    </div>
-                                  ))
-                                ) : (
-                                  Object.entries(item.selectedConfigurations).map(([key, configs]) => (
-                                    <div key={key} className="customization-category">
-                                      {Array.isArray(configs) && configs.length > 0 && (
-                                        <span>{configs.map(idx => {
-                                          const categoryIndex = parseInt(key.replace('category_', ''));
-                                          const category = item.options?.configurations?.[categoryIndex];
-                                          const option = category?.options?.[idx];
-                                          return option?.name;
-                                        }).filter(Boolean).join(', ')}</span>
-                                      )}
-                                    </div>
-                                  ))
-                                )}
-                              </div>
-                            </div>
-                          )}
+                          {(() => {
+                            const configs = item.selectedConfigurations || item.configurations || item.config || item.selections ||
+                                           (item.options && item.options.selectedConfigurations) ||
+                                           (item.options && item.options.configurations);
+                            if (configs && (
+                              (Array.isArray(configs) && configs.length > 0) ||
+                              (typeof configs === 'object' && !Array.isArray(configs) && Object.keys(configs).length > 0)
+                            )) {
+                              return (
+                                <div className="item-customization">
+                                  <span className="customization-label">Size & Options:</span>
+                                  <div className="customization-list">
+                                    {Array.isArray(configs) ? (
+                                      configs.map((config, idx) => (
+                                        <div key={idx} className="customization-item">
+                                          <span className="customization-category">{config.category}:</span>
+                                          <span className="customization-option">{config.option}</span>
+                                          {config.priceModifier !== 0 && (
+                                            <span className="customization-price">
+                                              ({config.priceModifier > 0 ? '+' : ''}${config.priceModifier.toFixed(2)})
+                                            </span>
+                                          )}
+                                        </div>
+                                      ))
+                                    ) : (
+                                      Object.entries(configs).map(([key, configsArray]) => (
+                                        <div key={key} className="customization-category">
+                                          {Array.isArray(configsArray) && configsArray.length > 0 && (
+                                            <span>{configsArray.map(idx => {
+                                              const categoryIndex = parseInt(key.replace('category_', ''));
+                                              const category = item.options?.configurations?.[categoryIndex];
+                                              const option = category?.options?.[idx];
+                                              return option?.name;
+                                            }).filter(Boolean).join(', ')}</span>
+                                          )}
+                                        </div>
+                                      ))
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
                         <div className="item-controls">
                           <button 
                             onClick={() => updateItemQuantity(restaurantId, index, item.quantity - 1)}
