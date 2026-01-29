@@ -358,9 +358,21 @@ const AdminOrders = () => {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${localStorage.getItem('mkd-auth-token')}` }
         });
-        const { token } = await resp.json();
-        const es = new EventSource(`${base}/admin/orders/stream?token=${encodeURIComponent(token)}`);
+        
+        if (!resp.ok) {
+          console.warn('Failed to get SSE token:', resp.status, resp.statusText);
+          return () => {};
+        }
+        
+        const data = await resp.json();
+        if (!data || !data.token) {
+          console.warn('No token in SSE token response');
+          return () => {};
+        }
+        
+        const es = new EventSource(`${base}/admin/orders/stream?token=${encodeURIComponent(data.token)}`);
         const safeParse = (payload) => { try { return JSON.parse(payload); } catch { return null; } };
+        
         es.addEventListener('order.created', (e) => {
           const order = safeParse(e.data);
           if (!order) return;
@@ -371,15 +383,43 @@ const AdminOrders = () => {
           if (!updated) return;
           setAllOrders(prev => prev.map(o => (o.id === updated.id ? { ...o, ...updated } : o)));
         });
-        es.onerror = () => { try { es.close(); } catch (closeErr) { console.warn('SSE close error', closeErr); } };
-        return () => es.close();
+        
+        es.onopen = () => {
+          console.log('✅ Orders SSE connected successfully');
+        };
+        
+        es.onerror = (error) => {
+          console.warn('❌ SSE connection error', error);
+          try {
+            es.close();
+          } catch (closeErr) {
+            console.warn('SSE close error', closeErr);
+          }
+        };
+        
+        return () => {
+          try {
+            es.close();
+          } catch (closeErr) {
+            console.warn('SSE cleanup close error', closeErr);
+          }
+        };
       } catch (streamErr) {
         console.warn('SSE stream unavailable, continuing without live updates', streamErr);
         return () => {};
       }
     };
-    let cleanup; startStream().then(fn => { cleanup = fn; });
-    return () => { if (cleanup) cleanup(); };
+    let cleanup;
+    startStream().then(fn => { cleanup = fn; });
+    return () => {
+      if (cleanup) {
+        try {
+          cleanup();
+        } catch (err) {
+          console.warn('SSE cleanup error', err);
+        }
+      }
+    };
   }, []);
 
   const handleStatusUpdate = async (orderId, newStatus) => {

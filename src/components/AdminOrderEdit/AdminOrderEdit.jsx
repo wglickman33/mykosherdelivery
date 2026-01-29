@@ -31,35 +31,6 @@ const AdminOrderEdit = () => {
   const [processingRefund, setProcessingRefund] = useState(false);
   const { notification, showNotification, clearNotification } = useNotification();
 
-  useEffect(() => {
-    fetchOrderData();
-    fetchRestaurants();
-  }, [fetchOrderData, fetchRestaurants]);
-
-  useEffect(() => {
-    if (order?.id) {
-      fetchRefunds();
-    }
-  }, [order?.id, fetchRefunds]);
-
-  useEffect(() => {
-    return () => {
-      if (autoSaveTimeout) {
-        clearTimeout(autoSaveTimeout);
-      }
-    };
-  }, [autoSaveTimeout]);
-
-  useEffect(() => {
-    if (order && refundType === 'full') {
-      const orderTotal = parseFloat(originalOrder?.total || order.total || 0);
-      const totalRefunded = refunds
-        .filter(r => r.status === 'processed')
-        .reduce((sum, r) => sum + parseFloat(r.amount || 0), 0);
-      setRefundAmount(orderTotal - totalRefunded);
-    }
-  }, [refundType, order, originalOrder, refunds]);
-
   const fetchOrderData = useCallback(async () => {
     try {
       setLoading(true);
@@ -90,6 +61,46 @@ const AdminOrderEdit = () => {
       console.error('Error fetching refunds:', err);
     }
   }, [orderId]);
+
+  const fetchRestaurants = useCallback(async () => {
+    try {
+      const result = await fetchAllRestaurants();
+      if (result.success) {
+        setRestaurants(result.data || []);
+      }
+    } catch (err) {
+      console.error('Error fetching restaurants:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchOrderData();
+    fetchRestaurants();
+  }, [fetchOrderData, fetchRestaurants]);
+
+  useEffect(() => {
+    if (order?.id) {
+      fetchRefunds();
+    }
+  }, [order?.id, fetchRefunds]);
+
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimeout) {
+        clearTimeout(autoSaveTimeout);
+      }
+    };
+  }, [autoSaveTimeout]);
+
+  useEffect(() => {
+    if (order && refundType === 'full') {
+      const orderTotal = parseFloat(originalOrder?.total || order.total || 0);
+      const totalRefunded = refunds
+        .filter(r => r.status === 'processed')
+        .reduce((sum, r) => sum + parseFloat(r.amount || 0), 0);
+      setRefundAmount(orderTotal - totalRefunded);
+    }
+  }, [refundType, order, originalOrder, refunds]);
 
   const handleProcessRefund = async () => {
     if (!refundReason.trim()) {
@@ -138,17 +149,6 @@ const AdminOrderEdit = () => {
       setProcessingRefund(false);
     }
   };
-
-  const fetchRestaurants = useCallback(async () => {
-    try {
-      const result = await fetchAllRestaurants();
-      if (result.success) {
-        setRestaurants(result.data || []);
-      }
-    } catch (error) {
-      console.error('Error fetching restaurants:', error);
-    }
-  }, []);
 
   const calculatePriceDifference = () => {
     if (!editedOrder || !originalOrder) return 0;
