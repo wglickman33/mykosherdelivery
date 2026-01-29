@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useAuth } from '../../hooks/useAuth';
-import { validateDeliveryAddress } from '../../data/deliveryZones';
+import { validateDeliveryAddress } from '../../services/addressValidationService';
 import DeleteConfirmModal from '../DeleteConfirmModal/DeleteConfirmModal';
 import './AddressModal.scss';
 
@@ -132,7 +132,7 @@ const AddressModal = ({ isOpen, onClose, mode = 'add', addressToEdit = null }) =
     return error === '';
   };
 
-  const validateForm = () => {
+  const validateForm = async () => {
     let isValid = true;
     
     const requiredFields = ['street', 'city', 'state', 'zipCode'];
@@ -144,12 +144,21 @@ const AddressModal = ({ isOpen, onClose, mode = 'add', addressToEdit = null }) =
     
     if (formData.street && formData.city && formData.state && formData.zipCode) {
       const fullAddress = `${formData.street}, ${formData.city}, ${formData.state} ${formData.zipCode}`;
-      const deliveryValidation = validateDeliveryAddress(fullAddress);
-      
-      if (!deliveryValidation.isValid) {
+      try {
+        const deliveryValidation = await validateDeliveryAddress(fullAddress);
+        
+        if (!deliveryValidation.isValid) {
+          setValidationErrors(prev => ({
+            ...prev,
+            zipCode: deliveryValidation.error || 'Sorry, we don\'t deliver to this area yet. Please try a different address.'
+          }));
+          isValid = false;
+        }
+      } catch (error) {
+        console.error('Address validation error:', error);
         setValidationErrors(prev => ({
           ...prev,
-          zipCode: deliveryValidation.error
+          zipCode: 'Unable to validate address. Please try again.'
         }));
         isValid = false;
       }
@@ -166,14 +175,21 @@ const AddressModal = ({ isOpen, onClose, mode = 'add', addressToEdit = null }) =
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    e.stopPropagation();
     
-    if (!validateForm()) {
-      setError('Please fix the errors below');
+    if (loading) {
       return;
     }
     
     setLoading(true);
     setError('');
+    
+    const isValid = await validateForm();
+    if (!isValid) {
+      setError('Please fix the errors below');
+      setLoading(false);
+      return;
+    }
 
     try {
       if (!user) {
@@ -282,6 +298,14 @@ const AddressModal = ({ isOpen, onClose, mode = 'add', addressToEdit = null }) =
               value={formData.street}
               onChange={handleInputChange}
               onBlur={handleBlur}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  if (!loading) {
+                    document.getElementById('city')?.focus();
+                  }
+                }
+              }}
               placeholder="123 Main Street"
               className={touched.street && validationErrors.street ? 'error' : ''}
               required
@@ -354,6 +378,14 @@ const AddressModal = ({ isOpen, onClose, mode = 'add', addressToEdit = null }) =
                 value={formData.zipCode}
                 onChange={handleInputChange}
                 onBlur={handleBlur}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (!loading) {
+                      handleSubmit(e);
+                    }
+                  }
+                }}
                 placeholder="10001"
                 pattern="[0-9]{5}(-[0-9]{4})?"
                 className={touched.zipCode && validationErrors.zipCode ? 'error' : ''}
@@ -415,6 +447,12 @@ const AddressModal = ({ isOpen, onClose, mode = 'add', addressToEdit = null }) =
                 type="submit"
                 className="save-button"
                 disabled={loading || !isFormValid || (mode === 'add' && user && !canAddMore)}
+                onClick={(e) => {
+                  if (loading) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }
+                }}
               >
                 {loading ? 'Saving...' : !user ? 'Update Address' : mode === 'edit' ? 'Update Address' : 'Add Address'}
               </button>

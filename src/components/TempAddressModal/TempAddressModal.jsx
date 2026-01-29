@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useAuth } from '../../hooks/useAuth';
 import { isValidZipCode, extractZipCode } from '../../data/deliveryZones';
+import { validateDeliveryAddress } from '../../services/addressValidationService';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import './TempAddressModal.scss';
 
@@ -11,6 +12,7 @@ const TempAddressModal = ({ isOpen, onClose }) => {
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
   const [addressError, setAddressError] = useState('');
   const inputRef = useRef(null);
   const suggestionsRef = useRef(null);
@@ -152,15 +154,36 @@ const TempAddressModal = ({ isOpen, onClose }) => {
     setShowSuggestions(false);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (address.trim()) {
-      setAddressError("");
-      
-      setTempAddress(address.trim());
-      onClose();
-    } else {
+    e.stopPropagation();
+    
+    if (isValidating) {
+      return;
+    }
+    
+    if (!address.trim()) {
       setAddressError("Please enter a delivery address");
+      return;
+    }
+
+    setIsValidating(true);
+    setAddressError("");
+
+    try {
+      const validation = await validateDeliveryAddress(address.trim());
+      
+      if (validation.isValid) {
+        setTempAddress(validation.formattedAddress || address.trim());
+        onClose();
+      } else {
+        setAddressError(validation.error || "Sorry, we don't deliver to this area yet. Please try a different address.");
+      }
+    } catch (error) {
+      console.error("Address validation error:", error);
+      setAddressError("Unable to validate address. Please try again or enter a different address.");
+    } finally {
+      setIsValidating(false);
     }
   };
 
@@ -205,6 +228,14 @@ const TempAddressModal = ({ isOpen, onClose }) => {
                 id="address"
                 value={address}
                 onChange={handleInputChange}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (!isValidating && address.trim()) {
+                      handleSubmit(e);
+                    }
+                  }
+                }}
                 placeholder="Enter your delivery address"
                 className="address-input"
                 autoComplete="off"
@@ -260,9 +291,15 @@ const TempAddressModal = ({ isOpen, onClose }) => {
             <button
               type="submit"
               className="save-button"
-              disabled={!address.trim()}
+              disabled={!address.trim() || isValidating}
+              onClick={(e) => {
+                if (isValidating) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }
+              }}
             >
-              Update Address
+              {isValidating ? 'Validating...' : 'Update Address'}
             </button>
           </div>
         </form>

@@ -208,12 +208,23 @@
   
   .form-row {
     display: grid;
-    grid-template-columns: 1fr 120px 120px;
+    grid-template-columns: 2fr 1.2fr 1fr;
     gap: 12px;
+    align-items: start;
+    margin-bottom: 16px;
     
-    @media (max-width: 480px) {
+    @media (max-width: 640px) {
       grid-template-columns: 1fr;
       gap: 16px;
+      margin-bottom: 0;
+      
+      .form-group {
+        margin-bottom: 16px;
+      }
+    }
+    
+    .form-group {
+      margin-bottom: 0;
     }
   }
   

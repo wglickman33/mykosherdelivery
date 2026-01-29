@@ -7,6 +7,29 @@ if (!process.env.DATABASE_URL) {
   process.exit(1);
 }
 
+const shouldUseSSL = () => {
+  const dbUrl = process.env.DATABASE_URL || '';
+  const nodeEnv = process.env.NODE_ENV || 'development';
+  
+  if (dbUrl.includes('sslmode=require') || dbUrl.includes('sslmode=prefer')) {
+    return true;
+  }
+  
+  if (dbUrl.includes('sslmode=disable')) {
+    return false;
+  }
+  
+  if (nodeEnv === 'production') {
+    const isLocal = dbUrl.includes('localhost') || 
+                    dbUrl.includes('127.0.0.1') || 
+                    dbUrl.match(/@(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.)/);
+    
+    return !isLocal;
+  }
+  
+  return false;
+};
+
 const commonConfig = {
   dialect: 'postgres',
   define: {
@@ -79,10 +102,14 @@ module.exports = {
     ...commonConfig,
     url: process.env.DATABASE_URL,
     dialectOptions: {
-      ssl: {
-        require: true,
-        rejectUnauthorized: false
-      },
+      ...(shouldUseSSL() ? {
+        ssl: {
+          require: true,
+          rejectUnauthorized: false
+        }
+      } : {
+        ssl: false
+      }),
       connectTimeout: 60000,
       requestTimeout: 30000,
       keepAlive: true,

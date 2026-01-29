@@ -280,6 +280,11 @@ const Landing = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    e.stopPropagation();
+    
+    if (isLoading) {
+      return;
+    }
     
     if (!address.trim()) {
       setAddressError("Please enter a delivery address");

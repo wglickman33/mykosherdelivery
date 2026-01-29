@@ -16,8 +16,8 @@ const AddressConfirmationModal = ({ isOpen, onClose, address, onConfirm }) => {
   };
 
   return (
-    <div className="address-modal-overlay" onClick={onClose}>
-      <div className="address-modal" onClick={(e) => e.stopPropagation()}>
+    <div className="address-confirmation-modal-overlay" onClick={onClose}>
+      <div className="address-confirmation-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h3>Confirm Delivery Address</h3>
           <button className="close-button" onClick={onClose}>×</button>

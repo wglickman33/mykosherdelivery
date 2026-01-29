@@ -1,4 +1,4 @@
-.address-modal-overlay {
+.address-confirmation-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -24,7 +24,7 @@
   }
 }
 
-.address-modal {
+.address-confirmation-modal {
   background: white;
   border-radius: 0.75rem;
   max-width: 500px;
@@ -172,7 +172,7 @@
 }
 
 @media (max-width: 768px) {
-  .address-modal {
+  .address-confirmation-modal {
     margin: 1rem;
     
     .modal-header,
@@ -188,7 +188,7 @@
 }
 
 @media (max-width: 420px) {
-  .address-modal {
+  .address-confirmation-modal {
     .modal-header {
       padding: 1rem 3rem 1rem 1rem;
       
