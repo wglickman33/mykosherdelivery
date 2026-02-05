@@ -273,6 +273,7 @@
         col.col-items { width: 90px; }
         col.col-total { width: 110px; }
         col.col-status { width: 160px; }
+        col.col-address { width: 200px; }
         col.col-date { width: 160px; }
         col.col-actions { width: 120px; }
       }
@@ -329,6 +330,19 @@
           text-transform: capitalize;
 
           &:focus { outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+        }
+      }
+
+      .order-address {
+        color: #64748b;
+        font-size: 0.85rem;
+        line-height: 1.4;
+        
+        .address-display {
+          white-space: pre-line;
+          max-width: 200px;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
       }
 

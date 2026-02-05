@@ -59,6 +59,45 @@ const formatItemDetails = (item) => {
   return details;
 };
 
+// Helper function to format delivery address for display
+const formatAddress = (deliveryAddress) => {
+  if (!deliveryAddress) return '—';
+  
+  const parts = [];
+  
+  // Handle different address formats
+  const street = deliveryAddress.street || deliveryAddress.address || deliveryAddress.line1 || '';
+  const apartment = deliveryAddress.apartment || deliveryAddress.details || deliveryAddress.unit || '';
+  const city = deliveryAddress.city || '';
+  const state = deliveryAddress.state || '';
+  const zip = deliveryAddress.zip_code || deliveryAddress.zipCode || deliveryAddress.postal_code || '';
+  
+  if (street) {
+    parts.push(street);
+    if (apartment) {
+      parts[parts.length - 1] += `, ${apartment}`;
+    }
+  }
+  
+  const cityStateZip = [city, state, zip].filter(Boolean).join(', ');
+  if (cityStateZip) {
+    parts.push(cityStateZip);
+  }
+  
+  // If no structured data, try to use formatted address or full address string
+  if (parts.length === 0) {
+    if (deliveryAddress.formattedAddress) {
+      return deliveryAddress.formattedAddress;
+    }
+    if (typeof deliveryAddress === 'string') {
+      return deliveryAddress;
+    }
+    return '—';
+  }
+  
+  return parts.join('\n');
+};
+
 const getMKDWeekWindow = (offsetWeeks = 0) => {
   const now = new Date();
   const todayMid = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -246,11 +285,13 @@ const AdminOrders = () => {
         });
       }
       
+      const formattedAddress = formatAddress(order.deliveryAddress || order.delivery_address);
       allItems.forEach((item, index) => {
         const itemDetails = formatItemDetails(item);
         exportData.push({
           'Last Name': index === 0 ? lastName : '',
-          'Qty/Item': `${item.quantity}x ${itemDetails} (${item.restaurantName})`
+          'Qty/Item': `${item.quantity}x ${itemDetails} (${item.restaurantName})`,
+          'Address': index === 0 ? formattedAddress : ''
         });
       });
     });
@@ -707,6 +748,7 @@ const AdminOrders = () => {
                   <col className="col-items" />
                   <col className="col-total" />
                   <col className="col-status" />
+                  <col className="col-address" />
                   <col className="col-date" />
                   <col className="col-actions" />
                 </colgroup>
@@ -718,6 +760,7 @@ const AdminOrders = () => {
                     <th>Items</th>
                     <th>Total</th>
                     <th>Status</th>
+                    <th>Address</th>
                     <th>Date</th>
                     <th>Actions</th>
                   </tr>
@@ -779,6 +822,11 @@ const AdminOrders = () => {
                           <option value="delivered">Delivered</option>
                           <option value="cancelled">Cancelled</option>
                         </select>
+                      </td>
+                      <td className="order-address" title={formatAddress(order.deliveryAddress || order.delivery_address)}>
+                        <div className="address-display">
+                          {formatAddress(order.deliveryAddress || order.delivery_address)}
+                        </div>
                       </td>
                       <td className="order-date">
                         {(() => {
