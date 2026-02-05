@@ -59,13 +59,11 @@ const formatItemDetails = (item) => {
   return details;
 };
 
-// Helper function to format delivery address for display
 const formatAddress = (deliveryAddress) => {
   if (!deliveryAddress) return '—';
   
   const parts = [];
   
-  // Handle different address formats
   const street = deliveryAddress.street || deliveryAddress.address || deliveryAddress.line1 || '';
   const apartment = deliveryAddress.apartment || deliveryAddress.details || deliveryAddress.unit || '';
   const city = deliveryAddress.city || '';
@@ -84,7 +82,6 @@ const formatAddress = (deliveryAddress) => {
     parts.push(cityStateZip);
   }
   
-  // If no structured data, try to use formatted address or full address string
   if (parts.length === 0) {
     if (deliveryAddress.formattedAddress) {
       return deliveryAddress.formattedAddress;
@@ -835,32 +832,34 @@ const AdminOrders = () => {
                         })()}
                       </td>
                       <td className="order-actions">
-                        <button
-                          className="view-btn"
-                          onClick={() => {
-                            setSelectedOrder(order);
-                            setShowOrderModal(true);
-                          }}
-                        >
-                          View
-                        </button>
-                        <button
-                          className="edit-btn"
-                          onClick={() => {
-                            navigate(`/admin/orders/${order.id}`);
-                          }}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          className="delete-btn"
-                          onClick={() => {
-                            setSelectedOrder(order);
-                            setShowDeleteConfirm(true);
-                          }}
-                        >
-                          Delete
-                        </button>
+                        <div className="order-actions-container">
+                          <button
+                            className="view-btn"
+                            onClick={() => {
+                              setSelectedOrder(order);
+                              setShowOrderModal(true);
+                            }}
+                          >
+                            View
+                          </button>
+                          <button
+                            className="edit-btn"
+                            onClick={() => {
+                              navigate(`/admin/orders/${order.id}`);
+                            }}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="delete-btn"
+                            onClick={() => {
+                              setSelectedOrder(order);
+                              setShowDeleteConfirm(true);
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -1002,7 +1001,6 @@ const AdminOrders = () => {
                             <div className="item-name">
                               {item.name}
                               {(() => {
-                                // Debug: log item structure to see what we're working with
                                 if (import.meta.env.DEV) {
                                   console.log('Item data:', {
                                     name: item.name,
@@ -1019,7 +1017,6 @@ const AdminOrders = () => {
                                   });
                                 }
                                 
-                                // Check for variant (bagel type, etc.) - try multiple possible property names
                                 const variant = item.selectedVariant || item.variant || item.type || 
                                                (item.options && item.options.selectedVariant) ||
                                                (item.options && item.options.variant);
@@ -1032,7 +1029,6 @@ const AdminOrders = () => {
                                   }
                                 }
                                 
-                                // Check for configurations (size, toppings, etc.)
                                 const configs = item.selectedConfigurations || item.configurations || item.config || item.selections ||
                                                (item.options && item.options.selectedConfigurations) ||
                                                (item.options && item.options.configurations);
@@ -1181,7 +1177,6 @@ const AdminOrders = () => {
                         <div className="item-name">
                           {item.name}
                           {(() => {
-                            // Check for variant (bagel type, etc.) - try multiple possible property names
                             const variant = item.selectedVariant || item.variant || item.type || 
                                            (item.options && item.options.selectedVariant) ||
                                            (item.options && item.options.variant);
@@ -1194,7 +1189,6 @@ const AdminOrders = () => {
                               }
                             }
                             
-                            // Check for configurations (size, toppings, etc.)
                             const configs = item.selectedConfigurations || item.configurations || item.config || item.selections ||
                                            (item.options && item.options.selectedConfigurations) ||
                                            (item.options && item.options.configurations);

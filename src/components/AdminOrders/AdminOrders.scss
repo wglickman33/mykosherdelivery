@@ -261,6 +261,10 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            
+            &.order-actions {
+              white-space: normal;
+            }
           }
         }
       }
@@ -348,9 +352,18 @@
 
       .order-date { color: #64748b; font-size: 0.85rem; }
 
-      .order-actions {
-        display: flex;
+      td.order-actions {
+        vertical-align: middle;
+        padding: 12px 16px;
+        display: table-cell;
+      }
+
+      .order-actions-container {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         gap: 8px;
+        vertical-align: middle;
 
         button {
           padding: 6px 12px;
@@ -360,6 +373,7 @@
           cursor: pointer;
           transition: all 0.2s ease;
           border: none;
+          flex-shrink: 0;
 
           &.view-btn {
             background: #e0e7ff;
@@ -370,23 +384,23 @@
             }
           }
 
-        &.edit-btn {
-          background: #fef3c7;
-          color: #92400e;
+          &.edit-btn {
+            background: #fef3c7;
+            color: #92400e;
 
-          &:hover {
-            background: #fde68a;
+            &:hover {
+              background: #fde68a;
+            }
           }
-        }
 
-        &.delete-btn {
-          background: #fee2e2;
-          color: #991b1b;
+          &.delete-btn {
+            background: #fee2e2;
+            color: #991b1b;
 
-          &:hover {
-            background: #fecaca;
+            &:hover {
+              background: #fecaca;
+            }
           }
-        }
         }
       }
     }

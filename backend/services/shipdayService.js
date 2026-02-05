@@ -421,9 +421,66 @@ const getShipdayOrder = async (shipdayOrderId) => {
   }
 };
 
+const updateShipdayOrder = async (shipdayOrderId, order) => {
+  if (!SHIPDAY_API_KEY || !shipdayOrderId) {
+    return { success: false, error: 'Missing Shipday API key or order ID' };
+  }
+  
+  if (!order) {
+    return { success: false, error: 'Order data is required' };
+  }
+  
+  try {
+    const shipdayOrder = mapOrderToShipdayFormat(order);
+    
+    const response = await retryWithBackoff(async () => {
+      const apiResponse = await axios.put(`${SHIPDAY_BASE_URL}/orders/${shipdayOrderId}`, shipdayOrder, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${SHIPDAY_API_KEY}`,
+          'Accept': 'application/json'
+        }
+      });
+      
+      return apiResponse;
+    });
+    
+    const responseData = response.data;
+    
+    logger.info('Shipday order updated successfully', {
+      shipdayOrderId,
+      orderId: order.id || order.orderId,
+      orderNumber: order.orderNumber
+    });
+    
+    return {
+      success: true,
+      data: responseData
+    };
+  } catch (error) {
+    logger.error('Failed to update Shipday order:', error, {
+      shipdayOrderId,
+      orderId: order.id || order.orderId,
+      orderNumber: order.orderNumber,
+      errorMessage: error.message,
+      statusCode: error.response?.status,
+      responseData: error.response?.data
+    });
+    
+    const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Unknown error';
+    return {
+      success: false,
+      error: errorMessage,
+      details: error.response?.data || error.message,
+      statusCode: error.response?.status
+    };
+  }
+};
+
 module.exports = {
   sendOrderToShipday,
   updateShipdayOrderStatus,
+  updateShipdayOrder,
   cancelShipdayOrder,
   getShipdayOrder,
   mapOrderToShipdayFormat

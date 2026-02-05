@@ -65,6 +65,20 @@ router.post('/guest', [
       tax = 0
     } = req.body;
 
+    const { validateDeliveryAddress } = require('../services/deliveryZoneService');
+    const addressValidation = await validateDeliveryAddress(deliveryAddress);
+    
+    if (!addressValidation.isValid) {
+      logger.warn('Guest order rejected due to invalid delivery address', {
+        zipCode: deliveryAddress.zip_code || deliveryAddress.zipCode || deliveryAddress.postal_code,
+        error: addressValidation.error
+      });
+      return res.status(400).json({
+        error: 'Invalid delivery address',
+        message: addressValidation.error || 'We don\'t deliver to this address'
+      });
+    }
+
     const orders = [];
 
     for (const [restaurantId, group] of Object.entries(restaurantGroups)) {
@@ -142,6 +156,21 @@ router.post('/', authenticateToken, [
       discountAmount = 0,
       appliedPromo = null
     } = req.body;
+
+    const { validateDeliveryAddress } = require('../services/deliveryZoneService');
+    const addressValidation = await validateDeliveryAddress(deliveryAddress);
+    
+    if (!addressValidation.isValid) {
+      logger.warn('Order rejected due to invalid delivery address', {
+        userId: req.userId,
+        zipCode: deliveryAddress.zip_code || deliveryAddress.zipCode || deliveryAddress.postal_code,
+        error: addressValidation.error
+      });
+      return res.status(400).json({
+        error: 'Invalid delivery address',
+        message: addressValidation.error || 'We don\'t deliver to this address'
+      });
+    }
 
     const orderNumber = Math.floor(1000000000 + Math.random() * 9000000000).toString();
     

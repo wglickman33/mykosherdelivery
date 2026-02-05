@@ -2320,7 +2320,16 @@ router.put('/orders/:orderId', requireAdmin, async (req, res) => {
     const { orderId } = req.params;
     const updateData = req.body;
 
-    const order = await Order.findByPk(orderId);
+    const order = await Order.findByPk(orderId, {
+      include: [
+        {
+          model: Profile,
+          as: 'user',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'phone'],
+          required: false
+        }
+      ]
+    });
     if (!order) {
       return res.status(404).json({
         error: 'Order not found',
@@ -2329,12 +2338,55 @@ router.put('/orders/:orderId', requireAdmin, async (req, res) => {
     }
 
     const originalTotal = order.total;
+    const originalDeliveryAddress = order.deliveryAddress;
+    const addressChanged = updateData.deliveryAddress && 
+      JSON.stringify(updateData.deliveryAddress) !== JSON.stringify(originalDeliveryAddress);
+    
     delete updateData.total;
 
     await order.update(updateData);
     
+    await order.reload({
+      include: [
+        {
+          model: Profile,
+          as: 'user',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'phone'],
+          required: false
+        }
+      ]
+    });
+    
     if (order.total !== originalTotal) {
       await order.update({ total: originalTotal });
+    }
+
+    if (addressChanged && order.shipdayOrderId) {
+      try {
+        const { updateShipdayOrder } = require('../services/shipdayService');
+        const shipdayResult = await updateShipdayOrder(order.shipdayOrderId, order);
+        
+        if (shipdayResult.success) {
+          logger.info('Order address synced to Shipday', {
+            orderId: order.id,
+            orderNumber: order.orderNumber,
+            shipdayOrderId: order.shipdayOrderId
+          });
+        } else {
+          logger.warn('Failed to sync order address to Shipday (non-blocking):', {
+            orderId: order.id,
+            orderNumber: order.orderNumber,
+            shipdayOrderId: order.shipdayOrderId,
+            error: shipdayResult.error
+          });
+        }
+      } catch (shipdayError) {
+        logger.error('Error syncing order address to Shipday (non-blocking):', shipdayError, {
+          orderId: order.id,
+          orderNumber: order.orderNumber,
+          shipdayOrderId: order.shipdayOrderId
+        });
+      }
     }
 
     try {
@@ -3031,7 +3083,7 @@ router.get('/support/tickets', requireAdmin, async (req, res) => {
         model: Profile, 
         as: 'customer', 
         attributes: ['firstName', 'lastName', 'email'],
-        required: false // LEFT JOIN to include tickets without users
+        required: false
       }],
       order: [['createdAt', 'DESC']],
       limit: parseInt(limit),
@@ -3778,7 +3830,6 @@ router.get('/mailchimp/account', requireAdmin, async (req, res) => {
   }
 });
 
-// Segments
 router.get('/mailchimp/lists/:listId/segments', requireAdmin, async (req, res) => {
   try {
     const { listId } = req.params;
@@ -3854,7 +3905,6 @@ router.post('/mailchimp/lists/:listId/segments/:segmentId/members', requireAdmin
   }
 });
 
-// Tags
 router.get('/mailchimp/lists/:listId/members/:email/tags', requireAdmin, [
   param('email').isEmail().normalizeEmail().withMessage('Valid email is required')
 ], async (req, res) => {
@@ -3941,7 +3991,6 @@ router.get('/mailchimp/lists/:listId/tags', requireAdmin, async (req, res) => {
   }
 });
 
-// Customer Sync
 const customerSyncService = require('../services/customerSyncService');
 
 router.post('/mailchimp/sync/customer/:userId', requireAdmin, [
@@ -3998,7 +4047,6 @@ router.post('/mailchimp/sync/batch', requireAdmin, [
   }
 });
 
-// Automations
 router.get('/mailchimp/automations', requireAdmin, async (req, res) => {
   try {
     const { count, offset } = req.query;
@@ -4054,7 +4102,6 @@ router.get('/mailchimp/automations/:id/emails', requireAdmin, async (req, res) =
   }
 });
 
-// Enhanced Analytics
 router.get('/mailchimp/campaigns/:id/report', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;

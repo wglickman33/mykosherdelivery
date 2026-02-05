@@ -6,17 +6,15 @@ import { useNotification } from '../../hooks/useNotification';
 import NotificationToast from '../NotificationToast/NotificationToast';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import MenuItemBrowser from '../MenuItemBrowser/MenuItemBrowser';
+import { validateDeliveryAddress } from '../../services/addressValidationService';
 
-// Helper function to format item details for display
 const formatItemDetails = (item) => {
   let details = item.name || 'Unknown Item';
   
-  // Add variant (e.g., bagel type) for variety items
   if (item.itemType === 'variety' && item.selectedVariant) {
     details += ` - ${item.selectedVariant.name}`;
   }
   
-  // Add configurations (e.g., size, toppings) for builder items
   if (item.itemType === 'builder' && item.selectedConfigurations) {
     const configs = Array.isArray(item.selectedConfigurations) 
       ? item.selectedConfigurations 
@@ -58,6 +56,16 @@ const AdminOrderEdit = () => {
   const [refundAmount, setRefundAmount] = useState(0);
   const [refundReason, setRefundReason] = useState('');
   const [processingRefund, setProcessingRefund] = useState(false);
+  const [isEditingAddress, setIsEditingAddress] = useState(false);
+  const [addressFormData, setAddressFormData] = useState({
+    street: '',
+    city: '',
+    state: '',
+    zip_code: '',
+    apartment: ''
+  });
+  const [addressError, setAddressError] = useState('');
+  const [isValidatingAddress, setIsValidatingAddress] = useState(false);
   const { notification, showNotification, clearNotification } = useNotification();
 
   const fetchOrderData = useCallback(async () => {
@@ -112,6 +120,19 @@ const AdminOrderEdit = () => {
       fetchRefunds();
     }
   }, [order?.id, fetchRefunds]);
+
+  useEffect(() => {
+    if (order?.deliveryAddress && !isEditingAddress) {
+      const addr = order.deliveryAddress;
+      setAddressFormData({
+        street: addr.street || addr.address || addr.line1 || '',
+        city: addr.city || '',
+        state: addr.state || '',
+        zip_code: addr.zip_code || addr.zipCode || addr.postal_code || '',
+        apartment: addr.apartment || addr.details || addr.unit || addr.addressLine2 || ''
+      });
+    }
+  }, [order?.deliveryAddress, isEditingAddress]);
 
   useEffect(() => {
     return () => {
@@ -367,6 +388,132 @@ const AdminOrderEdit = () => {
 
   const formatCurrency = (amount) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 
+  const formatAddress = (deliveryAddress) => {
+    if (!deliveryAddress) return '—';
+    
+    const parts = [];
+    const street = deliveryAddress.street || deliveryAddress.address || deliveryAddress.line1 || '';
+    const apartment = deliveryAddress.apartment || deliveryAddress.details || deliveryAddress.unit || '';
+    const city = deliveryAddress.city || '';
+    const state = deliveryAddress.state || '';
+    const zip = deliveryAddress.zip_code || deliveryAddress.zipCode || deliveryAddress.postal_code || '';
+    
+    if (street) {
+      parts.push(street);
+      if (apartment) {
+        parts[parts.length - 1] += `, ${apartment}`;
+      }
+    }
+    
+    const cityStateZip = [city, state, zip].filter(Boolean).join(', ');
+    if (cityStateZip) {
+      parts.push(cityStateZip);
+    }
+    
+    if (parts.length === 0) {
+      if (deliveryAddress.formattedAddress) {
+        return deliveryAddress.formattedAddress;
+      }
+      if (typeof deliveryAddress === 'string') {
+        return deliveryAddress;
+      }
+      return '—';
+    }
+    
+    return parts.join(', ');
+  };
+
+  const handleStartEditAddress = () => {
+    setIsEditingAddress(true);
+    setAddressError('');
+  };
+
+  const handleCancelEditAddress = () => {
+    setIsEditingAddress(false);
+    setAddressError('');
+    if (order?.deliveryAddress) {
+      const addr = order.deliveryAddress;
+      setAddressFormData({
+        street: addr.street || addr.address || addr.line1 || '',
+        city: addr.city || '',
+        state: addr.state || '',
+        zip_code: addr.zip_code || addr.zipCode || addr.postal_code || '',
+        apartment: addr.apartment || addr.details || addr.unit || addr.addressLine2 || ''
+      });
+    }
+  };
+
+  const handleSaveAddress = async () => {
+    if (!addressFormData.street || !addressFormData.city || !addressFormData.state || !addressFormData.zip_code) {
+      setAddressError('Please fill in all required address fields');
+      return;
+    }
+
+    setIsValidatingAddress(true);
+    setAddressError('');
+
+    try {
+      const fullAddress = [
+        addressFormData.street,
+        addressFormData.apartment ? `Apt ${addressFormData.apartment}` : '',
+        addressFormData.city,
+        addressFormData.state,
+        addressFormData.zip_code
+      ].filter(Boolean).join(', ');
+
+      const validationResult = await validateDeliveryAddress(fullAddress);
+      
+      if (!validationResult.isValid) {
+        setAddressError(validationResult.error || 'Invalid address. Please check and try again.');
+        setIsValidatingAddress(false);
+        return;
+      }
+
+      const newAddress = {
+        street: addressFormData.street,
+        city: addressFormData.city,
+        state: addressFormData.state,
+        zip_code: addressFormData.zip_code,
+        apartment: addressFormData.apartment || undefined,
+        formattedAddress: validationResult.formattedAddress || fullAddress,
+        coordinates: validationResult.coordinates,
+        zipCode: addressFormData.zip_code
+      };
+
+      Object.keys(newAddress).forEach(key => {
+        if (newAddress[key] === undefined) {
+          delete newAddress[key];
+        }
+      });
+
+      setSaving(true);
+      
+      const updatedOrderData = {
+        ...editedOrder,
+        deliveryAddress: newAddress
+      };
+
+      const result = await updateOrder(orderId, updatedOrderData);
+      
+      if (result.success) {
+        setOrder(result.data);
+        setEditedOrder(JSON.parse(JSON.stringify(result.data)));
+        setOriginalOrder(JSON.parse(JSON.stringify(result.data)));
+        setIsEditingAddress(false);
+        showNotification('Delivery address updated successfully', 'success');
+        await fetchOrderData();
+      } else {
+        showNotification(result.error || 'Failed to update address', 'error');
+      }
+    } catch (err) {
+      console.error('Error updating address:', err);
+      showNotification('Failed to update address: ' + (err.message || 'Unknown error'), 'error');
+    } finally {
+      setIsValidatingAddress(false);
+      setSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="admin-order-edit">
@@ -448,6 +595,99 @@ const AdminOrderEdit = () => {
             <label>Email:</label>
             <span>{order.user?.email || order.guestInfo?.email || '—'}</span>
           </div>
+          <div className="overview-item address-item">
+            <label>Delivery Address:</label>
+            {!isEditingAddress ? (
+              <div className="address-display-container">
+                <span>{formatAddress(order.deliveryAddress || order.delivery_address)}</span>
+                <button 
+                  className="edit-address-btn"
+                  onClick={handleStartEditAddress}
+                  type="button"
+                >
+                  Edit
+                </button>
+              </div>
+            ) : (
+              <div className="address-edit-form">
+                <div className="form-group">
+                  <label>Street Address *</label>
+                  <input
+                    type="text"
+                    value={addressFormData.street}
+                    onChange={(e) => setAddressFormData({ ...addressFormData, street: e.target.value })}
+                    placeholder="123 Main St"
+                    disabled={isValidatingAddress}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Apartment/Unit</label>
+                  <input
+                    type="text"
+                    value={addressFormData.apartment}
+                    onChange={(e) => setAddressFormData({ ...addressFormData, apartment: e.target.value })}
+                    placeholder="Apt 4B"
+                    disabled={isValidatingAddress}
+                  />
+                </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>City *</label>
+                    <input
+                      type="text"
+                      value={addressFormData.city}
+                      onChange={(e) => setAddressFormData({ ...addressFormData, city: e.target.value })}
+                      placeholder="New York"
+                      disabled={isValidatingAddress}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>State *</label>
+                    <input
+                      type="text"
+                      value={addressFormData.state}
+                      onChange={(e) => setAddressFormData({ ...addressFormData, state: e.target.value.toUpperCase() })}
+                      placeholder="NY"
+                      maxLength="2"
+                      disabled={isValidatingAddress}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>ZIP Code *</label>
+                    <input
+                      type="text"
+                      value={addressFormData.zip_code}
+                      onChange={(e) => setAddressFormData({ ...addressFormData, zip_code: e.target.value.replace(/\D/g, '').slice(0, 5) })}
+                      placeholder="10001"
+                      maxLength="5"
+                      disabled={isValidatingAddress}
+                    />
+                  </div>
+                </div>
+                {addressError && (
+                  <div className="address-error">{addressError}</div>
+                )}
+                <div className="address-form-actions">
+                  <button
+                    type="button"
+                    onClick={handleSaveAddress}
+                    disabled={isValidatingAddress || saving}
+                    className="save-address-btn"
+                  >
+                    {isValidatingAddress ? 'Validating...' : saving ? 'Saving...' : 'Save Address'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancelEditAddress}
+                    disabled={isValidatingAddress || saving}
+                    className="cancel-address-btn"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
           <div className="overview-item">
             <label>Order Date:</label>
             <span>
@@ -525,7 +765,6 @@ const AdminOrderEdit = () => {
                           <div className="item-name" title={formatItemDetails(item)}>
                             {item.name}
                             {(() => {
-                              // Check for variant (bagel type, etc.) - try multiple possible property names
                               const variant = item.selectedVariant || item.variant || item.type || 
                                              (item.options && item.options.selectedVariant) ||
                                              (item.options && item.options.variant);
