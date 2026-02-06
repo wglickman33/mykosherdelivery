@@ -393,7 +393,7 @@ export const updateUserProfile = async (userId, userData) => {
     return { success: true, data: response.data };
   } catch (error) {
     logger.error('Error updating user profile:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: error.message || 'Failed to update user profile' };
   }
 };
 

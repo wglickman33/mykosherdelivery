@@ -113,7 +113,13 @@ class ApiClient {
 
       if (response.status >= 500) {
         logger.error(`Server error: ${response.status}`);
-        throw new Error("Server error. Please try again later.");
+        try {
+          const errorData = await response.json().catch(() => ({}));
+          const errorMessage = errorData.message || errorData.error || "Server error. Please try again later.";
+          throw new Error(errorMessage);
+        } catch (jsonError) {
+          throw new Error("Server error. Please try again later.");
+        }
       }
 
       if (!response.ok) {

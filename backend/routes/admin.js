@@ -280,12 +280,21 @@ router.put('/users/:userId', requireAdmin, [
       message: error.message,
       stack: error.stack,
       userId: req.params.userId,
-      updates: req.body
+      updates: req.body,
+      name: error.name
     });
-    res.status(500).json({
-      error: 'Internal server error',
-      message: error.message || 'Failed to update user profile',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    
+    const errorMessage = error.message || 'Failed to update user profile';
+    const isValidationError = error.name === 'SequelizeValidationError' || error.name === 'ValidationError';
+    
+    res.status(isValidationError ? 400 : 500).json({
+      error: isValidationError ? 'Validation error' : 'Internal server error',
+      message: errorMessage,
+      details: process.env.NODE_ENV === 'development' ? {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      } : undefined
     });
   }
 });
