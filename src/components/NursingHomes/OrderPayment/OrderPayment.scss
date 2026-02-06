@@ -1,9 +1,19 @@
+@import '../../../styles/design-system';
+
 .order-payment {
   min-height: 100vh;
-  background: #f8fafc;
-  padding: 2rem;
+  background: $gray-50;
+  padding: $spacing-2xl;
   max-width: 1400px;
   margin: 0 auto;
+
+  @include respond-to(md) {
+    padding: $spacing-xl;
+  }
+
+  @include respond-to(sm) {
+    padding: $spacing-lg;
+  }
 
   .payment-header {
     background: white;
@@ -42,11 +52,21 @@
 
   .payment-content {
     display: grid;
-    grid-template-columns: 1fr 500px;
-    gap: 2rem;
+    grid-template-columns: 1fr 520px;
+    gap: $spacing-2xl;
+    align-items: start;
 
-    @media (max-width: 1024px) {
+    @include respond-to(xl) {
+      grid-template-columns: 1fr 480px;
+    }
+
+    @include respond-to(lg) {
       grid-template-columns: 1fr;
+      gap: $spacing-xl;
+    }
+
+    @include respond-to(sm) {
+      gap: $spacing-lg;
     }
   }
 
@@ -258,25 +278,27 @@
       }
 
       .submit-payment-btn {
+        @include button-primary;
         width: 100%;
-        padding: 1rem;
-        background: #9333ea;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        font-weight: 600;
-        font-size: 1.125rem;
-        cursor: pointer;
-        transition: all 0.2s;
-        margin-bottom: 1rem;
+        padding: $spacing-lg;
+        font-size: $font-size-xl;
+        margin-bottom: $spacing-lg;
+        min-height: 56px;
+        touch-action: manipulation;
 
-        &:hover:not(:disabled) {
-          background: #7e22ce;
+        @include respond-to(sm) {
+          font-size: $font-size-lg;
+          min-height: 48px;
+        }
+
+        &:focus-visible {
+          @include focus-visible;
         }
 
         &:disabled {
-          background: #cbd5e1;
+          background: $gray-300;
           cursor: not-allowed;
+          opacity: 0.6;
         }
       }
 
@@ -356,25 +378,33 @@
     margin-bottom: 1rem;
   }
 
-  @media (max-width: 768px) {
-    padding: 1rem;
-
-    .payment-header {
-      padding: 1rem;
-
-      h1 {
-        font-size: 1.5rem;
-      }
+  // Accessibility
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
     }
+  }
 
+  // High contrast mode
+  @media (prefers-contrast: high) {
     .order-review,
     .payment-section {
-      padding: 1rem;
+      border: $border-width-base solid $gray-900;
+    }
+  }
+
+  // Print styles
+  @media print {
+    .payment-section {
+      display: none;
     }
 
-    .payment-section {
-      position: static;
-      max-height: none;
+    .order-review {
+      page-break-inside: avoid;
     }
   }
 }

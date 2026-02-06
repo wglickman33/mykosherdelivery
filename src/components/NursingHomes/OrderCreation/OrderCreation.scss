@@ -192,42 +192,59 @@
     .meal-type-buttons {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 0.75rem;
+      gap: $spacing-md;
+
+      @include respond-to(sm) {
+        grid-template-columns: 1fr;
+        gap: $spacing-sm;
+      }
 
       .meal-type-btn {
-        padding: 1rem;
-        border: 2px solid #e2e8f0;
-        background: white;
-        border-radius: 8px;
-        cursor: pointer;
-        font-weight: 600;
-        color: #64748b;
-        transition: all 0.2s;
+        @include button-base;
+        padding: $spacing-lg;
+        border: $border-width-base solid $gray-200;
+        background: $white;
+        font-weight: $font-weight-semibold;
+        color: $gray-600;
         position: relative;
+        min-height: 56px;
+        touch-action: manipulation;
 
-        &:hover {
-          border-color: #9333ea;
+        @include respond-to(sm) {
+          padding: $spacing-md;
+          min-height: 48px;
+        }
+
+        &:hover:not(:disabled) {
+          border-color: $purple-600;
+          background: $purple-50;
         }
 
         &.active {
-          border-color: #9333ea;
-          color: #9333ea;
-          background: #faf5ff;
+          border-color: $purple-600;
+          color: $purple-600;
+          background: $purple-50;
+          box-shadow: $shadow-purple;
+        }
+
+        &:focus-visible {
+          @include focus-visible;
         }
 
         .checkmark {
           position: absolute;
           top: -8px;
           right: -8px;
-          background: #10b981;
-          color: white;
+          background: $success;
+          color: $white;
           width: 24px;
           height: 24px;
-          border-radius: 50%;
+          border-radius: $border-radius-full;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 0.875rem;
+          font-size: $font-size-sm;
+          box-shadow: $shadow-sm;
         }
       }
     }
@@ -634,29 +651,34 @@
     margin-bottom: 1rem;
   }
 
-  @media (max-width: 768px) {
-    padding: 1rem;
-
-    .order-header {
-      padding: 1rem;
-
-      .header-content {
-        flex-direction: column;
-        align-items: flex-start;
-
-        .header-info h1 {
-          font-size: 1.25rem;
-        }
-      }
+  // Accessibility
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
     }
+  }
 
-    .meal-selector {
-      padding: 1rem;
+  // High contrast mode
+  @media (prefers-contrast: high) {
+    .menu-item,
+    .day-btn,
+    .meal-type-btn {
+      border-width: $border-width-thick;
     }
+  }
 
+  // Print styles
+  @media print {
     .order-summary {
-      position: static;
-      max-height: none;
+      page-break-inside: avoid;
+    }
+
+    .meal-form {
+      page-break-before: always;
     }
   }
 }
