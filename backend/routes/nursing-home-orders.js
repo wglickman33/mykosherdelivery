@@ -197,6 +197,10 @@ router.get('/resident-orders', requireNursingHomeUser, validateQueryParams, asyn
 
     if (req.user.role === 'nursing_home_admin') {
       where.facilityId = req.user.nursingHomeFacilityId;
+    } else if (req.user.role === 'admin') {
+      if (req.query.facilityId) {
+        where.facilityId = req.query.facilityId;
+      }
     }
 
     if (status) {
@@ -294,6 +298,11 @@ router.post('/resident-orders', requireNursingHomeUser, validateResidentOrder, a
           error: 'Access denied'
         });
       }
+    } else if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied'
+      });
     }
 
     const deadline = calculateDeadline(weekStartDate);
@@ -626,17 +635,14 @@ router.get('/orders', requireNursingHomeUser, async (req, res) => {
 
     const where = {};
 
-    if (req.user.role === 'nursing_home_user' || req.user.role === 'nursing_home_admin') {
-      if (req.user.role !== 'admin') {
-        where.facilityId = req.user.nursingHomeFacilityId;
-      } else if (facilityId) {
+    if (req.user.role === 'admin') {
+      if (facilityId) {
         where.facilityId = facilityId;
       }
-    } else if (facilityId) {
-      where.facilityId = facilityId;
-    }
-
-    if (req.user.role === 'nursing_home_user') {
+    } else if (req.user.role === 'nursing_home_admin') {
+      where.facilityId = req.user.nursingHomeFacilityId;
+    } else if (req.user.role === 'nursing_home_user') {
+      where.facilityId = req.user.nursingHomeFacilityId;
       where.createdByUserId = req.user.id;
     }
 
@@ -726,6 +732,11 @@ router.get('/orders/:id', requireNursingHomeUser, async (req, res) => {
           error: 'Access denied'
         });
       }
+    } else if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied'
+      });
     }
 
     res.json({
@@ -850,6 +861,11 @@ router.put('/orders/:id', requireNursingHomeUser, [
           error: 'Access denied'
         });
       }
+    } else if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied'
+      });
     }
 
     const now = new Date();
@@ -923,6 +939,11 @@ router.post('/orders/:id/submit', requireNursingHomeUser, async (req, res) => {
           error: 'Access denied'
         });
       }
+    } else if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied'
+      });
     }
 
     if (order.status === 'submitted') {
@@ -1043,6 +1064,11 @@ router.get('/orders/:id/export', requireNursingHomeUser, async (req, res) => {
           error: 'Access denied'
         });
       }
+    } else if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied'
+      });
     }
 
     let mealsToExport = order.residentMeals;

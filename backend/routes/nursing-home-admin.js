@@ -237,19 +237,20 @@ router.get('/residents', requireNursingHomeUser, async (req, res) => {
 
     const where = {};
     
-    if (req.user.role === 'nursing_home_user' || req.user.role === 'nursing_home_admin') {
-      if (req.user.role !== 'admin') {
-        where.facilityId = req.user.nursingHomeFacilityId;
-      } else if (facilityId) {
+    if (req.user.role === 'admin') {
+      if (facilityId) {
         where.facilityId = facilityId;
       }
-    } else if (facilityId) {
-      where.facilityId = facilityId;
+    } else if (req.user.role === 'nursing_home_admin') {
+      where.facilityId = req.user.nursingHomeFacilityId;
+    } else if (req.user.role === 'nursing_home_user') {
+      where.facilityId = req.user.nursingHomeFacilityId;
+      where.assignedUserId = req.user.id;
     }
 
-    if (req.user.role === 'nursing_home_user') {
-      where.assignedUserId = req.user.id;
-    } else if (assignedUserId) {
+    if (req.user.role !== 'admin' && req.user.role !== 'nursing_home_user' && assignedUserId) {
+      where.assignedUserId = assignedUserId;
+    } else if (req.user.role === 'admin' && assignedUserId) {
       where.assignedUserId = assignedUserId;
     }
 
@@ -339,6 +340,11 @@ router.get('/residents/:id', requireNursingHomeUser, async (req, res) => {
           error: 'Access denied'
         });
       }
+    } else if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied'
+      });
     }
 
     res.json({
@@ -826,7 +832,11 @@ router.get('/invoices', requireNursingHomeAdmin, async (req, res) => {
 
     const where = {};
 
-    if (req.user.role === 'nursing_home_admin') {
+    if (req.user.role === 'admin') {
+      if (req.query.facilityId) {
+        where.facilityId = req.query.facilityId;
+      }
+    } else if (req.user.role === 'nursing_home_admin') {
       where.facilityId = req.user.nursingHomeFacilityId;
     } else if (facilityId) {
       where.facilityId = facilityId;
