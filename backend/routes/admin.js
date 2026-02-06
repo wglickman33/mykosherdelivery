@@ -192,12 +192,20 @@ router.put('/users/:userId', requireAdmin, [
 
     delete updates.password;
 
+    const user = await Profile.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found',
+        message: 'User does not exist'
+      });
+    }
+
     const transformedUpdates = {};
     if (updates.first_name !== undefined) transformedUpdates.firstName = updates.first_name;
     if (updates.last_name !== undefined) transformedUpdates.lastName = updates.last_name;
     if (updates.phone_number !== undefined) transformedUpdates.phone = updates.phone_number;
     if (updates.role !== undefined) transformedUpdates.role = updates.role;
-    if (updates.email !== undefined) {
+    if (updates.email !== undefined && updates.email !== user.email) {
       const existingUser = await Profile.findOne({ where: { email: updates.email } });
       if (existingUser && existingUser.id !== userId) {
         return res.status(400).json({
@@ -206,14 +214,6 @@ router.put('/users/:userId', requireAdmin, [
         });
       }
       transformedUpdates.email = updates.email;
-    }
-
-    const user = await Profile.findByPk(userId);
-    if (!user) {
-      return res.status(404).json({
-        error: 'User not found',
-        message: 'User does not exist'
-      });
     }
 
     const oldValues = user.toJSON();
