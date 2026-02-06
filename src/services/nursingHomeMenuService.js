@@ -1,4 +1,4 @@
-import api from './api';
+import api from '../lib/api';
 import logger from '../utils/logger';
 
 export const fetchNursingHomeMenu = async (filters = {}) => {
