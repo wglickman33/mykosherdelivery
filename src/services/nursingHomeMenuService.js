@@ -14,7 +14,9 @@ export const fetchNursingHomeMenu = async (filters = {}) => {
       params.append('isActive', filters.isActive);
     }
 
-    const response = await api.get(`/nursing-homes/menu?${params.toString()}`);
+    const queryString = params.toString();
+    const url = queryString ? `/nursing-homes/menu?${queryString}` : '/nursing-homes/menu';
+    const response = await api.get(url);
     return { success: true, data: response.data.data };
   } catch (error) {
     logger.error('Error fetching nursing home menu:', error);
