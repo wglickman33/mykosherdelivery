@@ -171,8 +171,22 @@ router.get('/users', requireAdmin, async (req, res) => {
   }
 });
 
-router.put('/users/:userId', requireAdmin, async (req, res) => {
+router.put('/users/:userId', requireAdmin, [
+  body('email').optional().isEmail().normalizeEmail(),
+  body('first_name').optional().trim().notEmpty(),
+  body('last_name').optional().trim().notEmpty(),
+  body('phone_number').optional().trim(),
+  body('role').optional().isIn(['user', 'restaurant_owner', 'admin', 'nursing_home_admin', 'nursing_home_user'])
+], async (req, res) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
     const { userId } = req.params;
     const updates = req.body;
 
@@ -183,7 +197,16 @@ router.put('/users/:userId', requireAdmin, async (req, res) => {
     if (updates.last_name !== undefined) transformedUpdates.lastName = updates.last_name;
     if (updates.phone_number !== undefined) transformedUpdates.phone = updates.phone_number;
     if (updates.role !== undefined) transformedUpdates.role = updates.role;
-    if (updates.email !== undefined) transformedUpdates.email = updates.email;
+    if (updates.email !== undefined) {
+      const existingUser = await Profile.findOne({ where: { email: updates.email } });
+      if (existingUser && existingUser.id !== userId) {
+        return res.status(400).json({
+          error: 'Email already in use',
+          message: 'Another user with this email already exists'
+        });
+      }
+      transformedUpdates.email = updates.email;
+    }
 
     const user = await Profile.findByPk(userId);
     if (!user) {
@@ -247,9 +270,16 @@ router.put('/users/:userId', requireAdmin, async (req, res) => {
 
   } catch (error) {
     logger.error('Error updating user profile:', error);
+    logger.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      userId: req.params.userId,
+      updates: req.body
+    });
     res.status(500).json({
       error: 'Internal server error',
-      message: 'Failed to update user profile'
+      message: error.message || 'Failed to update user profile',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
