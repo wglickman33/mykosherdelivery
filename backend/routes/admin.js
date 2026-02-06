@@ -201,9 +201,11 @@ router.put('/users/:userId', requireAdmin, [
     }
 
     const transformedUpdates = {};
-    if (updates.first_name !== undefined) transformedUpdates.firstName = updates.first_name;
-    if (updates.last_name !== undefined) transformedUpdates.lastName = updates.last_name;
-    if (updates.phone_number !== undefined) transformedUpdates.phone = updates.phone_number;
+    if (updates.first_name !== undefined) transformedUpdates.firstName = updates.first_name.trim();
+    if (updates.last_name !== undefined) transformedUpdates.lastName = updates.last_name.trim();
+    if (updates.phone_number !== undefined) {
+      transformedUpdates.phone = updates.phone_number.trim() || null;
+    }
     if (updates.role !== undefined) transformedUpdates.role = updates.role;
     if (updates.email !== undefined && updates.email !== user.email) {
       const existingUser = await Profile.findOne({ where: { email: updates.email } });
