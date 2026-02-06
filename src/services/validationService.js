@@ -1,5 +1,5 @@
 import { validateDeliveryAddress as validateAddress } from './addressValidationService';
-import { NH_CONFIG, VALIDATION_LIMITS } from '../config/constants';
+import { NH_CONFIG } from '../config/constants';
 
 export const validateDeliveryAddress = validateAddress;
 

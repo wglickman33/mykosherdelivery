@@ -245,6 +245,7 @@ export const validateAddressWithGeocoding = async (address) => {
 
     const geocoder = new window.google.maps.Geocoder();
     
+    // eslint-disable-next-line no-unused-vars
     return new Promise((resolve, reject) => {
       geocoder.geocode({ address }, (results, status) => {
         if (status === 'OK' && results && results.length > 0) {
