@@ -30,40 +30,31 @@ const AddressStep = ({ onNext }) => {
   };
 
   const parseAddress = (addressString, validationResult) => {
-    // Try to extract components from the formatted address
     const address = addressString || "";
     
-    // Extract zip code first (most reliable)
     const zipMatch = address.match(/\b(\d{5}(?:-\d{4})?)\b/);
     const zip_code = zipMatch ? zipMatch[1] : (validationResult?.zipCode || "");
     
-    // Extract state (2-letter code before zip)
     const stateMatch = address.match(/\b([A-Z]{2})\s+\d{5}/);
     const state = stateMatch ? stateMatch[1] : "";
     
-    // Split by comma and try to parse
     const parts = address.split(',').map(p => p.trim()).filter(p => p);
     
     let street = "";
     let city = "";
     
     if (parts.length >= 3) {
-      // Format: "Street, City, State ZIP"
       street = parts[0];
       city = parts[1];
     } else if (parts.length === 2) {
-      // Format: "Street, City State ZIP" or "Street, City"
       street = parts[0];
       const cityStateZip = parts[1];
-      // Try to extract city (everything before state)
       const cityMatch = cityStateZip.match(/^(.+?)\s+[A-Z]{2}\s+\d{5}/);
       city = cityMatch ? cityMatch[1].trim() : cityStateZip.replace(/\s+[A-Z]{2}\s+\d{5}.*$/, '').trim();
     } else if (parts.length === 1) {
-      // Single part - might be just street or full address
       street = parts[0].replace(/\s+[A-Z]{2}\s+\d{5}.*$/, '').trim();
     }
     
-    // Fallback: use original address if parsing fails
     if (!street && address) {
       street = address.replace(/,\s*[^,]+,\s*[A-Z]{2}\s+\d{5}.*$/, '').trim() || address;
     }
@@ -115,13 +106,11 @@ const AddressStep = ({ onNext }) => {
         };
         onNext(newAddress);
       } else {
-        // Show the specific validation error
         const errorMessage = validation.error || "Sorry, we don't deliver to this area yet. Please try a different address.";
         setAddressError(errorMessage);
       }
     } catch (error) {
       console.error("Address validation error:", error);
-      // Provide more specific error message
       const errorMessage = error.message || "Unable to validate address. Please check your connection and try again.";
       setAddressError(errorMessage);
     } finally {

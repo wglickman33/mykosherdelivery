@@ -686,7 +686,6 @@ router.get('/orders', requireNursingHomeUser, async (req, res) => {
   }
 });
 
-// GET /api/nursing-homes/orders/:id - Get bulk order details
 router.get('/orders/:id', requireNursingHomeUser, async (req, res) => {
   try {
     const { id } = req.params;

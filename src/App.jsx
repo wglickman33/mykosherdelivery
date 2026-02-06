@@ -108,9 +108,6 @@ function AuthenticatedApp() {
 
   const appRoutes = ["/home", "/restaurants", "/restaurant", "/cart", "/checkout", "/order-confirmation", "/gift-card", "/account"];
   const isAppRoute = appRoutes.some(route => pathname === route || pathname.startsWith(route + "/"));
-  
-  const nursingHomeRoutes = ["/nursing-homes"];
-  const isNursingHomeRoute = nursingHomeRoutes.some(route => pathname.startsWith(route));
 
   if (pathname === "/") {
     if (user) {

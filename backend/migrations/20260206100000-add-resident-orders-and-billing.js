@@ -2,7 +2,6 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    // Create NursingHomeResidentOrders table for per-resident billing
     await queryInterface.createTable('nursing_home_resident_orders', {
       id: {
         type: Sequelize.UUID,
@@ -142,7 +141,6 @@ module.exports = {
       }
     });
 
-    // Add indexes
     await queryInterface.addIndex('nursing_home_resident_orders', ['order_number'], { unique: true });
     await queryInterface.addIndex('nursing_home_resident_orders', ['resident_id']);
     await queryInterface.addIndex('nursing_home_resident_orders', ['facility_id']);
@@ -151,7 +149,6 @@ module.exports = {
     await queryInterface.addIndex('nursing_home_resident_orders', ['payment_status']);
     await queryInterface.addIndex('nursing_home_resident_orders', ['week_start_date', 'week_end_date']);
 
-    // Add billing fields to residents table
     await queryInterface.addColumn('nursing_home_residents', 'billing_email', {
       type: Sequelize.STRING,
       allowNull: true,
@@ -178,10 +175,8 @@ module.exports = {
   },
 
   down: async (queryInterface, Sequelize) => {
-    // Drop table
     await queryInterface.dropTable('nursing_home_resident_orders');
     
-    // Remove columns from residents table
     await queryInterface.removeColumn('nursing_home_residents', 'billing_email');
     await queryInterface.removeColumn('nursing_home_residents', 'billing_name');
     await queryInterface.removeColumn('nursing_home_residents', 'billing_phone');

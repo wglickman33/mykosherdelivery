@@ -29,15 +29,12 @@ const LoginForm = ({
     setLoading(true);
 
     try {
-      // Try login first (for NH users), fallback to signIn (for admin/regular users)
       const result = await (login ? login(email, password) : signIn(email, password));
       
       if (result.success) {
         const userRole = result.user?.role;
         
-        // Check if user has allowed role
         if (allowedRoles.includes(userRole)) {
-          // Handle dynamic redirect based on role if redirectPath is a function
           const path = typeof redirectPath === 'function' 
             ? redirectPath(userRole) 
             : redirectPath;

@@ -2,7 +2,6 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    // 1. Update Profile table - add new roles and nursing home facility association
     await queryInterface.sequelize.query(`
       ALTER TYPE "enum_profiles_role" ADD VALUE IF NOT EXISTS 'nursing_home_admin';
       ALTER TYPE "enum_profiles_role" ADD VALUE IF NOT EXISTS 'nursing_home_user';
@@ -19,7 +18,6 @@ module.exports = {
       onDelete: 'SET NULL'
     });
 
-    // 2. Create NursingHomeFacilities table
     await queryInterface.createTable('nursing_home_facilities', {
       id: {
         type: Sequelize.UUID,
@@ -64,7 +62,6 @@ module.exports = {
       }
     });
 
-    // 3. Create NursingHomeResidents table
     await queryInterface.createTable('nursing_home_residents', {
       id: {
         type: Sequelize.UUID,
@@ -131,7 +128,6 @@ module.exports = {
     await queryInterface.addIndex('nursing_home_residents', ['facility_id']);
     await queryInterface.addIndex('nursing_home_residents', ['assigned_user_id']);
 
-    // 4. Create NursingHomeMenuItems table
     await queryInterface.createTable('nursing_home_menu_items', {
       id: {
         type: Sequelize.UUID,
@@ -194,7 +190,6 @@ module.exports = {
     await queryInterface.addIndex('nursing_home_menu_items', ['meal_type', 'category']);
     await queryInterface.addIndex('nursing_home_menu_items', ['is_active']);
 
-    // 5. Create NursingHomeOrders table
     await queryInterface.createTable('nursing_home_orders', {
       id: {
         type: Sequelize.UUID,
@@ -293,7 +288,6 @@ module.exports = {
     await queryInterface.addIndex('nursing_home_orders', ['status']);
     await queryInterface.addIndex('nursing_home_orders', ['week_start_date', 'week_end_date']);
 
-    // 6. Create NursingHomeInvoices table
     await queryInterface.createTable('nursing_home_invoices', {
       id: {
         type: Sequelize.UUID,
@@ -380,16 +374,12 @@ module.exports = {
   },
 
   down: async (queryInterface, Sequelize) => {
-    // Drop tables in reverse order
     await queryInterface.dropTable('nursing_home_invoices');
     await queryInterface.dropTable('nursing_home_orders');
     await queryInterface.dropTable('nursing_home_menu_items');
     await queryInterface.dropTable('nursing_home_residents');
     await queryInterface.dropTable('nursing_home_facilities');
     
-    // Remove column from profiles
     await queryInterface.removeColumn('profiles', 'nursing_home_facility_id');
-    
-    // Note: Cannot easily remove enum values in PostgreSQL, would require recreating the enum
   }
 };

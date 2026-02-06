@@ -4,7 +4,6 @@ const { NursingHomeMenuItem } = require('../models');
 const logger = require('../utils/logger');
 
 const menuItems = [
-  // BREAKFAST - Main Options
   { mealType: 'breakfast', category: 'main', name: 'Scrambled Eggs', description: '', price: 15.00, requiresBagelType: false, excludesSide: false, displayOrder: 1 },
   { mealType: 'breakfast', category: 'main', name: 'Omelet', description: '', price: 15.00, requiresBagelType: false, excludesSide: false, displayOrder: 2 },
   { mealType: 'breakfast', category: 'main', name: 'Egg White Omelet', description: '', price: 15.00, requiresBagelType: false, excludesSide: false, displayOrder: 3 },
@@ -29,7 +28,6 @@ const menuItems = [
   { mealType: 'breakfast', category: 'main', name: 'Egg White Mushroom Onion Salad on Bagel w/ Pickle and Coleslaw', description: 'Does not include side. Please indicate bagel type', price: 15.00, requiresBagelType: true, excludesSide: true, displayOrder: 22 },
   { mealType: 'breakfast', category: 'main', name: 'Avocado Toast (2pc)', description: 'Sourdough, Guacamole, Tomato, Onion, Feta topped with Seasoning. Does not include side', price: 15.00, requiresBagelType: false, excludesSide: true, displayOrder: 23 },
 
-  // BREAKFAST - Side Options
   { mealType: 'breakfast', category: 'side', name: 'Chocolate Chip Muffin', description: '', price: 0, requiresBagelType: false, excludesSide: false, displayOrder: 1 },
   { mealType: 'breakfast', category: 'side', name: 'Corn Muffin', description: '', price: 0, requiresBagelType: false, excludesSide: false, displayOrder: 2 },
   { mealType: 'breakfast', category: 'side', name: 'Blueberry Muffin', description: '', price: 0, requiresBagelType: false, excludesSide: false, displayOrder: 3 },
@@ -37,7 +35,6 @@ const menuItems = [
   { mealType: 'breakfast', category: 'side', name: 'Fruit Cup', description: '', price: 0, requiresBagelType: false, excludesSide: false, displayOrder: 5 },
   { mealType: 'breakfast', category: 'side', name: 'Israeli Salad', description: '', price: 0, requiresBagelType: false, excludesSide: false, displayOrder: 6 },
 
-  // LUNCH - Entree Options
   { mealType: 'lunch', category: 'entree', name: 'Grilled Salmon Wrap', description: '', price: 21.00, requiresBagelType: false, excludesSide: false, displayOrder: 1 },
   { mealType: 'lunch', category: 'entree', name: 'Roasted Pepper and Portobello Wrap', description: '', price: 21.00, requiresBagelType: false, excludesSide: false, displayOrder: 2 },
   { mealType: 'lunch', category: 'entree', name: 'Fresh Mozzarella Panini', description: '', price: 21.00, requiresBagelType: false, excludesSide: false, displayOrder: 3 },
@@ -51,7 +48,6 @@ const menuItems = [
   { mealType: 'lunch', category: 'entree', name: 'Greek Salad', description: '', price: 21.00, requiresBagelType: false, excludesSide: false, displayOrder: 11 },
   { mealType: 'lunch', category: 'entree', name: 'Grilled Tuna Caesar Salad', description: '', price: 21.00, requiresBagelType: false, excludesSide: false, displayOrder: 12 },
 
-  // LUNCH - Side Options
   { mealType: 'lunch', category: 'side', name: 'Steamed Vegetables', description: '', price: 0, requiresBagelType: false, excludesSide: false, displayOrder: 1 },
   { mealType: 'lunch', category: 'side', name: 'Roasted Potatoes', description: '', price: 0, requiresBagelType: false, excludesSide: false, displayOrder: 2 },
   { mealType: 'lunch', category: 'side', name: 'Brown Rice', description: '', price: 0, requiresBagelType: false, excludesSide: false, displayOrder: 3 },
@@ -61,7 +57,6 @@ const menuItems = [
   { mealType: 'lunch', category: 'side', name: 'Baked Potato', description: '', price: 0, requiresBagelType: false, excludesSide: false, displayOrder: 7 },
   { mealType: 'lunch', category: 'side', name: 'Israeli Salad', description: '', price: 0, requiresBagelType: false, excludesSide: false, displayOrder: 8 },
 
-  // DINNER - Entree Options
   { mealType: 'dinner', category: 'entree', name: 'Deli Sandwich or Wrap - Turkey', description: '', price: 23.00, requiresBagelType: false, excludesSide: false, displayOrder: 1 },
   { mealType: 'dinner', category: 'entree', name: 'Deli Sandwich or Wrap - Pastrami', description: '', price: 23.00, requiresBagelType: false, excludesSide: false, displayOrder: 2 },
   { mealType: 'dinner', category: 'entree', name: 'Deli Sandwich or Wrap - Corned Beef', description: '', price: 23.00, requiresBagelType: false, excludesSide: false, displayOrder: 3 },
@@ -76,7 +71,6 @@ const menuItems = [
   { mealType: 'dinner', category: 'entree', name: 'Roasted Baby Chicken Thighs (Boneless)', description: '', price: 23.00, requiresBagelType: false, excludesSide: false, displayOrder: 12 },
   { mealType: 'dinner', category: 'entree', name: 'Salmon', description: '', price: 23.00, requiresBagelType: false, excludesSide: false, displayOrder: 13 },
 
-  // DINNER - Side/Soup Options (Choose up to 2)
   { mealType: 'dinner', category: 'side', name: 'White Rice', description: '', price: 0, requiresBagelType: false, excludesSide: false, displayOrder: 1 },
   { mealType: 'dinner', category: 'side', name: 'Brown Rice', description: '', price: 0, requiresBagelType: false, excludesSide: false, displayOrder: 2 },
   { mealType: 'dinner', category: 'side', name: 'Israeli Salad', description: '', price: 0, requiresBagelType: false, excludesSide: false, displayOrder: 3 },
@@ -93,7 +87,6 @@ const menuItems = [
   { mealType: 'dinner', category: 'soup', name: 'Vegetable Soup', description: '', price: 0, requiresBagelType: false, excludesSide: false, displayOrder: 14 },
   { mealType: 'dinner', category: 'soup', name: 'Split Pea Soup', description: '', price: 0, requiresBagelType: false, excludesSide: false, displayOrder: 15 },
 
-  // DINNER - Dessert Options
   { mealType: 'dinner', category: 'dessert', name: 'Fruit Cup', description: '', price: 0, requiresBagelType: false, excludesSide: false, displayOrder: 1 },
   { mealType: 'dinner', category: 'dessert', name: 'Danish', description: '', price: 0, requiresBagelType: false, excludesSide: false, displayOrder: 2 },
   { mealType: 'dinner', category: 'dessert', name: 'Chocolate Chip Cookie', description: '', price: 0, requiresBagelType: false, excludesSide: false, displayOrder: 3 },
@@ -104,15 +97,12 @@ async function seedMenu() {
   try {
     logger.info('Starting nursing home menu seed...');
     
-    // Clear existing menu items
     await NursingHomeMenuItem.destroy({ where: {} });
     logger.info('Cleared existing menu items');
     
-    // Insert new menu items
     await NursingHomeMenuItem.bulkCreate(menuItems);
     logger.info(`Successfully seeded ${menuItems.length} nursing home menu items`);
     
-    // Log summary
     const breakfast = menuItems.filter(i => i.mealType === 'breakfast');
     const lunch = menuItems.filter(i => i.mealType === 'lunch');
     const dinner = menuItems.filter(i => i.mealType === 'dinner');

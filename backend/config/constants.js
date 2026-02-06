@@ -1,10 +1,7 @@
-// Tax and Fee Configuration
-const TAX_RATE = 0.0825; // 8.25% sales tax
+const TAX_RATE = 0.0825;
 const DEFAULT_DELIVERY_FEE = 5.99;
 
-// Nursing Home Configuration
 const NH_CONFIG = {
-  // Order deadline configuration
   DEADLINE: {
     DAY: 'Sunday',
     HOUR: 12,
@@ -12,19 +9,16 @@ const NH_CONFIG = {
     TIMEZONE: 'America/New_York'
   },
   
-  // Meal configuration
   MEALS: {
     TYPES: ['breakfast', 'lunch', 'dinner'],
     DAYS: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
     MAX_ITEMS_PER_MEAL: 10,
-    MAX_MEALS_PER_WEEK: 21, // 3 meals × 7 days
+    MAX_MEALS_PER_WEEK: 21,
     MIN_ITEMS_PER_MEAL: 1
   },
   
-  // Bagel types
   BAGEL_TYPES: ['Plain', 'Sesame', 'Everything', 'Whole Wheat', 'Poppy Seed', 'Onion'],
   
-  // Order statuses
   STATUSES: {
     DRAFT: 'draft',
     SUBMITTED: 'submitted',
@@ -35,7 +29,6 @@ const NH_CONFIG = {
     CANCELLED: 'cancelled'
   },
   
-  // Payment statuses
   PAYMENT_STATUSES: {
     PENDING: 'pending',
     PAID: 'paid',
@@ -43,14 +36,12 @@ const NH_CONFIG = {
     REFUNDED: 'refunded'
   },
   
-  // Billing configuration
   BILLING: {
     FREQUENCY: ['weekly', 'monthly'],
     TAX_RATE: TAX_RATE
   }
 };
 
-// User Roles
 const USER_ROLES = {
   USER: 'user',
   ADMIN: 'admin',
@@ -59,7 +50,6 @@ const USER_ROLES = {
   NURSING_HOME_USER: 'nursing_home_user'
 };
 
-// Order Configuration
 const ORDER_CONFIG = {
   STATUSES: ['pending', 'confirmed', 'preparing', 'ready', 'out_for_delivery', 'delivered', 'cancelled'],
   PAYMENT_METHODS: ['card', 'cash', 'invoice'],
@@ -72,7 +62,6 @@ const ORDER_CONFIG = {
   }
 };
 
-// Validation Limits
 const VALIDATION_LIMITS = {
   ADDRESS: {
     STREET_MIN: 1,
@@ -106,26 +95,23 @@ const VALIDATION_LIMITS = {
   }
 };
 
-// API Configuration
 const API_CONFIG = {
-  TIMEOUT: 30000, // 30 seconds
+  TIMEOUT: 30000,
   RETRY_ATTEMPTS: 3,
-  RETRY_DELAY: 1000, // 1 second
+  RETRY_DELAY: 1000,
   RATE_LIMIT: {
-    WINDOW_MS: 15 * 60 * 1000, // 15 minutes
+    WINDOW_MS: 15 * 60 * 1000,
     MAX_REQUESTS: 100,
     PAYMENT_MAX_REQUESTS: 5
   }
 };
 
-// Pagination Defaults
 const PAGINATION = {
   DEFAULT_PAGE: 1,
   DEFAULT_LIMIT: 20,
   MAX_LIMIT: 100
 };
 
-// Stripe Configuration
 const STRIPE_CONFIG = {
   CURRENCY: 'usd',
   COUNTRY: 'US'

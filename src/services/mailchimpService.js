@@ -18,7 +18,6 @@ export const mailchimpService = {
       logger.info('📧 Creating MailChimp campaign:', campaignData.name);
       const response = await apiClient.post('/admin/mailchimp/campaigns', campaignData);
       
-      // If segment targeting or scheduling is specified, update the campaign
       if (campaignData.segmentId || campaignData.scheduleTime) {
         await this.updateCampaign(response.data.id, {
           segmentId: campaignData.segmentId,
@@ -200,7 +199,6 @@ export const mailchimpService = {
     }
   },
 
-  // Segments
   async getSegments(listId, options = {}) {
     try {
       logger.info('📊 Fetching MailChimp segments');
@@ -256,7 +254,6 @@ export const mailchimpService = {
     }
   },
 
-  // Tags
   async getMemberTags(listId, email) {
     try {
       logger.info('🏷️ Fetching member tags');
@@ -301,7 +298,6 @@ export const mailchimpService = {
     }
   },
 
-  // Customer Sync
   async syncCustomer(userId, listId) {
     try {
       logger.info('🔄 Syncing customer to MailChimp');
@@ -324,7 +320,6 @@ export const mailchimpService = {
     }
   },
 
-  // Automations
   async getAutomations(options = {}) {
     try {
       logger.info('🤖 Fetching MailChimp automations');
@@ -380,7 +375,6 @@ export const mailchimpService = {
     }
   },
 
-  // Enhanced Analytics
   async getCampaignReport(campaignId) {
     try {
       logger.info('📊 Fetching campaign report');

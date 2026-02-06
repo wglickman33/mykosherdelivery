@@ -183,7 +183,6 @@ const PaymentStep = ({
             total: 0
           };
         }
-        // Ensure all item data including variants and configurations is included
         const fullItem = {
           ...item,
           itemType: item.itemType,
@@ -371,7 +370,6 @@ const PaymentStep = ({
           };
         }
         
-        // Ensure all item data including variants and configurations is included
         const fullItem = {
           ...item,
           orderIndex: index,
@@ -506,7 +504,6 @@ const PaymentStep = ({
     return selectedMethod !== '' && selectedMethod !== 'new-card';
   };
 
-  // Check if Stripe is configured
   if (!stripePromise) {
     return (
       <div className="payment-step">

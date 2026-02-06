@@ -1,10 +1,7 @@
-// Tax and Fee Configuration
-export const TAX_RATE = 0.0825; // 8.25% sales tax
+export const TAX_RATE = 0.0825;
 export const DEFAULT_DELIVERY_FEE = 5.99;
 
-// Nursing Home Configuration
 export const NH_CONFIG = {
-  // Order deadline configuration
   DEADLINE: {
     DAY: 'Sunday',
     HOUR: 12,
@@ -12,19 +9,16 @@ export const NH_CONFIG = {
     TIMEZONE: 'America/New_York'
   },
   
-  // Meal configuration
   MEALS: {
     TYPES: ['breakfast', 'lunch', 'dinner'],
     DAYS: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
     MAX_ITEMS_PER_MEAL: 10,
-    MAX_MEALS_PER_WEEK: 21, // 3 meals × 7 days
+    MAX_MEALS_PER_WEEK: 21,
     MIN_ITEMS_PER_MEAL: 1
   },
   
-  // Bagel types
   BAGEL_TYPES: ['Plain', 'Sesame', 'Everything', 'Whole Wheat', 'Poppy Seed', 'Onion'],
   
-  // Order statuses
   STATUSES: {
     DRAFT: 'draft',
     SUBMITTED: 'submitted',
@@ -35,7 +29,6 @@ export const NH_CONFIG = {
     CANCELLED: 'cancelled'
   },
   
-  // Payment statuses
   PAYMENT_STATUSES: {
     PENDING: 'pending',
     PAID: 'paid',
@@ -43,14 +36,12 @@ export const NH_CONFIG = {
     REFUNDED: 'refunded'
   },
   
-  // Billing configuration
   BILLING: {
     FREQUENCY: ['weekly', 'monthly'],
     TAX_RATE: TAX_RATE
   }
 };
 
-// User Roles
 export const USER_ROLES = {
   USER: 'user',
   ADMIN: 'admin',
@@ -59,7 +50,6 @@ export const USER_ROLES = {
   NURSING_HOME_USER: 'nursing_home_user'
 };
 
-// User Role Colors (for UI pills)
 export const ROLE_COLORS = {
   [USER_ROLES.USER]: 'green',
   [USER_ROLES.ADMIN]: 'red',
@@ -68,7 +58,6 @@ export const ROLE_COLORS = {
   [USER_ROLES.NURSING_HOME_USER]: 'purple'
 };
 
-// Order Configuration
 export const ORDER_CONFIG = {
   STATUSES: ['pending', 'confirmed', 'preparing', 'ready', 'out_for_delivery', 'delivered', 'cancelled'],
   PAYMENT_METHODS: ['card', 'cash', 'invoice'],
@@ -76,7 +65,6 @@ export const ORDER_CONFIG = {
   MAX_ORDER_AMOUNT: 999999
 };
 
-// Validation Limits
 export const VALIDATION_LIMITS = {
   ADDRESS: {
     STREET_MIN: 1,
@@ -110,21 +98,18 @@ export const VALIDATION_LIMITS = {
   }
 };
 
-// API Configuration
 export const API_CONFIG = {
-  TIMEOUT: 30000, // 30 seconds
+  TIMEOUT: 30000,
   RETRY_ATTEMPTS: 3,
-  RETRY_DELAY: 1000 // 1 second
+  RETRY_DELAY: 1000
 };
 
-// Pagination Defaults
 export const PAGINATION = {
   DEFAULT_PAGE: 1,
   DEFAULT_LIMIT: 20,
   MAX_LIMIT: 100
 };
 
-// Date/Time Formats
 export const DATE_FORMATS = {
   DISPLAY: 'MMM DD, YYYY',
   DISPLAY_WITH_TIME: 'MMM DD, YYYY h:mm A',
@@ -132,14 +117,12 @@ export const DATE_FORMATS = {
   TIME: 'h:mm A'
 };
 
-// Stripe Configuration (keys from env)
 export const STRIPE_CONFIG = {
   PUBLISHABLE_KEY: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY,
   CURRENCY: 'usd',
   COUNTRY: 'US'
 };
 
-// Feature Flags
 export const FEATURES = {
   NURSING_HOMES: true,
   GIFT_CARDS: true,

@@ -65,7 +65,6 @@ const AdminRestaurants = () => {
   const lastSearchRef = useRef('');
   const { user: adminUser } = useAuth();
   
-  // Nursing Home Menu state
   const [nursingHomeMenuItems, setNursingHomeMenuItems] = useState([]);
   const [nursingHomeMenuLoading, setNursingHomeMenuLoading] = useState(false);
   const [showNHMenuItemModal, setShowNHMenuItemModal] = useState(false);
@@ -370,7 +369,6 @@ const AdminRestaurants = () => {
     return byName || null;
   };
 
-  // Nursing Home Menu Functions
   const fetchNHMenu = useCallback(async () => {
     setNursingHomeMenuLoading(true);
     const result = await fetchNursingHomeMenu(nhMenuFilters);
