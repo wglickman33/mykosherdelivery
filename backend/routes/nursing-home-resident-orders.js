@@ -8,24 +8,20 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 const router = express.Router();
 
-// Helper function to calculate Sunday 12 PM deadline for a given week
 function calculateDeadline(weekStartDate) {
   const startDate = new Date(weekStartDate);
-  // Get the Sunday before the week starts (week starts on Monday)
   const sunday = new Date(startDate);
-  sunday.setDate(startDate.getDate() - 1); // Go back to Sunday
-  sunday.setHours(12, 0, 0, 0); // Set to 12:00 PM
+  sunday.setDate(startDate.getDate() - 1);
+  sunday.setHours(12, 0, 0, 0);
   return sunday;
 }
 
-// Helper function to generate order number
 function generateOrderNumber() {
   const timestamp = Date.now().toString(36);
   const random = Math.random().toString(36).substring(2, 7);
   return `NH-RES-${timestamp}-${random}`.toUpperCase();
 }
 
-// Helper function to calculate order totals
 function calculateOrderTotals(meals) {
   let totalMeals = 0;
   let subtotal = 0;
@@ -41,7 +37,7 @@ function calculateOrderTotals(meals) {
     subtotal += mealPrices[meal.mealType] || 0;
   });
 
-  const tax = subtotal * 0.08875; // NY tax rate
+  const tax = subtotal * 0.08875;
   const total = subtotal + tax;
 
   return {
@@ -52,7 +48,6 @@ function calculateOrderTotals(meals) {
   };
 }
 
-// GET /api/nursing-homes/resident-orders - List orders for a resident
 router.get('/resident-orders', requireNursingHomeUser, async (req, res) => {
   try {
     const { page = 1, limit = 20, residentId, status, paymentStatus, weekStartDate } = req.query;
@@ -60,11 +55,9 @@ router.get('/resident-orders', requireNursingHomeUser, async (req, res) => {
 
     const where = {};
 
-    // Filter by resident
     if (residentId) {
       where.residentId = residentId;
       
-      // Verify user has access to this resident
       if (req.user.role === 'nursing_home_user') {
         const resident = await NursingHomeResident.findByPk(residentId);
         if (!resident || resident.assignedUserId !== req.user.id) {
@@ -75,7 +68,6 @@ router.get('/resident-orders', requireNursingHomeUser, async (req, res) => {
         }
       }
     } else if (req.user.role === 'nursing_home_user') {
-      // Get all residents assigned to this user
       const residents = await NursingHomeResident.findAll({
         where: { assignedUserId: req.user.id },
         attributes: ['id']
@@ -83,7 +75,6 @@ router.get('/resident-orders', requireNursingHomeUser, async (req, res) => {
       where.residentId = residents.map(r => r.id);
     }
 
-    // Filter by facility for NH admin
     if (req.user.role === 'nursing_home_admin') {
       where.facilityId = req.user.nursingHomeFacilityId;
     }
@@ -142,7 +133,6 @@ router.get('/resident-orders', requireNursingHomeUser, async (req, res) => {
   }
 });
 
-// POST /api/nursing-homes/resident-orders - Create draft order for a resident (can be edited until Sunday)
 router.post('/resident-orders', requireNursingHomeUser, [
   body('residentId').isUUID(),
   body('weekStartDate').isDate(),
@@ -162,7 +152,6 @@ router.post('/resident-orders', requireNursingHomeUser, [
 
     const { residentId, weekStartDate, weekEndDate, meals, deliveryAddress, billingEmail, billingName } = req.body;
 
-    // Verify resident exists and user has access
     const resident = await NursingHomeResident.findByPk(residentId, {
       include: [{
         model: NursingHomeFacility,
@@ -177,7 +166,6 @@ router.post('/resident-orders', requireNursingHomeUser, [
       });
     }
 
-    // Check access permissions
     if (req.user.role === 'nursing_home_user') {
       if (resident.assignedUserId !== req.user.id) {
         return res.status(403).json({
@@ -194,13 +182,8 @@ router.post('/resident-orders', requireNursingHomeUser, [
       }
     }
 
-    // Calculate deadline
     const deadline = calculateDeadline(weekStartDate);
-
-    // Calculate totals
     const totals = calculateOrderTotals(meals);
-
-    // Generate order number
     const orderNumber = generateOrderNumber();
 
     const order = await NursingHomeResidentOrder.create({
@@ -246,7 +229,6 @@ router.post('/resident-orders', requireNursingHomeUser, [
   }
 });
 
-// PUT /api/nursing-homes/resident-orders/:id - Update draft order (before Sunday deadline)
 router.put('/resident-orders/:id', requireNursingHomeUser, [
   body('meals').optional().isArray(),
   body('billingEmail').optional().isEmail(),
@@ -270,7 +252,6 @@ router.put('/resident-orders/:id', requireNursingHomeUser, [
       });
     }
 
-    // Check access permissions
     if (req.user.role === 'nursing_home_user') {
       if (order.resident.assignedUserId !== req.user.id) {
         return res.status(403).json({
@@ -280,7 +261,6 @@ router.put('/resident-orders/:id', requireNursingHomeUser, [
       }
     }
 
-    // Can only edit draft orders
     if (order.status !== 'draft') {
       return res.status(400).json({
         success: false,
@@ -289,7 +269,6 @@ router.put('/resident-orders/:id', requireNursingHomeUser, [
       });
     }
 
-    // Check if past deadline
     const now = new Date();
     if (now > order.deadline) {
       return res.status(403).json({
@@ -299,7 +278,6 @@ router.put('/resident-orders/:id', requireNursingHomeUser, [
       });
     }
 
-    // Update meals and recalculate totals if meals changed
     const updateData = {};
     if (meals) {
       updateData.meals = meals;
@@ -337,7 +315,6 @@ router.put('/resident-orders/:id', requireNursingHomeUser, [
   }
 });
 
-// POST /api/nursing-homes/resident-orders/:id/submit-and-pay - Submit order and process payment (Sunday deadline)
 router.post('/resident-orders/:id/submit-and-pay', requireNursingHomeUser, [
   body('paymentMethodId').optional().isString()
 ], async (req, res) => {
@@ -359,7 +336,6 @@ router.post('/resident-orders/:id/submit-and-pay', requireNursingHomeUser, [
       });
     }
 
-    // Check access permissions
     if (req.user.role === 'nursing_home_user') {
       if (order.resident.assignedUserId !== req.user.id) {
         return res.status(403).json({
@@ -369,7 +345,6 @@ router.post('/resident-orders/:id/submit-and-pay', requireNursingHomeUser, [
       }
     }
 
-    // Check if already submitted
     if (order.status === 'submitted' || order.status === 'paid') {
       return res.status(400).json({
         success: false,
@@ -377,7 +352,6 @@ router.post('/resident-orders/:id/submit-and-pay', requireNursingHomeUser, [
       });
     }
 
-    // Check if past deadline (Sunday 12 PM)
     const now = new Date();
     if (now > order.deadline) {
       return res.status(403).json({
@@ -387,11 +361,10 @@ router.post('/resident-orders/:id/submit-and-pay', requireNursingHomeUser, [
       });
     }
 
-    // Process payment with Stripe - resident will be charged and receive receipt
     let paymentIntent;
     try {
       paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(order.total * 100), // Convert to cents
+        amount: Math.round(order.total * 100),
         currency: 'usd',
         payment_method: paymentMethodId || order.resident.paymentMethodId,
         confirm: true,
@@ -406,11 +379,10 @@ router.post('/resident-orders/:id/submit-and-pay', requireNursingHomeUser, [
           totalMeals: order.totalMeals.toString(),
           billingName: order.billingName || ''
         },
-        receipt_email: order.billingEmail, // Receipt sent directly to resident/family
-        statement_descriptor: 'MKD MEALS' // Shows on credit card statement
+        receipt_email: order.billingEmail,
+        statement_descriptor: 'MKD MEALS'
       });
 
-      // Update order
       await order.update({
         status: 'paid',
         paymentStatus: 'paid',
@@ -435,7 +407,6 @@ router.post('/resident-orders/:id/submit-and-pay', requireNursingHomeUser, [
     } catch (stripeError) {
       logger.error('Stripe payment failed:', stripeError);
       
-      // Update order to failed payment
       await order.update({
         paymentStatus: 'failed'
       });
@@ -456,7 +427,6 @@ router.post('/resident-orders/:id/submit-and-pay', requireNursingHomeUser, [
   }
 });
 
-// GET /api/nursing-homes/resident-orders/:id/export - Export order
 router.get('/resident-orders/:id/export', requireNursingHomeUser, async (req, res) => {
   try {
     const { id } = req.params;
@@ -481,7 +451,6 @@ router.get('/resident-orders/:id/export', requireNursingHomeUser, async (req, re
       });
     }
 
-    // Check access permissions
     if (req.user.role === 'nursing_home_user') {
       if (order.resident.assignedUserId !== req.user.id) {
         return res.status(403).json({
@@ -491,11 +460,9 @@ router.get('/resident-orders/:id/export', requireNursingHomeUser, async (req, re
       }
     }
 
-    // Create Excel workbook
     const workbook = XLSX.utils.book_new();
     const worksheetData = [];
 
-    // Add header
     worksheetData.push(['Weekly Meal Order']);
     worksheetData.push(['Resident:', order.residentName]);
     worksheetData.push(['Room:', order.roomNumber || 'N/A']);
@@ -506,7 +473,6 @@ router.get('/resident-orders/:id/export', requireNursingHomeUser, async (req, re
     worksheetData.push([]);
     worksheetData.push(['Day', 'Meal Type', 'Items', 'Bagel Type', 'Price']);
 
-    // Add meal data
     order.meals.forEach(meal => {
       const itemNames = meal.items.map(i => i.name).join(', ');
       const mealPrice = meal.items.reduce((sum, i) => sum + (parseFloat(i.price) || 0), 0);
@@ -523,10 +489,8 @@ router.get('/resident-orders/:id/export', requireNursingHomeUser, async (req, re
     const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Meal Order');
 
-    // Generate buffer
     const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
 
-    // Set headers and send file
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="meal-order-${order.orderNumber}.xlsx"`);
     res.send(buffer);
