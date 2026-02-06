@@ -17,6 +17,11 @@ const promoCodeRoutes = require('./routes/promo-codes');
 const supportRoutes = require('./routes/support');
 const countdownRoutes = require('./routes/countdown');
 const taxRoutes = require('./routes/tax');
+const nursingHomesRoutes = require('./routes/nursing-homes');
+const nursingHomeResidentsRoutes = require('./routes/nursing-home-residents');
+const nursingHomeMenuRoutes = require('./routes/nursing-home-menu');
+const nursingHomeOrdersRoutes = require('./routes/nursing-home-orders');
+const nursingHomeInvoicesRoutes = require('./routes/nursing-home-invoices');
 
 const app = express();
 
@@ -91,6 +96,11 @@ app.use('/api/support', supportRoutes);
 app.use('/api/countdown', countdownRoutes);
 app.use('/api/tax', taxRoutes);
 app.use('/api/images', require('./routes/images'));
+app.use('/api/nursing-homes', nursingHomesRoutes);
+app.use('/api/nursing-homes', nursingHomeResidentsRoutes);
+app.use('/api/nursing-homes', nursingHomeMenuRoutes);
+app.use('/api/nursing-homes', nursingHomeOrdersRoutes);
+app.use('/api/nursing-homes', nursingHomeInvoicesRoutes);
 
 app.get('/api/health', async (req, res) => {
   try {

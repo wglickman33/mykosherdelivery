@@ -255,7 +255,7 @@ router.put('/users/:userId', requireAdmin, async (req, res) => {
 });
 
 router.patch('/users/:userId/role', requireAdmin, [
-  body('role').isIn(['user', 'restaurant_owner', 'admin'])
+  body('role').isIn(['user', 'restaurant_owner', 'admin', 'nursing_home_admin', 'nursing_home_user'])
 ], async (req, res) => {
     console.log("Restaurant creation request body:", req.body);
   try {
@@ -327,7 +327,7 @@ router.post('/users', requireAdmin, [
     .withMessage('Password must contain at least one special character'),
   body('firstName').notEmpty().trim(),
   body('lastName').notEmpty().trim(),
-  body('role').isIn(['user', 'restaurant_owner', 'admin'])
+  body('role').isIn(['user', 'restaurant_owner', 'admin', 'nursing_home_admin', 'nursing_home_user'])
 ], async (req, res) => {
   try {
     const errors = validationResult(req);

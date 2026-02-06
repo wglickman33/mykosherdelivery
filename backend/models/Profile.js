@@ -45,8 +45,13 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: 0
     },
     role: {
-      type: DataTypes.ENUM('user', 'restaurant_owner', 'admin'),
+      type: DataTypes.ENUM('user', 'restaurant_owner', 'admin', 'nursing_home_admin', 'nursing_home_user'),
       defaultValue: 'user'
+    },
+    nursingHomeFacilityId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: 'nursing_home_facility_id'
     },
     createdAt: {
       type: DataTypes.DATE,
@@ -104,6 +109,21 @@ module.exports = (sequelize, DataTypes) => {
     Profile.hasMany(models.Notification, {
       foreignKey: 'userId',
       as: 'notifications'
+    });
+    
+    Profile.belongsTo(models.NursingHomeFacility, {
+      foreignKey: 'nursingHomeFacilityId',
+      as: 'nursingHomeFacility'
+    });
+    
+    Profile.hasMany(models.NursingHomeResident, {
+      foreignKey: 'assignedUserId',
+      as: 'assignedResidents'
+    });
+    
+    Profile.hasMany(models.NursingHomeOrder, {
+      foreignKey: 'createdByUserId',
+      as: 'nursingHomeOrders'
     });
   };
 

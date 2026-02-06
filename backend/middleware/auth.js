@@ -203,10 +203,71 @@ const optionalAuth = async (req, res, next) => {
   }
 };
 
+const requireNursingHomeAdmin = async (req, res, next) => {
+  try {
+    await new Promise((resolve, reject) => {
+      authenticateToken(req, res, (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+  } catch {
+    return;
+  }
+
+  if (!req.user) {
+    return res.status(401).json({ 
+      error: 'Authentication required',
+      message: 'Please sign in first'
+    });
+  }
+
+  if (req.user.role !== 'nursing_home_admin' && req.user.role !== 'admin') {
+    return res.status(403).json({ 
+      error: 'Nursing home admin access required',
+      message: 'You do not have permission to access this resource'
+    });
+  }
+
+  next();
+};
+
+const requireNursingHomeUser = async (req, res, next) => {
+  try {
+    await new Promise((resolve, reject) => {
+      authenticateToken(req, res, (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+  } catch {
+    return;
+  }
+
+  if (!req.user) {
+    return res.status(401).json({ 
+      error: 'Authentication required',
+      message: 'Please sign in first'
+    });
+  }
+
+  const allowedRoles = ['nursing_home_user', 'nursing_home_admin', 'admin'];
+  if (!allowedRoles.includes(req.user.role)) {
+    return res.status(403).json({ 
+      error: 'Nursing home access required',
+      message: 'You do not have permission to access this resource'
+    });
+  }
+
+  next();
+};
+
 module.exports = {
   authenticateToken,
   requireAdmin,
   requireRestaurantOwnerOrAdmin,
+  requireNursingHomeAdmin,
+  requireNursingHomeUser,
   optionalAuth,
   blacklistToken,
   checkRateLimit
