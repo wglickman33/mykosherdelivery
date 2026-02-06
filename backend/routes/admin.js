@@ -201,10 +201,14 @@ router.put('/users/:userId', requireAdmin, [
     }
 
     const transformedUpdates = {};
-    if (updates.first_name !== undefined) transformedUpdates.firstName = updates.first_name.trim();
-    if (updates.last_name !== undefined) transformedUpdates.lastName = updates.last_name.trim();
+    if (updates.first_name !== undefined) {
+      transformedUpdates.firstName = updates.first_name ? updates.first_name.trim() : null;
+    }
+    if (updates.last_name !== undefined) {
+      transformedUpdates.lastName = updates.last_name ? updates.last_name.trim() : null;
+    }
     if (updates.phone_number !== undefined) {
-      transformedUpdates.phone = updates.phone_number.trim() || null;
+      transformedUpdates.phone = updates.phone_number && updates.phone_number.trim() ? updates.phone_number.trim() : null;
     }
     if (updates.role !== undefined) transformedUpdates.role = updates.role;
     if (updates.email !== undefined && updates.email !== user.email) {
