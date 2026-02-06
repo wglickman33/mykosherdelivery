@@ -518,6 +518,7 @@ const AdminUsers = () => {
                     <select
                       value={editFormData.role || USER_ROLES.USER}
                       onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value })}
+                      required
                     >
                       <option value={USER_ROLES.USER}>Customer</option>
                       <option value={USER_ROLES.RESTAURANT_OWNER}>Restaurant Owner</option>
