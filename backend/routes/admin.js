@@ -216,7 +216,9 @@ router.put('/users/:userId', requireAdmin, [
     if (updates.phone_number !== undefined) {
       transformedUpdates.phone = updates.phone_number && updates.phone_number.trim() ? updates.phone_number.trim() : null;
     }
-    if (updates.role !== undefined) transformedUpdates.role = updates.role;
+    if (updates.role !== undefined) {
+      transformedUpdates.role = updates.role;
+    }
     if (updates.email !== undefined && updates.email !== user.email) {
       const existingUser = await Profile.findOne({ where: { email: updates.email } });
       if (existingUser && existingUser.id !== userId) {
@@ -226,6 +228,13 @@ router.put('/users/:userId', requireAdmin, [
         });
       }
       transformedUpdates.email = updates.email;
+    }
+
+    if (Object.keys(transformedUpdates).length === 0) {
+      return res.status(400).json({
+        error: 'No updates provided',
+        message: 'At least one field must be updated'
+      });
     }
 
     const oldValues = user.toJSON();
