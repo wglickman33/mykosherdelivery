@@ -181,8 +181,14 @@ router.put('/users/:userId', requireAdmin, [
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      logger.warn('Validation errors for user update:', {
+        userId: req.params.userId,
+        errors: errors.array(),
+        body: req.body
+      });
       return res.status(400).json({
         error: 'Validation failed',
+        message: errors.array().map(e => e.msg).join(', '),
         details: errors.array()
       });
     }
