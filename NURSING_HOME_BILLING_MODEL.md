@@ -2,40 +2,85 @@
 
 ## Overview
 
-The nursing home system uses a **per-resident, pre-order weekly billing model**. Each resident (or their family) pays for their meals in advance when the order is submitted.
+The nursing home system uses a **per-resident, weekly billing model**. Each resident (or their family) receives a bill and pays for their meals once per week when orders are submitted by Sunday 12:00 PM.
+
+## Weekly Workflow
+
+### Timeline:
+```
+Monday-Saturday: Worker creates/edits order (DRAFT)
+                 ↓
+Sunday 12:00 PM: Worker submits order + payment
+                 ↓
+                 Payment processed via Stripe
+                 ↓
+                 Resident receives bill/receipt via email
+                 ↓
+Monday-Sunday:   Meals delivered daily
+```
 
 ## Key Concepts
 
-### 1. Weekly Pre-Orders
-- Orders are placed by **Sunday 12:00 PM** for the upcoming week (Monday-Sunday)
-- Each resident has their own separate order
-- Payment is required at the time of order submission
+### 1. Weekly Ordering Cycle
+- **Workers create orders** throughout the week (Monday-Saturday)
+- Orders can be modified anytime before the deadline
+- **Deadline: Sunday 12:00 PM** for the upcoming week (Monday-Sunday)
+- **Payment is processed once** when the worker submits the final order on Sunday
 - Orders cannot be modified after the deadline (except by MKD admin)
 
 ### 2. Per-Resident Billing
 - **Each resident is billed individually**
-- Billing information is stored per resident:
-  - `billingEmail` - Email to send invoices/receipts to
-  - `billingName` - Name of person responsible for payment
-  - `billingPhone` - Contact phone number
-  - `paymentMethodId` - Saved Stripe payment method for automatic billing
+- **Residents receive the bill directly** (not the facility)
+- **Workers facilitate the process** but residents pay
+
+#### Worker Responsibilities:
+1. **Create order** - Add meals for resident throughout the week
+2. **Collect payment info** - Get card details or billing info from resident/family
+3. **Submit order** - Enter payment and submit by Sunday 12 PM
+4. **Confirm receipt** - Verify resident received email receipt
+
+#### What Residents Receive:
+- **Email receipt** from Stripe with:
+  - Order number
+  - Itemized meal list
+  - Total amount charged
+  - Payment method (last 4 digits)
+  - Receipt PDF
+- **Credit card statement** showing "MKD MEALS"
+
+#### Billing Information (per resident):
+- `billingEmail` - Email to send invoices/receipts to (resident or family)
+- `billingName` - Name of person responsible for payment
+- `billingPhone` - Contact phone number
+- `paymentMethodId` - Saved Stripe payment method for automatic weekly billing
 
 ### 3. Payment Flow
 
-#### Option A: Manual Payment (One-Time)
-1. NH User creates order for resident
-2. NH User submits order with payment method
-3. Payment is processed immediately via Stripe
-4. Order status changes to "paid"
-5. Receipt is emailed to `billingEmail`
+#### Standard Weekly Flow:
+1. **Monday-Saturday**: NH Worker adds meals to order (draft status)
+   - Worker can add/edit meals for the week
+   - No payment required yet
+   - Order remains in "draft" status
 
-#### Option B: Automatic Payment (Saved Card)
-1. Resident/family saves payment method to their profile
-2. NH User creates order for resident
-3. NH User submits order (no payment method needed)
+2. **Sunday by 12 PM**: NH Worker submits final order with payment
+   - Worker enters resident's payment method (or uses saved method)
+   - Payment is processed immediately via Stripe
+   - **Resident is charged once for the entire week**
+   - Order status changes to "paid"
+   - **Bill/receipt is emailed directly to resident** (at `billingEmail`)
+
+#### Option A: One-Time Payment (New Resident)
+1. Worker collects payment info from resident/family
+2. Worker enters card details when submitting order
+3. Payment processed immediately
+4. Receipt emailed to resident
+
+#### Option B: Automatic Payment (Returning Resident)
+1. Resident has saved payment method on file
+2. Worker creates order throughout the week
+3. Worker submits order on Sunday (no payment entry needed)
 4. System automatically charges saved payment method
-5. Order status changes to "paid"
-6. Receipt is emailed to `billingEmail`
+5. Receipt emailed to resident
 
 ### 4. Order Statuses
 
@@ -211,6 +256,9 @@ For a resident ordering all 21 meals (3 meals × 7 days):
 - **Tax**: $36.65
 - **Total**: $449.65
 
+**Billed once on Sunday when order is submitted.**
+**Resident receives the bill directly via email.**
+
 ## Payment Methods Supported
 
 ### Stripe Integration
@@ -273,11 +321,14 @@ Sent every Thursday to residents with saved payment methods:
 - Contact MKD admin for special requests
 - View payment status for all residents
 
-### NH User Can:
+### NH User (Worker) Can:
 - Create orders for assigned residents only
-- Submit orders with payment
+- Add/edit meals throughout the week (before deadline)
+- Collect payment information from residents/families
+- Submit final order with payment by Sunday 12 PM
 - View order history for assigned residents
 - Export orders for family members
+- **Note**: Workers facilitate ordering but residents receive the bills
 
 ## Reporting & Analytics
 

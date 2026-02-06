@@ -142,7 +142,7 @@ router.get('/resident-orders', requireNursingHomeUser, async (req, res) => {
   }
 });
 
-// POST /api/nursing-homes/resident-orders - Create order for a resident
+// POST /api/nursing-homes/resident-orders - Create draft order for a resident (can be edited until Sunday)
 router.post('/resident-orders', requireNursingHomeUser, [
   body('residentId').isUUID(),
   body('weekStartDate').isDate(),
@@ -246,7 +246,98 @@ router.post('/resident-orders', requireNursingHomeUser, [
   }
 });
 
-// POST /api/nursing-homes/resident-orders/:id/submit-and-pay - Submit order and process payment
+// PUT /api/nursing-homes/resident-orders/:id - Update draft order (before Sunday deadline)
+router.put('/resident-orders/:id', requireNursingHomeUser, [
+  body('meals').optional().isArray(),
+  body('billingEmail').optional().isEmail(),
+  body('billingName').optional().isString()
+], async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { meals, billingEmail, billingName, notes } = req.body;
+
+    const order = await NursingHomeResidentOrder.findByPk(id, {
+      include: [{
+        model: NursingHomeResident,
+        as: 'resident'
+      }]
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        error: 'Order not found'
+      });
+    }
+
+    // Check access permissions
+    if (req.user.role === 'nursing_home_user') {
+      if (order.resident.assignedUserId !== req.user.id) {
+        return res.status(403).json({
+          success: false,
+          error: 'Access denied'
+        });
+      }
+    }
+
+    // Can only edit draft orders
+    if (order.status !== 'draft') {
+      return res.status(400).json({
+        success: false,
+        error: 'Can only edit draft orders',
+        message: 'Order has already been submitted'
+      });
+    }
+
+    // Check if past deadline
+    const now = new Date();
+    if (now > order.deadline) {
+      return res.status(403).json({
+        success: false,
+        error: 'Cannot edit order after deadline',
+        message: 'Orders must be submitted by Sunday 12:00 PM'
+      });
+    }
+
+    // Update meals and recalculate totals if meals changed
+    const updateData = {};
+    if (meals) {
+      updateData.meals = meals;
+      const totals = calculateOrderTotals(meals);
+      updateData.totalMeals = totals.totalMeals;
+      updateData.subtotal = totals.subtotal;
+      updateData.tax = totals.tax;
+      updateData.total = totals.total;
+    }
+
+    if (billingEmail) updateData.billingEmail = billingEmail;
+    if (billingName) updateData.billingName = billingName;
+    if (notes !== undefined) updateData.notes = notes;
+
+    await order.update(updateData);
+
+    logger.info('Resident order updated', {
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      updatedBy: req.user.id
+    });
+
+    res.json({
+      success: true,
+      data: order,
+      message: 'Order updated successfully'
+    });
+  } catch (error) {
+    logger.error('Error updating resident order:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update order',
+      message: error.message
+    });
+  }
+});
+
+// POST /api/nursing-homes/resident-orders/:id/submit-and-pay - Submit order and process payment (Sunday deadline)
 router.post('/resident-orders/:id/submit-and-pay', requireNursingHomeUser, [
   body('paymentMethodId').optional().isString()
 ], async (req, res) => {
@@ -286,17 +377,17 @@ router.post('/resident-orders/:id/submit-and-pay', requireNursingHomeUser, [
       });
     }
 
-    // Check if past deadline
+    // Check if past deadline (Sunday 12 PM)
     const now = new Date();
     if (now > order.deadline) {
       return res.status(403).json({
         success: false,
         error: 'Cannot submit order after deadline',
-        message: 'Orders must be submitted by Sunday 12:00 PM'
+        message: 'Orders must be submitted by Sunday 12:00 PM. Contact admin for assistance.'
       });
     }
 
-    // Process payment with Stripe
+    // Process payment with Stripe - resident will be charged and receive receipt
     let paymentIntent;
     try {
       paymentIntent = await stripe.paymentIntents.create({
@@ -305,15 +396,18 @@ router.post('/resident-orders/:id/submit-and-pay', requireNursingHomeUser, [
         payment_method: paymentMethodId || order.resident.paymentMethodId,
         confirm: true,
         automatic_payment_methods: paymentMethodId ? undefined : { enabled: true, allow_redirects: 'never' },
-        description: `Nursing Home Meals - Week of ${order.weekStartDate}`,
+        description: `Weekly Meal Order - ${order.residentName} - Week of ${order.weekStartDate}`,
         metadata: {
           orderNumber: order.orderNumber,
           residentName: order.residentName,
           roomNumber: order.roomNumber || '',
           weekStartDate: order.weekStartDate,
-          weekEndDate: order.weekEndDate
+          weekEndDate: order.weekEndDate,
+          totalMeals: order.totalMeals.toString(),
+          billingName: order.billingName || ''
         },
-        receipt_email: order.billingEmail
+        receipt_email: order.billingEmail, // Receipt sent directly to resident/family
+        statement_descriptor: 'MKD MEALS' // Shows on credit card statement
       });
 
       // Update order
