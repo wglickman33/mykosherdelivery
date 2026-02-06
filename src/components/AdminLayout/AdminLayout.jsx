@@ -27,7 +27,7 @@ const AdminLayout = () => {
 
   useEffect(() => {
     if (authContextLoading) return;
-    const isAdmin = user && user.role === 'admin';
+    const isAdmin = user && (user.role === 'admin' || user.role === 'nursing_home_admin');
     if (!isAdmin) {
       navigate('/admin/login', { replace: true });
       return;
@@ -259,36 +259,42 @@ const AdminLayout = () => {
     );
   }
 
-  if (!user || user.role !== 'admin') {
+  if (!user || (user.role !== 'admin' && user.role !== 'nursing_home_admin')) {
     return null;
   }
+
+  const isNursingHomeAdmin = user.role === 'nursing_home_admin';
+  const isSuperAdmin = user.role === 'admin';
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: (
         <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
-      ), path: '/admin/dashboard' },
+      ), path: '/admin/dashboard', roles: ['admin', 'nursing_home_admin'] },
     { id: 'orders', label: 'Orders', icon: (
         <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M19 7h-3V6a4 4 0 0 0-8 0v1H5a1 1 0 0 0-1 1v11a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V8a1 1 0 0 0-1-1zM10 6a2 2 0 0 1 4 0v1h-4V6zm8 13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V9h2v1a1 1 0 0 0 2 0V9h4v1a1 1 0 0 0 2 0V9h2v10z"/></svg>
-      ), path: '/admin/orders', badge: notifications.orders },
+      ), path: '/admin/orders', badge: notifications.orders, roles: ['admin'] },
     { id: 'users', label: 'Users', icon: (
         <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-      ), path: '/admin/users' },
+      ), path: '/admin/users', roles: ['admin'] },
     { id: 'restaurants', label: 'Restaurants', icon: (
         <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M8.1 13.34l2.83-2.83L3.91 3.5a4.008 4.008 0 000 5.66l4.19 4.18zm6.78-1.81c1.53.71 3.68.21 5.27-1.38 1.91-1.91 2.28-4.65.81-6.12-1.46-1.46-4.2-1.1-6.12.81-1.59 1.59-2.09 3.74-1.38 5.27L3.7 19.87l1.41 1.41L12 14.41l6.88 6.88 1.41-1.41-5.51-5.51z"/></svg>
-      ), path: '/admin/restaurants' },
+      ), path: '/admin/restaurants', roles: ['admin'] },
+    { id: 'nursing-homes', label: 'Nursing Homes', icon: (
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 3L4 9v12h16V9l-8-6zm6 16h-3v-3h-2v3H10v-5H8v5H5V10l7-5 7 5v9z"/></svg>
+      ), path: '/admin/nursing-homes', roles: ['admin', 'nursing_home_admin'] },
     { id: 'analytics', label: 'Analytics', icon: (
         <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M3 17h2v-7H3v7zm4 0h2V7H7v10zm4 0h2v-4h-2v4zm4 0h2V4h-2v13zm4 0h2V9h-2v8z"/></svg>
-      ), path: '/admin/analytics' },
+      ), path: '/admin/analytics', roles: ['admin'] },
     { id: 'requests', label: 'Requests', icon: (
         <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M3 4h18v2H3V4zm0 5h18v2H3V9zm0 5h12v2H3v-2z"/></svg>
-      ), path: '/admin/requests', badge: notifications.tickets },
+      ), path: '/admin/requests', badge: notifications.tickets, roles: ['admin'] },
     { id: 'campaigns', label: 'Campaigns', icon: (
         <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
-      ), path: '/admin/campaigns' },
+      ), path: '/admin/campaigns', roles: ['admin'] },
     { id: 'settings', label: 'Settings', icon: (
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" aria-hidden="true"><path d="M19.14 12.94C19.18 12.64 19.2 12.33 19.2 12C19.2 11.68 19.18 11.36 19.13 11.06L21.16 9.48C21.34 9.34 21.39 9.07 21.28 8.87L19.36 5.55C19.24 5.33 18.99 5.26 18.77 5.33L16.38 6.29C15.88 5.91 15.35 5.59 14.76 5.35L14.4 2.81C14.36 2.57 14.16 2.4 13.92 2.4H10.08C9.84 2.4 9.65 2.57 9.61 2.81L9.25 5.35C8.66 5.59 8.12 5.92 7.63 6.29L5.24 5.33C5.02 5.25 4.77 5.33 4.65 5.55L2.74 8.87C2.62 9.08 2.66 9.34 2.86 9.48L4.89 11.06C4.84 11.36 4.8 11.69 4.8 12C4.8 12.31 4.82 12.64 4.87 12.94L2.84 14.52C2.66 14.66 2.61 14.93 2.72 15.13L4.64 18.45C4.76 18.67 5.01 18.74 5.23 18.67L7.62 17.71C8.12 18.09 8.65 18.41 9.24 18.65L9.6 21.19C9.65 21.43 9.84 21.6 10.08 21.6H13.92C14.16 21.6 14.36 21.43 14.39 21.19L14.75 18.65C15.34 18.41 15.88 18.09 16.37 17.71L18.76 18.67C18.98 18.75 19.23 18.67 19.35 18.45L21.27 15.13C21.39 14.91 21.34 14.66 21.15 14.52L19.14 12.94ZM12 15.6C10.02 15.6 8.4 13.98 8.4 12C8.4 10.02 10.02 8.4 12 8.4C13.98 8.4 15.6 10.02 15.6 12C15.6 13.98 13.98 15.6 12 15.6Z" fill="currentColor"/></svg>
-      ), path: '/admin/settings' }
-  ];
+      ), path: '/admin/settings', roles: ['admin'] }
+  ].filter(item => !item.roles || item.roles.includes(user.role));
 
   return (
     <div className="admin-layout">
@@ -342,7 +348,9 @@ const AdminLayout = () => {
             {!sidebarCollapsed && (
               <div className="user-info">
                 <span className="user-name">{user.firstName} {user.lastName}</span>
-                <span className="user-role">{user.role === 'admin' ? 'Super Admin' : user.role}</span>
+                <span className="user-role">
+                  {user.role === 'admin' ? 'Super Admin' : user.role === 'nursing_home_admin' ? 'NH Admin' : user.role}
+                </span>
               </div>
             )}
           </div>

@@ -37,6 +37,7 @@ import AdminAnalyticsRestaurants from "./components/AdminAnalytics/AdminAnalytic
 import AdminSettings from "./components/AdminSettings/AdminSettings";
 import AdminRequests from "./components/AdminRequests/AdminRequests";
 import AdminCampaigns from "./components/AdminCampaigns/AdminCampaigns";
+import AdminNursingHomes from "./components/AdminNursingHomes/AdminNursingHomes";
 import AdminNotFoundPage from "./components/AdminNotFoundPage/AdminNotFoundPage";
 import NotFoundPage from "./components/NotFoundPage/NotFoundPage";
 import ErrorBoundary from "./components/ErrorBoundary/ErrorBoundary";
@@ -190,6 +191,7 @@ function AuthenticatedApp() {
             <Route path="analytics/restaurants" element={<AdminAnalyticsRestaurants />} />
             <Route path="requests" element={<AdminRequests />} />
             <Route path="campaigns" element={<AdminCampaigns />} />
+            <Route path="nursing-homes" element={<AdminNursingHomes />} />
             <Route path="settings" element={<AdminSettings />} />
             <Route path="" element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="*" element={<AdminNotFoundPage />} />
