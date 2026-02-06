@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchResidents, fetchResidentOrders } from '../../services/nursingHomeService';
+import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
+import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import './NursingHomeDashboard.scss';
 
 const NursingHomeDashboard = () => {
@@ -59,9 +61,7 @@ const NursingHomeDashboard = () => {
   if (loading) {
     return (
       <div className="nursing-home-dashboard">
-        <div className="loading-spinner" role="status" aria-live="polite">
-          <span className="sr-only">Loading dashboard data...</span>
-        </div>
+        <LoadingSpinner size="large" />
       </div>
     );
   }
@@ -69,9 +69,7 @@ const NursingHomeDashboard = () => {
   if (error) {
     return (
       <div className="nursing-home-dashboard">
-        <div className="error-message" role="alert" aria-live="assertive">
-          <strong>Error:</strong> {error}
-        </div>
+        <ErrorMessage message={error} type="error" />
         <button 
           onClick={loadDashboardData}
           className="retry-btn"

@@ -10,9 +10,9 @@ const {
 } = require('../models');
 const { requireNursingHomeAdmin, requireNursingHomeUser } = require('../middleware/auth');
 const { body, query, validationResult } = require('express-validator');
+const { generateOrderNumber: generateBaseOrderNumber, calculateResidentOrderTotals } = require('../services/orderService');
 const logger = require('../utils/logger');
 const XLSX = require('xlsx');
-const crypto = require('crypto');
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('STRIPE_SECRET_KEY not configured');
@@ -84,15 +84,11 @@ function calculateDeadline(weekStartDate) {
 }
 
 function generateOrderNumber() {
-  const timestamp = Date.now().toString(36).toUpperCase();
-  const random = crypto.randomBytes(4).toString('hex').toUpperCase();
-  return `NH-RES-${timestamp}-${random}`;
+  return generateBaseOrderNumber('NH-RES');
 }
 
 function generateBulkOrderNumber() {
-  const timestamp = Date.now().toString(36);
-  const random = Math.random().toString(36).substring(2, 7);
-  return `NH-${timestamp}-${random}`.toUpperCase();
+  return generateBaseOrderNumber('NH');
 }
 
 async function calculateOrderTotalsFromDB(meals) {

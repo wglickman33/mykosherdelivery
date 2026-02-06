@@ -5,6 +5,7 @@ const { body, validationResult } = require('express-validator');
 const { sendOrderConfirmationEmail } = require('../services/emailService');
 const { emitOrderCreated } = require('../utils/events');
 const { appEvents } = require('../utils/events');
+const { generateOrderNumber, calculateTotals } = require('../services/orderService');
 const logger = require('../utils/logger');
 
 const router = express.Router();
@@ -82,7 +83,7 @@ router.post('/guest', [
     const orders = [];
 
     for (const [restaurantId, group] of Object.entries(restaurantGroups)) {
-      const orderNumber = Math.floor(1000000000 + Math.random() * 9000000000).toString();
+      const orderNumber = generateOrderNumber();
       
       const order = await Order.create({
         userId: null,
@@ -172,7 +173,7 @@ router.post('/', authenticateToken, [
       });
     }
 
-    const orderNumber = Math.floor(1000000000 + Math.random() * 9000000000).toString();
+    const orderNumber = generateOrderNumber();
     
     const allItems = [];
     Object.entries(restaurantGroups).forEach(([restaurantId, group]) => {

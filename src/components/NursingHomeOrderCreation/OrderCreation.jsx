@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { fetchResident, fetchMenuItems, createResidentOrder, fetchFacility } from '../../services/nursingHomeService';
+import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
+import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import MealForm from './MealForm';
 import OrderSummary from './OrderSummary';
 import './OrderCreation.scss';
@@ -143,7 +145,7 @@ const OrderCreation = () => {
   if (loading) {
     return (
       <div className="order-creation">
-        <div className="loading-spinner">Loading...</div>
+        <LoadingSpinner size="large" />
       </div>
     );
   }
@@ -151,7 +153,7 @@ const OrderCreation = () => {
   if (error && !resident) {
     return (
       <div className="order-creation">
-        <div className="error-message">{error}</div>
+        <ErrorMessage message={error} type="error" />
         <button onClick={() => navigate('/nursing-homes/dashboard')}>Back to Dashboard</button>
       </div>
     );

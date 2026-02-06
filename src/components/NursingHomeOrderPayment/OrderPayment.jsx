@@ -1,106 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
-import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { Elements } from '@stripe/react-stripe-js';
 import { fetchResidentOrders, submitAndPayOrder } from '../../services/nursingHomeService';
+import StripePaymentForm from '../StripePaymentForm/StripePaymentForm';
+import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
+import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import './OrderPayment.scss';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
-
-const PaymentForm = ({ order, onSuccess, onError }) => {
-  const stripe = useStripe();
-  const elements = useElements();
-  const [processing, setProcessing] = useState(false);
-  const [saveCard, setSaveCard] = useState(false);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!stripe || !elements) {
-      return;
-    }
-
-    setProcessing(true);
-
-    try {
-      const cardElement = elements.getElement(CardElement);
-      
-      const { error, paymentMethod } = await stripe.createPaymentMethod({
-        type: 'card',
-        card: cardElement,
-      });
-
-      if (error) {
-        onError(error.message);
-        setProcessing(false);
-        return;
-      }
-
-      const result = await submitAndPayOrder(order.id, {
-        paymentMethodId: paymentMethod.id
-      });
-
-      if (result.success) {
-        onSuccess(result.data);
-      } else {
-        onError(result.error || 'Payment failed');
-      }
-    } catch (err) {
-      console.error('Payment error:', err);
-      onError(err.response?.data?.message || 'Payment processing failed');
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  const cardElementOptions = {
-    style: {
-      base: {
-        fontSize: '16px',
-        color: '#1e293b',
-        '::placeholder': {
-          color: '#94a3b8',
-        },
-      },
-      invalid: {
-        color: '#dc2626',
-      },
-    },
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="payment-form">
-      <div className="card-element-container">
-        <label>Card Information</label>
-        <CardElement options={cardElementOptions} />
-      </div>
-
-      <div className="save-card-option">
-        <label>
-          <input
-            type="checkbox"
-            checked={saveCard}
-            onChange={(e) => setSaveCard(e.target.checked)}
-          />
-          <span>Save card for future orders</span>
-        </label>
-      </div>
-
-      <button
-        type="submit"
-        className="submit-payment-btn"
-        disabled={!stripe || processing}
-      >
-        {processing ? 'Processing...' : `Pay $${parseFloat(order.total).toFixed(2)}`}
-      </button>
-
-      <div className="payment-security">
-        <p><span className="security-icon">🔒</span> Secure payment powered by Stripe</p>
-        <p className="security-note">Your payment information is encrypted and secure</p>
-      </div>
-    </form>
-  );
-};
 
 const OrderPayment = () => {
   const { orderId } = useParams();
@@ -142,8 +50,19 @@ const OrderPayment = () => {
     }
   };
 
-  const handlePaymentSuccess = (updatedOrder) => {
-    navigate(`/nursing-homes/orders/${updatedOrder.id}/confirmation`);
+  const createPaymentIntent = async () => {
+    const result = await submitAndPayOrder(order.id, {});
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to create payment intent');
+    }
+    return {
+      clientSecret: result.clientSecret,
+      paymentIntentId: result.paymentIntentId
+    };
+  };
+
+  const handlePaymentSuccess = () => {
+    navigate(`/nursing-homes/orders/${order.id}/confirmation`);
   };
 
   const handlePaymentError = (errorMessage) => {
@@ -166,7 +85,7 @@ const OrderPayment = () => {
   if (loading) {
     return (
       <div className="order-payment">
-        <div className="loading-spinner">Loading...</div>
+        <LoadingSpinner size="large" />
       </div>
     );
   }
@@ -174,7 +93,7 @@ const OrderPayment = () => {
   if (error) {
     return (
       <div className="order-payment">
-        <div className="error-message">{error}</div>
+        <ErrorMessage message={error} type="error" />
         <button onClick={() => navigate('/nursing-homes/dashboard')}>
           Back to Dashboard
         </button>
@@ -265,16 +184,20 @@ const OrderPayment = () => {
           <h2>Payment</h2>
           
           {paymentError && (
-            <div className="payment-error">
-              {paymentError}
-            </div>
+            <ErrorMessage 
+              message={paymentError} 
+              type="error"
+              onDismiss={() => setPaymentError(null)}
+            />
           )}
 
           <Elements stripe={stripePromise}>
-            <PaymentForm
-              order={order}
+            <StripePaymentForm
+              amount={order.total}
+              createPaymentIntent={createPaymentIntent}
               onSuccess={handlePaymentSuccess}
               onError={handlePaymentError}
+              saveCardOption={true}
             />
           </Elements>
 
