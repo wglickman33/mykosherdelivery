@@ -231,7 +231,32 @@ router.put('/users/:userId', requireAdmin, [
     const oldValues = user.toJSON();
     delete oldValues.password;
 
-    await user.update(transformedUpdates);
+    try {
+      await user.update(transformedUpdates);
+    } catch (updateError) {
+      logger.error('Sequelize update error:', {
+        error: updateError.message,
+        name: updateError.name,
+        userId: userId,
+        updates: transformedUpdates
+      });
+      
+      if (updateError.name === 'SequelizeValidationError') {
+        return res.status(400).json({
+          error: 'Validation error',
+          message: updateError.errors.map(e => e.message).join(', ')
+        });
+      }
+      
+      if (updateError.name === 'SequelizeUniqueConstraintError') {
+        return res.status(400).json({
+          error: 'Unique constraint violation',
+          message: 'A user with this information already exists'
+        });
+      }
+      
+      throw updateError;
+    }
 
     try {
       await logAdminAction(
