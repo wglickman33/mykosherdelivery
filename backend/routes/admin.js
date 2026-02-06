@@ -233,12 +233,14 @@ router.put('/users/:userId', requireAdmin, [
 
     try {
       await user.update(transformedUpdates);
+      await user.reload();
     } catch (updateError) {
       logger.error('Sequelize update error:', {
         error: updateError.message,
         name: updateError.name,
         userId: userId,
-        updates: transformedUpdates
+        updates: transformedUpdates,
+        stack: updateError.stack
       });
       
       if (updateError.name === 'SequelizeValidationError') {
@@ -258,6 +260,9 @@ router.put('/users/:userId', requireAdmin, [
       throw updateError;
     }
 
+    const newValues = user.toJSON();
+    delete newValues.password;
+
     try {
       await logAdminAction(
         req.user.id,
@@ -265,7 +270,7 @@ router.put('/users/:userId', requireAdmin, [
         'profiles',
         userId,
         oldValues,
-        user.toJSON(),
+        newValues,
         req
       );
     } catch (auditError) {
