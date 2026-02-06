@@ -1,12 +1,64 @@
 const express = require('express');
-const { NursingHomeResidentOrder, NursingHomeResident, NursingHomeFacility, Profile } = require('../models');
+const rateLimit = require('express-rate-limit');
+const { NursingHomeResidentOrder, NursingHomeResident, NursingHomeFacility, Profile, NursingHomeMenuItem } = require('../models');
 const { requireAdmin, requireNursingHomeAdmin, requireNursingHomeUser } = require('../middleware/auth');
-const { body, validationResult } = require('express-validator');
+const { body, query, validationResult } = require('express-validator');
 const logger = require('../utils/logger');
 const XLSX = require('xlsx');
+const crypto = require('crypto');
+
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error('STRIPE_SECRET_KEY not configured');
+}
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 const router = express.Router();
+
+const paymentLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: 'Too many payment attempts, please try again later',
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+const validateQueryParams = [
+  query('page').optional().isInt({ min: 1 }).toInt(),
+  query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
+  query('residentId').optional().isUUID(),
+  query('status').optional().isIn(['draft', 'submitted', 'paid', 'in_progress', 'completed', 'cancelled']),
+  query('paymentStatus').optional().isIn(['pending', 'paid', 'failed', 'refunded']),
+  query('weekStartDate').optional().isISO8601().toDate()
+];
+
+const validateResidentOrder = [
+  body('residentId').isUUID(),
+  body('weekStartDate').isISO8601().toDate(),
+  body('weekEndDate').isISO8601().toDate(),
+  body('meals').isArray({ min: 1, max: 21 }),
+  body('meals.*.day').isIn(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']),
+  body('meals.*.mealType').isIn(['breakfast', 'lunch', 'dinner']),
+  body('meals.*.items').isArray({ min: 1, max: 10 }),
+  body('meals.*.items.*.id').isUUID(),
+  body('deliveryAddress').isObject(),
+  body('deliveryAddress.street').isString().trim().isLength({ min: 1, max: 200 }),
+  body('deliveryAddress.city').isString().trim().isLength({ min: 1, max: 100 }),
+  body('deliveryAddress.state').isString().trim().isLength({ min: 2, max: 2 }),
+  body('deliveryAddress.zip_code').isString().trim().matches(/^\d{5}$/),
+  body('billingEmail').optional().isEmail().normalizeEmail(),
+  body('billingName').optional().isString().trim().isLength({ min: 1, max: 200 })
+];
+
+const validateOrderUpdate = [
+  body('meals').optional().isArray({ min: 1, max: 21 }),
+  body('meals.*.day').optional().isIn(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']),
+  body('meals.*.mealType').optional().isIn(['breakfast', 'lunch', 'dinner']),
+  body('meals.*.items').optional().isArray({ min: 1, max: 10 }),
+  body('meals.*.items.*.id').optional().isUUID(),
+  body('billingEmail').optional().isEmail().normalizeEmail(),
+  body('billingName').optional().isString().trim().isLength({ min: 1, max: 200 }),
+  body('notes').optional().isString().trim().isLength({ max: 1000 })
+];
 
 function calculateDeadline(weekStartDate) {
   const startDate = new Date(weekStartDate);
@@ -17,25 +69,36 @@ function calculateDeadline(weekStartDate) {
 }
 
 function generateOrderNumber() {
-  const timestamp = Date.now().toString(36);
-  const random = Math.random().toString(36).substring(2, 7);
-  return `NH-RES-${timestamp}-${random}`.toUpperCase();
+  const timestamp = Date.now().toString(36).toUpperCase();
+  const random = crypto.randomBytes(4).toString('hex').toUpperCase();
+  return `NH-RES-${timestamp}-${random}`;
 }
 
-function calculateOrderTotals(meals) {
+async function calculateOrderTotalsFromDB(meals) {
   let totalMeals = 0;
   let subtotal = 0;
 
-  const mealPrices = {
-    breakfast: 15.00,
-    lunch: 21.00,
-    dinner: 23.00
-  };
+  for (const meal of meals) {
+    if (!meal.items || !Array.isArray(meal.items)) {
+      throw new Error('Invalid meal structure');
+    }
 
-  meals.forEach(meal => {
     totalMeals++;
-    subtotal += mealPrices[meal.mealType] || 0;
-  });
+    
+    for (const item of meal.items) {
+      const menuItem = await NursingHomeMenuItem.findByPk(item.id);
+      
+      if (!menuItem) {
+        throw new Error(`Menu item not found: ${item.id}`);
+      }
+      
+      if (!menuItem.isActive) {
+        throw new Error(`Menu item is not available: ${menuItem.name}`);
+      }
+      
+      subtotal += parseFloat(menuItem.price);
+    }
+  }
 
   const tax = subtotal * 0.08875;
   const total = subtotal + tax;
@@ -48,10 +111,21 @@ function calculateOrderTotals(meals) {
   };
 }
 
-router.get('/resident-orders', requireNursingHomeUser, async (req, res) => {
+router.get('/resident-orders', requireNursingHomeUser, validateQueryParams, async (req, res) => {
   try {
-    const { page = 1, limit = 20, residentId, status, paymentStatus, weekStartDate } = req.query;
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 100);
     const offset = (page - 1) * limit;
+    const { residentId, status, paymentStatus, weekStartDate } = req.query;
 
     const where = {};
 
@@ -133,13 +207,7 @@ router.get('/resident-orders', requireNursingHomeUser, async (req, res) => {
   }
 });
 
-router.post('/resident-orders', requireNursingHomeUser, [
-  body('residentId').isUUID(),
-  body('weekStartDate').isDate(),
-  body('weekEndDate').isDate(),
-  body('meals').isArray(),
-  body('deliveryAddress').isObject()
-], async (req, res) => {
+router.post('/resident-orders', requireNursingHomeUser, validateResidentOrder, async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -183,7 +251,7 @@ router.post('/resident-orders', requireNursingHomeUser, [
     }
 
     const deadline = calculateDeadline(weekStartDate);
-    const totals = calculateOrderTotals(meals);
+    const totals = await calculateOrderTotalsFromDB(meals);
     const orderNumber = generateOrderNumber();
 
     const order = await NursingHomeResidentOrder.create({
@@ -229,11 +297,7 @@ router.post('/resident-orders', requireNursingHomeUser, [
   }
 });
 
-router.put('/resident-orders/:id', requireNursingHomeUser, [
-  body('meals').optional().isArray(),
-  body('billingEmail').optional().isEmail(),
-  body('billingName').optional().isString()
-], async (req, res) => {
+router.put('/resident-orders/:id', requireNursingHomeUser, validateOrderUpdate, async (req, res) => {
   try {
     const { id } = req.params;
     const { meals, billingEmail, billingName, notes } = req.body;
@@ -281,7 +345,7 @@ router.put('/resident-orders/:id', requireNursingHomeUser, [
     const updateData = {};
     if (meals) {
       updateData.meals = meals;
-      const totals = calculateOrderTotals(meals);
+      const totals = await calculateOrderTotalsFromDB(meals);
       updateData.totalMeals = totals.totalMeals;
       updateData.subtotal = totals.subtotal;
       updateData.tax = totals.tax;
@@ -315,8 +379,8 @@ router.put('/resident-orders/:id', requireNursingHomeUser, [
   }
 });
 
-router.post('/resident-orders/:id/submit-and-pay', requireNursingHomeUser, [
-  body('paymentMethodId').optional().isString()
+router.post('/resident-orders/:id/submit-and-pay', paymentLimiter, requireNursingHomeUser, [
+  body('paymentMethodId').optional().isString().trim()
 ], async (req, res) => {
   try {
     const { id } = req.params;
