@@ -1,0 +1,273 @@
+.nursing-home-dashboard {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+
+  .dashboard-header {
+    margin-bottom: 2rem;
+
+    h1 {
+      color: #9333ea;
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      color: #64748b;
+      font-size: 1rem;
+    }
+  }
+
+  .stats-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+
+    .stat-card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      border-left: 4px solid #9333ea;
+
+      .stat-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #9333ea;
+        margin-bottom: 0.5rem;
+      }
+
+      .stat-label {
+        color: #64748b;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+    }
+  }
+
+  .residents-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+
+    .resident-card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s, box-shadow 0.2s;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(147, 51, 234, 0.15);
+      }
+
+      .resident-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #f1f5f9;
+
+        h3 {
+          color: #1e293b;
+          font-size: 1.25rem;
+          margin: 0;
+        }
+
+        .room-badge {
+          background: #9333ea;
+          color: white;
+          padding: 0.25rem 0.75rem;
+          border-radius: 20px;
+          font-size: 0.875rem;
+          font-weight: 600;
+        }
+      }
+
+      .resident-details {
+        margin-bottom: 1.5rem;
+
+        .detail-item {
+          margin-bottom: 0.75rem;
+          display: flex;
+          gap: 0.5rem;
+
+          &.allergies {
+            .detail-value {
+              color: #dc2626;
+              font-weight: 600;
+            }
+          }
+
+          .detail-label {
+            color: #64748b;
+            font-weight: 600;
+            min-width: 80px;
+          }
+
+          .detail-value {
+            color: #1e293b;
+            flex: 1;
+          }
+        }
+      }
+
+      .resident-actions {
+        display: flex;
+        gap: 0.75rem;
+
+        button {
+          flex: 1;
+          padding: 0.75rem 1rem;
+          border-radius: 8px;
+          font-weight: 600;
+          font-size: 0.875rem;
+          cursor: pointer;
+          transition: all 0.2s;
+          border: none;
+
+          &.btn-primary {
+            background: #9333ea;
+            color: white;
+
+            &:hover {
+              background: #7e22ce;
+            }
+          }
+
+          &.btn-secondary {
+            background: #f1f5f9;
+            color: #64748b;
+
+            &:hover {
+              background: #e2e8f0;
+              color: #475569;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .dashboard-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+
+    .info-card {
+      background: #faf5ff;
+      border-radius: 12px;
+      padding: 1.5rem;
+      border: 2px solid #e9d5ff;
+
+      h3 {
+        color: #9333ea;
+        font-size: 1.125rem;
+        margin-bottom: 1rem;
+      }
+
+      p {
+        color: #64748b;
+        line-height: 1.6;
+        margin-bottom: 0.75rem;
+
+        &.deadline-text {
+          font-size: 1.125rem;
+          color: #1e293b;
+
+          strong {
+            color: #9333ea;
+          }
+        }
+
+        &.hint {
+          font-size: 0.875rem;
+          font-style: italic;
+        }
+      }
+
+      ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+
+        li {
+          color: #64748b;
+          padding: 0.5rem 0;
+          padding-left: 1.5rem;
+          position: relative;
+
+          &:before {
+            content: "•";
+            color: #9333ea;
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+          }
+        }
+      }
+    }
+  }
+
+  .empty-state {
+    background: white;
+    border-radius: 12px;
+    padding: 3rem;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+    p {
+      color: #64748b;
+      font-size: 1.125rem;
+      margin-bottom: 0.5rem;
+
+      &.hint {
+        font-size: 0.875rem;
+        color: #94a3b8;
+      }
+    }
+  }
+
+  .loading-spinner {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 400px;
+    font-size: 1.25rem;
+    color: #9333ea;
+  }
+
+  .error-message {
+    background: #fee2e2;
+    color: #dc2626;
+    padding: 1rem;
+    border-radius: 8px;
+    border-left: 4px solid #dc2626;
+  }
+
+  @media (max-width: 768px) {
+    padding: 1rem;
+
+    .dashboard-header h1 {
+      font-size: 1.5rem;
+    }
+
+    .residents-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .stats-cards {
+      grid-template-columns: 1fr;
+    }
+
+    .dashboard-info {
+      grid-template-columns: 1fr;
+    }
+  }
+}
