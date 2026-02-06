@@ -21,6 +21,7 @@ const nursingHomesRoutes = require('./routes/nursing-homes');
 const nursingHomeResidentsRoutes = require('./routes/nursing-home-residents');
 const nursingHomeMenuRoutes = require('./routes/nursing-home-menu');
 const nursingHomeOrdersRoutes = require('./routes/nursing-home-orders');
+const nursingHomeResidentOrdersRoutes = require('./routes/nursing-home-resident-orders');
 const nursingHomeInvoicesRoutes = require('./routes/nursing-home-invoices');
 
 const app = express();
@@ -100,6 +101,7 @@ app.use('/api/nursing-homes', nursingHomesRoutes);
 app.use('/api/nursing-homes', nursingHomeResidentsRoutes);
 app.use('/api/nursing-homes', nursingHomeMenuRoutes);
 app.use('/api/nursing-homes', nursingHomeOrdersRoutes);
+app.use('/api/nursing-homes', nursingHomeResidentOrdersRoutes);
 app.use('/api/nursing-homes', nursingHomeInvoicesRoutes);
 
 app.get('/api/health', async (req, res) => {

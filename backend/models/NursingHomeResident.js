@@ -45,6 +45,30 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.TEXT,
       allowNull: true
     },
+    billingEmail: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: 'billing_email',
+      comment: 'Email for weekly invoices (resident or family member)'
+    },
+    billingName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: 'billing_name',
+      comment: 'Name of person responsible for payment'
+    },
+    billingPhone: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: 'billing_phone',
+      comment: 'Phone number for billing contact'
+    },
+    paymentMethodId: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: 'payment_method_id',
+      comment: 'Stripe payment method ID for automatic weekly billing'
+    },
     isActive: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
@@ -84,6 +108,11 @@ module.exports = (sequelize, DataTypes) => {
     NursingHomeResident.belongsTo(models.Profile, {
       foreignKey: 'assignedUserId',
       as: 'assignedUser'
+    });
+    
+    NursingHomeResident.hasMany(models.NursingHomeResidentOrder, {
+      foreignKey: 'residentId',
+      as: 'orders'
     });
   };
 
