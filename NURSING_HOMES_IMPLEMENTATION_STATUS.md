@@ -69,9 +69,18 @@
 - ❌ `ResidentManagement.jsx` - CRUD operations for residents
 - ❌ `StaffAssignment.jsx` - Assign residents to NH users
 
-## ❌ Not Started (Phase 5 - Admin Integration)
+## ✅ Completed (Phase 5 - Admin Integration - PARTIAL)
 
 ### MKD Admin Portal Updates
+- ✅ **Added "Nursing Home Menu" tab to AdminRestaurants**
+  - Third tab alongside "Restaurants" and "Menus"
+  - Full CRUD operations for menu items
+  - Filtering by meal type and category
+  - Search functionality
+  - Stats cards showing item counts
+  - Table view with meal badges and status indicators
+  - Modal for creating/editing menu items
+  - Support for bagel type requirement and side exclusion flags
 - ❌ Update `AdminUsers.jsx` with 5 role types and color-coded pills:
   - User: Green (#10b981)
   - Admin: Red (#ef4444)
