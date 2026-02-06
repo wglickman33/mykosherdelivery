@@ -117,7 +117,7 @@ class ApiClient {
           const errorData = await response.json().catch(() => ({}));
           const errorMessage = errorData.message || errorData.error || "Server error. Please try again later.";
           throw new Error(errorMessage);
-        } catch (jsonError) {
+        } catch {
           throw new Error("Server error. Please try again later.");
         }
       }
