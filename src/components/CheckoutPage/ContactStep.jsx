@@ -113,15 +113,23 @@ const ContactStep = ({ onNext }) => {
           <div className="form-group">
             <label htmlFor="instructions" className="form-label">
               Delivery Instructions (Optional)
+              <span className="label-hint">(Max 500 characters)</span>
             </label>
             <textarea
               id="instructions"
               className="form-textarea"
-              placeholder="Ring doorbell, leave at door, apartment buzzer code, etc."
+              placeholder="Ring doorbell, leave at door, apartment buzzer code, special requests, etc."
               value={formData.deliveryInstructions}
-              onChange={(e) => setFormData({ ...formData, deliveryInstructions: e.target.value })}
+              onChange={(e) => {
+                const value = e.target.value.substring(0, 500);
+                setFormData({ ...formData, deliveryInstructions: value });
+              }}
               rows={3}
+              maxLength={500}
             />
+            <p className="form-hint">
+              {formData.deliveryInstructions.length}/500 characters
+            </p>
           </div>
         </div>
       </div>

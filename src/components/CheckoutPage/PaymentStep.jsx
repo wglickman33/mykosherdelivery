@@ -203,6 +203,7 @@ const PaymentStep = ({
       const orderPayload = {
         restaurantGroups: restaurantGroups,
         deliveryAddress: orderData.deliveryAddress,
+        deliveryInstructions: orderData.contactInfo?.deliveryInstructions || null,
         subtotal: subtotal,
         deliveryFee: orderData.deliveryFee || 0,
         tax: orderData.tax || 0,
@@ -410,6 +411,7 @@ const PaymentStep = ({
         userId: profile?.id,
         restaurantGroups,
         deliveryAddress: orderData.deliveryAddress,
+        deliveryInstructions: orderData.contactInfo?.deliveryInstructions || null,
         subtotal: totalSubtotal,
         deliveryFee: deliveryFee,
         tip: tip,

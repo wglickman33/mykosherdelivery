@@ -43,6 +43,12 @@ router.post('/guest', [
   body('guestInfo').isObject(),
   body('restaurantGroups').isObject(),
   body('deliveryAddress').isObject(),
+  body('deliveryAddress.street').optional().isString().trim().isLength({ max: 200 }),
+  body('deliveryAddress.apartment').optional().isString().trim().isLength({ max: 100 }),
+  body('deliveryAddress.city').optional().isString().trim().isLength({ max: 100 }),
+  body('deliveryAddress.state').optional().isString().trim().isLength({ max: 2 }),
+  body('deliveryAddress.zip_code').optional().isString().trim().matches(/^\d{5}$/),
+  body('deliveryInstructions').optional().isString().trim().isLength({ max: 500 }),
   body('subtotal').isNumeric(),
   body('deliveryFee').isNumeric().optional(),
   body('tax').isNumeric().optional()
@@ -65,8 +71,20 @@ router.post('/guest', [
       tax = 0
     } = req.body;
 
+    // Sanitize address fields to prevent long text in wrong fields
+    const sanitizedAddress = {
+      ...deliveryAddress,
+      apartment: deliveryAddress.apartment ? String(deliveryAddress.apartment).trim().substring(0, 100) : undefined,
+      street: deliveryAddress.street ? String(deliveryAddress.street).trim().substring(0, 200) : undefined,
+      city: deliveryAddress.city ? String(deliveryAddress.city).trim().substring(0, 100) : undefined,
+      state: deliveryAddress.state ? String(deliveryAddress.state).trim().substring(0, 2) : undefined,
+      zip_code: deliveryAddress.zip_code ? String(deliveryAddress.zip_code).trim().substring(0, 5) : undefined
+    };
+
+    const sanitizedInstructions = deliveryInstructions ? String(deliveryInstructions).trim().substring(0, 500) : null;
+
     const { validateDeliveryAddress } = require('../services/deliveryZoneService');
-    const addressValidation = await validateDeliveryAddress(deliveryAddress);
+    const addressValidation = await validateDeliveryAddress(sanitizedAddress);
     
     if (!addressValidation.isValid) {
       logger.warn('Guest order rejected due to invalid delivery address', {
@@ -94,8 +112,8 @@ router.post('/guest', [
         deliveryFee: deliveryFee / Object.keys(restaurantGroups).length,
         tax: (tax * group.total) / Object.values(restaurantGroups).reduce((sum, g) => sum + g.total, 0),
         total: group.total + (deliveryFee / Object.keys(restaurantGroups).length) + ((tax * group.total) / Object.values(restaurantGroups).reduce((sum, g) => sum + g.total, 0)),
-        deliveryAddress: deliveryAddress,
-        deliveryInstructions: deliveryInstructions || null,
+        deliveryAddress: sanitizedAddress,
+        deliveryInstructions: sanitizedInstructions,
         guestInfo: guestInfo
       });
 
@@ -120,6 +138,12 @@ router.post('/guest', [
 router.post('/', authenticateToken, [
   body('restaurantGroups').isObject(),
   body('deliveryAddress').isObject(),
+  body('deliveryAddress.street').optional().isString().trim().isLength({ max: 200 }),
+  body('deliveryAddress.apartment').optional().isString().trim().isLength({ max: 100 }),
+  body('deliveryAddress.city').optional().isString().trim().isLength({ max: 100 }),
+  body('deliveryAddress.state').optional().isString().trim().isLength({ max: 2 }),
+  body('deliveryAddress.zip_code').optional().isString().trim().matches(/^\d{5}$/),
+  body('deliveryInstructions').optional().isString().trim().isLength({ max: 500 }),
   body('subtotal').isNumeric(),
   body('deliveryFee').isNumeric().optional(),
   body('tax').isNumeric().optional(),
@@ -157,8 +181,20 @@ router.post('/', authenticateToken, [
       appliedPromo = null
     } = req.body;
 
+    // Sanitize address fields to prevent long text in wrong fields
+    const sanitizedAddress = {
+      ...deliveryAddress,
+      apartment: deliveryAddress.apartment ? String(deliveryAddress.apartment).trim().substring(0, 100) : undefined,
+      street: deliveryAddress.street ? String(deliveryAddress.street).trim().substring(0, 200) : undefined,
+      city: deliveryAddress.city ? String(deliveryAddress.city).trim().substring(0, 100) : undefined,
+      state: deliveryAddress.state ? String(deliveryAddress.state).trim().substring(0, 2) : undefined,
+      zip_code: deliveryAddress.zip_code ? String(deliveryAddress.zip_code).trim().substring(0, 5) : undefined
+    };
+
+    const sanitizedInstructions = deliveryInstructions ? String(deliveryInstructions).trim().substring(0, 500) : null;
+
     const { validateDeliveryAddress } = require('../services/deliveryZoneService');
-    const addressValidation = await validateDeliveryAddress(deliveryAddress);
+    const addressValidation = await validateDeliveryAddress(sanitizedAddress);
     
     if (!addressValidation.isValid) {
       logger.warn('Order rejected due to invalid delivery address', {
@@ -199,8 +235,8 @@ router.post('/', authenticateToken, [
       total: total,
       discountAmount: discountAmount,
       appliedPromo: appliedPromo,
-      deliveryAddress: deliveryAddress,
-      deliveryInstructions: deliveryInstructions || null
+      deliveryAddress: sanitizedAddress,
+      deliveryInstructions: sanitizedInstructions
     });
 
     const fullOrderData = await Order.findByPk(order.id, {

@@ -656,6 +656,33 @@
         }
       }
 
+      .delivery-instructions-section {
+        margin: 1.5rem 0;
+        padding: 1rem;
+        background-color: #fff3cd;
+        border-left: 4px solid #ffc107;
+        border-radius: 4px;
+
+        h4 {
+          margin: 0 0 0.75rem 0;
+          font-size: 1rem;
+          font-weight: 600;
+          color: #856404;
+        }
+
+        .delivery-instructions-text {
+          margin: 0;
+          padding: 0.5rem;
+          background-color: #fff;
+          border-radius: 4px;
+          color: #333;
+          font-size: 0.95rem;
+          line-height: 1.5;
+          white-space: pre-wrap;
+          word-wrap: break-word;
+        }
+      }
+
       .price-breakdown {
         margin: 1.5rem 0;
         padding: 1rem;

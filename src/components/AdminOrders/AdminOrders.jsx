@@ -65,15 +65,17 @@ const formatAddress = (deliveryAddress) => {
   const parts = [];
   
   const street = deliveryAddress.street || deliveryAddress.address || deliveryAddress.line1 || '';
-  const apartment = deliveryAddress.apartment || deliveryAddress.details || deliveryAddress.unit || '';
+  // Limit apartment field to prevent long text from appearing in address
+  const apartment = deliveryAddress.apartment || deliveryAddress.unit || '';
+  const limitedApartment = apartment ? String(apartment).substring(0, 100) : '';
   const city = deliveryAddress.city || '';
   const state = deliveryAddress.state || '';
   const zip = deliveryAddress.zip_code || deliveryAddress.zipCode || deliveryAddress.postal_code || '';
   
   if (street) {
     parts.push(street);
-    if (apartment) {
-      parts[parts.length - 1] += `, ${apartment}`;
+    if (limitedApartment) {
+      parts[parts.length - 1] += `, ${limitedApartment}`;
     }
   }
   
@@ -1320,6 +1322,14 @@ const AdminOrders = () => {
                   })()
                 )}
               </div>
+
+              {}
+              {selectedOrder.deliveryInstructions && (
+                <div className="delivery-instructions-section">
+                  <h4>Delivery Instructions</h4>
+                  <p className="delivery-instructions-text">{selectedOrder.deliveryInstructions}</p>
+                </div>
+              )}
 
               {}
               <div className="price-breakdown">

@@ -15,7 +15,7 @@ const AddressStep = ({ onNext }) => {
   const [formData, setFormData] = useState({
     type: "",
     address: "",
-    details: ""
+    apartment: ""
   });
 
   const savedAddresses = profile?.addresses || [];
@@ -105,9 +105,8 @@ const AddressStep = ({ onNext }) => {
           id: Date.now().toString(),
           type: formData.type || "New Address",
           address: validatedAddress,
-          details: formData.details,
           street: parsed.street,
-          apartment: formData.details,
+          apartment: formData.apartment.trim().substring(0, 100), // Limit to 100 chars
           city: parsed.city,
           state: parsed.state,
           zip_code: parsed.zip_code,
@@ -186,7 +185,7 @@ const AddressStep = ({ onNext }) => {
             setFormData({
               type: "",
               address: "",
-              details: ""
+              apartment: ""
             });
           }}
         >
@@ -247,24 +246,33 @@ const AddressStep = ({ onNext }) => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="details" className="form-label">Additional Details (Optional)</label>
-              <textarea
-                id="details"
-                className="form-textarea"
-                placeholder="Apartment, suite, building instructions..."
-                value={formData.details}
-                onChange={(e) => setFormData({ ...formData, details: e.target.value })}
+              <label htmlFor="apartment" className="form-label">
+                Apartment / Unit Number (Optional)
+                <span className="label-hint">(Max 100 characters)</span>
+              </label>
+              <input
+                id="apartment"
+                className="form-input"
+                placeholder="Apt 4B, Unit 302, etc."
+                value={formData.apartment}
+                onChange={(e) => {
+                  const value = e.target.value.substring(0, 100);
+                  setFormData({ ...formData, apartment: value });
+                }}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
+                  if (e.key === 'Enter') {
                     e.preventDefault();
                     if (!isValidating) {
                       handleAddNewAddress(e);
                     }
                   }
                 }}
-                rows={2}
+                maxLength={100}
                 disabled={isValidating}
               />
+              <p className="form-hint">
+                For delivery instructions, use the next step
+              </p>
             </div>
 
             <div className="form-actions">
@@ -284,7 +292,7 @@ const AddressStep = ({ onNext }) => {
                   setFormData({
                     type: "",
                     address: "",
-                    details: ""
+                    apartment: ""
                   });
                 }}
                 disabled={isValidating}
