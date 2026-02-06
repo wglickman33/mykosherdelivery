@@ -172,11 +172,11 @@ router.get('/users', requireAdmin, async (req, res) => {
 });
 
 router.put('/users/:userId', requireAdmin, [
-  body('email').optional().isEmail().normalizeEmail(),
-  body('first_name').optional().trim().notEmpty(),
-  body('last_name').optional().trim().notEmpty(),
+  body('email').optional({ checkFalsy: true }).isEmail().normalizeEmail(),
+  body('first_name').optional({ checkFalsy: true }).trim().notEmpty().withMessage('First name cannot be empty'),
+  body('last_name').optional({ checkFalsy: true }).trim().notEmpty().withMessage('Last name cannot be empty'),
   body('phone_number').optional().trim(),
-  body('role').optional().isIn(['user', 'restaurant_owner', 'admin', 'nursing_home_admin', 'nursing_home_user'])
+  body('role').optional().isIn(['user', 'restaurant_owner', 'admin', 'nursing_home_admin', 'nursing_home_user']).withMessage('Invalid role')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
