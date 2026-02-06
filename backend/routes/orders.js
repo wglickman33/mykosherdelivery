@@ -5,7 +5,7 @@ const { body, validationResult } = require('express-validator');
 const { sendOrderConfirmationEmail } = require('../services/emailService');
 const { emitOrderCreated } = require('../utils/events');
 const { appEvents } = require('../utils/events');
-const { generateOrderNumber, calculateTotals } = require('../services/orderService');
+const { generateOrderNumber } = require('../services/orderService');
 const logger = require('../utils/logger');
 
 const router = express.Router();

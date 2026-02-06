@@ -10,7 +10,7 @@ const {
 } = require('../models');
 const { requireNursingHomeAdmin, requireNursingHomeUser } = require('../middleware/auth');
 const { body, query, validationResult } = require('express-validator');
-const { generateOrderNumber: generateBaseOrderNumber, calculateResidentOrderTotals } = require('../services/orderService');
+const { generateOrderNumber: generateBaseOrderNumber } = require('../services/orderService');
 const logger = require('../utils/logger');
 const XLSX = require('xlsx');
 
