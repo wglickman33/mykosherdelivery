@@ -1357,7 +1357,7 @@ const AdminRestaurants = () => {
           }}
         />
       )}
-
+      
       {}
       <NotificationToast 
         notification={notification} 

@@ -50,6 +50,11 @@ import logger from "./utils/logger";
 import "./App.scss";
 
 import HelpPage from "./components/HelpPage/HelpPage";
+import NursingHomeLogin from "./components/NursingHomes/NursingHomeLogin/NursingHomeLogin";
+import NursingHomeAdminLogin from "./components/NursingHomes/NursingHomeAdminLogin/NursingHomeAdminLogin";
+import NursingHomeDashboard from "./components/NursingHomes/NursingHomeDashboard/NursingHomeDashboard";
+import OrderCreation from "./components/NursingHomes/OrderCreation/OrderCreation";
+import OrderPayment from "./components/NursingHomes/OrderPayment/OrderPayment";
 
 function AuthenticatedApp() {
   const { user, loading, tempAddress } = useAuth();
@@ -97,11 +102,14 @@ function AuthenticatedApp() {
 
   const pathname = location.pathname;
 
-  const publicRoutes = ["/landing", "/signin", "/signup", "/blog", "/faq", "/contact", "/partner", "/advertise", "/help", "/terms", "/privacy", "/admin"];
+  const publicRoutes = ["/landing", "/signin", "/signup", "/blog", "/faq", "/contact", "/partner", "/advertise", "/help", "/terms", "/privacy", "/admin", "/nursing-homes/login", "/nursing-homes/admin/login"];
   const isPublicRoute = publicRoutes.some(route => pathname === route || pathname.startsWith(route + "/"));
 
   const appRoutes = ["/home", "/restaurants", "/restaurant", "/cart", "/checkout", "/order-confirmation", "/gift-card", "/account"];
   const isAppRoute = appRoutes.some(route => pathname === route || pathname.startsWith(route + "/"));
+  
+  const nursingHomeRoutes = ["/nursing-homes"];
+  const isNursingHomeRoute = nursingHomeRoutes.some(route => pathname.startsWith(route));
 
   if (pathname === "/") {
     if (user) {
@@ -147,6 +155,21 @@ function AuthenticatedApp() {
     const isAuthRoute = ["/signin", "/signup"].includes(pathname);
     const isLandingRoute = pathname === "/landing";
     const isAdminRoute = pathname.startsWith("/admin");
+    const isNursingHomeRoute = pathname.startsWith("/nursing-homes");
+    
+    if (isNursingHomeRoute) {
+      return (
+        <Routes>
+          <Route path="/nursing-homes/login" element={<NursingHomeLogin />} />
+          <Route path="/nursing-homes/admin/login" element={<NursingHomeAdminLogin />} />
+          <Route path="/nursing-homes/dashboard" element={<NursingHomeDashboard />} />
+          <Route path="/nursing-homes/order/new/:residentId" element={<OrderCreation />} />
+          <Route path="/nursing-homes/order/:orderId/payment" element={<OrderPayment />} />
+          <Route path="/nursing-homes" element={<Navigate to="/nursing-homes/login" replace />} />
+          <Route path="/nursing-homes/*" element={<NotFoundPage />} />
+        </Routes>
+      );
+    }
     
     if (isAdminRoute) {
       return (
