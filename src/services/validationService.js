@@ -1,4 +1,5 @@
 import { validateDeliveryAddress as validateAddress } from './addressValidationService';
+import { NH_CONFIG, VALIDATION_LIMITS } from '../config/constants';
 
 export const validateDeliveryAddress = validateAddress;
 
@@ -51,8 +52,8 @@ export const validateResidentOrder = (orderData) => {
     errors.push('At least one meal must be selected');
   }
 
-  if (orderData.meals && orderData.meals.length > 21) {
-    errors.push('Maximum 21 meals per week (3 meals × 7 days)');
+  if (orderData.meals && orderData.meals.length > NH_CONFIG.MEALS.MAX_MEALS_PER_WEEK) {
+    errors.push(`Maximum ${NH_CONFIG.MEALS.MAX_MEALS_PER_WEEK} meals per week (${NH_CONFIG.MEALS.TYPES.length} meals × ${NH_CONFIG.MEALS.DAYS.length} days)`);
   }
 
   if (!orderData.deliveryAddress) {
@@ -89,15 +90,12 @@ export const validateMealSelection = (meals) => {
     return { isValid: false, errors: ['Meals must be an array'] };
   }
 
-  const validDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-  const validMealTypes = ['breakfast', 'lunch', 'dinner'];
-
   meals.forEach((meal, index) => {
-    if (!meal.day || !validDays.includes(meal.day)) {
+    if (!meal.day || !NH_CONFIG.MEALS.DAYS.includes(meal.day)) {
       errors.push(`Meal ${index + 1}: Invalid day`);
     }
 
-    if (!meal.mealType || !validMealTypes.includes(meal.mealType)) {
+    if (!meal.mealType || !NH_CONFIG.MEALS.TYPES.includes(meal.mealType)) {
       errors.push(`Meal ${index + 1}: Invalid meal type`);
     }
 
@@ -105,8 +103,8 @@ export const validateMealSelection = (meals) => {
       errors.push(`Meal ${index + 1}: At least one item must be selected`);
     }
 
-    if (meal.items && meal.items.length > 10) {
-      errors.push(`Meal ${index + 1}: Maximum 10 items per meal`);
+    if (meal.items && meal.items.length > NH_CONFIG.MEALS.MAX_ITEMS_PER_MEAL) {
+      errors.push(`Meal ${index + 1}: Maximum ${NH_CONFIG.MEALS.MAX_ITEMS_PER_MEAL} items per meal`);
     }
   });
 

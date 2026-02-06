@@ -11,6 +11,7 @@ const {
 const { requireNursingHomeAdmin, requireNursingHomeUser } = require('../middleware/auth');
 const { body, query, validationResult } = require('express-validator');
 const { generateOrderNumber: generateBaseOrderNumber } = require('../services/orderService');
+const { NH_CONFIG, API_CONFIG, ORDER_CONFIG } = require('../config/constants');
 const logger = require('../utils/logger');
 const XLSX = require('xlsx');
 
@@ -22,8 +23,8 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const router = express.Router();
 
 const paymentLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
+  windowMs: API_CONFIG.RATE_LIMIT.WINDOW_MS,
+  max: API_CONFIG.RATE_LIMIT.PAYMENT_MAX_REQUESTS,
   message: 'Too many payment attempts, please try again later',
   standardHeaders: true,
   legacyHeaders: false
@@ -33,8 +34,8 @@ const validateQueryParams = [
   query('page').optional().isInt({ min: 1 }).toInt(),
   query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
   query('residentId').optional().isUUID(),
-  query('status').optional().isIn(['draft', 'submitted', 'paid', 'in_progress', 'completed', 'cancelled']),
-  query('paymentStatus').optional().isIn(['pending', 'paid', 'failed', 'refunded']),
+  query('status').optional().isIn(Object.values(NH_CONFIG.STATUSES)),
+  query('paymentStatus').optional().isIn(Object.values(NH_CONFIG.PAYMENT_STATUSES)),
   query('weekStartDate').optional().isISO8601().toDate()
 ];
 
@@ -42,10 +43,10 @@ const validateResidentOrder = [
   body('residentId').isUUID(),
   body('weekStartDate').isISO8601().toDate(),
   body('weekEndDate').isISO8601().toDate(),
-  body('meals').isArray({ min: 1, max: 21 }),
-  body('meals.*.day').isIn(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']),
-  body('meals.*.mealType').isIn(['breakfast', 'lunch', 'dinner']),
-  body('meals.*.items').isArray({ min: 1, max: 10 }),
+  body('meals').isArray({ min: NH_CONFIG.MEALS.MIN_ITEMS_PER_MEAL, max: NH_CONFIG.MEALS.MAX_MEALS_PER_WEEK }),
+  body('meals.*.day').isIn(NH_CONFIG.MEALS.DAYS),
+  body('meals.*.mealType').isIn(NH_CONFIG.MEALS.TYPES),
+  body('meals.*.items').isArray({ min: NH_CONFIG.MEALS.MIN_ITEMS_PER_MEAL, max: NH_CONFIG.MEALS.MAX_ITEMS_PER_MEAL }),
   body('meals.*.items.*.id').isUUID(),
   body('deliveryAddress').isObject(),
   body('deliveryAddress.street').isString().trim().isLength({ min: 1, max: 200 }),
@@ -57,10 +58,10 @@ const validateResidentOrder = [
 ];
 
 const validateOrderUpdate = [
-  body('meals').optional().isArray({ min: 1, max: 21 }),
-  body('meals.*.day').optional().isIn(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']),
-  body('meals.*.mealType').optional().isIn(['breakfast', 'lunch', 'dinner']),
-  body('meals.*.items').optional().isArray({ min: 1, max: 10 }),
+  body('meals').optional().isArray({ min: NH_CONFIG.MEALS.MIN_ITEMS_PER_MEAL, max: NH_CONFIG.MEALS.MAX_MEALS_PER_WEEK }),
+  body('meals.*.day').optional().isIn(NH_CONFIG.MEALS.DAYS),
+  body('meals.*.mealType').optional().isIn(NH_CONFIG.MEALS.TYPES),
+  body('meals.*.items').optional().isArray({ min: NH_CONFIG.MEALS.MIN_ITEMS_PER_MEAL, max: NH_CONFIG.MEALS.MAX_ITEMS_PER_MEAL }),
   body('meals.*.items.*.id').optional().isUUID(),
   body('billingEmail').optional().isEmail().normalizeEmail(),
   body('billingName').optional().isString().trim().isLength({ min: 1, max: 200 }),
@@ -79,16 +80,16 @@ function calculateDeadline(weekStartDate) {
   const startDate = new Date(weekStartDate);
   const sunday = new Date(startDate);
   sunday.setDate(startDate.getDate() - 1);
-  sunday.setHours(12, 0, 0, 0);
+  sunday.setHours(NH_CONFIG.DEADLINE.HOUR, NH_CONFIG.DEADLINE.MINUTE, 0, 0);
   return sunday;
 }
 
 function generateOrderNumber() {
-  return generateBaseOrderNumber('NH-RES');
+  return generateBaseOrderNumber(ORDER_CONFIG.NUMBER_PREFIX.NURSING_HOME_RESIDENT);
 }
 
 function generateBulkOrderNumber() {
-  return generateBaseOrderNumber('NH');
+  return generateBaseOrderNumber(ORDER_CONFIG.NUMBER_PREFIX.NURSING_HOME_BULK);
 }
 
 async function calculateOrderTotalsFromDB(meals) {

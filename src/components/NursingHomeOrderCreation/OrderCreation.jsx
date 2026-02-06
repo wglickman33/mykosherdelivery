@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { fetchResident, fetchMenuItems, createResidentOrder, fetchFacility } from '../../services/nursingHomeService';
+import { NH_CONFIG } from '../../config/constants';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import MealForm from './MealForm';
 import OrderSummary from './OrderSummary';
 import './OrderCreation.scss';
 
-const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const DAYS_OF_WEEK = NH_CONFIG.MEALS.DAYS;
 
 const OrderCreation = () => {
   const { residentId } = useParams();

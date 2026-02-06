@@ -1,4 +1,5 @@
 import PropTypes from 'prop-types';
+import { TAX_RATE, NH_CONFIG } from '../../config/constants';
 
 const OrderSummary = ({ meals, resident, onSave, saving, totalMeals }) => {
   const calculateTotals = () => {
@@ -11,7 +12,7 @@ const OrderSummary = ({ meals, resident, onSave, saving, totalMeals }) => {
       });
     });
 
-    const tax = subtotal * 0.08875;
+    const tax = subtotal * TAX_RATE;
     const total = subtotal + tax;
 
     return {
@@ -38,7 +39,7 @@ const OrderSummary = ({ meals, resident, onSave, saving, totalMeals }) => {
   };
 
   const mealsByDay = getMealsByDay();
-  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const days = NH_CONFIG.MEALS.DAYS;
 
   return (
     <div className="order-summary">

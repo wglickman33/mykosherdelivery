@@ -1,7 +1,8 @@
 const crypto = require('crypto');
 const logger = require('../utils/logger');
+const { TAX_RATE, ORDER_CONFIG } = require('../config/constants');
 
-const generateOrderNumber = (prefix = 'MKD') => {
+const generateOrderNumber = (prefix = ORDER_CONFIG.NUMBER_PREFIX.REGULAR) => {
   const timestamp = Date.now().toString(36).toUpperCase();
   const random = crypto.randomBytes(3).toString('hex').toUpperCase();
   return `${prefix}-${timestamp}-${random}`;
@@ -9,7 +10,7 @@ const generateOrderNumber = (prefix = 'MKD') => {
 
 const calculateTotals = (items, options = {}) => {
   const {
-    taxRate = 0.0825,
+    taxRate = TAX_RATE,
     deliveryFee = 0,
     tip = 0,
     discountAmount = 0
@@ -50,7 +51,7 @@ const calculateTotals = (items, options = {}) => {
   };
 };
 
-const calculateResidentOrderTotals = (meals, taxRate = 0.0825) => {
+const calculateResidentOrderTotals = (meals, taxRate = TAX_RATE) => {
   let subtotal = 0;
   let totalMeals = 0;
 

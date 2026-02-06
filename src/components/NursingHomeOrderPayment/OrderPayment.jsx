@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 import { fetchResidentOrders, submitAndPayOrder } from '../../services/nursingHomeService';
+import { NH_CONFIG } from '../../config/constants';
 import StripePaymentForm from '../StripePaymentForm/StripePaymentForm';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
@@ -19,11 +20,7 @@ const OrderPayment = () => {
   const [error, setError] = useState(null);
   const [paymentError, setPaymentError] = useState(null);
 
-  useEffect(() => {
-    loadOrder();
-  }, [orderId]);
-
-  const loadOrder = async () => {
+  const loadOrder = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -48,7 +45,11 @@ const OrderPayment = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [orderId, navigate]);
+
+  useEffect(() => {
+    loadOrder();
+  }, [loadOrder]);
 
   const createPaymentIntent = async () => {
     const result = await submitAndPayOrder(order.id, {});
@@ -102,7 +103,7 @@ const OrderPayment = () => {
   }
 
   const mealsByDay = getMealsByDay();
-  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const days = NH_CONFIG.MEALS.DAYS;
 
   return (
     <div className="order-payment">
