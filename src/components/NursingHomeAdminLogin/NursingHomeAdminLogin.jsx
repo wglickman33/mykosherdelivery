@@ -21,7 +21,6 @@ const NursingHomeAdminLogin = () => {
       const result = await login(email, password);
       
       if (result.success) {
-        // Check if user is nursing home admin
         if (result.user.role === 'nursing_home_admin') {
           navigate('/nursing-homes/admin/dashboard');
         } else if (result.user.role === 'admin') {
@@ -32,7 +31,7 @@ const NursingHomeAdminLogin = () => {
       } else {
         setError(result.error || 'Login failed');
       }
-    } catch (err) {
+    } catch {
       setError('An error occurred during login');
     } finally {
       setLoading(false);
