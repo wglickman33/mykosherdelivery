@@ -217,7 +217,19 @@ router.put('/users/:userId', requireAdmin, [
       transformedUpdates.phone = updates.phone_number && updates.phone_number.trim() ? updates.phone_number.trim() : null;
     }
     if (updates.role !== undefined) {
+      const validRoles = ['user', 'restaurant_owner', 'admin', 'nursing_home_admin', 'nursing_home_user'];
+      if (!validRoles.includes(updates.role)) {
+        return res.status(400).json({
+          error: 'Invalid role',
+          message: `Role must be one of: ${validRoles.join(', ')}`
+        });
+      }
       transformedUpdates.role = updates.role;
+      logger.info('Updating user role', {
+        userId: userId,
+        oldRole: user.role,
+        newRole: updates.role
+      });
     }
     if (updates.email !== undefined && updates.email !== user.email) {
       const existingUser = await Profile.findOne({ where: { email: updates.email } });
