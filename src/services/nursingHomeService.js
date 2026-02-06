@@ -1,78 +1,100 @@
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`
-  };
-};
+import api from '../lib/api';
+import logger from '../utils/logger';
 
 export const fetchResidents = async (params = {}) => {
-  const response = await axios.get(`${API_URL}/api/nursing-homes/residents`, {
-    headers: getAuthHeaders(),
-    params
-  });
-  return response.data;
+  try {
+    const queryParams = new URLSearchParams(params).toString();
+    const endpoint = `/nursing-homes/residents${queryParams ? `?${queryParams}` : ''}`;
+    const response = await api.get(endpoint);
+    return response.data;
+  } catch (error) {
+    logger.error('Error fetching residents:', error);
+    throw error;
+  }
 };
 
 export const fetchResident = async (id) => {
-  const response = await axios.get(`${API_URL}/api/nursing-homes/residents/${id}`, {
-    headers: getAuthHeaders()
-  });
-  return response.data;
+  try {
+    const response = await api.get(`/nursing-homes/residents/${id}`);
+    return response.data;
+  } catch (error) {
+    logger.error(`Error fetching resident ${id}:`, error);
+    throw error;
+  }
 };
 
 export const fetchMenuItems = async (params = {}) => {
-  const response = await axios.get(`${API_URL}/api/nursing-homes/menu`, {
-    headers: getAuthHeaders(),
-    params
-  });
-  return response.data;
+  try {
+    const queryParams = new URLSearchParams(params).toString();
+    const endpoint = `/nursing-homes/menu${queryParams ? `?${queryParams}` : ''}`;
+    const response = await api.get(endpoint);
+    return response.data;
+  } catch (error) {
+    logger.error('Error fetching menu items:', error);
+    throw error;
+  }
 };
 
 export const fetchResidentOrders = async (params = {}) => {
-  const response = await axios.get(`${API_URL}/api/nursing-homes/resident-orders`, {
-    headers: getAuthHeaders(),
-    params
-  });
-  return response.data;
+  try {
+    const queryParams = new URLSearchParams(params).toString();
+    const endpoint = `/nursing-homes/resident-orders${queryParams ? `?${queryParams}` : ''}`;
+    const response = await api.get(endpoint);
+    return response.data;
+  } catch (error) {
+    logger.error('Error fetching resident orders:', error);
+    throw error;
+  }
 };
 
 export const createResidentOrder = async (orderData) => {
-  const response = await axios.post(`${API_URL}/api/nursing-homes/resident-orders`, orderData, {
-    headers: getAuthHeaders()
-  });
-  return response.data;
+  try {
+    const response = await api.post('/nursing-homes/resident-orders', orderData);
+    return response.data;
+  } catch (error) {
+    logger.error('Error creating resident order:', error);
+    throw error;
+  }
 };
 
 export const updateResidentOrder = async (id, orderData) => {
-  const response = await axios.put(`${API_URL}/api/nursing-homes/resident-orders/${id}`, orderData, {
-    headers: getAuthHeaders()
-  });
-  return response.data;
+  try {
+    const response = await api.put(`/nursing-homes/resident-orders/${id}`, orderData);
+    return response.data;
+  } catch (error) {
+    logger.error(`Error updating resident order ${id}:`, error);
+    throw error;
+  }
 };
 
 export const submitAndPayOrder = async (id, paymentData) => {
-  const response = await axios.post(`${API_URL}/api/nursing-homes/resident-orders/${id}/submit-and-pay`, paymentData, {
-    headers: getAuthHeaders()
-  });
-  return response.data;
+  try {
+    const response = await api.post(`/nursing-homes/resident-orders/${id}/submit-and-pay`, paymentData);
+    return response.data;
+  } catch (error) {
+    logger.error(`Error submitting and paying order ${id}:`, error);
+    throw error;
+  }
 };
 
 export const exportResidentOrder = async (id) => {
-  const response = await axios.get(`${API_URL}/api/nursing-homes/resident-orders/${id}/export`, {
-    headers: getAuthHeaders(),
-    responseType: 'blob'
-  });
-  return response.data;
+  try {
+    const response = await api.get(`/nursing-homes/resident-orders/${id}/export`, {
+      responseType: 'blob'
+    });
+    return response.data;
+  } catch (error) {
+    logger.error(`Error exporting resident order ${id}:`, error);
+    throw error;
+  }
 };
 
 export const fetchFacility = async (id) => {
-  const response = await axios.get(`${API_URL}/api/nursing-homes/facilities/${id}`, {
-    headers: getAuthHeaders()
-  });
-  return response.data;
+  try {
+    const response = await api.get(`/nursing-homes/facilities/${id}`);
+    return response.data;
+  } catch (error) {
+    logger.error(`Error fetching facility ${id}:`, error);
+    throw error;
+  }
 };
