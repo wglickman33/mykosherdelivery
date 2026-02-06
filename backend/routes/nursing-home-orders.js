@@ -1,6 +1,6 @@
 const express = require('express');
-const { NursingHomeOrder, NursingHomeFacility, Profile, NursingHomeResident } = require('../models');
-const { requireAdmin, requireNursingHomeAdmin, requireNursingHomeUser } = require('../middleware/auth');
+const { NursingHomeOrder, NursingHomeFacility, Profile } = require('../models');
+const { requireNursingHomeAdmin, requireNursingHomeUser } = require('../middleware/auth');
 const { body, validationResult } = require('express-validator');
 const logger = require('../utils/logger');
 const XLSX = require('xlsx');

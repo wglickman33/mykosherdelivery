@@ -1,7 +1,7 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const { NursingHomeResidentOrder, NursingHomeResident, NursingHomeFacility, Profile, NursingHomeMenuItem } = require('../models');
-const { requireAdmin, requireNursingHomeAdmin, requireNursingHomeUser } = require('../middleware/auth');
+const { requireNursingHomeUser } = require('../middleware/auth');
 const { body, query, validationResult } = require('express-validator');
 const logger = require('../utils/logger');
 const XLSX = require('xlsx');

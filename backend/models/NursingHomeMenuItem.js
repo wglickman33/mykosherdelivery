@@ -77,7 +77,7 @@ module.exports = (sequelize, DataTypes) => {
     ]
   });
 
-  NursingHomeMenuItem.associate = function(models) {
+  NursingHomeMenuItem.associate = function() {
     // No direct associations needed
   };
 
