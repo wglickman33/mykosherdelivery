@@ -288,20 +288,18 @@ router.put('/users/:userId', requireAdmin, [
       logger.warn('Failed to create user update notification:', notifError);
     }
 
-    const userData = user.toJSON();
-    delete userData.password;
     const transformedUser = {
-      id: userData.id,
-      first_name: userData.firstName,
-      last_name: userData.lastName,
-      email: userData.email,
-      phone_number: userData.phone,
-      role: userData.role,
-      created_at: userData.createdAt,
-      last_login: userData.last_login,
-      address: userData.address,
-      addresses: userData.addresses,
-      primary_address_index: userData.primaryAddressIndex
+      id: newValues.id,
+      first_name: newValues.firstName,
+      last_name: newValues.lastName,
+      email: newValues.email,
+      phone_number: newValues.phone,
+      role: newValues.role,
+      created_at: newValues.createdAt,
+      last_login: newValues.last_login,
+      address: newValues.address,
+      addresses: newValues.addresses,
+      primary_address_index: newValues.primaryAddressIndex
     };
     
     res.json({
