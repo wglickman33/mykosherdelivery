@@ -6,6 +6,7 @@ import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import NotificationToast from '../NotificationToast/NotificationToast';
 import { useNotification } from '../../hooks/useNotification';
 import { formatPhoneNumber, formatPhoneForInput } from '../../utils/phoneFormatter';
+import { USER_ROLES } from '../../config/constants';
 
 const AdminUsers = () => {
   const [users, setUsers] = useState([]);
@@ -22,7 +23,7 @@ const AdminUsers = () => {
     lastName: '',
     email: '',
     password: '',
-    role: 'user',
+    role: USER_ROLES.USER,
     phone: ''
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -98,7 +99,7 @@ const AdminUsers = () => {
         lastName: '',
         email: '',
         password: '',
-        role: 'user',
+        role: USER_ROLES.USER,
         phone: ''
       });
       setShowPassword(false);
@@ -148,18 +149,33 @@ const AdminUsers = () => {
 
   const getRoleBadgeColor = (role) => {
     const colors = {
-      admin: '#ef4444',
-      restaurant_owner: '#3b82f6',
-      user: '#10b981'
+      [USER_ROLES.USER]: '#10b981',
+      [USER_ROLES.ADMIN]: '#ef4444',
+      [USER_ROLES.RESTAURANT_OWNER]: '#3b82f6',
+      [USER_ROLES.NURSING_HOME_ADMIN]: '#ec4899',
+      [USER_ROLES.NURSING_HOME_USER]: '#a855f7'
     };
     return colors[role] || '#6b7280';
   };
 
+  const getRoleLabel = (role) => {
+    const labels = {
+      [USER_ROLES.USER]: 'Customer',
+      [USER_ROLES.ADMIN]: 'Administrator',
+      [USER_ROLES.RESTAURANT_OWNER]: 'Restaurant Owner',
+      [USER_ROLES.NURSING_HOME_ADMIN]: 'Nursing Home Admin',
+      [USER_ROLES.NURSING_HOME_USER]: 'Nursing Home User'
+    };
+    return labels[role] || 'User';
+  };
+
   const userRoles = [
     { value: 'all', label: 'All Roles' },
-    { value: 'user', label: 'Customers' },
-    { value: 'restaurant_owner', label: 'Restaurant Owners' },
-    { value: 'admin', label: 'Administrators' }
+    { value: USER_ROLES.USER, label: 'Customers' },
+    { value: USER_ROLES.RESTAURANT_OWNER, label: 'Restaurant Owners' },
+    { value: USER_ROLES.ADMIN, label: 'Administrators' },
+    { value: USER_ROLES.NURSING_HOME_ADMIN, label: 'Nursing Home Admins' },
+    { value: USER_ROLES.NURSING_HOME_USER, label: 'Nursing Home Users' }
   ];
 
   return (
@@ -167,7 +183,7 @@ const AdminUsers = () => {
       <div className="users-header">
         <div className="header-content">
           <h1>User Management</h1>
-          <p>Manage customer accounts, restaurant owners, and administrators</p>
+          <p>Manage customer accounts, restaurant owners, administrators, and nursing home users</p>
         </div>
         <div className="header-actions">
           <button 
@@ -194,13 +210,25 @@ const AdminUsers = () => {
         <div className="stat-card">
           <span className="stat-label">Customers</span>
           <span className="stat-value">
-            {users.filter(u => u.role === 'user').length}
+            {users.filter(u => u.role === USER_ROLES.USER).length}
           </span>
         </div>
         <div className="stat-card">
           <span className="stat-label">Restaurant Owners</span>
           <span className="stat-value">
-            {users.filter(u => u.role === 'restaurant_owner').length}
+            {users.filter(u => u.role === USER_ROLES.RESTAURANT_OWNER).length}
+          </span>
+        </div>
+        <div className="stat-card">
+          <span className="stat-label">Nursing Home Admins</span>
+          <span className="stat-value">
+            {users.filter(u => u.role === USER_ROLES.NURSING_HOME_ADMIN).length}
+          </span>
+        </div>
+        <div className="stat-card">
+          <span className="stat-label">Nursing Home Users</span>
+          <span className="stat-value">
+            {users.filter(u => u.role === USER_ROLES.NURSING_HOME_USER).length}
           </span>
         </div>
       </div>
@@ -294,7 +322,7 @@ const AdminUsers = () => {
                             color: 'white'
                           }}
                         >
-                          {user.role?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'User'}
+                          {getRoleLabel(user.role)}
                         </span>
                       </td>
                       <td className="user-joined">
@@ -407,7 +435,7 @@ const AdminUsers = () => {
                   <div className="admin-users__info-item">
                     <label>Role:</label>
                     <span className="admin-users__role-badge" style={{ backgroundColor: getRoleBadgeColor(selectedUser.role), color: 'white' }}>
-                      {selectedUser.role?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'User'}
+                      {getRoleLabel(selectedUser.role)}
                     </span>
                   </div>
                   <div className="admin-users__info-item">
@@ -488,12 +516,14 @@ const AdminUsers = () => {
                   <div className="admin-users__form-group">
                     <label>Role *</label>
                     <select
-                      value={editFormData.role || 'user'}
+                      value={editFormData.role || USER_ROLES.USER}
                       onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value })}
                     >
-                      <option value="user">Customer</option>
-                      <option value="restaurant_owner">Restaurant Owner</option>
-                      <option value="admin">Administrator</option>
+                      <option value={USER_ROLES.USER}>Customer</option>
+                      <option value={USER_ROLES.RESTAURANT_OWNER}>Restaurant Owner</option>
+                      <option value={USER_ROLES.ADMIN}>Administrator</option>
+                      <option value={USER_ROLES.NURSING_HOME_ADMIN}>Nursing Home Admin</option>
+                      <option value={USER_ROLES.NURSING_HOME_USER}>Nursing Home User</option>
                     </select>
                   </div>
                 </div>
@@ -613,9 +643,11 @@ const AdminUsers = () => {
                       onChange={(e) => setCreateFormData({ ...createFormData, role: e.target.value })}
                       required
                     >
-                      <option value="user">Customer</option>
-                      <option value="restaurant_owner">Restaurant Owner</option>
-                      <option value="admin">Administrator</option>
+                      <option value={USER_ROLES.USER}>Customer</option>
+                      <option value={USER_ROLES.RESTAURANT_OWNER}>Restaurant Owner</option>
+                      <option value={USER_ROLES.ADMIN}>Administrator</option>
+                      <option value={USER_ROLES.NURSING_HOME_ADMIN}>Nursing Home Admin</option>
+                      <option value={USER_ROLES.NURSING_HOME_USER}>Nursing Home User</option>
                     </select>
                   </div>
                 </div>
