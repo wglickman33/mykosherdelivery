@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchResidents, fetchResidentOrders } from '../../../services/nursingHomeService';
+import { fetchResidents, fetchResidentOrders } from '../../services/nursingHomeService';
 import './NursingHomeDashboard.scss';
 
 const NursingHomeDashboard = () => {

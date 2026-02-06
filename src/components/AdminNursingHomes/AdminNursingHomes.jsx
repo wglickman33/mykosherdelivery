@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import './AdminNursingHomes.scss';
@@ -6,7 +6,7 @@ import './AdminNursingHomes.scss';
 const AdminNursingHomes = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('residents');
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
 
   const isSuperAdmin = user?.role === 'admin';
 

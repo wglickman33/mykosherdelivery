@@ -263,9 +263,6 @@ const AdminLayout = () => {
     return null;
   }
 
-  const isNursingHomeAdmin = user.role === 'nursing_home_admin';
-  const isSuperAdmin = user.role === 'admin';
-
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: (
         <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
@@ -298,7 +295,6 @@ const AdminLayout = () => {
 
   return (
     <div className="admin-layout">
-      {}
       <aside className={`admin-sidebar ${sidebarCollapsed ? 'collapsed' : ''} ${mobileSidebarOpen ? 'open' : ''}`}>
         <div className="admin-sidebar__header">
           <div className="admin-logo">
@@ -363,10 +359,8 @@ const AdminLayout = () => {
         </div>
       </aside>
 
-      {}
       {mobileSidebarOpen && <div className="admin-overlay" onClick={() => setMobileSidebarOpen(false)} />}
 
-      {}
       <main className="admin-main">
         <header className="admin-header">
           <div className="admin-header__title">

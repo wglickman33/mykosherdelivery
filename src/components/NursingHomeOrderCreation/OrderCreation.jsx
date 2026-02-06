@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { fetchResident, fetchMenuItems, createResidentOrder, fetchFacility } from '../../../services/nursingHomeService';
+import { fetchResident, fetchMenuItems, createResidentOrder, fetchFacility } from '../../services/nursingHomeService';
 import MealForm from './MealForm';
 import OrderSummary from './OrderSummary';
 import './OrderCreation.scss';

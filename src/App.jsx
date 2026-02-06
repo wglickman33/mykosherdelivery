@@ -51,11 +51,11 @@ import logger from "./utils/logger";
 import "./App.scss";
 
 import HelpPage from "./components/HelpPage/HelpPage";
-import NursingHomeLogin from "./components/NursingHomes/NursingHomeLogin/NursingHomeLogin";
-import NursingHomeAdminLogin from "./components/NursingHomes/NursingHomeAdminLogin/NursingHomeAdminLogin";
-import NursingHomeDashboard from "./components/NursingHomes/NursingHomeDashboard/NursingHomeDashboard";
-import OrderCreation from "./components/NursingHomes/OrderCreation/OrderCreation";
-import OrderPayment from "./components/NursingHomes/OrderPayment/OrderPayment";
+import NursingHomeLogin from "./components/NursingHomeLogin/NursingHomeLogin";
+import NursingHomeAdminLogin from "./components/NursingHomeAdminLogin/NursingHomeAdminLogin";
+import NursingHomeDashboard from "./components/NursingHomeDashboard/NursingHomeDashboard";
+import NursingHomeOrderCreation from "./components/NursingHomeOrderCreation/OrderCreation";
+import NursingHomeOrderPayment from "./components/NursingHomeOrderPayment/OrderPayment";
 
 function AuthenticatedApp() {
   const { user, loading, tempAddress } = useAuth();
@@ -164,8 +164,8 @@ function AuthenticatedApp() {
           <Route path="/nursing-homes/login" element={<NursingHomeLogin />} />
           <Route path="/nursing-homes/admin/login" element={<NursingHomeAdminLogin />} />
           <Route path="/nursing-homes/dashboard" element={<NursingHomeDashboard />} />
-          <Route path="/nursing-homes/order/new/:residentId" element={<OrderCreation />} />
-          <Route path="/nursing-homes/order/:orderId/payment" element={<OrderPayment />} />
+          <Route path="/nursing-homes/order/new/:residentId" element={<NursingHomeOrderCreation />} />
+          <Route path="/nursing-homes/order/:orderId/payment" element={<NursingHomeOrderPayment />} />
           <Route path="/nursing-homes" element={<Navigate to="/nursing-homes/login" replace />} />
           <Route path="/nursing-homes/*" element={<NotFoundPage />} />
         </Routes>

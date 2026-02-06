@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { fetchResidentOrders, submitAndPayOrder } from '../../../services/nursingHomeService';
+import { fetchResidentOrders, submitAndPayOrder } from '../../services/nursingHomeService';
 import './OrderPayment.scss';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);

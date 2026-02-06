@@ -1,12 +1,11 @@
 const express = require('express');
 const { NursingHomeResident, NursingHomeFacility, Profile } = require('../models');
-const { requireAdmin, requireNursingHomeAdmin, requireNursingHomeUser } = require('../middleware/auth');
+const { requireNursingHomeAdmin, requireNursingHomeUser } = require('../middleware/auth');
 const { body, validationResult } = require('express-validator');
 const logger = require('../utils/logger');
 
 const router = express.Router();
 
-// GET /api/nursing-homes/residents - List residents
 router.get('/residents', requireNursingHomeUser, async (req, res) => {
   try {
     const { page = 1, limit = 50, search = '', facilityId, assignedUserId, isActive } = req.query;
@@ -14,9 +13,7 @@ router.get('/residents', requireNursingHomeUser, async (req, res) => {
 
     const where = {};
     
-    // Filter by facility
     if (req.user.role === 'nursing_home_user' || req.user.role === 'nursing_home_admin') {
-      // Non-admin users can only see residents from their facility
       if (req.user.role !== 'admin') {
         where.facilityId = req.user.nursingHomeFacilityId;
       } else if (facilityId) {
@@ -26,7 +23,6 @@ router.get('/residents', requireNursingHomeUser, async (req, res) => {
       where.facilityId = facilityId;
     }
 
-    // Nursing home users can only see their assigned residents
     if (req.user.role === 'nursing_home_user') {
       where.assignedUserId = req.user.id;
     } else if (assignedUserId) {
@@ -79,7 +75,6 @@ router.get('/residents', requireNursingHomeUser, async (req, res) => {
   }
 });
 
-// GET /api/nursing-homes/residents/:id - Get resident details
 router.get('/residents/:id', requireNursingHomeUser, async (req, res) => {
   try {
     const { id } = req.params;
@@ -106,7 +101,6 @@ router.get('/residents/:id', requireNursingHomeUser, async (req, res) => {
       });
     }
 
-    // Check access permissions
     if (req.user.role === 'nursing_home_user') {
       if (resident.assignedUserId !== req.user.id) {
         return res.status(403).json({
@@ -137,7 +131,6 @@ router.get('/residents/:id', requireNursingHomeUser, async (req, res) => {
   }
 });
 
-// POST /api/nursing-homes/residents - Create new resident (NH admin only)
 router.post('/residents', requireNursingHomeAdmin, [
   body('facilityId').isUUID(),
   body('name').notEmpty().trim(),
@@ -159,7 +152,6 @@ router.post('/residents', requireNursingHomeAdmin, [
 
     const { facilityId, name, roomNumber, dietaryRestrictions, allergies, notes, assignedUserId } = req.body;
 
-    // Check if user has access to this facility
     if (req.user.role !== 'admin' && req.user.nursingHomeFacilityId !== facilityId) {
       return res.status(403).json({
         success: false,
@@ -167,7 +159,6 @@ router.post('/residents', requireNursingHomeAdmin, [
       });
     }
 
-    // Verify facility exists
     const facility = await NursingHomeFacility.findByPk(facilityId);
     if (!facility) {
       return res.status(404).json({
@@ -176,7 +167,6 @@ router.post('/residents', requireNursingHomeAdmin, [
       });
     }
 
-    // If assignedUserId provided, verify user exists and belongs to facility
     if (assignedUserId) {
       const assignedUser = await Profile.findByPk(assignedUserId);
       if (!assignedUser || assignedUser.nursingHomeFacilityId !== facilityId) {
@@ -218,7 +208,6 @@ router.post('/residents', requireNursingHomeAdmin, [
   }
 });
 
-// PUT /api/nursing-homes/residents/:id - Update resident (NH admin only)
 router.put('/residents/:id', requireNursingHomeAdmin, [
   body('name').optional().notEmpty().trim(),
   body('roomNumber').optional().trim(),
@@ -249,7 +238,6 @@ router.put('/residents/:id', requireNursingHomeAdmin, [
       });
     }
 
-    // Check access permissions
     if (req.user.role !== 'admin' && resident.facilityId !== req.user.nursingHomeFacilityId) {
       return res.status(403).json({
         success: false,
@@ -257,7 +245,6 @@ router.put('/residents/:id', requireNursingHomeAdmin, [
       });
     }
 
-    // If changing assignedUserId, verify user exists and belongs to facility
     if (updateData.assignedUserId) {
       const assignedUser = await Profile.findByPk(updateData.assignedUserId);
       if (!assignedUser || assignedUser.nursingHomeFacilityId !== resident.facilityId) {
@@ -289,7 +276,6 @@ router.put('/residents/:id', requireNursingHomeAdmin, [
   }
 });
 
-// POST /api/nursing-homes/residents/:id/assign - Assign resident to user (NH admin only)
 router.post('/residents/:id/assign', requireNursingHomeAdmin, [
   body('assignedUserId').isUUID()
 ], async (req, res) => {
@@ -314,7 +300,6 @@ router.post('/residents/:id/assign', requireNursingHomeAdmin, [
       });
     }
 
-    // Check access permissions
     if (req.user.role !== 'admin' && resident.facilityId !== req.user.nursingHomeFacilityId) {
       return res.status(403).json({
         success: false,
@@ -322,7 +307,6 @@ router.post('/residents/:id/assign', requireNursingHomeAdmin, [
       });
     }
 
-    // Verify user exists and belongs to facility
     const assignedUser = await Profile.findByPk(assignedUserId);
     if (!assignedUser || assignedUser.nursingHomeFacilityId !== resident.facilityId) {
       return res.status(400).json({
@@ -353,7 +337,6 @@ router.post('/residents/:id/assign', requireNursingHomeAdmin, [
   }
 });
 
-// DELETE /api/nursing-homes/residents/:id - Deactivate resident (NH admin only)
 router.delete('/residents/:id', requireNursingHomeAdmin, async (req, res) => {
   try {
     const { id } = req.params;
@@ -366,7 +349,6 @@ router.delete('/residents/:id', requireNursingHomeAdmin, async (req, res) => {
       });
     }
 
-    // Check access permissions
     if (req.user.role !== 'admin' && resident.facilityId !== req.user.nursingHomeFacilityId) {
       return res.status(403).json({
         success: false,

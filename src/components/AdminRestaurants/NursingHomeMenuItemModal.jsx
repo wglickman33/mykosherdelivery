@@ -185,7 +185,7 @@ const NursingHomeMenuItemModal = ({ isOpen, onClose, menuItem, onSave }) => {
                 />
                 Active
               </label>
-              <p className="help-text">Inactive items won't appear in ordering forms</p>
+              <p className="help-text">Inactive items won&apos;t appear in ordering forms</p>
             </div>
           </div>
 

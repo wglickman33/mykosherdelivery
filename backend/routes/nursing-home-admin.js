@@ -6,11 +6,6 @@ const logger = require('../utils/logger');
 
 const router = express.Router();
 
-// ============================================================================
-// FACILITIES MANAGEMENT
-// ============================================================================
-
-// GET /api/nursing-homes/facilities - List all facilities (admin only)
 router.get('/facilities', requireAdmin, async (req, res) => {
   try {
     const { page = 1, limit = 20, search = '', isActive } = req.query;
@@ -58,7 +53,6 @@ router.get('/facilities', requireAdmin, async (req, res) => {
   }
 });
 
-// GET /api/nursing-homes/facilities/:id - Get facility details
 router.get('/facilities/:id', requireNursingHomeAdmin, async (req, res) => {
   try {
     const { id } = req.params;
@@ -101,7 +95,6 @@ router.get('/facilities/:id', requireNursingHomeAdmin, async (req, res) => {
   }
 });
 
-// POST /api/nursing-homes/facilities - Create new facility (admin only)
 router.post('/facilities', requireAdmin, [
   body('name').notEmpty().trim(),
   body('address').isObject(),
@@ -154,7 +147,6 @@ router.post('/facilities', requireAdmin, [
   }
 });
 
-// PUT /api/nursing-homes/facilities/:id - Update facility (admin only)
 router.put('/facilities/:id', requireAdmin, [
   body('name').optional().notEmpty().trim(),
   body('address').optional().isObject(),
@@ -205,7 +197,6 @@ router.put('/facilities/:id', requireAdmin, [
   }
 });
 
-// DELETE /api/nursing-homes/facilities/:id - Deactivate facility (admin only)
 router.delete('/facilities/:id', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
@@ -239,11 +230,6 @@ router.delete('/facilities/:id', requireAdmin, async (req, res) => {
   }
 });
 
-// ============================================================================
-// RESIDENTS MANAGEMENT
-// ============================================================================
-
-// GET /api/nursing-homes/residents - List residents
 router.get('/residents', requireNursingHomeUser, async (req, res) => {
   try {
     const { page = 1, limit = 50, search = '', facilityId, assignedUserId, isActive } = req.query;
@@ -313,7 +299,6 @@ router.get('/residents', requireNursingHomeUser, async (req, res) => {
   }
 });
 
-// GET /api/nursing-homes/residents/:id - Get resident details
 router.get('/residents/:id', requireNursingHomeUser, async (req, res) => {
   try {
     const { id } = req.params;
@@ -370,7 +355,6 @@ router.get('/residents/:id', requireNursingHomeUser, async (req, res) => {
   }
 });
 
-// POST /api/nursing-homes/residents - Create new resident (NH admin only)
 router.post('/residents', requireNursingHomeAdmin, [
   body('facilityId').isUUID(),
   body('name').notEmpty().trim(),
@@ -448,7 +432,6 @@ router.post('/residents', requireNursingHomeAdmin, [
   }
 });
 
-// PUT /api/nursing-homes/residents/:id - Update resident (NH admin only)
 router.put('/residents/:id', requireNursingHomeAdmin, [
   body('name').optional().notEmpty().trim(),
   body('roomNumber').optional().trim(),
@@ -517,7 +500,6 @@ router.put('/residents/:id', requireNursingHomeAdmin, [
   }
 });
 
-// POST /api/nursing-homes/residents/:id/assign - Assign resident to user (NH admin only)
 router.post('/residents/:id/assign', requireNursingHomeAdmin, [
   body('assignedUserId').isUUID()
 ], async (req, res) => {
@@ -579,7 +561,6 @@ router.post('/residents/:id/assign', requireNursingHomeAdmin, [
   }
 });
 
-// DELETE /api/nursing-homes/residents/:id - Deactivate resident (NH admin only)
 router.delete('/residents/:id', requireNursingHomeAdmin, async (req, res) => {
   try {
     const { id } = req.params;
@@ -620,11 +601,6 @@ router.delete('/residents/:id', requireNursingHomeAdmin, async (req, res) => {
   }
 });
 
-// ============================================================================
-// MENU MANAGEMENT
-// ============================================================================
-
-// GET /api/nursing-homes/menu - Get all menu items (optionally filtered by meal type)
 router.get('/menu', requireNursingHomeUser, async (req, res) => {
   try {
     const { mealType, category, isActive = 'true' } = req.query;
@@ -682,7 +658,6 @@ router.get('/menu', requireNursingHomeUser, async (req, res) => {
   }
 });
 
-// GET /api/nursing-homes/menu/:id - Get menu item details
 router.get('/menu/:id', requireNursingHomeUser, async (req, res) => {
   try {
     const { id } = req.params;
@@ -709,7 +684,6 @@ router.get('/menu/:id', requireNursingHomeUser, async (req, res) => {
   }
 });
 
-// POST /api/nursing-homes/menu - Create menu item (admin only)
 router.post('/menu', requireAdmin, [
   body('mealType').isIn(['breakfast', 'lunch', 'dinner']),
   body('category').isIn(['main', 'side', 'entree', 'dessert', 'soup']),
@@ -752,7 +726,6 @@ router.post('/menu', requireAdmin, [
   }
 });
 
-// PUT /api/nursing-homes/menu/:id - Update menu item (admin only)
 router.put('/menu/:id', requireAdmin, [
   body('mealType').optional().isIn(['breakfast', 'lunch', 'dinner']),
   body('category').optional().isIn(['main', 'side', 'entree', 'dessert', 'soup']),
@@ -805,7 +778,6 @@ router.put('/menu/:id', requireAdmin, [
   }
 });
 
-// DELETE /api/nursing-homes/menu/:id - Delete menu item (admin only)
 router.delete('/menu/:id', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
@@ -839,10 +811,6 @@ router.delete('/menu/:id', requireAdmin, async (req, res) => {
   }
 });
 
-// ============================================================================
-// INVOICES MANAGEMENT (Legacy/Optional)
-// ============================================================================
-
 function generateInvoiceNumber() {
   const date = new Date();
   const year = date.getFullYear();
@@ -851,7 +819,6 @@ function generateInvoiceNumber() {
   return `INV-NH-${year}${month}-${random}`;
 }
 
-// GET /api/nursing-homes/invoices - List invoices
 router.get('/invoices', requireNursingHomeAdmin, async (req, res) => {
   try {
     const { page = 1, limit = 20, status, facilityId } = req.query;
@@ -903,7 +870,6 @@ router.get('/invoices', requireNursingHomeAdmin, async (req, res) => {
   }
 });
 
-// GET /api/nursing-homes/invoices/:id - Get invoice details
 router.get('/invoices/:id', requireNursingHomeAdmin, async (req, res) => {
   try {
     const { id } = req.params;
@@ -956,7 +922,6 @@ router.get('/invoices/:id', requireNursingHomeAdmin, async (req, res) => {
   }
 });
 
-// POST /api/nursing-homes/invoices/generate - Generate invoice (admin only)
 router.post('/invoices/generate', requireAdmin, [
   body('facilityId').isUUID(),
   body('billingPeriodStart').isDate(),
@@ -1055,7 +1020,6 @@ router.post('/invoices/generate', requireAdmin, [
   }
 });
 
-// PUT /api/nursing-homes/invoices/:id - Update invoice (admin only)
 router.put('/invoices/:id', requireAdmin, [
   body('dueDate').optional().isDate(),
   body('status').optional().isIn(['draft', 'sent', 'paid', 'overdue', 'cancelled'])
@@ -1102,7 +1066,6 @@ router.put('/invoices/:id', requireAdmin, [
   }
 });
 
-// POST /api/nursing-homes/invoices/:id/send - Send invoice to facility (admin only)
 router.post('/invoices/:id/send', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
@@ -1154,7 +1117,6 @@ router.post('/invoices/:id/send', requireAdmin, async (req, res) => {
   }
 });
 
-// POST /api/nursing-homes/invoices/:id/mark-paid - Mark invoice as paid (admin only)
 router.post('/invoices/:id/mark-paid', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;

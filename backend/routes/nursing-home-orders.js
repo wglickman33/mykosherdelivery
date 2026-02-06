@@ -21,10 +21,6 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 const router = express.Router();
 
-// ============================================================================
-// RATE LIMITING & VALIDATION MIDDLEWARE
-// ============================================================================
-
 const paymentLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
@@ -78,10 +74,6 @@ const validateBulkOrder = [
   body('residentMeals').isArray(),
   body('deliveryAddress').isObject()
 ];
-
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
 
 function calculateDeadline(weekStartDate) {
   const startDate = new Date(weekStartDate);
@@ -168,11 +160,6 @@ function calculateBulkOrderTotals(residentMeals) {
   };
 }
 
-// ============================================================================
-// PER-RESIDENT ORDERS (Current System)
-// ============================================================================
-
-// GET /api/nursing-homes/resident-orders - List resident orders
 router.get('/resident-orders', requireNursingHomeUser, validateQueryParams, async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -269,7 +256,6 @@ router.get('/resident-orders', requireNursingHomeUser, validateQueryParams, asyn
   }
 });
 
-// POST /api/nursing-homes/resident-orders - Create draft resident order
 router.post('/resident-orders', requireNursingHomeUser, validateResidentOrder, async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -360,7 +346,6 @@ router.post('/resident-orders', requireNursingHomeUser, validateResidentOrder, a
   }
 });
 
-// PUT /api/nursing-homes/resident-orders/:id - Update draft resident order
 router.put('/resident-orders/:id', requireNursingHomeUser, validateOrderUpdate, async (req, res) => {
   try {
     const { id } = req.params;
@@ -443,7 +428,6 @@ router.put('/resident-orders/:id', requireNursingHomeUser, validateOrderUpdate, 
   }
 });
 
-// POST /api/nursing-homes/resident-orders/:id/submit-and-pay - Submit order and process payment
 router.post('/resident-orders/:id/submit-and-pay', paymentLimiter, requireNursingHomeUser, [
   body('paymentMethodId').optional().isString().trim()
 ], async (req, res) => {
@@ -556,7 +540,6 @@ router.post('/resident-orders/:id/submit-and-pay', paymentLimiter, requireNursin
   }
 });
 
-// GET /api/nursing-homes/resident-orders/:id/export - Export resident order
 router.get('/resident-orders/:id/export', requireNursingHomeUser, async (req, res) => {
   try {
     const { id } = req.params;
@@ -639,11 +622,6 @@ router.get('/resident-orders/:id/export', requireNursingHomeUser, async (req, re
   }
 });
 
-// ============================================================================
-// BULK FACILITY ORDERS (Legacy System)
-// ============================================================================
-
-// GET /api/nursing-homes/orders - List bulk facility orders
 router.get('/orders', requireNursingHomeUser, async (req, res) => {
   try {
     const { page = 1, limit = 20, status, facilityId, weekStartDate } = req.query;
@@ -768,7 +746,6 @@ router.get('/orders/:id', requireNursingHomeUser, async (req, res) => {
   }
 });
 
-// POST /api/nursing-homes/orders - Create/draft bulk order
 router.post('/orders', requireNursingHomeUser, validateBulkOrder, async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -838,7 +815,6 @@ router.post('/orders', requireNursingHomeUser, validateBulkOrder, async (req, re
   }
 });
 
-// PUT /api/nursing-homes/orders/:id - Update bulk order (before deadline)
 router.put('/orders/:id', requireNursingHomeUser, [
   body('residentMeals').optional().isArray(),
   body('deliveryAddress').optional().isObject()
@@ -925,7 +901,6 @@ router.put('/orders/:id', requireNursingHomeUser, [
   }
 });
 
-// POST /api/nursing-homes/orders/:id/submit - Submit bulk order (locks it)
 router.post('/orders/:id/submit', requireNursingHomeUser, async (req, res) => {
   try {
     const { id } = req.params;
@@ -996,7 +971,6 @@ router.post('/orders/:id/submit', requireNursingHomeUser, async (req, res) => {
   }
 });
 
-// DELETE /api/nursing-homes/orders/:id - Cancel bulk order
 router.delete('/orders/:id', requireNursingHomeAdmin, async (req, res) => {
   try {
     const { id } = req.params;
@@ -1037,7 +1011,6 @@ router.delete('/orders/:id', requireNursingHomeAdmin, async (req, res) => {
   }
 });
 
-// GET /api/nursing-homes/orders/:id/export - Export bulk order for resident
 router.get('/orders/:id/export', requireNursingHomeUser, async (req, res) => {
   try {
     const { id } = req.params;

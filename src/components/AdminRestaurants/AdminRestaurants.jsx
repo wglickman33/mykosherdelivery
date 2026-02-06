@@ -371,7 +371,7 @@ const AdminRestaurants = () => {
   };
 
   // Nursing Home Menu Functions
-  const fetchNHMenu = async () => {
+  const fetchNHMenu = useCallback(async () => {
     setNursingHomeMenuLoading(true);
     const result = await fetchNursingHomeMenu(nhMenuFilters);
     if (result.success) {
@@ -380,13 +380,13 @@ const AdminRestaurants = () => {
       showNotification(result.error || 'Failed to fetch nursing home menu', 'error');
     }
     setNursingHomeMenuLoading(false);
-  };
+  }, [nhMenuFilters, showNotification]);
 
   useEffect(() => {
     if (activeTab === 'nursing-home-menu') {
       fetchNHMenu();
     }
-  }, [activeTab, nhMenuFilters]);
+  }, [activeTab, fetchNHMenu]);
 
   const handleCreateNHMenuItem = async (data) => {
     const result = await createNursingHomeMenuItem(data);

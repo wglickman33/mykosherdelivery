@@ -6,7 +6,6 @@ const logger = require('../utils/logger');
 
 const router = express.Router();
 
-// GET /api/nursing-homes/facilities - List all facilities (admin only)
 router.get('/facilities', requireAdmin, async (req, res) => {
   try {
     const { page = 1, limit = 20, search = '', isActive } = req.query;
@@ -54,7 +53,6 @@ router.get('/facilities', requireAdmin, async (req, res) => {
   }
 });
 
-// GET /api/nursing-homes/facilities/:id - Get facility details
 router.get('/facilities/:id', requireNursingHomeAdmin, async (req, res) => {
   try {
     const { id } = req.params;
@@ -76,7 +74,6 @@ router.get('/facilities/:id', requireNursingHomeAdmin, async (req, res) => {
       });
     }
 
-    // Check if user has access (admin or belongs to this facility)
     if (req.user.role !== 'admin' && req.user.nursingHomeFacilityId !== facility.id) {
       return res.status(403).json({
         success: false,
@@ -98,7 +95,6 @@ router.get('/facilities/:id', requireNursingHomeAdmin, async (req, res) => {
   }
 });
 
-// POST /api/nursing-homes/facilities - Create new facility (admin only)
 router.post('/facilities', requireAdmin, [
   body('name').notEmpty().trim(),
   body('address').isObject(),
@@ -151,7 +147,6 @@ router.post('/facilities', requireAdmin, [
   }
 });
 
-// PUT /api/nursing-homes/facilities/:id - Update facility (admin only)
 router.put('/facilities/:id', requireAdmin, [
   body('name').optional().notEmpty().trim(),
   body('address').optional().isObject(),
@@ -202,7 +197,6 @@ router.put('/facilities/:id', requireAdmin, [
   }
 });
 
-// DELETE /api/nursing-homes/facilities/:id - Deactivate facility (admin only)
 router.delete('/facilities/:id', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
