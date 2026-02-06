@@ -65,9 +65,8 @@ const formatAddress = (deliveryAddress) => {
   const parts = [];
   
   const street = deliveryAddress.street || deliveryAddress.address || deliveryAddress.line1 || '';
-  // Limit apartment field to prevent long text from appearing in address
   const apartment = deliveryAddress.apartment || deliveryAddress.unit || '';
-  const limitedApartment = apartment ? String(apartment).substring(0, 100) : '';
+  const limitedApartment = apartment ? String(apartment).substring(0, 20) : '';
   const city = deliveryAddress.city || '';
   const state = deliveryAddress.state || '';
   const zip = deliveryAddress.zip_code || deliveryAddress.zipCode || deliveryAddress.postal_code || '';

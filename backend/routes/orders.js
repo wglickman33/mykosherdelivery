@@ -44,7 +44,7 @@ router.post('/guest', [
   body('restaurantGroups').isObject(),
   body('deliveryAddress').isObject(),
   body('deliveryAddress.street').optional().isString().trim().isLength({ max: 200 }),
-  body('deliveryAddress.apartment').optional().isString().trim().isLength({ max: 100 }),
+  body('deliveryAddress.apartment').optional().isString().trim().isLength({ max: 20 }),
   body('deliveryAddress.city').optional().isString().trim().isLength({ max: 100 }),
   body('deliveryAddress.state').optional().isString().trim().isLength({ max: 2 }),
   body('deliveryAddress.zip_code').optional().isString().trim().matches(/^\d{5}$/),
@@ -74,7 +74,7 @@ router.post('/guest', [
     // Sanitize address fields to prevent long text in wrong fields
     const sanitizedAddress = {
       ...deliveryAddress,
-      apartment: deliveryAddress.apartment ? String(deliveryAddress.apartment).trim().substring(0, 100) : undefined,
+      apartment: deliveryAddress.apartment ? String(deliveryAddress.apartment).trim().substring(0, 20) : undefined,
       street: deliveryAddress.street ? String(deliveryAddress.street).trim().substring(0, 200) : undefined,
       city: deliveryAddress.city ? String(deliveryAddress.city).trim().substring(0, 100) : undefined,
       state: deliveryAddress.state ? String(deliveryAddress.state).trim().substring(0, 2) : undefined,
@@ -139,7 +139,7 @@ router.post('/', authenticateToken, [
   body('restaurantGroups').isObject(),
   body('deliveryAddress').isObject(),
   body('deliveryAddress.street').optional().isString().trim().isLength({ max: 200 }),
-  body('deliveryAddress.apartment').optional().isString().trim().isLength({ max: 100 }),
+  body('deliveryAddress.apartment').optional().isString().trim().isLength({ max: 20 }),
   body('deliveryAddress.city').optional().isString().trim().isLength({ max: 100 }),
   body('deliveryAddress.state').optional().isString().trim().isLength({ max: 2 }),
   body('deliveryAddress.zip_code').optional().isString().trim().matches(/^\d{5}$/),
@@ -184,7 +184,7 @@ router.post('/', authenticateToken, [
     // Sanitize address fields to prevent long text in wrong fields
     const sanitizedAddress = {
       ...deliveryAddress,
-      apartment: deliveryAddress.apartment ? String(deliveryAddress.apartment).trim().substring(0, 100) : undefined,
+      apartment: deliveryAddress.apartment ? String(deliveryAddress.apartment).trim().substring(0, 20) : undefined,
       street: deliveryAddress.street ? String(deliveryAddress.street).trim().substring(0, 200) : undefined,
       city: deliveryAddress.city ? String(deliveryAddress.city).trim().substring(0, 100) : undefined,
       state: deliveryAddress.state ? String(deliveryAddress.state).trim().substring(0, 2) : undefined,

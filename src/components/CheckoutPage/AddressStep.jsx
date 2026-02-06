@@ -106,7 +106,7 @@ const AddressStep = ({ onNext }) => {
           type: formData.type || "New Address",
           address: validatedAddress,
           street: parsed.street,
-          apartment: formData.apartment.trim().substring(0, 100), // Limit to 100 chars
+          apartment: formData.apartment.trim().substring(0, 20), // Limit to 20 chars
           city: parsed.city,
           state: parsed.state,
           zip_code: parsed.zip_code,
@@ -248,7 +248,7 @@ const AddressStep = ({ onNext }) => {
             <div className="form-group">
               <label htmlFor="apartment" className="form-label">
                 Apartment / Unit Number (Optional)
-                <span className="label-hint">(Max 100 characters)</span>
+                <span className="label-hint">(Max 20 characters)</span>
               </label>
               <input
                 id="apartment"
@@ -256,7 +256,7 @@ const AddressStep = ({ onNext }) => {
                 placeholder="Apt 4B, Unit 302, etc."
                 value={formData.apartment}
                 onChange={(e) => {
-                  const value = e.target.value.substring(0, 100);
+                  const value = e.target.value.substring(0, 20);
                   setFormData({ ...formData, apartment: value });
                 }}
                 onKeyDown={(e) => {
@@ -267,7 +267,7 @@ const AddressStep = ({ onNext }) => {
                     }
                   }
                 }}
-                maxLength={100}
+                maxLength={20}
                 disabled={isValidating}
               />
               <p className="form-hint">
