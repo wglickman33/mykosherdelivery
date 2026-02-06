@@ -95,7 +95,7 @@ const PaymentForm = ({ order, onSuccess, onError }) => {
       </button>
 
       <div className="payment-security">
-        <p>🔒 Secure payment powered by Stripe</p>
+        <p><span className="security-icon">🔒</span> Secure payment powered by Stripe</p>
         <p className="security-note">Your payment information is encrypted and secure</p>
       </div>
     </form>

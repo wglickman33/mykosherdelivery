@@ -95,7 +95,7 @@ const MealForm = ({ day, mealType, menuItems, currentMeal, onUpdate, resident })
 
       {resident?.allergies && (
         <div className="allergy-warning">
-          <strong>⚠️ Allergies:</strong> {resident.allergies}
+          <strong>Allergies:</strong> {resident.allergies}
         </div>
       )}
 

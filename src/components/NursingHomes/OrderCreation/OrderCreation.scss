@@ -27,17 +27,17 @@
       margin-bottom: 1rem;
 
       .back-btn {
-        background: #f1f5f9;
+        background: $gray-100;
         border: none;
-        padding: 0.5rem 1rem;
-        border-radius: 8px;
+        padding: $spacing-sm $spacing-lg;
+        border-radius: $border-radius-md;
         cursor: pointer;
-        font-weight: 600;
-        color: #64748b;
-        transition: all 0.2s;
+        font-weight: $font-weight-semibold;
+        color: $gray-600;
+        transition: $transition-hover;
 
         &:hover {
-          background: #e2e8f0;
+          background: $gray-200;
         }
       }
 
@@ -45,28 +45,28 @@
         flex: 1;
 
         h1 {
-          color: #9333ea;
-          font-size: 1.75rem;
-          margin: 0 0 0.25rem 0;
+          color: $purple-600;
+          font-size: $font-size-2xl;
+          margin: 0 0 $spacing-xs 0;
         }
 
         .resident-name {
-          color: #64748b;
-          font-size: 1rem;
+          color: $gray-500;
+          font-size: $font-size-base;
         }
       }
     }
 
     .deadline-warning {
-      background: #fef3c7;
-      padding: 0.75rem 1rem;
-      border-radius: 8px;
-      border-left: 4px solid #f59e0b;
+      background: $warning-light;
+      padding: $spacing-md $spacing-lg;
+      border-radius: $border-radius-md;
+      border-left: $border-width-thick solid $warning;
       display: flex;
-      gap: 0.5rem;
+      gap: $spacing-sm;
 
       .deadline-label {
-        font-weight: 600;
+        font-weight: $font-weight-semibold;
         color: #92400e;
       }
 
@@ -77,12 +77,12 @@
   }
 
   .error-banner {
-    background: #fee2e2;
-    color: #dc2626;
-    padding: 1rem;
-    border-radius: 8px;
-    margin-bottom: 1rem;
-    border-left: 4px solid #dc2626;
+    background: $error-light;
+    color: $error;
+    padding: $spacing-lg;
+    border-radius: $border-radius-md;
+    margin-bottom: $spacing-lg;
+    border-left: $border-width-thick solid $error;
   }
 
   .order-content {

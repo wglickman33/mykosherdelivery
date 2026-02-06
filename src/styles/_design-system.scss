@@ -114,9 +114,12 @@ $shadow-purple: 0 4px 12px rgba(147, 51, 234, 0.15);
 // TRANSITIONS
 // ============================================
 
-$transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-$transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
-$transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+$transition-fast: 150ms ease-in-out;
+$transition-base: 200ms ease-in-out;
+$transition-slow: 300ms ease-in-out;
+
+// Standard hover transition for all interactive elements
+$transition-hover: all 200ms ease-in-out;
 
 // ============================================
 // BREAKPOINTS
@@ -164,13 +167,12 @@ $z-tooltip: 1070;
   border-radius: $border-radius-lg;
   box-shadow: $shadow-base;
   padding: $spacing-2xl;
-  transition: box-shadow $transition-base, transform $transition-base;
+  transition: $transition-hover;
 }
 
 @mixin card-hover {
   &:hover {
-    box-shadow: $shadow-purple;
-    transform: translateY(-2px);
+    box-shadow: $shadow-lg;
   }
 }
 
@@ -186,7 +188,7 @@ $z-tooltip: 1070;
   font-size: $font-size-base;
   line-height: $line-height-tight;
   cursor: pointer;
-  transition: all $transition-base;
+  transition: $transition-hover;
   text-decoration: none;
   white-space: nowrap;
 
@@ -203,7 +205,6 @@ $z-tooltip: 1070;
 
   &:hover:not(:disabled) {
     background: $purple-700;
-    box-shadow: $shadow-md;
   }
 
   &:active:not(:disabled) {
@@ -244,7 +245,7 @@ $z-tooltip: 1070;
   line-height: $line-height-normal;
   color: $gray-900;
   background: $white;
-  transition: border-color $transition-base, box-shadow $transition-base;
+  transition: $transition-hover;
 
   &::placeholder {
     color: $gray-400;

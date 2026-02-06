@@ -29,7 +29,6 @@
 
   .dashboard-header {
     margin-bottom: $spacing-2xl;
-    animation: fadeInDown 0.5s ease-out;
 
     h1 {
       color: $purple-600;
@@ -58,23 +57,11 @@
     }
   }
 
-  @keyframes fadeInDown {
-    from {
-      opacity: 0;
-      transform: translateY(-20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
   .stats-cards {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: $spacing-xl;
     margin-bottom: $spacing-2xl;
-    animation: fadeInUp 0.6s ease-out 0.1s both;
 
     @include respond-to(md) {
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -90,11 +77,10 @@
       @include card;
       padding: $spacing-xl;
       border-left: $border-width-thick solid $purple-600;
-      transition: all $transition-base;
+      transition: $transition-hover;
       cursor: default;
 
       &:hover {
-        transform: translateY(-4px);
         box-shadow: $shadow-lg;
         border-left-color: $purple-700;
       }
@@ -122,23 +108,11 @@
     }
   }
 
-  @keyframes fadeInUp {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
   .residents-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
     gap: $spacing-xl;
     margin-bottom: $spacing-2xl;
-    animation: fadeInUp 0.6s ease-out 0.2s both;
 
     @include respond-to(lg) {
       grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -159,23 +133,10 @@
       @include card-hover;
       padding: $spacing-xl;
       position: relative;
-      overflow: hidden;
+      border-top: 4px solid $purple-600;
 
-      &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(90deg, $purple-600, $purple-400);
-        transform: scaleX(0);
-        transform-origin: left;
-        transition: transform $transition-base;
-      }
-
-      &:hover::before {
-        transform: scaleX(1);
+      &:hover {
+        border-top-color: $purple-700;
       }
 
       .resident-header {
@@ -218,6 +179,13 @@
             padding: $spacing-sm $spacing-md;
             border-radius: $border-radius-sm;
             margin: $spacing-sm 0;
+            border-left: 3px solid $error;
+
+            .detail-label::before {
+              content: '⚠';
+              margin-right: $spacing-xs;
+              font-weight: bold;
+            }
 
             .detail-value {
               color: $error;
@@ -387,17 +355,10 @@
     color: $error;
     padding: $spacing-xl;
     border-left: $border-width-thick solid $error;
-    animation: shake 0.5s ease-in-out;
 
     @include respond-to(sm) {
       padding: $spacing-lg;
     }
-  }
-
-  @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-    20%, 40%, 60%, 80% { transform: translateX(5px); }
   }
 
   // Accessibility improvements

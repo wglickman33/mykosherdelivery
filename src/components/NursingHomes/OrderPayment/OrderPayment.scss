@@ -16,37 +16,37 @@
   }
 
   .payment-header {
-    background: white;
-    padding: 1.5rem 2rem;
-    border-radius: 12px;
-    margin-bottom: 2rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    background: $white;
+    padding: $spacing-xl $spacing-2xl;
+    border-radius: $border-radius-lg;
+    margin-bottom: $spacing-2xl;
+    box-shadow: $shadow-base;
 
     .back-btn {
-      background: #f1f5f9;
+      background: $gray-100;
       border: none;
-      padding: 0.5rem 1rem;
-      border-radius: 8px;
+      padding: $spacing-sm $spacing-lg;
+      border-radius: $border-radius-md;
       cursor: pointer;
-      font-weight: 600;
-      color: #64748b;
-      transition: all 0.2s;
-      margin-bottom: 1rem;
+      font-weight: $font-weight-semibold;
+      color: $gray-600;
+      transition: $transition-hover;
+      margin-bottom: $spacing-lg;
 
       &:hover {
-        background: #e2e8f0;
+        background: $gray-200;
       }
     }
 
     h1 {
-      color: #9333ea;
-      font-size: 2rem;
-      margin: 0 0 0.5rem 0;
+      color: $purple-600;
+      font-size: $font-size-3xl;
+      margin: 0 0 $spacing-sm 0;
     }
 
     .order-number {
-      color: #64748b;
-      font-size: 1rem;
+      color: $gray-500;
+      font-size: $font-size-base;
     }
   }
 
@@ -304,22 +304,27 @@
 
       .payment-security {
         text-align: center;
-        padding: 1rem;
-        background: #f8fafc;
-        border-radius: 8px;
+        padding: $spacing-lg;
+        background: $gray-50;
+        border-radius: $border-radius-md;
+
+        .security-icon {
+          font-style: normal;
+          margin-right: $spacing-xs;
+        }
 
         p {
-          color: #64748b;
-          font-size: 0.875rem;
-          margin: 0.25rem 0;
+          color: $gray-500;
+          font-size: $font-size-sm;
+          margin: $spacing-xs 0;
 
           &:first-child {
-            font-weight: 600;
-            color: #10b981;
+            font-weight: $font-weight-semibold;
+            color: $success;
           }
 
           &.security-note {
-            font-size: 0.75rem;
+            font-size: $font-size-xs;
           }
         }
       }
