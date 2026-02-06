@@ -1,4 +1,4 @@
-@import '../../styles/design-system';
+@use '../../styles/design-system' as *;
 
 .stripe-payment-form {
   width: 100%;
