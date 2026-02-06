@@ -1,7 +1,17 @@
+@import '../../../styles/design-system';
+
 .order-creation {
   min-height: 100vh;
-  background: #f8fafc;
-  padding: 2rem;
+  background: $gray-50;
+  padding: $spacing-2xl;
+
+  @include respond-to(md) {
+    padding: $spacing-xl;
+  }
+
+  @include respond-to(sm) {
+    padding: $spacing-lg;
+  }
 
   .order-header {
     background: white;
@@ -77,11 +87,21 @@
 
   .order-content {
     display: grid;
-    grid-template-columns: 1fr 400px;
-    gap: 2rem;
+    grid-template-columns: 1fr 420px;
+    gap: $spacing-2xl;
+    align-items: start;
 
-    @media (max-width: 1200px) {
+    @include respond-to(xl) {
+      grid-template-columns: 1fr 380px;
+    }
+
+    @include respond-to(lg) {
       grid-template-columns: 1fr;
+      gap: $spacing-xl;
+    }
+
+    @include respond-to(sm) {
+      gap: $spacing-lg;
     }
   }
 
@@ -104,45 +124,67 @@
 
     .day-buttons {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-      gap: 0.75rem;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      gap: $spacing-md;
+
+      @include respond-to(md) {
+        grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+        gap: $spacing-sm;
+      }
+
+      @include respond-to(sm) {
+        grid-template-columns: repeat(2, 1fr);
+        gap: $spacing-sm;
+      }
 
       .day-btn {
-        padding: 0.75rem 1rem;
-        border: 2px solid #e2e8f0;
-        background: white;
-        border-radius: 8px;
-        cursor: pointer;
-        font-weight: 600;
-        color: #64748b;
-        transition: all 0.2s;
+        @include button-base;
+        padding: $spacing-md $spacing-lg;
+        border: $border-width-base solid $gray-200;
+        background: $white;
+        font-weight: $font-weight-semibold;
+        color: $gray-600;
         position: relative;
+        min-height: 44px; // Touch target
+        touch-action: manipulation;
 
-        &:hover {
-          border-color: #9333ea;
-          color: #9333ea;
+        @include respond-to(sm) {
+          padding: $spacing-sm $spacing-md;
+          font-size: $font-size-sm;
+        }
+
+        &:hover:not(:disabled) {
+          border-color: $purple-600;
+          color: $purple-600;
+          background: $purple-50;
         }
 
         &.active {
-          background: #9333ea;
-          color: white;
-          border-color: #9333ea;
+          background: $purple-600;
+          color: $white;
+          border-color: $purple-600;
+          box-shadow: $shadow-purple;
+        }
+
+        &:focus-visible {
+          @include focus-visible;
         }
 
         .meal-count {
           position: absolute;
           top: -8px;
           right: -8px;
-          background: #10b981;
-          color: white;
+          background: $success;
+          color: $white;
           width: 24px;
           height: 24px;
-          border-radius: 50%;
+          border-radius: $border-radius-full;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 0.75rem;
-          font-weight: 700;
+          font-size: $font-size-xs;
+          font-weight: $font-weight-bold;
+          box-shadow: $shadow-sm;
         }
       }
     }

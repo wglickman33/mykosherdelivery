@@ -49,10 +49,19 @@ const NursingHomeDashboard = () => {
     navigate(`/nursing-homes/orders?residentId=${resident.id}`);
   };
 
+  const handleKeyPress = (e, callback, resident) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      callback(resident);
+    }
+  };
+
   if (loading) {
     return (
       <div className="nursing-home-dashboard">
-        <div className="loading-spinner">Loading...</div>
+        <div className="loading-spinner" role="status" aria-live="polite">
+          <span className="sr-only">Loading dashboard data...</span>
+        </div>
       </div>
     );
   }
@@ -60,87 +69,112 @@ const NursingHomeDashboard = () => {
   if (error) {
     return (
       <div className="nursing-home-dashboard">
-        <div className="error-message">{error}</div>
+        <div className="error-message" role="alert" aria-live="assertive">
+          <strong>Error:</strong> {error}
+        </div>
+        <button 
+          onClick={loadDashboardData}
+          className="retry-btn"
+          aria-label="Retry loading dashboard"
+        >
+          Try Again
+        </button>
       </div>
     );
   }
 
   return (
     <div className="nursing-home-dashboard">
-      <div className="dashboard-header">
+      <header className="dashboard-header">
         <h1>My Residents</h1>
         <p className="subtitle">Create and manage weekly meal orders for your assigned residents</p>
-      </div>
+      </header>
 
-      <div className="stats-cards">
-        <div className="stat-card">
-          <div className="stat-value">{stats.totalResidents}</div>
+      <section className="stats-cards" aria-label="Dashboard statistics">
+        <div className="stat-card" role="group" aria-labelledby="stat-residents">
+          <div className="stat-value" id="stat-residents" aria-label={`${stats.totalResidents} assigned residents`}>
+            {stats.totalResidents}
+          </div>
           <div className="stat-label">Assigned Residents</div>
         </div>
-        <div className="stat-card">
-          <div className="stat-value">{stats.activeOrders}</div>
+        <div className="stat-card" role="group" aria-labelledby="stat-drafts">
+          <div className="stat-value" id="stat-drafts" aria-label={`${stats.activeOrders} draft orders`}>
+            {stats.activeOrders}
+          </div>
           <div className="stat-label">Draft Orders</div>
         </div>
-        <div className="stat-card">
-          <div className="stat-value">{stats.pendingOrders}</div>
+        <div className="stat-card" role="group" aria-labelledby="stat-pending">
+          <div className="stat-value" id="stat-pending" aria-label={`${stats.pendingOrders} pending payment`}>
+            {stats.pendingOrders}
+          </div>
           <div className="stat-label">Pending Payment</div>
         </div>
-      </div>
+      </section>
 
       {residents.length === 0 ? (
-        <div className="empty-state">
+        <section className="empty-state" role="status">
           <p>No residents assigned to you yet.</p>
           <p className="hint">Contact your administrator to assign residents to your account.</p>
-        </div>
+        </section>
       ) : (
-        <div className="residents-grid">
+        <section className="residents-grid" aria-label="Assigned residents list">
           {residents.map((resident) => (
-            <div key={resident.id} className="resident-card">
+            <article 
+              key={resident.id} 
+              className="resident-card"
+              aria-labelledby={`resident-${resident.id}-name`}
+            >
               <div className="resident-header">
-                <h3>{resident.name}</h3>
+                <h3 id={`resident-${resident.id}-name`}>{resident.name}</h3>
                 {resident.roomNumber && (
-                  <span className="room-badge">Room {resident.roomNumber}</span>
+                  <span className="room-badge" aria-label={`Room number ${resident.roomNumber}`}>
+                    Room {resident.roomNumber}
+                  </span>
                 )}
               </div>
 
-              <div className="resident-details">
+              <dl className="resident-details">
                 {resident.dietaryRestrictions && (
                   <div className="detail-item">
-                    <span className="detail-label">Dietary:</span>
-                    <span className="detail-value">{resident.dietaryRestrictions}</span>
+                    <dt className="detail-label">Dietary:</dt>
+                    <dd className="detail-value">{resident.dietaryRestrictions}</dd>
                   </div>
                 )}
                 {resident.allergies && (
                   <div className="detail-item allergies">
-                    <span className="detail-label">Allergies:</span>
-                    <span className="detail-value">{resident.allergies}</span>
+                    <dt className="detail-label">Allergies:</dt>
+                    <dd className="detail-value" role="alert">{resident.allergies}</dd>
                   </div>
                 )}
                 {resident.billingEmail && (
                   <div className="detail-item">
-                    <span className="detail-label">Billing:</span>
-                    <span className="detail-value">{resident.billingEmail}</span>
+                    <dt className="detail-label">Billing:</dt>
+                    <dd className="detail-value">{resident.billingEmail}</dd>
                   </div>
                 )}
-              </div>
+              </dl>
 
               <div className="resident-actions">
                 <button
                   className="btn-primary"
                   onClick={() => handleCreateOrder(resident)}
+                  onKeyPress={(e) => handleKeyPress(e, handleCreateOrder, resident)}
+                  aria-label={`Create order for ${resident.name}`}
                 >
                   Create Order
                 </button>
                 <button
                   className="btn-secondary"
                   onClick={() => handleViewOrders(resident)}
+                  onKeyPress={(e) => handleKeyPress(e, handleViewOrders, resident)}
+                  aria-label={`View orders for ${resident.name}`}
                 >
                   View Orders
                 </button>
               </div>
-            </div>
+            </article>
           ))}
-        </div>
+        </section>
       )}
 
       <div className="dashboard-info">

@@ -1,68 +1,181 @@
+@import '../../../styles/design-system';
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
 .nursing-home-dashboard {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: $spacing-2xl;
+  min-height: 100vh;
+  background: $gray-50;
+
+  @include respond-to(md) {
+    padding: $spacing-xl;
+  }
+
+  @include respond-to(sm) {
+    padding: $spacing-lg;
+  }
 
   .dashboard-header {
-    margin-bottom: 2rem;
+    margin-bottom: $spacing-2xl;
+    animation: fadeInDown 0.5s ease-out;
 
     h1 {
-      color: #9333ea;
-      font-size: 2rem;
-      margin-bottom: 0.5rem;
+      color: $purple-600;
+      font-size: $font-size-4xl;
+      font-weight: $font-weight-bold;
+      margin-bottom: $spacing-sm;
+      line-height: $line-height-tight;
+
+      @include respond-to(md) {
+        font-size: $font-size-3xl;
+      }
+
+      @include respond-to(sm) {
+        font-size: $font-size-2xl;
+      }
     }
 
     .subtitle {
-      color: #64748b;
-      font-size: 1rem;
+      color: $gray-500;
+      font-size: $font-size-lg;
+      line-height: $line-height-normal;
+
+      @include respond-to(sm) {
+        font-size: $font-size-base;
+      }
+    }
+  }
+
+  @keyframes fadeInDown {
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
     }
   }
 
   .stats-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: $spacing-xl;
+    margin-bottom: $spacing-2xl;
+    animation: fadeInUp 0.6s ease-out 0.1s both;
+
+    @include respond-to(md) {
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: $spacing-lg;
+    }
+
+    @include respond-to(sm) {
+      grid-template-columns: 1fr;
+      gap: $spacing-md;
+    }
 
     .stat-card {
-      background: white;
-      border-radius: 12px;
-      padding: 1.5rem;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-      border-left: 4px solid #9333ea;
+      @include card;
+      padding: $spacing-xl;
+      border-left: $border-width-thick solid $purple-600;
+      transition: all $transition-base;
+      cursor: default;
+
+      &:hover {
+        transform: translateY(-4px);
+        box-shadow: $shadow-lg;
+        border-left-color: $purple-700;
+      }
 
       .stat-value {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: #9333ea;
-        margin-bottom: 0.5rem;
+        font-size: $font-size-4xl;
+        font-weight: $font-weight-bold;
+        color: $purple-600;
+        margin-bottom: $spacing-sm;
+        line-height: $line-height-tight;
+        font-variant-numeric: tabular-nums;
+
+        @include respond-to(sm) {
+          font-size: $font-size-3xl;
+        }
       }
 
       .stat-label {
-        color: #64748b;
-        font-size: 0.875rem;
+        color: $gray-500;
+        font-size: $font-size-sm;
         text-transform: uppercase;
         letter-spacing: 0.05em;
+        font-weight: $font-weight-semibold;
       }
+    }
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
     }
   }
 
   .residents-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: $spacing-xl;
+    margin-bottom: $spacing-2xl;
+    animation: fadeInUp 0.6s ease-out 0.2s both;
+
+    @include respond-to(lg) {
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    }
+
+    @include respond-to(md) {
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: $spacing-lg;
+    }
+
+    @include respond-to(sm) {
+      grid-template-columns: 1fr;
+      gap: $spacing-lg;
+    }
 
     .resident-card {
-      background: white;
-      border-radius: 12px;
-      padding: 1.5rem;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-      transition: transform 0.2s, box-shadow 0.2s;
+      @include card;
+      @include card-hover;
+      padding: $spacing-xl;
+      position: relative;
+      overflow: hidden;
 
-      &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(147, 51, 234, 0.15);
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, $purple-600, $purple-400);
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform $transition-base;
+      }
+
+      &:hover::before {
+        transform: scaleX(1);
       }
 
       .resident-header {
@@ -90,64 +203,79 @@
       }
 
       .resident-details {
-        margin-bottom: 1.5rem;
+        margin-bottom: $spacing-xl;
+        margin: 0;
+        padding: 0;
 
         .detail-item {
-          margin-bottom: 0.75rem;
+          margin-bottom: $spacing-md;
           display: flex;
-          gap: 0.5rem;
+          gap: $spacing-sm;
+          align-items: flex-start;
 
           &.allergies {
+            background: $error-light;
+            padding: $spacing-sm $spacing-md;
+            border-radius: $border-radius-sm;
+            margin: $spacing-sm 0;
+
             .detail-value {
-              color: #dc2626;
-              font-weight: 600;
+              color: $error;
+              font-weight: $font-weight-semibold;
             }
           }
 
           .detail-label {
-            color: #64748b;
-            font-weight: 600;
+            color: $gray-500;
+            font-weight: $font-weight-semibold;
             min-width: 80px;
+            font-size: $font-size-sm;
+            margin: 0;
           }
 
           .detail-value {
-            color: #1e293b;
+            color: $gray-800;
             flex: 1;
+            font-size: $font-size-sm;
+            line-height: $line-height-normal;
+            word-break: break-word;
+            margin: 0;
           }
         }
       }
 
       .resident-actions {
         display: flex;
-        gap: 0.75rem;
+        gap: $spacing-md;
+        margin-top: $spacing-lg;
+
+        @include respond-to(sm) {
+          flex-direction: column;
+          gap: $spacing-sm;
+        }
 
         button {
           flex: 1;
-          padding: 0.75rem 1rem;
-          border-radius: 8px;
-          font-weight: 600;
-          font-size: 0.875rem;
-          cursor: pointer;
-          transition: all 0.2s;
-          border: none;
+          @include button-base;
+          padding: $spacing-md $spacing-lg;
+          font-size: $font-size-sm;
+          min-height: 44px; // Touch target size
+          touch-action: manipulation;
+
+          @include respond-to(sm) {
+            width: 100%;
+          }
 
           &.btn-primary {
-            background: #9333ea;
-            color: white;
-
-            &:hover {
-              background: #7e22ce;
-            }
+            @include button-primary;
           }
 
           &.btn-secondary {
-            background: #f1f5f9;
-            color: #64748b;
+            @include button-secondary;
+          }
 
-            &:hover {
-              background: #e2e8f0;
-              color: #475569;
-            }
+          &:focus-visible {
+            @include focus-visible;
           }
         }
       }
@@ -239,35 +367,63 @@
     justify-content: center;
     align-items: center;
     min-height: 400px;
-    font-size: 1.25rem;
-    color: #9333ea;
+    font-size: $font-size-xl;
+    color: $purple-600;
+
+    &::after {
+      content: '';
+      @include loading-spinner;
+      width: 40px;
+      height: 40px;
+      border-width: 4px;
+      border-color: $purple-200;
+      border-top-color: $purple-600;
+    }
   }
 
   .error-message {
-    background: #fee2e2;
-    color: #dc2626;
-    padding: 1rem;
-    border-radius: 8px;
-    border-left: 4px solid #dc2626;
+    @include card;
+    background: $error-light;
+    color: $error;
+    padding: $spacing-xl;
+    border-left: $border-width-thick solid $error;
+    animation: shake 0.5s ease-in-out;
+
+    @include respond-to(sm) {
+      padding: $spacing-lg;
+    }
   }
 
-  @media (max-width: 768px) {
-    padding: 1rem;
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+  }
 
-    .dashboard-header h1 {
-      font-size: 1.5rem;
+  // Accessibility improvements
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  // Dark mode support (future)
+  @media (prefers-color-scheme: dark) {
+    // Can be implemented later
+  }
+
+  // High contrast mode
+  @media (prefers-contrast: high) {
+    .resident-card {
+      border: $border-width-base solid $gray-900;
     }
 
-    .residents-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .stats-cards {
-      grid-template-columns: 1fr;
-    }
-
-    .dashboard-info {
-      grid-template-columns: 1fr;
+    button {
+      border: $border-width-base solid currentColor;
     }
   }
 }
