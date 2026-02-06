@@ -71,7 +71,6 @@ router.post('/guest', [
       tax = 0
     } = req.body;
 
-    // Sanitize address fields to prevent long text in wrong fields
     const sanitizedAddress = {
       ...deliveryAddress,
       apartment: deliveryAddress.apartment ? String(deliveryAddress.apartment).trim().substring(0, 20) : undefined,
@@ -181,7 +180,6 @@ router.post('/', authenticateToken, [
       appliedPromo = null
     } = req.body;
 
-    // Sanitize address fields to prevent long text in wrong fields
     const sanitizedAddress = {
       ...deliveryAddress,
       apartment: deliveryAddress.apartment ? String(deliveryAddress.apartment).trim().substring(0, 20) : undefined,
