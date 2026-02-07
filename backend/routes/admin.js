@@ -88,6 +88,21 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+// SSE stream routes: must be registered before any /orders/:orderId so GET /orders/stream is not matched as orderId
+router.post('/orders/stream-token', requireAdmin, async (req, res) => {
+  try {
+    const token = jwt.sign(
+      { userId: req.user.id, scope: 'orders_stream' },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h', algorithm: 'HS256' }
+    );
+    res.json({ token });
+  } catch (error) {
+    logger.error('Error issuing stream token:', error);
+    res.status(500).json({ error: 'Failed to issue stream token' });
+  }
+});
+
 router.get('/users', requireAdmin, async (req, res) => {
   try {
     const { role, limit = 20, offset = 0, search, page = 1 } = req.query;
@@ -2228,102 +2243,6 @@ router.get('/orders/recent', requireAdmin, async (req, res) => {
       message: 'Failed to fetch recent orders'
     });
   }
-});
-
-// Stream routes must be registered before /orders/:orderId so /orders/stream is not matched as orderId
-router.post('/orders/stream-token', requireAdmin, async (req, res) => {
-  try {
-    const token = jwt.sign(
-      { userId: req.user.id, scope: 'orders_stream' },
-      process.env.JWT_SECRET,
-      { expiresIn: '1h', algorithm: 'HS256' }
-    );
-    res.json({ token });
-  } catch (error) {
-    logger.error('Error issuing stream token:', error);
-    res.status(500).json({ error: 'Failed to issue stream token' });
-  }
-});
-
-router.get('/orders/stream', async (req, res) => {
-  const token = req.query.token;
-  const { Profile } = require('../models');
-  logger.info('SSE stream: handler hit', { hasToken: !!token, path: req.path });
-
-  try {
-    if (!token) {
-      logger.warn('SSE stream: No token provided');
-      return res.status(401).json({ error: 'No token provided' });
-    }
-    
-    let decoded;
-    try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
-    } catch (jwtError) {
-      if (jwtError.name === 'TokenExpiredError') {
-        logger.warn('SSE stream: Token expired', { expiredAt: jwtError.expiredAt });
-        return res.status(401).json({ error: 'Token expired', expiredAt: jwtError.expiredAt });
-      } else if (jwtError.name === 'JsonWebTokenError') {
-        logger.warn('SSE stream: Invalid token', { error: jwtError.message });
-        return res.status(401).json({ error: 'Invalid token', message: jwtError.message });
-      } else {
-        logger.error('SSE stream: JWT verification error', jwtError);
-        return res.status(401).json({ error: 'Token verification failed', message: jwtError.message });
-      }
-    }
-    
-    if (!decoded || decoded.scope !== 'orders_stream') {
-      logger.warn('SSE stream: Invalid scope', { scope: decoded?.scope, userId: decoded?.userId });
-      return res.status(403).json({ error: 'Invalid token scope' });
-    }
-    
-    if (!decoded.userId) {
-      logger.warn('SSE stream: No userId in token');
-      return res.status(401).json({ error: 'Invalid token: missing userId' });
-    }
-    
-    const user = await Profile.findByPk(decoded.userId);
-    if (!user) {
-      logger.warn('SSE stream: User not found', { userId: decoded.userId });
-      return res.status(403).json({ error: 'User not found' });
-    }
-    
-    if (user.role !== 'admin') {
-      logger.warn('SSE stream: User is not admin', { userId: decoded.userId, role: user.role });
-      return res.status(403).json({ error: 'Unauthorized: Admin access required' });
-    }
-  } catch (error) {
-    logger.error('SSE stream: Unexpected authentication error', error);
-    return res.status(401).json({ error: 'Authentication failed', message: error.message });
-  }
-
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
-
-  const sendEvent = (type, payload) => {
-    res.write(`event: ${type}\n`);
-    res.write(`data: ${JSON.stringify(payload)}\n\n`);
-  };
-
-  const heartbeat = setInterval(() => sendEvent('ping', { ts: Date.now() }), 25000);
-  sendEvent('connected', { ts: Date.now() });
-
-  const onCreated = (order) => sendEvent('order.created', order);
-  const onUpdated = (order) => sendEvent('order.updated', order);
-  const onNotification = (payload) => sendEvent('admin.notification.created', payload);
-
-  appEvents.on('order.created', onCreated);
-  appEvents.on('order.updated', onUpdated);
-  appEvents.on('admin.notification.created', onNotification);
-
-  req.on('close', () => {
-    clearInterval(heartbeat);
-    appEvents.off('order.created', onCreated);
-    appEvents.off('order.updated', onUpdated);
-    appEvents.off('admin.notification.created', onNotification);
-    res.end();
-  });
 });
 
 router.get('/orders', requireAdmin, async (req, res) => {

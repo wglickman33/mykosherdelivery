@@ -25,6 +25,7 @@ const taxRoutes = require('./routes/tax');
 const nursingHomeRoutes = require('./routes/nursing-homes');
 const mapsRoutes = require('./routes/maps');
 const adminMapsRoutes = require('./routes/admin-maps');
+const adminOrdersStreamHandler = require('./routes/admin-orders-stream');
 const { requireAdmin } = require('./middleware/auth');
 
 const app = express();
@@ -107,6 +108,8 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/favorites', favoriteRoutes);
 app.use('/api/admin/maps', requireAdmin, adminMapsRoutes);
+// SSE stream: app-level route so GET /orders/stream is never matched by admin router's /orders/:orderId
+app.get('/api/admin/orders/stream', adminOrdersStreamHandler);
 app.use('/api/admin', adminRoutes);
 app.use('/api/promo-codes', promoCodeRoutes);
 app.use('/api/support', supportRoutes);

@@ -155,9 +155,20 @@ const AdminLayout = () => {
           console.warn('❌ SSE connection error');
           // Diagnose: EventSource doesn't expose status, so probe the same URL to see why it failed
           fetch(streamUrl)
-            .then((r) => {
+            .then(async (r) => {
               if (r.status === 401) {
-                console.warn('SSE stream returned 401 Unauthorized. Backend may be matching GET /orders/stream to /orders/:orderId (requireAdmin). Deploy the route-order fix so GET /orders/stream is registered before /orders/:orderId.');
+                let detail = '';
+                try {
+                  const body = await r.json();
+                  const parts = [body?.error, body?.message].filter(Boolean);
+                  detail = parts.length ? parts.join(': ') : JSON.stringify(body);
+                } catch {
+                  detail = await r.text().catch(() => '');
+                }
+                console.warn(
+                  'SSE stream 401:',
+                  detail || 'Unauthorized. Ensure backend is deployed with app-level GET /api/admin/orders/stream and token is valid.'
+                );
               } else if (!r.ok) {
                 console.warn(`SSE stream returned ${r.status} ${r.statusText}`);
               }
