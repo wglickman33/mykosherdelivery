@@ -235,7 +235,6 @@ const CheckoutPage = () => {
     restaurantId: item.restaurantId,
     restaurantName: item.restaurantName,
     customizations: item.customizations || [],
-    // Include item type and variant/configuration data
     itemType: item.itemType,
     selectedVariant: item.selectedVariant,
     selectedConfigurations: item.selectedConfigurations,

@@ -211,14 +211,11 @@ const waitForGoogleMaps = (maxWait = 5000) => {
 
 export const validateAddressWithGeocoding = async (address) => {
   try {
-    // Check if Google Maps is available, wait for it if loading
     try {
       await waitForGoogleMaps(3000);
     } catch (waitError) {
-      // Google Maps not available, fall back to static validation
       console.warn('Google Maps not available, using static validation:', waitError);
       const staticResult = validateDeliveryAddress(address);
-      // Convert static result to match geocoding format
       return {
         isValid: staticResult.isValid,
         reason: staticResult.isValid ? 'zip_code' : 'outside_delivery_area',
@@ -229,9 +226,7 @@ export const validateAddressWithGeocoding = async (address) => {
       };
     }
 
-    // Verify Google Maps is actually available
     if (!window.google || !window.google.maps || !window.google.maps.Geocoder) {
-      // Fall back to static validation
       const staticResult = validateDeliveryAddress(address);
       return {
         isValid: staticResult.isValid,
@@ -245,6 +240,7 @@ export const validateAddressWithGeocoding = async (address) => {
 
     const geocoder = new window.google.maps.Geocoder();
     
+    // eslint-disable-next-line no-unused-vars
     return new Promise((resolve, reject) => {
       geocoder.geocode({ address }, (results, status) => {
         if (status === 'OK' && results && results.length > 0) {
@@ -296,7 +292,6 @@ export const validateAddressWithGeocoding = async (address) => {
             });
           }
         } else {
-          // Geocoding failed, fall back to static validation
           console.warn(`Geocoding failed with status: ${status}, falling back to static validation`);
           const staticResult = validateDeliveryAddress(address);
           resolve({
@@ -311,7 +306,6 @@ export const validateAddressWithGeocoding = async (address) => {
       });
     });
   } catch (error) {
-    // If geocoding fails completely, fall back to static validation
     console.warn('Geocoding error, falling back to static validation:', error);
     const staticResult = validateDeliveryAddress(address);
     return {

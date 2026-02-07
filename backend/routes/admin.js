@@ -4,6 +4,7 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { Profile, Order, Restaurant, DeliveryZone, SupportTicket, TicketResponse, AdminNotification, Notification, AdminAuditLog, sequelize, MenuItem, MenuItemOption, UserRestaurantFavorite, MenuChangeRequest, UserLoginActivity, UserPreference, UserAnalytic, PaymentMethod, RestaurantOwner, Refund, PromoCode } = require('../models');
 const { requireAdmin } = require('../middleware/auth');
 const { body, param, validationResult } = require('express-validator');
+const { VALID_PROFILE_ROLES } = require('../config/constants');
 const logger = require('../utils/logger');
 const jwt = require('jsonwebtoken');
 const { appEvents } = require('../utils/events');
@@ -171,19 +172,35 @@ router.get('/users', requireAdmin, async (req, res) => {
   }
 });
 
-router.put('/users/:userId', requireAdmin, async (req, res) => {
+router.put('/users/:userId', requireAdmin, [
+  body('email').optional({ checkFalsy: true }).isEmail().normalizeEmail(),
+  body('first_name').optional({ checkFalsy: true }).trim().notEmpty().withMessage('First name cannot be empty'),
+  body('last_name').optional({ checkFalsy: true }).trim().notEmpty().withMessage('Last name cannot be empty'),
+  body('phone_number').optional().trim(),
+  body('role').optional().isIn(VALID_PROFILE_ROLES).withMessage('Invalid role')
+], async (req, res) => {
+  const putUserId = req.params.userId;
+  console.log('[PUT /admin/users/:userId] START', { userId: putUserId, bodyKeys: Object.keys(req.body || {}), role: req.body?.role });
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      console.warn('[PUT /admin/users/:userId] Validation failed', errors.array());
+      logger.warn('Validation errors for user update:', {
+        userId: req.params.userId,
+        errors: errors.array(),
+        body: req.body
+      });
+      return res.status(400).json({
+        error: 'Validation failed',
+        message: errors.array().map(e => e.msg).join(', '),
+        details: errors.array()
+      });
+    }
+
     const { userId } = req.params;
     const updates = req.body;
 
     delete updates.password;
-
-    const transformedUpdates = {};
-    if (updates.first_name !== undefined) transformedUpdates.firstName = updates.first_name;
-    if (updates.last_name !== undefined) transformedUpdates.lastName = updates.last_name;
-    if (updates.phone_number !== undefined) transformedUpdates.phone = updates.phone_number;
-    if (updates.role !== undefined) transformedUpdates.role = updates.role;
-    if (updates.email !== undefined) transformedUpdates.email = updates.email;
 
     const user = await Profile.findByPk(userId);
     if (!user) {
@@ -193,23 +210,148 @@ router.put('/users/:userId', requireAdmin, async (req, res) => {
       });
     }
 
+    const transformedUpdates = {};
+    if (updates.first_name !== undefined) {
+      transformedUpdates.firstName = updates.first_name ? updates.first_name.trim() : null;
+    }
+    if (updates.last_name !== undefined) {
+      transformedUpdates.lastName = updates.last_name ? updates.last_name.trim() : null;
+    }
+    if (updates.phone_number !== undefined) {
+      transformedUpdates.phone = updates.phone_number && updates.phone_number.trim() ? updates.phone_number.trim() : null;
+    }
+    if (updates.role !== undefined) {
+      const roleVal = String(updates.role).trim();
+      if (!VALID_PROFILE_ROLES.includes(roleVal)) {
+        return res.status(400).json({
+          error: 'Invalid role',
+          message: `Role must be one of: ${VALID_PROFILE_ROLES.join(', ')}`
+        });
+      }
+      
+      // Check if the enum value exists in the database (QueryTypes.SELECT returns array directly)
+      try {
+        const enumRows = await sequelize.query(`
+          SELECT enumlabel FROM pg_enum 
+          WHERE enumtypid = (SELECT oid FROM pg_type WHERE typname = 'enum_profiles_role')
+          AND enumlabel = :role
+        `, {
+          replacements: { role: roleVal },
+          type: QueryTypes.SELECT
+        });
+        const enumValues = Array.isArray(enumRows) ? enumRows : [];
+        if (enumValues.length === 0) {
+          logger.warn('Role enum value not found in database', { role: roleVal });
+          return res.status(400).json({
+            error: 'Invalid role',
+            message: `The role "${roleVal}" is not available in the database. Run: node scripts/check-profile-role-enum.js`
+          });
+        }
+      } catch (enumCheckError) {
+        logger.warn('Enum check failed, proceeding with update', { error: enumCheckError.message });
+        // Continue; DB update will fail with 400 if role is invalid
+      }
+      
+      transformedUpdates.role = roleVal;
+      logger.info('Updating user role', {
+        userId: userId,
+        oldRole: user.role,
+        newRole: roleVal
+      });
+    }
+    if (updates.email !== undefined && updates.email !== user.email) {
+      const existingUser = await Profile.findOne({ where: { email: updates.email } });
+      if (existingUser && existingUser.id !== userId) {
+        return res.status(400).json({
+          error: 'Email already in use',
+          message: 'Another user with this email already exists'
+        });
+      }
+      transformedUpdates.email = updates.email;
+    }
+
+    if (Object.keys(transformedUpdates).length === 0) {
+      return res.status(400).json({
+        error: 'No updates provided',
+        message: 'At least one field must be updated'
+      });
+    }
+
     const oldValues = user.toJSON();
     delete oldValues.password;
 
-    await user.update(transformedUpdates);
-
     try {
-      await logAdminAction(
-        req.user.id,
-        'UPDATE',
-        'profiles',
-        userId,
-        oldValues,
-        user.toJSON(),
-        req
-      );
-    } catch (auditError) {
-      logger.error('Failed to log admin action for user update:', auditError);
+      await user.update(transformedUpdates);
+      await user.reload();
+    } catch (updateError) {
+      console.error('[ERROR] Sequelize update error:', {
+        name: updateError.name,
+        message: updateError.message,
+        originalMessage: updateError.original?.message,
+        originalCode: updateError.original?.code,
+        userId: userId,
+        transformedUpdates: transformedUpdates,
+        stack: updateError.stack?.substring(0, 500)
+      });
+      logger.error('Sequelize update error:', {
+        error: updateError.message,
+        name: updateError.name,
+        userId: userId,
+        updates: transformedUpdates,
+        stack: updateError.stack
+      });
+      
+      if (updateError.name === 'SequelizeValidationError') {
+        return res.status(400).json({
+          error: 'Validation error',
+          message: updateError.errors.map(e => e.message).join(', ')
+        });
+      }
+      
+      if (updateError.name === 'SequelizeUniqueConstraintError') {
+        return res.status(400).json({
+          error: 'Unique constraint violation',
+          message: 'A user with this information already exists'
+        });
+      }
+      
+      const errMsg = (updateError.original?.message || updateError.message || 'Update failed').toString();
+      const isEnumError = /enum|invalid input value/i.test(errMsg);
+      if (updateError.name === 'SequelizeDatabaseError' || updateError.original || isEnumError) {
+        if (isEnumError) {
+          return res.status(400).json({
+            error: 'Invalid role value',
+            message: 'The selected role is not valid. Please ensure the database migrations have been run.'
+          });
+        }
+        return res.status(400).json({
+          error: 'Database error',
+          message: errMsg || 'Failed to update user due to a database constraint'
+        });
+      }
+      return res.status(400).json({
+        error: 'Update failed',
+        message: errMsg
+      });
+    }
+
+    const newValues = user.toJSON();
+    delete newValues.password;
+
+    if (req.user?.id) {
+      try {
+        await logAdminAction(
+          req.user.id,
+          'UPDATE',
+          'profiles',
+          userId,
+          oldValues,
+          newValues,
+          req
+        );
+      } catch (auditError) {
+        logger.error('Failed to log admin action for user update:', auditError);
+      }
     }
 
     try {
@@ -223,20 +365,18 @@ router.put('/users/:userId', requireAdmin, async (req, res) => {
       logger.warn('Failed to create user update notification:', notifError);
     }
 
-    const userData = user.toJSON();
-    delete userData.password;
     const transformedUser = {
-      id: userData.id,
-      first_name: userData.firstName,
-      last_name: userData.lastName,
-      email: userData.email,
-      phone_number: userData.phone,
-      role: userData.role,
-      created_at: userData.createdAt,
-      last_login: userData.last_login,
-      address: userData.address,
-      addresses: userData.addresses,
-      primary_address_index: userData.primaryAddressIndex
+      id: newValues.id,
+      first_name: newValues.firstName,
+      last_name: newValues.lastName,
+      email: newValues.email,
+      phone_number: newValues.phone,
+      role: newValues.role,
+      created_at: newValues.createdAt,
+      last_login: newValues.last_login ?? null,
+      address: newValues.address,
+      addresses: newValues.addresses,
+      primary_address_index: newValues.primaryAddressIndex
     };
     
     res.json({
@@ -246,18 +386,43 @@ router.put('/users/:userId', requireAdmin, async (req, res) => {
     });
 
   } catch (error) {
-    logger.error('Error updating user profile:', error);
-    res.status(500).json({
-      error: 'Internal server error',
-      message: 'Failed to update user profile'
+    const errMsg = error?.message || 'Unknown error';
+    const origMsg = error?.original?.message;
+    const errorMessage = (origMsg || errMsg || 'Failed to update user profile').toString();
+    const errorName = error?.name || 'Error';
+    console.error('[PUT /admin/users/:userId] 500 ERROR', errorName, errMsg, origMsg ? `(original: ${origMsg})` : '');
+    console.error('[PUT /admin/users/:userId] Full stack:\n', error?.stack || '(no stack)');
+    logger.error('Error updating user profile', {
+      name: errorName,
+      message: errMsg,
+      originalMessage: origMsg,
+      userId: putUserId
     });
+
+    const isValidationError = error?.name === 'SequelizeValidationError' || error?.name === 'ValidationError';
+    const isDatabaseError = error?.name === 'SequelizeDatabaseError' || error?.original;
+
+    if (isDatabaseError && /enum|invalid input value/i.test(errorMessage)) {
+      return res.status(400).json({
+        error: 'Invalid role value',
+        message: 'The selected role is not valid. Run: node backend/scripts/check-profile-role-enum.js and ensure migrations are applied.'
+      });
+    }
+
+    const status = isValidationError ? 400 : 500;
+    const body = {
+      error: isValidationError ? 'Validation error' : 'Internal server error',
+      message: `${errorName}: ${errorMessage}`
+    };
+    body.serverErrorName = errorName;
+    if (error?.stack) body.serverStack = error.stack.split('\n').slice(0, 12).join('\n');
+    return res.status(status).json(body);
   }
 });
 
 router.patch('/users/:userId/role', requireAdmin, [
-  body('role').isIn(['user', 'restaurant_owner', 'admin'])
+  body('role').isIn(VALID_PROFILE_ROLES)
 ], async (req, res) => {
-    console.log("Restaurant creation request body:", req.body);
   try {
     const { userId } = req.params;
     const { role } = req.body;
@@ -327,7 +492,7 @@ router.post('/users', requireAdmin, [
     .withMessage('Password must contain at least one special character'),
   body('firstName').notEmpty().trim(),
   body('lastName').notEmpty().trim(),
-  body('role').isIn(['user', 'restaurant_owner', 'admin'])
+  body('role').isIn(VALID_PROFILE_ROLES)
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -4497,6 +4662,72 @@ router.delete('/promo-codes/:id', requireAdmin, async (req, res) => {
     res.status(500).json({
       error: 'Internal server error',
       message: 'Failed to delete promo code'
+    });
+  }
+});
+
+router.post('/users/:userId/reset-password', requireAdmin, [
+  body('newPassword')
+    .isLength({ min: 8, max: 128 })
+    .withMessage('Password must be between 8 and 128 characters')
+    .matches(/^(?=.*\d)/)
+    .withMessage('Password must contain at least one number')
+    .matches(/^(?=.*[!@#$%^&*(),.?":{}|<>])/)
+    .withMessage('Password must contain at least one special character')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    const { userId } = req.params;
+    const { newPassword } = req.body;
+    const bcrypt = require('bcryptjs');
+
+    const user = await Profile.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found',
+        message: 'User does not exist'
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, parseInt(process.env.BCRYPT_SALT_ROUNDS) || 12);
+
+    await Profile.update(
+      { password: hashedPassword, updatedAt: new Date() },
+      { where: { id: userId } }
+    );
+
+    await logAdminAction(
+      req.user.id,
+      'UPDATE',
+      'profiles',
+      userId,
+      { password: '[REDACTED]' },
+      { password: '[REDACTED]' },
+      req
+    );
+
+    logger.info('Password reset by admin', {
+      adminId: req.user.id,
+      targetUserId: userId,
+      targetEmail: user.email
+    });
+
+    res.json({
+      success: true,
+      message: 'Password reset successfully'
+    });
+  } catch (error) {
+    logger.error('Error resetting password:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: 'Failed to reset password'
     });
   }
 });

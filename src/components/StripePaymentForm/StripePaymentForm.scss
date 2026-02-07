@@ -1,0 +1,121 @@
+@use '../../styles/design-system' as *;
+
+.stripe-payment-form {
+  width: 100%;
+
+  &__card-section {
+    margin-bottom: 1.5rem;
+  }
+
+  &__label {
+    display: block;
+    font-weight: 600;
+    color: var(--color-text-dark, #1e293b);
+    margin-bottom: 0.5rem;
+    font-size: var(--font-size-sm, 0.875rem);
+  }
+
+  &__card-element {
+    padding: 1rem;
+    border: 2px solid var(--color-neutral-200, #e5e7eb);
+    border-radius: var(--border-radius-md, 8px);
+    background: white;
+    transition: border-color 0.2s;
+
+    &:focus-within {
+      border-color: var(--color-primary, #667eea);
+      outline: none;
+    }
+  }
+
+  &__error {
+    background: #fee;
+    border: 1px solid #fcc;
+    color: #c33;
+    padding: 0.75rem;
+    border-radius: var(--border-radius-sm, 6px);
+    margin-bottom: 1rem;
+    font-size: var(--font-size-sm, 0.875rem);
+  }
+
+  &__save-card {
+    margin-bottom: 1.5rem;
+
+    label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      font-size: var(--font-size-sm, 0.875rem);
+      color: var(--color-text-secondary, #64748b);
+
+      input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+      }
+
+      span {
+        user-select: none;
+      }
+    }
+  }
+
+  &__submit {
+    width: 100%;
+    padding: 1rem;
+    background: var(--color-primary, #667eea);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius-md, 8px);
+    font-size: var(--font-size-md, 1rem);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-bottom: 1rem;
+
+    &:hover:not(:disabled) {
+      background: var(--color-primary-dark, #5568d3);
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+
+  &__security {
+    text-align: center;
+    color: var(--color-text-secondary, #64748b);
+    font-size: var(--font-size-xs, 0.75rem);
+
+    p {
+      margin: 0.25rem 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+
+      &:first-child {
+        font-weight: 500;
+        color: var(--color-text-dark, #1e293b);
+      }
+    }
+
+    .security-icon {
+      color: var(--color-success, #10b981);
+    }
+
+    .security-note {
+      font-size: var(--font-size-xs, 0.75rem);
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .stripe-payment-form {
+    &__submit {
+      padding: 0.875rem;
+    }
+  }
+}

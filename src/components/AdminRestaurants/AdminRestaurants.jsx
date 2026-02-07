@@ -9,7 +9,9 @@ import { useNotification } from '../../hooks/useNotification';
 import { restaurants as restaurantsData } from '../../data/restaurants';
 import { formatPhoneNumber, formatPhoneForInput } from '../../utils/phoneFormatter';
 import MenuItemModal from './MenuItemModal';
+import NursingHomeMenuItemModal from './NursingHomeMenuItemModal';
 import { fetchRestaurantMenuItems, deleteMenuItem } from '../../services/menuItemService';
+import { fetchNursingHomeMenu, createNursingHomeMenuItem, updateNursingHomeMenuItem, deleteNursingHomeMenuItem } from '../../services/nursingHomeMenuService';
 
 const logoModules = import.meta.glob('../../assets/restaurantlogos/*', { eager: true, import: 'default' });
 
@@ -62,6 +64,16 @@ const AdminRestaurants = () => {
   });
   const lastSearchRef = useRef('');
   const { user: adminUser } = useAuth();
+  
+  const [nursingHomeMenuItems, setNursingHomeMenuItems] = useState([]);
+  const [nursingHomeMenuLoading, setNursingHomeMenuLoading] = useState(false);
+  const [showNHMenuItemModal, setShowNHMenuItemModal] = useState(false);
+  const [selectedNHMenuItem, setSelectedNHMenuItem] = useState(null);
+  const [nhMenuFilters, setNHMenuFilters] = useState({
+    mealType: 'all',
+    category: 'all',
+    search: ''
+  });
 
   const assetsLogoByName = useMemo(() => {
     const map = {};
@@ -357,6 +369,80 @@ const AdminRestaurants = () => {
     return byName || null;
   };
 
+  const fetchNHMenu = useCallback(async () => {
+    setNursingHomeMenuLoading(true);
+    const result = await fetchNursingHomeMenu(nhMenuFilters);
+    if (result.success) {
+      setNursingHomeMenuItems(result.data.items || []);
+    } else {
+      showNotification(result.error || 'Failed to fetch nursing home menu', 'error');
+    }
+    setNursingHomeMenuLoading(false);
+  }, [nhMenuFilters, showNotification]);
+
+  useEffect(() => {
+    if (activeTab === 'nursing-home-menu') {
+      fetchNHMenu();
+    }
+  }, [activeTab, fetchNHMenu]);
+
+  const handleCreateNHMenuItem = async (data) => {
+    const result = await createNursingHomeMenuItem(data);
+    if (result.success) {
+      showNotification('Menu item created successfully', 'success');
+      setShowNHMenuItemModal(false);
+      setSelectedNHMenuItem(null);
+      fetchNHMenu();
+    } else {
+      showNotification(result.error || 'Failed to create menu item', 'error');
+    }
+  };
+
+  const handleUpdateNHMenuItem = async (id, data) => {
+    const result = await updateNursingHomeMenuItem(id, data);
+    if (result.success) {
+      showNotification('Menu item updated successfully', 'success');
+      setShowNHMenuItemModal(false);
+      setSelectedNHMenuItem(null);
+      fetchNHMenu();
+    } else {
+      showNotification(result.error || 'Failed to update menu item', 'error');
+    }
+  };
+
+  const handleDeleteNHMenuItem = async (id) => {
+    if (!window.confirm('Are you sure you want to deactivate this menu item?')) {
+      return;
+    }
+    const result = await deleteNursingHomeMenuItem(id);
+    if (result.success) {
+      showNotification('Menu item deactivated successfully', 'success');
+      fetchNHMenu();
+    } else {
+      showNotification(result.error || 'Failed to deactivate menu item', 'error');
+    }
+  };
+
+  const filteredNHMenuItems = useMemo(() => {
+    if (!nursingHomeMenuItems) return [];
+    return nursingHomeMenuItems.filter(item => {
+      if (nhMenuFilters.search) {
+        const search = nhMenuFilters.search.toLowerCase();
+        if (!item.name.toLowerCase().includes(search) && 
+            !item.description?.toLowerCase().includes(search)) {
+          return false;
+        }
+      }
+      if (nhMenuFilters.mealType !== 'all' && item.mealType !== nhMenuFilters.mealType) {
+        return false;
+      }
+      if (nhMenuFilters.category !== 'all' && item.category !== nhMenuFilters.category) {
+        return false;
+      }
+      return true;
+    });
+  }, [nursingHomeMenuItems, nhMenuFilters]);
+
   return (
     <div className="admin-restaurants">
       <div className="admin-restaurants__header">
@@ -391,6 +477,17 @@ const AdminRestaurants = () => {
               Add Menu Item
             </button>
           )}
+          {activeTab === 'nursing-home-menu' && (
+            <button
+              className="admin-restaurants__create-btn"
+              onClick={() => {
+                setSelectedNHMenuItem(null);
+                setShowNHMenuItemModal(true);
+              }}
+            >
+              Add NH Menu Item
+            </button>
+          )}
         </div>
       </div>
 
@@ -407,6 +504,12 @@ const AdminRestaurants = () => {
           onClick={() => setActiveTab('menus')}
         >
           Menus
+        </button>
+        <button 
+          className={`admin-restaurants__tab ${activeTab === 'nursing-home-menu' ? 'active' : ''}`} 
+          onClick={() => setActiveTab('nursing-home-menu')}
+        >
+          Nursing Home Menu
         </button>
       </div>
 
@@ -782,6 +885,158 @@ const AdminRestaurants = () => {
         </div>
       )}
 
+      {/* Nursing Home Menu Tab */}
+      {activeTab === 'nursing-home-menu' && (
+        <div className="admin-restaurants__nursing-home-menu-tab">
+          <div className="admin-restaurants__nh-menu-header">
+            <h3>Nursing Home Menu Management</h3>
+            <p>Manage breakfast, lunch, and dinner menu items for nursing home facilities</p>
+          </div>
+
+          {/* Filters */}
+          <div className="admin-restaurants__nh-menu-filters">
+            <div className="admin-restaurants__filter-group">
+              <label>Meal Type</label>
+              <select
+                value={nhMenuFilters.mealType}
+                onChange={(e) => setNHMenuFilters({ ...nhMenuFilters, mealType: e.target.value })}
+              >
+                <option value="all">All Meals</option>
+                <option value="breakfast">Breakfast</option>
+                <option value="lunch">Lunch</option>
+                <option value="dinner">Dinner</option>
+              </select>
+            </div>
+
+            <div className="admin-restaurants__filter-group">
+              <label>Category</label>
+              <select
+                value={nhMenuFilters.category}
+                onChange={(e) => setNHMenuFilters({ ...nhMenuFilters, category: e.target.value })}
+              >
+                <option value="all">All Categories</option>
+                <option value="main">Main</option>
+                <option value="side">Side</option>
+                <option value="entree">Entree</option>
+                <option value="soup">Soup</option>
+                <option value="dessert">Dessert</option>
+              </select>
+            </div>
+
+            <div className="admin-restaurants__filter-group">
+              <label>Search</label>
+              <input
+                type="text"
+                placeholder="Search menu items..."
+                value={nhMenuFilters.search}
+                onChange={(e) => setNHMenuFilters({ ...nhMenuFilters, search: e.target.value })}
+              />
+            </div>
+          </div>
+
+          {/* Menu Items List */}
+          {nursingHomeMenuLoading ? (
+            <div className="admin-restaurants__loading">
+              <LoadingSpinner />
+              <p>Loading nursing home menu...</p>
+            </div>
+          ) : (
+            <div className="admin-restaurants__nh-menu-content">
+              <div className="admin-restaurants__nh-menu-stats">
+                <div className="admin-restaurants__stat-card">
+                  <span className="stat-label">Total Items</span>
+                  <span className="stat-value">{filteredNHMenuItems.length}</span>
+                </div>
+                <div className="admin-restaurants__stat-card">
+                  <span className="stat-label">Breakfast</span>
+                  <span className="stat-value">{filteredNHMenuItems.filter(i => i.mealType === 'breakfast').length}</span>
+                </div>
+                <div className="admin-restaurants__stat-card">
+                  <span className="stat-label">Lunch</span>
+                  <span className="stat-value">{filteredNHMenuItems.filter(i => i.mealType === 'lunch').length}</span>
+                </div>
+                <div className="admin-restaurants__stat-card">
+                  <span className="stat-label">Dinner</span>
+                  <span className="stat-value">{filteredNHMenuItems.filter(i => i.mealType === 'dinner').length}</span>
+                </div>
+              </div>
+
+              <div className="admin-restaurants__nh-menu-table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Order</th>
+                      <th>Name</th>
+                      <th>Meal Type</th>
+                      <th>Category</th>
+                      <th>Price</th>
+                      <th>Bagel Type?</th>
+                      <th>Excludes Side?</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredNHMenuItems.map((item) => (
+                      <tr key={item.id} className={!item.isActive ? 'inactive' : ''}>
+                        <td>{item.displayOrder}</td>
+                        <td>
+                          <strong>{item.name}</strong>
+                          {item.description && (
+                            <div className="item-description">{item.description}</div>
+                          )}
+                        </td>
+                        <td>
+                          <span className={`meal-badge meal-badge--${item.mealType}`}>
+                            {item.mealType}
+                          </span>
+                        </td>
+                        <td>
+                          <span className="category-badge">{item.category}</span>
+                        </td>
+                        <td>${parseFloat(item.price).toFixed(2)}</td>
+                        <td>{item.requiresBagelType ? '✓' : '—'}</td>
+                        <td>{item.excludesSide ? '✓' : '—'}</td>
+                        <td>
+                          <span className={`status-badge ${item.isActive ? 'active' : 'inactive'}`}>
+                            {item.isActive ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="action-buttons">
+                            <button
+                              className="btn-edit"
+                              onClick={() => {
+                                setSelectedNHMenuItem(item);
+                                setShowNHMenuItemModal(true);
+                              }}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="btn-delete"
+                              onClick={() => handleDeleteNHMenuItem(item.id)}
+                            >
+                              {item.isActive ? 'Deactivate' : 'Activate'}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                {filteredNHMenuItems.length === 0 && (
+                  <div className="admin-restaurants__no-items">
+                    <p>No menu items found matching your filters.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {}
       {showRestaurantModal && selectedRestaurant && (
         <div className="admin-restaurants__overlay" onClick={() => setShowRestaurantModal(false)}>
@@ -1077,6 +1332,25 @@ const AdminRestaurants = () => {
             
             if (selectedRestaurantForMenu) {
               fetchMenuItems(selectedRestaurantForMenu.id);
+            }
+          }}
+        />
+      )}
+      
+      {/* Nursing Home Menu Item Modal */}
+      {showNHMenuItemModal && (
+        <NursingHomeMenuItemModal
+          isOpen={showNHMenuItemModal}
+          onClose={() => {
+            setShowNHMenuItemModal(false);
+            setSelectedNHMenuItem(null);
+          }}
+          menuItem={selectedNHMenuItem}
+          onSave={(id, data) => {
+            if (id) {
+              handleUpdateNHMenuItem(id, data);
+            } else {
+              handleCreateNHMenuItem(data);
             }
           }}
         />

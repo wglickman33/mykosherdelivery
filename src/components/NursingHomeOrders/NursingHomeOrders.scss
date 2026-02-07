@@ -1,0 +1,135 @@
+@use 'sass:color';
+@use '../../styles/design-system' as *;
+
+.nursing-home-orders {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: $spacing-2xl;
+  min-height: 100vh;
+  background: $gray-50;
+
+  .orders-header {
+    margin-bottom: $spacing-xl;
+
+    &__row {
+      display: flex;
+      align-items: center;
+      gap: $spacing-md;
+      flex-wrap: wrap;
+      margin-bottom: $spacing-lg;
+    }
+
+    &__admin-link {
+      padding: $spacing-sm $spacing-md;
+      background: $purple-100;
+      color: $purple-700;
+      border: 1px solid $purple-200;
+      border-radius: $border-radius-md;
+      font-weight: $font-weight-semibold;
+      cursor: pointer;
+      white-space: nowrap;
+      margin-left: auto;
+
+      &:hover {
+        background: $purple-200;
+      }
+    }
+
+    .back-btn {
+      background: $gray-100;
+      border: none;
+      padding: $spacing-sm $spacing-lg;
+      border-radius: $border-radius-md;
+      cursor: pointer;
+      font-weight: $font-weight-semibold;
+      color: $gray-600;
+      margin-bottom: $spacing-md;
+      display: inline-block;
+    }
+
+    h1 {
+      color: $purple-600;
+      font-size: $font-size-3xl;
+      margin: 0;
+    }
+  }
+
+  .orders-filters {
+    display: flex;
+    gap: $spacing-md;
+    align-items: center;
+    margin-bottom: $spacing-xl;
+
+    select {
+      padding: $spacing-sm $spacing-md;
+      border: 1px solid $gray-300;
+      border-radius: $border-radius-md;
+      min-width: 200px;
+    }
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: $spacing-2xl;
+    background: $white;
+    border-radius: $border-radius-lg;
+  }
+
+  .orders-table-wrap {
+    background: $white;
+    border-radius: $border-radius-lg;
+    box-shadow: $shadow-base;
+    overflow: auto;
+  }
+
+  .orders-table {
+    width: 100%;
+    border-collapse: collapse;
+
+    th, td {
+      padding: $spacing-md $spacing-lg;
+      text-align: left;
+      border-bottom: 1px solid $gray-200;
+    }
+
+    th {
+      font-weight: $font-weight-semibold;
+      color: $gray-700;
+      background: $gray-50;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: $spacing-xs $spacing-sm;
+      border-radius: $border-radius-md;
+      font-size: $font-size-sm;
+      text-transform: capitalize;
+
+      &.status-draft { background: $gray-200; color: $gray-700; }
+      &.status-pending { background: $warning-light; color: color.adjust($warning, $lightness: -10%); }
+      &.status-paid, &.status-submitted { background: $success-light; color: $success; }
+    }
+
+    .link-btn {
+      background: none;
+      border: none;
+      color: $purple-600;
+      cursor: pointer;
+      text-decoration: underline;
+      font-weight: $font-weight-medium;
+    }
+  }
+
+  .orders-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: $spacing-lg;
+    padding: $spacing-lg;
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+}

@@ -1,0 +1,490 @@
+.admin-nursing-homes {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+
+  .page-header {
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+
+    &__portal-link {
+      padding: 0.625rem 1.25rem;
+      background: rgba(109, 40, 217, 0.08);
+      color: #5b21b6;
+      border: 1px solid rgba(109, 40, 217, 0.35);
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.2s, border-color 0.2s, color 0.2s;
+
+      &:hover {
+        background: rgba(109, 40, 217, 0.15);
+        border-color: rgba(109, 40, 217, 0.5);
+        color: #4c1d95;
+      }
+
+      &:focus-visible {
+        outline: 2px solid #6d28d9;
+        outline-offset: 2px;
+      }
+    }
+
+    .header-content {
+      h1 {
+        font-size: 2rem;
+        font-weight: 600;
+        color: var(--color-text-dark, #1a1a1a);
+        margin: 0 0 0.5rem 0;
+      }
+
+      p {
+        color: var(--color-text-secondary, #666);
+        margin: 0;
+      }
+    }
+  }
+
+  .tabs-container {
+    margin-bottom: 2rem;
+    border-bottom: 2px solid #e2e8f0;
+
+    .tabs {
+      display: flex;
+      gap: 1rem;
+      overflow-x: auto;
+
+      .tab {
+        padding: 1rem 1.5rem;
+        background: none;
+        border: none;
+        border-bottom: 3px solid transparent;
+        color: #64748b;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+
+        &:hover {
+          color: #5b21b6;
+          background: #f5f3ff;
+        }
+
+        &.active {
+          color: #5b21b6;
+          border-bottom-color: #5b21b6;
+        }
+      }
+    }
+  }
+
+  .tab-content {
+    .tab-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+
+      h2 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--color-text-dark, #1a1a1a);
+        margin: 0;
+      }
+    }
+
+    .btn-primary {
+      padding: 0.75rem 1.5rem;
+      background: #5b21b6;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+
+      &:hover:not(:disabled) {
+        background: #4c1d95;
+      }
+
+      &:active:not(:disabled) {
+        transform: translateY(1px);
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      &:focus-visible {
+        outline: 2px solid #6d28d9;
+        outline-offset: 2px;
+      }
+    }
+
+    .btn-secondary {
+      padding: 0.625rem 1.25rem;
+      background: #f8fafc;
+      color: #334155;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s, color 0.2s;
+
+      &:hover:not(:disabled) {
+        background: #f1f5f9;
+        border-color: #cbd5e1;
+        color: #1e293b;
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      &:focus-visible {
+        outline: 2px solid #94a3b8;
+        outline-offset: 2px;
+      }
+    }
+
+    .content-placeholder {
+      padding: 3rem;
+      background: var(--color-neutral-50, #f9fafb);
+      border: 2px dashed var(--color-neutral-300, #d1d5db);
+      border-radius: 12px;
+      text-align: center;
+
+      p {
+        margin: 0.5rem 0;
+        color: var(--color-text-secondary, #666);
+
+        &:first-child {
+          font-size: 1.125rem;
+          font-weight: 600;
+          color: var(--color-text-dark, #1a1a1a);
+        }
+      }
+
+      .btn-primary, .btn-secondary {
+        margin-top: 0.5rem;
+        margin-right: 0.5rem;
+      }
+    }
+
+    .filters-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      align-items: flex-end;
+
+      label {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+
+        span {
+          font-size: 0.875rem;
+          font-weight: 500;
+          color: var(--color-text-secondary, #666);
+        }
+
+        select, input {
+          padding: 0.5rem 0.75rem;
+          border: 1px solid var(--color-neutral-300, #d1d5db);
+          border-radius: 6px;
+          min-width: 160px;
+        }
+      }
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--color-neutral-200, #e5e7eb);
+      border-radius: 8px;
+      background: white;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+
+      th, td {
+        padding: 12px 16px;
+        text-align: left;
+        border-bottom: 1px solid var(--color-neutral-100, #f3f4f6);
+      }
+
+      th {
+        font-weight: 600;
+        color: var(--color-text-secondary, #666);
+        font-size: 0.875rem;
+      }
+
+      tr:last-child td {
+        border-bottom: 0;
+      }
+
+      select {
+        padding: 0.4rem 0.5rem;
+        border: 1px solid var(--color-neutral-300, #d1d5db);
+        border-radius: 6px;
+        min-width: 180px;
+      }
+
+      .row-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .assigning-label {
+        margin-left: 8px;
+        font-size: 0.875rem;
+        color: var(--color-text-secondary, #666);
+      }
+    }
+
+    .tab-header-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .facility-select {
+      padding: 0.625rem 2rem 0.625rem 1rem;
+      min-width: 220px;
+      font-size: 0.9375rem;
+      font-weight: 500;
+      color: #334155;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.75rem center;
+      transition: border-color 0.2s, background-color 0.2s;
+
+      &:hover {
+        border-color: #cbd5e1;
+        background-color: #f1f5f9;
+      }
+
+      &:focus {
+        outline: none;
+        border-color: #6d28d9;
+        box-shadow: 0 0 0 2px rgba(109, 40, 217, 0.2);
+      }
+    }
+
+    .upload-result.success {
+      padding: 0.75rem 1rem;
+      background: var(--color-success-bg, #f0fdf4);
+      border: 1px solid var(--color-success-border, #bbf7d0);
+      border-radius: 8px;
+      margin-bottom: 1rem;
+
+      p { margin: 0; }
+    }
+
+    .pagination-info {
+      margin-top: 1rem;
+      font-size: 0.875rem;
+      color: var(--color-text-secondary, #666);
+    }
+
+    textarea {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid var(--color-neutral-300, #d1d5db);
+      border-radius: 6px;
+      font-size: 1rem;
+      resize: vertical;
+    }
+
+    .facilities-table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--color-neutral-200, #e5e7eb);
+      border-radius: 8px;
+      background: white;
+    }
+
+    .facilities-table {
+      width: 100%;
+      border-collapse: collapse;
+
+      th, td {
+        padding: 12px 16px;
+        text-align: left;
+        border-bottom: 1px solid var(--color-neutral-100, #f3f4f6);
+      }
+
+      th {
+        font-weight: 600;
+        color: var(--color-text-secondary, #666);
+        font-size: 0.875rem;
+      }
+
+      tr:last-child td {
+        border-bottom: 0;
+      }
+
+      .facility-name-cell {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .facility-logo-thumb {
+        width: 32px;
+        height: 32px;
+        object-fit: contain;
+        border-radius: 6px;
+        background: var(--color-neutral-100, #f3f4f6);
+      }
+
+      .facility-initials {
+        width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--color-primary, #6d28d9);
+        color: white;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 700;
+      }
+
+      .btn-sm {
+        padding: 0.4rem 0.75rem;
+        font-size: 0.875rem;
+      }
+
+      .facility-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .btn-danger {
+        padding: 0.4rem 0.75rem;
+        font-size: 0.875rem;
+        background: var(--color-error-bg, #fef2f2);
+        color: var(--color-error, #b91c1c);
+        border: 1px solid var(--color-error-border, #fecaca);
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+
+        &:hover {
+          background: var(--color-error, #b91c1c);
+          color: white;
+        }
+      }
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+
+    .modal-content.facilities-modal {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 480px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+
+      h3 {
+        margin: 0 0 20px 0;
+        font-size: 1.25rem;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 14px;
+
+        span {
+          display: block;
+          font-size: 0.875rem;
+          font-weight: 500;
+          margin-bottom: 4px;
+          color: var(--color-text-dark, #1a1a1a);
+        }
+
+        input {
+          width: 100%;
+          padding: 8px 12px;
+          border: 1px solid var(--color-neutral-300, #d1d5db);
+          border-radius: 6px;
+          font-size: 1rem;
+        }
+      }
+
+      .form-row {
+        display: grid;
+        grid-template-columns: 1fr 80px 100px;
+        gap: 12px;
+      }
+
+      .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        margin-top: 24px;
+        padding-top: 16px;
+        border-top: 1px solid #e2e8f0;
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-nursing-homes {
+    padding: 1rem;
+
+    .page-header {
+      .header-content {
+        h1 {
+          font-size: 1.5rem;
+        }
+      }
+    }
+
+    .tab-content {
+      .tab-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+
+        .btn-primary {
+          width: 100%;
+        }
+      }
+
+      .content-placeholder {
+        padding: 2rem 1rem;
+      }
+    }
+  }
+}

@@ -85,7 +85,35 @@ const authenticateToken = async (req, res, next) => {
       tokenAge: Math.floor((Date.now() / 1000 - decoded.iat) / 3600) + ' hours'
     });
     
-    const user = await Profile.findByPk(decoded.userId);
+    let user;
+    try {
+      user = await Profile.findByPk(decoded.userId);
+    } catch (dbError) {
+      if (dbError.message?.includes('nursing_home_facility_id') || dbError.original?.message?.includes('nursing_home_facility_id')) {
+        // Column doesn't exist yet - query without it
+        const { sequelize } = require('../models');
+        const { QueryTypes } = require('sequelize');
+        const [results] = await sequelize.query(`
+          SELECT id, email, password, first_name AS "firstName", last_name AS "lastName", 
+                 phone, preferred_name AS "preferredName", address, addresses, 
+                 primary_address_index AS "primaryAddressIndex", role, 
+                 created_at AS "createdAt", updated_at AS "updatedAt"
+          FROM profiles 
+          WHERE id = :userId AND deleted_at IS NULL
+        `, {
+          replacements: { userId: decoded.userId },
+          type: QueryTypes.SELECT
+        });
+        if (results && results.length > 0) {
+          user = Profile.build(results[0], { isNewRecord: false });
+        } else {
+          user = null;
+        }
+      } else {
+        throw dbError;
+      }
+    }
+    
     if (!user) {
       recordFailedAttempt(clientIp);
       logger.warn('Token for non-existent user', { userId: decoded.userId, ip: clientIp });
@@ -189,7 +217,30 @@ const optionalAuth = async (req, res, next) => {
 
     if (token) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const user = await Profile.findByPk(decoded.userId);
+      let user;
+      try {
+        user = await Profile.findByPk(decoded.userId);
+      } catch (dbError) {
+        if (dbError.message?.includes('nursing_home_facility_id') || dbError.original?.message?.includes('nursing_home_facility_id')) {
+          // Column doesn't exist yet - query without it
+          const { sequelize } = require('../models');
+          const { QueryTypes } = require('sequelize');
+          const [results] = await sequelize.query(`
+            SELECT id, email, password, first_name AS "firstName", last_name AS "lastName", 
+                   phone, preferred_name AS "preferredName", address, addresses, 
+                   primary_address_index AS "primaryAddressIndex", role, 
+                   created_at AS "createdAt", updated_at AS "updatedAt"
+            FROM profiles 
+            WHERE id = :userId AND deleted_at IS NULL
+          `, {
+            replacements: { userId: decoded.userId },
+            type: QueryTypes.SELECT
+          });
+          if (results && results.length > 0) {
+            user = Profile.build(results[0], { isNewRecord: false });
+          }
+        }
+      }
       
       if (user) {
         req.user = user;
@@ -203,10 +254,71 @@ const optionalAuth = async (req, res, next) => {
   }
 };
 
+const requireNursingHomeAdmin = async (req, res, next) => {
+  try {
+    await new Promise((resolve, reject) => {
+      authenticateToken(req, res, (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+  } catch {
+    return;
+  }
+
+  if (!req.user) {
+    return res.status(401).json({ 
+      error: 'Authentication required',
+      message: 'Please sign in first'
+    });
+  }
+
+  if (req.user.role !== 'nursing_home_admin' && req.user.role !== 'admin') {
+    return res.status(403).json({ 
+      error: 'Nursing home admin access required',
+      message: 'You do not have permission to access this resource'
+    });
+  }
+
+  next();
+};
+
+const requireNursingHomeUser = async (req, res, next) => {
+  try {
+    await new Promise((resolve, reject) => {
+      authenticateToken(req, res, (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+  } catch {
+    return;
+  }
+
+  if (!req.user) {
+    return res.status(401).json({ 
+      error: 'Authentication required',
+      message: 'Please sign in first'
+    });
+  }
+
+  const allowedRoles = ['nursing_home_user', 'nursing_home_admin', 'admin'];
+  if (!allowedRoles.includes(req.user.role)) {
+    return res.status(403).json({ 
+      error: 'Nursing home access required',
+      message: 'You do not have permission to access this resource'
+    });
+  }
+
+  next();
+};
+
 module.exports = {
   authenticateToken,
   requireAdmin,
   requireRestaurantOwnerOrAdmin,
+  requireNursingHomeAdmin,
+  requireNursingHomeUser,
   optionalAuth,
   blacklistToken,
   checkRateLimit

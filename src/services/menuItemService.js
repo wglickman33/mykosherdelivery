@@ -117,35 +117,6 @@ export const bulkUpdateMenuItems = async (restaurantId, updates) => {
   }
 };
 
-
-export const fetchRestaurantMenu = async (restaurantId, filters = {}) => {
-  try {
-    const params = new URLSearchParams();
-    
-    if (filters.category && filters.category !== 'all') {
-      params.append('category', filters.category);
-    }
-    
-    if (filters.available !== undefined) {
-      params.append('available', filters.available);
-    }
-    
-    if (filters.itemType && filters.itemType !== 'all') {
-      params.append('itemType', filters.itemType);
-    }
-    
-    if (filters.search) {
-      params.append('search', filters.search);
-    }
-
-    const response = await apiClient.get(`/restaurants/${restaurantId}/menu?${params.toString()}`);
-    return response;
-  } catch (error) {
-    console.error('Error fetching restaurant menu:', error);
-    throw error;
-  }
-};
-
 export const fetchMenuCategories = async (restaurantId) => {
   try {
     const response = await apiClient.get(`/restaurants/${restaurantId}/menu/categories`);

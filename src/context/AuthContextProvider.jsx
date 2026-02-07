@@ -125,6 +125,18 @@ export const AuthProvider = ({ children }) => {
   })
 
   useEffect(() => {
+    const onAuthInvalid = () => {
+      logger.debug('AuthContext - Token invalid (e.g. switched API), clearing user');
+      setUser(null);
+      setProfile(null);
+      setIsGuest(true);
+      sessionManager.stopTokenMonitoring();
+    };
+    window.addEventListener('mkd-auth-invalid', onAuthInvalid);
+    return () => window.removeEventListener('mkd-auth-invalid', onAuthInvalid);
+  }, []);
+
+  useEffect(() => {
     const getInitialSession = async () => {
       logger.debug('AuthContext - Getting initial session...')
       const { success, user: sessionUser } = await authService.getSession()
