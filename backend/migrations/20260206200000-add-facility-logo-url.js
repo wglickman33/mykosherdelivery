@@ -1,12 +1,11 @@
 'use strict';
 
 module.exports = {
-  up: async (queryInterface, Sequelize) => {
-    await queryInterface.addColumn(
-      'nursing_home_facilities',
-      'logo_url',
-      { type: Sequelize.STRING, allowNull: true }
-    );
+  up: async (queryInterface) => {
+    await queryInterface.sequelize.query(`
+      ALTER TABLE nursing_home_facilities
+      ADD COLUMN IF NOT EXISTS logo_url VARCHAR(255) NULL;
+    `);
   },
 
   down: async (queryInterface) => {
