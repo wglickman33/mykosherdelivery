@@ -460,6 +460,8 @@ const AdminLayout = () => {
                           <span className="notif-icon" aria-hidden="true">
                             {n.type?.startsWith('order') ? (
                               <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M19 7h-3V6a4 4 0 0 0-8 0v1H5a1 1 0 0 0-1 1v11a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V8a1 1 0 0 0-1-1zM10 6a2 2 0 0 1 4 0v1h-4V6z"/></svg>
+                            ) : n.type?.startsWith('nursing_home') ? (
+                              <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 3L4 9v12h16V9l-8-6zm6 16h-3v-3h-2v3H10v-5H8v5H5V10l7-5 7 5v9z"/></svg>
                             ) : n.type?.startsWith('ticket') ? (
                               <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M3 5h18v6a2 2 0 0 1-2 2h-1v2h1a2 2 0 0 1 2 2v2H3v-2a2 2 0 0 1 2-2h1v-2H5a2 2 0 0 1-2-2V5zm6 5h6v2H9v-2z"/></svg>
                             ) : n.type === 'tickets.bulk_deleted' ? (

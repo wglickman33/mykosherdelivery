@@ -1,18 +1,22 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../hooks/useAuth';
+import { useNotification } from '../../hooks/useNotification';
 import {
   fetchResidents,
   fetchFacilitiesList,
   createResident,
   updateResident,
-  deleteResident
+  deleteResident,
+  deleteResidentPermanently
 } from '../../services/nursingHomeService';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
+import NotificationToast from '../NotificationToast/NotificationToast';
 import './AdminNursingHomes.scss';
 
 const ResidentsTab = () => {
   const { user } = useAuth();
+  const { notification, showNotification, hideNotification } = useNotification();
   const isAdmin = user?.role === 'admin';
   const [facilities, setFacilities] = useState([]);
   const [residents, setResidents] = useState([]);
@@ -20,9 +24,13 @@ const ResidentsTab = () => {
   const [error, setError] = useState(null);
   const [facilityFilter, setFacilityFilter] = useState('');
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ page: 1, limit: 50, total: 0, totalPages: 0 });
   const [modalOpen, setModalOpen] = useState(false);
+  const [viewResident, setViewResident] = useState(null);
   const [editingResident, setEditingResident] = useState(null);
-  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [archiveConfirm, setArchiveConfirm] = useState(null);
+  const [permanentDeleteConfirm, setPermanentDeleteConfirm] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     facilityId: '',
@@ -47,20 +55,20 @@ const ResidentsTab = () => {
     try {
       setLoading(true);
       setError(null);
-      const params = { page: 1, limit: 50, isActive: 'true' };
+      const params = { page, limit: 50, isActive: 'true' };
       if (isAdmin && facilityFilter) params.facilityId = facilityFilter;
       if (search.trim()) params.search = search.trim();
       const res = await fetchResidents(params);
-      const body = res?.data;
-      const list = body?.data;
+      const list = res?.data;
       setResidents(Array.isArray(list) ? list : []);
+      setPagination(res?.pagination || { page: 1, limit: 50, total: 0, totalPages: 0 });
     } catch (err) {
-      setError(err.response?.data?.message || err.response?.data?.error || 'Failed to load residents');
+      setError(err?.message || err.response?.data?.message || err.response?.data?.error || 'Failed to load residents');
       setResidents([]);
     } finally {
       setLoading(false);
     }
-  }, [isAdmin, facilityFilter, search]);
+  }, [isAdmin, facilityFilter, search, page]);
 
   useEffect(() => {
     loadFacilities();
@@ -69,6 +77,10 @@ const ResidentsTab = () => {
   useEffect(() => {
     loadResidents();
   }, [loadResidents]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [facilityFilter, search]);
 
   const handleOpenAdd = () => {
     setEditingResident(null);
@@ -130,30 +142,52 @@ const ResidentsTab = () => {
       };
       if (editingResident) {
         await updateResident(editingResident.id, payload);
+        showNotification('Resident updated successfully.', 'success');
       } else {
         await createResident(payload);
+        showNotification('Resident created successfully.', 'success');
       }
       setModalOpen(false);
       setEditingResident(null);
       loadResidents();
     } catch (err) {
-      setError(err.response?.data?.message || err.response?.data?.error || 'Failed to save resident');
+      setError(err?.message || err.response?.data?.message || err.response?.data?.error || 'Failed to save resident');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleDeleteClick = (r) => setDeleteConfirm(r);
-  const handleDeleteConfirm = async () => {
-    if (!deleteConfirm) return;
+  const handleArchiveClick = (r) => setArchiveConfirm(r);
+  const handleArchiveConfirm = async () => {
+    if (!archiveConfirm) return;
     try {
       setSubmitting(true);
       setError(null);
-      await deleteResident(deleteConfirm.id);
-      setDeleteConfirm(null);
+      await deleteResident(archiveConfirm.id);
+      showNotification('Resident archived.', 'success');
+      setArchiveConfirm(null);
       loadResidents();
     } catch (err) {
-      setError(err.response?.data?.message || err.response?.data?.error || 'Failed to deactivate resident');
+      setError(err?.message || err.response?.data?.message || err.response?.data?.error || 'Failed to archive resident');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handlePermanentDeleteClick = (r) => setPermanentDeleteConfirm(r);
+  const handlePermanentDeleteConfirm = async () => {
+    if (!permanentDeleteConfirm) return;
+    try {
+      setSubmitting(true);
+      setError(null);
+      await deleteResidentPermanently(permanentDeleteConfirm.id);
+      showNotification('Resident deleted permanently.', 'success');
+      setPermanentDeleteConfirm(null);
+      loadResidents();
+    } catch (err) {
+      const msg = err?.message || err.response?.data?.error || 'Failed to delete resident';
+      setError(msg);
+      showNotification(msg, 'error');
     } finally {
       setSubmitting(false);
     }
@@ -163,6 +197,7 @@ const ResidentsTab = () => {
 
   return (
     <div className="residents-tab">
+      <NotificationToast notification={notification} onClose={hideNotification} />
       <div className="tab-header">
         <h2>Residents</h2>
         <button type="button" className="btn-primary" onClick={handleOpenAdd}>
@@ -196,7 +231,7 @@ const ResidentsTab = () => {
         </div>
       )}
 
-      {error && !modalOpen && !deleteConfirm && (
+      {error && !modalOpen && !viewResident && !archiveConfirm && !permanentDeleteConfirm && (
         <ErrorMessage message={error} type="error" onDismiss={() => setError(null)} />
       )}
 
@@ -210,58 +245,166 @@ const ResidentsTab = () => {
           </button>
         </div>
       ) : (
-        <div className="table-wrap">
-          <table className="data-table" role="grid">
-            <thead>
-              <tr>
-                {isAdmin && <th>Facility</th>}
-                <th>Name</th>
-                <th>Room</th>
-                <th>Dietary / Allergies</th>
-                <th aria-label="Actions" />
-              </tr>
-            </thead>
-            <tbody>
-              {residents.map((r) => (
-                <tr key={r.id}>
-                  {isAdmin && <td>{r.facility ? r.facility.name : facilityName(r.facilityId)}</td>}
-                  <td>{r.name}</td>
-                  <td>{r.roomNumber || '—'}</td>
-                  <td>
-                    {[r.dietaryRestrictions, r.allergies].filter(Boolean).join(' · ') || '—'}
-                  </td>
-                  <td>
-                    <div className="row-actions">
-                      <button type="button" className="btn-secondary btn-sm" onClick={() => handleOpenEdit(r)}>
-                        Edit
-                      </button>
-                      <button type="button" className="btn-danger btn-sm" onClick={() => handleDeleteClick(r)}>
-                        Deactivate
-                      </button>
-                    </div>
-                  </td>
+        <div className="nursing-table-container">
+          <div className="nursing-table-scroll">
+            <table className="data-table" role="grid">
+              <thead>
+                <tr>
+                  {isAdmin && <th scope="col">Facility</th>}
+                  <th scope="col">Name</th>
+                  <th scope="col">Room</th>
+                  <th scope="col">Dietary restrictions</th>
+                  <th scope="col">Allergies</th>
+                  <th scope="col">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {residents.map((r) => (
+                  <tr key={r.id}>
+                    {isAdmin && <td>{r.facility ? r.facility.name : facilityName(r.facilityId)}</td>}
+                    <td>{r.name}</td>
+                    <td>{r.roomNumber || '—'}</td>
+                    <td>{r.dietaryRestrictions || '—'}</td>
+                    <td>{r.allergies || '—'}</td>
+                    <td>
+                      <div className="row-actions">
+                        <button type="button" className="view-btn" onClick={() => setViewResident(r)}>
+                          View
+                        </button>
+                        <button type="button" className="edit-btn" onClick={() => handleOpenEdit(r)}>
+                          Edit
+                        </button>
+                        <button type="button" className="archive-btn" onClick={() => handleArchiveClick(r)}>
+                          Archive
+                        </button>
+                        <button type="button" className="delete-btn" onClick={() => handlePermanentDeleteClick(r)}>
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
-      {deleteConfirm && (
-        <div className="admin-nursing-homes__overlay" onClick={() => !submitting && setDeleteConfirm(null)}>
-          <div className="admin-nursing-homes__modal admin-nursing-homes__modal--delete" onClick={(e) => e.stopPropagation()}>
+      {!loading && residents.length > 0 && (pagination.totalPages > 1 || pagination.total > pagination.limit) && (
+        <div className="pagination">
+          <div className="pagination-info">
+            Showing {pagination.total > 0 ? ((pagination.page - 1) * pagination.limit) + 1 : 0} to{' '}
+            {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
+            {pagination.total} residents
+          </div>
+          <div className="pagination-controls">
+            <button
+              type="button"
+              disabled={pagination.page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              Previous
+            </button>
+            <span className="page-info">
+              Page {pagination.page} of {Math.max(1, pagination.totalPages)}
+            </span>
+            <button
+              type="button"
+              disabled={pagination.page >= pagination.totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
+
+      {viewResident && (
+        <div className="admin-nursing-homes__overlay" onClick={() => setViewResident(null)}>
+          <div className="admin-nursing-homes__modal admin-nursing-homes__modal--view" onClick={(e) => e.stopPropagation()}>
             <div className="admin-nursing-homes__modal-header">
-              <h2>Deactivate resident</h2>
-              <button type="button" className="admin-nursing-homes__modal-close" onClick={() => setDeleteConfirm(null)} disabled={submitting} aria-label="Close">×</button>
+              <h2>Resident Details</h2>
+              <button type="button" className="admin-nursing-homes__modal-close" onClick={() => setViewResident(null)} aria-label="Close">×</button>
             </div>
             <div className="admin-nursing-homes__modal-content">
-              <p style={{ margin: '0 0 20px 0', color: 'rgba(6, 23, 87, 0.7)', lineHeight: 1.6 }}>
-                Deactivate &quot;{deleteConfirm.name}&quot;? They will no longer appear in active lists.
+              <div className="admin-nursing-homes__overview">
+                <h3>{viewResident.name}</h3>
+                <div className="admin-nursing-homes__info-grid">
+                  {isAdmin && (
+                    <div className="admin-nursing-homes__info-item">
+                      <label>Facility</label>
+                      <span>{viewResident.facility ? viewResident.facility.name : facilityName(viewResident.facilityId)}</span>
+                    </div>
+                  )}
+                  <div className="admin-nursing-homes__info-item">
+                    <label>Room</label>
+                    <span>{viewResident.roomNumber || '—'}</span>
+                  </div>
+                  <div className="admin-nursing-homes__info-item">
+                    <label>Dietary restrictions</label>
+                    <span>{viewResident.dietaryRestrictions || '—'}</span>
+                  </div>
+                  <div className="admin-nursing-homes__info-item">
+                    <label>Allergies</label>
+                    <span>{viewResident.allergies || '—'}</span>
+                  </div>
+                  {viewResident.notes && (
+                    <div className="admin-nursing-homes__info-item admin-nursing-homes__info-item--full">
+                      <label>Notes</label>
+                      <span>{viewResident.notes}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="admin-nursing-homes__form-actions">
+                  <button type="button" onClick={() => setViewResident(null)}>Close</button>
+                  <button type="button" className="btn-primary" onClick={() => { setViewResident(null); handleOpenEdit(viewResident); }}>
+                    Edit
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {archiveConfirm && (
+        <div className="admin-nursing-homes__overlay" onClick={() => !submitting && setArchiveConfirm(null)}>
+          <div className="admin-nursing-homes__modal admin-nursing-homes__modal--delete" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-nursing-homes__modal-header">
+              <h2>Archive resident</h2>
+              <button type="button" className="admin-nursing-homes__modal-close" onClick={() => setArchiveConfirm(null)} disabled={submitting} aria-label="Close">×</button>
+            </div>
+            <div className="admin-nursing-homes__modal-content">
+              <p className="admin-nursing-homes__description">
+                Archive &quot;{archiveConfirm.name}&quot;? They will no longer appear in active lists. You can restore them later by editing the resident.
               </p>
               <div className="admin-nursing-homes__form-actions">
-                <button type="button" onClick={() => setDeleteConfirm(null)} disabled={submitting}>Cancel</button>
-                <button type="button" className="btn-danger" onClick={handleDeleteConfirm} disabled={submitting}>
-                  {submitting ? 'Deactivating…' : 'Deactivate'}
+                <button type="button" onClick={() => setArchiveConfirm(null)} disabled={submitting}>Cancel</button>
+                <button type="button" className="btn-archive" onClick={handleArchiveConfirm} disabled={submitting}>
+                  {submitting ? 'Archiving…' : 'Archive'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {permanentDeleteConfirm && (
+        <div className="admin-nursing-homes__overlay" onClick={() => !submitting && setPermanentDeleteConfirm(null)}>
+          <div className="admin-nursing-homes__modal admin-nursing-homes__modal--delete" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-nursing-homes__modal-header">
+              <h2>Delete resident permanently</h2>
+              <button type="button" className="admin-nursing-homes__modal-close" onClick={() => { setPermanentDeleteConfirm(null); setError(null); }} disabled={submitting} aria-label="Close">×</button>
+            </div>
+            <div className="admin-nursing-homes__modal-content">
+              {error && <ErrorMessage message={error} type="error" onDismiss={() => setError(null)} />}
+              <p className="admin-nursing-homes__description">
+                Permanently delete &quot;{permanentDeleteConfirm.name}&quot;? This cannot be undone. If they have any orders, archive them instead.
+              </p>
+              <div className="admin-nursing-homes__form-actions">
+                <button type="button" onClick={() => { setPermanentDeleteConfirm(null); setError(null); }} disabled={submitting}>Cancel</button>
+                <button type="button" className="btn-danger" onClick={handlePermanentDeleteConfirm} disabled={submitting}>
+                  {submitting ? 'Deleting…' : 'Delete permanently'}
                 </button>
               </div>
             </div>

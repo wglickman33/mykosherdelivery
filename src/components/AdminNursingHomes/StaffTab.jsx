@@ -21,6 +21,7 @@ const StaffTab = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [viewUser, setViewUser] = useState(null);
   const [editingUser, setEditingUser] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -343,6 +344,42 @@ const StaffTab = () => {
         </div>
       )}
 
+      {viewUser && (
+        <div className="admin-nursing-homes__overlay" onClick={() => setViewUser(null)}>
+          <div className="admin-nursing-homes__modal admin-nursing-homes__modal--view" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-nursing-homes__modal-header">
+              <h2>Staff Details</h2>
+              <button type="button" className="admin-nursing-homes__modal-close" onClick={() => setViewUser(null)} aria-label="Close">×</button>
+            </div>
+            <div className="admin-nursing-homes__modal-content">
+              <div className="admin-nursing-homes__overview">
+                <h3>{[viewUser.firstName, viewUser.lastName].filter(Boolean).join(' ') || 'Staff member'}</h3>
+                <div className="admin-nursing-homes__info-grid">
+                  <div className="admin-nursing-homes__info-item">
+                    <label>Email</label>
+                    <span>{viewUser.email}</span>
+                  </div>
+                  <div className="admin-nursing-homes__info-item">
+                    <label>Role</label>
+                    <span>{viewUser.role === 'nursing_home_admin' ? 'Admin' : 'User'}</span>
+                  </div>
+                  <div className="admin-nursing-homes__info-item">
+                    <label>Phone</label>
+                    <span>{viewUser.phone || '—'}</span>
+                  </div>
+                </div>
+                <div className="admin-nursing-homes__form-actions">
+                  <button type="button" onClick={() => setViewUser(null)}>Close</button>
+                  <button type="button" className="btn-primary" onClick={() => { setViewUser(null); handleOpenEdit(viewUser); }}>
+                    Edit
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {deleteConfirm && (
         <div className="admin-nursing-homes__overlay" onClick={() => !submitting && setDeleteConfirm(null)}>
           <div className="admin-nursing-homes__modal admin-nursing-homes__modal--delete" onClick={(e) => e.stopPropagation()}>
@@ -351,7 +388,7 @@ const StaffTab = () => {
               <button type="button" className="admin-nursing-homes__modal-close" onClick={() => setDeleteConfirm(null)} disabled={submitting} aria-label="Close">×</button>
             </div>
             <div className="admin-nursing-homes__modal-content">
-              <p style={{ margin: '0 0 20px 0', color: 'rgba(6, 23, 87, 0.7)', lineHeight: 1.6 }}>
+              <p className="admin-nursing-homes__description">
                 Remove {deleteConfirm.firstName} {deleteConfirm.lastName} from this facility? They will no longer have access.
               </p>
               <div className="admin-nursing-homes__form-actions">

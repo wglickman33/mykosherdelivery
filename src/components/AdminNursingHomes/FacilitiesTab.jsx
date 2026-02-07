@@ -108,7 +108,7 @@ const FacilitiesTab = () => {
       load();
       window.dispatchEvent(new CustomEvent('mkd-communities-refresh'));
     } catch (err) {
-      setError(err.response?.data?.message || err.response?.data?.error || 'Failed to deactivate facility');
+      setError(err.response?.data?.message || err.response?.data?.error || 'Failed to archive facility');
     } finally {
       setSubmitting(false);
     }
@@ -248,8 +248,8 @@ const FacilitiesTab = () => {
                       <button type="button" className="edit-btn" onClick={() => handleOpenEdit(f)}>
                         Edit
                       </button>
-                      <button type="button" className="deactivate-btn" onClick={() => handleDeleteClick(f)}>
-                        Deactivate
+                      <button type="button" className="archive-btn" onClick={() => handleDeleteClick(f)}>
+                        Archive
                       </button>
                     </div>
                   </td>
@@ -305,17 +305,17 @@ const FacilitiesTab = () => {
         <div className="admin-nursing-homes__overlay" onClick={() => !submitting && setDeleteConfirm(null)}>
           <div className="admin-nursing-homes__modal admin-nursing-homes__modal--delete" onClick={(e) => e.stopPropagation()}>
             <div className="admin-nursing-homes__modal-header">
-              <h2>Deactivate facility</h2>
+              <h2>Archive facility</h2>
               <button type="button" className="admin-nursing-homes__modal-close" onClick={() => setDeleteConfirm(null)} disabled={submitting} aria-label="Close">×</button>
             </div>
             <div className="admin-nursing-homes__modal-content">
-              <p style={{ margin: '0 0 20px 0', color: 'rgba(6, 23, 87, 0.7)', lineHeight: 1.6 }}>
-                Deactivate &quot;{deleteConfirm.name}&quot;? Staff and residents will need to be reassigned. This can be reverted later by editing the facility.
+              <p className="admin-nursing-homes__description">
+                Archive &quot;{deleteConfirm.name}&quot;? Staff and residents will need to be reassigned. You can restore it later by editing the facility.
               </p>
               <div className="admin-nursing-homes__form-actions">
                 <button type="button" onClick={() => setDeleteConfirm(null)} disabled={submitting}>Cancel</button>
-                <button type="button" className="btn-danger" onClick={handleDeleteConfirm} disabled={submitting}>
-                  {submitting ? 'Deactivating…' : 'Deactivate'}
+                <button type="button" className="btn-archive" onClick={handleDeleteConfirm} disabled={submitting}>
+                  {submitting ? 'Archiving…' : 'Archive'}
                 </button>
               </div>
             </div>

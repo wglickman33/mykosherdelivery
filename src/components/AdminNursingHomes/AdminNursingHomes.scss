@@ -338,7 +338,16 @@
             }
           }
 
-          &.deactivate-btn,
+          &.archive-btn {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+            &:hover {
+              background: #e2e8f0;
+              border-color: #94a3b8;
+            }
+          }
+
           &.delete-btn {
             background: #fee2e2;
             color: #991b1b;
@@ -417,6 +426,65 @@
       margin-top: 1rem;
       font-size: 0.875rem;
       color: var(--color-text-secondary, #666);
+    }
+
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+      padding: 16px 20px;
+      margin-top: 0;
+      border-top: 1px solid #f1f5f9;
+      background: #f8fafc;
+      gap: 12px;
+      border-radius: 0 0 12px 12px;
+
+      .pagination-info {
+        margin-top: 0;
+        color: #64748b;
+        font-size: 0.9rem;
+        flex: 1 1 auto;
+        min-width: 200px;
+      }
+
+      .pagination-controls {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: nowrap;
+        margin-left: auto;
+      }
+
+      .pagination-controls button {
+        appearance: none;
+        background: #fff;
+        color: #334155;
+        border: 1px solid #e2e8f0;
+        padding: 8px 14px;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s, border-color 0.2s, color 0.2s;
+
+        &:hover:not(:disabled) {
+          background: #475569;
+          color: #fff;
+          border-color: #475569;
+        }
+
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+      }
+
+      .page-info {
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: #64748b;
+      }
     }
 
     textarea {
@@ -740,7 +808,17 @@
               transform: translateY(-1px);
             }
           }
-          &.deactivate-btn {
+          &.archive-btn {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+            &:hover {
+              background: #e2e8f0;
+              border-color: #94a3b8;
+              transform: translateY(-1px);
+            }
+          }
+          &.delete-btn {
             background: #fee2e2;
             color: #991b1b;
             &:hover {
@@ -755,8 +833,7 @@
     .admin-nursing-homes__overlay {
       position: fixed;
       inset: 0;
-      background: rgba(15, 23, 42, 0.4);
-      backdrop-filter: saturate(140%) blur(2px);
+      background: rgba(6, 23, 87, 0.4);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -766,22 +843,27 @@
     }
 
     .admin-nursing-homes__modal {
-      background: #fff;
+      background: #ffffff;
       border-radius: 16px;
-      width: 100%;
+      width: 90vw;
       max-height: 90vh;
       overflow: hidden;
-      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.15);
-      border: 1px solid rgba(15, 23, 42, 0.06);
+      box-shadow: 0 24px 60px rgba(6, 23, 87, 0.22);
+      border: 1px solid rgba(6, 23, 87, 0.08);
       display: flex;
       flex-direction: column;
       animation: admin-nursing-homes__slideUp 140ms ease-out;
 
+      &--view {
+        max-width: 800px;
+        min-width: 600px;
+      }
       &--form {
         max-width: 520px;
       }
       &--delete {
-        max-width: 450px;
+        max-width: 600px;
+        min-width: 400px;
       }
     }
 
@@ -795,10 +877,12 @@
       padding: 18px 22px;
       border-bottom: 1px solid #e2e8f0;
       background: #ffffff;
+      border-top-left-radius: 16px;
+      border-top-right-radius: 16px;
       h2 {
         font-size: 1.35rem;
         font-weight: 800;
-        color: #1e293b;
+        color: #061757;
         margin: 0;
       }
     }
@@ -814,8 +898,8 @@
       line-height: 1;
       transition: all 0.16s ease;
       &:hover {
-        color: #1e293b;
-        border-color: #1e293b;
+        color: #061757;
+        border-color: #061757;
         background: #f1f5f9;
       }
     }
@@ -823,6 +907,49 @@
     .admin-nursing-homes__modal-content {
       padding: 22px 24px;
       overflow-y: auto;
+      background: #ffffff;
+      border-bottom-left-radius: 16px;
+      border-bottom-right-radius: 16px;
+    }
+
+    .admin-nursing-homes__overview {
+      h3 {
+        font-size: 1.35rem;
+        font-weight: 800;
+        color: #061757;
+        margin: 0 0 8px 0;
+      }
+    }
+
+    .admin-nursing-homes__description {
+      color: rgba(6, 23, 87, 0.7);
+      margin: 0 0 20px 0;
+      line-height: 1.6;
+    }
+
+    .admin-nursing-homes__info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px 18px;
+    }
+
+    .admin-nursing-homes__info-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      label {
+        font-size: 0.82rem;
+        color: rgba(6, 23, 87, 0.65);
+        font-weight: 700;
+      }
+      span {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #061757;
+      }
+      &--full {
+        grid-column: 1 / -1;
+      }
     }
 
     .admin-nursing-homes__form-grid {
@@ -841,7 +968,7 @@
       }
       label {
         font-weight: 700;
-        color: #1e293b;
+        color: #061757;
         font-size: 0.9rem;
       }
       input,
@@ -855,8 +982,8 @@
         transition: all 0.16s ease;
         &:focus {
           outline: none;
-          border-color: #475569;
-          box-shadow: 0 0 0 3px rgba(71, 85, 105, 0.15);
+          border-color: #5fb4f9;
+          box-shadow: 0 0 0 3px rgba(95, 180, 249, 0.15);
         }
       }
       textarea {
@@ -897,6 +1024,15 @@
         &:hover:not(:disabled) {
           background: #334155;
           border-color: #334155;
+        }
+      }
+      .btn-archive {
+        background: #f1f5f9;
+        color: #475569;
+        border: 2px solid #cbd5e1;
+        &:hover:not(:disabled) {
+          background: #e2e8f0;
+          border-color: #94a3b8;
         }
       }
       .btn-danger {

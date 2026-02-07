@@ -1,9 +1,38 @@
 const express = require('express');
-const { sequelize, NursingHomeFacility, NursingHomeResident, NursingHomeResidentOrder, NursingHomeMenuItem, NursingHomeInvoice, NursingHomeOrder, Profile } = require('../models');
+const { sequelize, NursingHomeFacility, NursingHomeResident, NursingHomeResidentOrder, NursingHomeMenuItem, NursingHomeInvoice, NursingHomeOrder, Profile, AdminNotification } = require('../models');
 const { QueryTypes } = require('sequelize');
 const { requireAdmin, requireNursingHomeAdmin, requireNursingHomeUser } = require('../middleware/auth');
 const { body, validationResult } = require('express-validator');
 const logger = require('../utils/logger');
+const { appEvents } = require('../utils/events');
+
+async function createNursingHomeAdminNotification(payload) {
+  try {
+    const notif = await AdminNotification.create({
+      type: payload.type,
+      title: payload.title,
+      message: payload.body || payload.message || '',
+      readBy: [],
+      data: payload.ref || null
+    });
+    try {
+      appEvents.emit('admin.notification.created', {
+        id: notif.id,
+        type: notif.type,
+        title: notif.title,
+        message: notif.message,
+        data: notif.data,
+        createdAt: notif.createdAt
+      });
+    } catch (err) {
+      logger.warn('Emit admin notification error', err);
+    }
+    return notif;
+  } catch (err) {
+    logger.warn('Create nursing home admin notification error', err);
+    return null;
+  }
+}
 
 const router = express.Router();
 
@@ -213,6 +242,13 @@ router.post('/facilities', requireAdmin, [
       createdBy: req.user.id
     });
 
+    await createNursingHomeAdminNotification({
+      type: 'nursing_home.facility.created',
+      title: 'Facility created',
+      message: `${facility.name} was added.`,
+      ref: { kind: 'nursing_home', facilityId: facility.id }
+    });
+
     res.status(201).json({
       success: true,
       data: facility
@@ -263,6 +299,13 @@ router.put('/facilities/:id', requireAdmin, [
     logger.info('Nursing home facility updated', {
       facilityId: facility.id,
       updatedBy: req.user.id
+    });
+
+    await createNursingHomeAdminNotification({
+      type: 'nursing_home.facility.updated',
+      title: 'Facility updated',
+      message: `${facility.name} was updated.`,
+      ref: { kind: 'nursing_home', facilityId: facility.id }
     });
 
     res.json({
@@ -364,6 +407,14 @@ router.post('/facilities/:facilityId/staff', requireAdminOrNursingHomeAdmin, req
 
     logger.info('Nursing home staff created', { userId: user.id, facilityId, createdBy: req.user.id });
 
+    const displayName = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email;
+    await createNursingHomeAdminNotification({
+      type: 'nursing_home.staff.created',
+      title: 'Staff added',
+      message: `${displayName} was added to the facility.`,
+      ref: { kind: 'nursing_home', facilityId }
+    });
+
     const out = user.toJSON();
     delete out.password;
     res.status(201).json({ success: true, data: out });
@@ -415,6 +466,15 @@ router.delete('/facilities/:facilityId/staff/:userId', requireAdminOrNursingHome
     }
     await user.update({ nursingHomeFacilityId: null, role: 'user' });
     logger.info('Staff removed from facility', { userId, facilityId, removedBy: req.user.id });
+
+    const displayName = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email;
+    await createNursingHomeAdminNotification({
+      type: 'nursing_home.staff.removed',
+      title: 'Staff removed',
+      message: `${displayName} was removed from the facility.`,
+      ref: { kind: 'nursing_home', facilityId }
+    });
+
     res.json({ success: true, message: 'Staff removed from facility' });
   } catch (error) {
     logger.error('Error removing staff:', error);
@@ -471,6 +531,15 @@ router.post('/facilities/:facilityId/staff/bulk', requireAdminOrNursingHomeAdmin
       } catch (err) {
         results.errors.push({ email: row.email, message: err.message });
       }
+    }
+
+    if (results.created.length > 0) {
+      await createNursingHomeAdminNotification({
+        type: 'nursing_home.staff.bulk_created',
+        title: 'Staff added',
+        message: `${results.created.length} staff member(s) were added to ${facility.name}.`,
+        ref: { kind: 'nursing_home', facilityId }
+      });
     }
 
     res.status(201).json({ success: true, data: results });
@@ -742,6 +811,13 @@ router.put('/residents/:id', requireNursingHomeAdmin, [
       updatedBy: req.user.id
     });
 
+    await createNursingHomeAdminNotification({
+      type: 'nursing_home.resident.updated',
+      title: 'Resident updated',
+      message: `${resident.name} was updated.`,
+      ref: { kind: 'nursing_home', facilityId: resident.facilityId, residentId: resident.id }
+    });
+
     res.json({
       success: true,
       data: resident
@@ -884,11 +960,20 @@ router.delete('/residents/:id/permanent', requireNursingHomeAdmin, async (req, r
       });
     }
 
+    const residentName = resident.name;
+    const residentFacilityId = resident.facilityId;
     await resident.destroy();
 
     logger.info('Resident permanently deleted', {
       residentId: resident.id,
       deletedBy: req.user.id
+    });
+
+    await createNursingHomeAdminNotification({
+      type: 'nursing_home.resident.deleted',
+      title: 'Resident deleted',
+      message: `${residentName} was permanently deleted.`,
+      ref: { kind: 'nursing_home', facilityId: residentFacilityId }
     });
 
     res.json({
