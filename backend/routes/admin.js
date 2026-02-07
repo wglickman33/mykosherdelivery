@@ -6,7 +6,7 @@ const { requireAdmin } = require('../middleware/auth');
 const { body, param, validationResult } = require('express-validator');
 const { VALID_PROFILE_ROLES } = require('../config/constants');
 const logger = require('../utils/logger');
-const { isMissingColumnError, getProfilesForAdminList, countProfilesRaw } = require('../utils/profileFallback');
+const { isMissingColumnError, getProfileById, getProfilesForAdminList, countProfilesRaw, updateProfileSafe, profileExistsWithEmail } = require('../utils/profileFallback');
 const jwt = require('jsonwebtoken');
 const { appEvents } = require('../utils/events');
 const path = require('path');
@@ -149,7 +149,8 @@ router.get('/users', requireAdmin, async (req, res) => {
           last_login: userData.last_login,
           address: userData.address,
           addresses: userData.addresses,
-          primary_address_index: userData.primaryAddressIndex
+          primary_address_index: userData.primaryAddressIndex,
+          nursing_home_facility_id: userData.nursingHomeFacilityId ?? null
         };
       });
     } catch (dbErr) {
@@ -199,7 +200,8 @@ router.put('/users/:userId', requireAdmin, [
   body('first_name').optional({ checkFalsy: true }).trim().notEmpty().withMessage('First name cannot be empty'),
   body('last_name').optional({ checkFalsy: true }).trim().notEmpty().withMessage('Last name cannot be empty'),
   body('phone_number').optional().trim(),
-  body('role').optional().isIn(VALID_PROFILE_ROLES).withMessage('Invalid role')
+  body('role').optional().isIn(VALID_PROFILE_ROLES).withMessage('Invalid role'),
+  body('nursing_home_facility_id').optional().custom((val) => !val || val === '' || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(val).trim())).withMessage('Facility must be a valid UUID')
 ], async (req, res) => {
   const putUserId = req.params.userId;
   console.log('[PUT /admin/users/:userId] START', { userId: putUserId, bodyKeys: Object.keys(req.body || {}), role: req.body?.role });
@@ -224,7 +226,18 @@ router.put('/users/:userId', requireAdmin, [
 
     delete updates.password;
 
-    const user = await Profile.findByPk(userId);
+    let user = null;
+    let useRawPath = false;
+    try {
+      user = await Profile.findByPk(userId);
+    } catch (findErr) {
+      if (isMissingColumnError(findErr)) {
+        user = await getProfileById(userId);
+        useRawPath = true;
+      } else {
+        throw findErr;
+      }
+    }
     if (!user) {
       return res.status(404).json({
         error: 'User not found',
@@ -250,7 +263,7 @@ router.put('/users/:userId', requireAdmin, [
           message: `Role must be one of: ${VALID_PROFILE_ROLES.join(', ')}`
         });
       }
-      
+
       // Check if the enum value exists in the database (QueryTypes.SELECT returns array directly)
       try {
         const enumRows = await sequelize.query(`
@@ -273,7 +286,7 @@ router.put('/users/:userId', requireAdmin, [
         logger.warn('Enum check failed, proceeding with update', { error: enumCheckError.message });
         // Continue; DB update will fail with 400 if role is invalid
       }
-      
+
       transformedUpdates.role = roleVal;
       logger.info('Updating user role', {
         userId: userId,
@@ -281,13 +294,26 @@ router.put('/users/:userId', requireAdmin, [
         newRole: roleVal
       });
     }
+    if (updates.nursing_home_facility_id !== undefined && !useRawPath) {
+      transformedUpdates.nursingHomeFacilityId = updates.nursing_home_facility_id && updates.nursing_home_facility_id.trim() ? updates.nursing_home_facility_id.trim() : null;
+    }
     if (updates.email !== undefined && updates.email !== user.email) {
-      const existingUser = await Profile.findOne({ where: { email: updates.email } });
-      if (existingUser && existingUser.id !== userId) {
-        return res.status(400).json({
-          error: 'Email already in use',
-          message: 'Another user with this email already exists'
-        });
+      if (useRawPath) {
+        const emailTaken = await profileExistsWithEmail(updates.email, userId);
+        if (emailTaken) {
+          return res.status(400).json({
+            error: 'Email already in use',
+            message: 'Another user with this email already exists'
+          });
+        }
+      } else {
+        const existingUser = await Profile.findOne({ where: { email: updates.email } });
+        if (existingUser && existingUser.id !== userId) {
+          return res.status(400).json({
+            error: 'Email already in use',
+            message: 'Another user with this email already exists'
+          });
+        }
       }
       transformedUpdates.email = updates.email;
     }
@@ -299,12 +325,25 @@ router.put('/users/:userId', requireAdmin, [
       });
     }
 
-    const oldValues = user.toJSON();
+    const oldValues = useRawPath ? { ...user } : user.toJSON();
     delete oldValues.password;
 
+    let newValues;
     try {
-      await user.update(transformedUpdates);
-      await user.reload();
+      if (useRawPath) {
+        const updated = await updateProfileSafe(userId, transformedUpdates);
+        if (!updated) {
+          return res.status(500).json({
+            error: 'Update failed',
+            message: 'Failed to update user profile'
+          });
+        }
+        newValues = { ...updated, last_login: updated.last_login ?? null };
+      } else {
+        await user.update(transformedUpdates);
+        await user.reload();
+        newValues = user.toJSON();
+      }
     } catch (updateError) {
       console.error('[ERROR] Sequelize update error:', {
         name: updateError.name,
@@ -357,7 +396,6 @@ router.put('/users/:userId', requireAdmin, [
       });
     }
 
-    const newValues = user.toJSON();
     delete newValues.password;
 
     if (req.user?.id) {
@@ -514,7 +552,8 @@ router.post('/users', requireAdmin, [
     .withMessage('Password must contain at least one special character'),
   body('firstName').notEmpty().trim(),
   body('lastName').notEmpty().trim(),
-  body('role').isIn(VALID_PROFILE_ROLES)
+  body('role').isIn(VALID_PROFILE_ROLES),
+  body('nursing_home_facility_id').optional().custom((val) => !val || val === '' || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(val).trim())).withMessage('Facility must be a valid UUID')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -525,7 +564,8 @@ router.post('/users', requireAdmin, [
       });
     }
 
-    const { email, password, firstName, lastName, role, phone } = req.body;
+    const { email, password, firstName, lastName, role, phone, nursing_home_facility_id: nursingHomeFacilityIdParam } = req.body;
+    const nursingHomeFacilityId = nursingHomeFacilityIdParam && String(nursingHomeFacilityIdParam).trim() ? String(nursingHomeFacilityIdParam).trim() : null;
 
     const existingUser = await Profile.findOne({ where: { email } });
     if (existingUser) {
@@ -544,7 +584,8 @@ router.post('/users', requireAdmin, [
       firstName,
       lastName,
       role: role || 'user',
-      phone: phone || null
+      phone: phone || null,
+      ...(nursingHomeFacilityId && { nursingHomeFacilityId })
     });
 
     await logAdminAction(

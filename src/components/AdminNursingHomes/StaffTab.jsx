@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import {
-  fetchFacility,
   fetchFacilitiesList,
+  fetchCurrentFacility,
   createStaff,
   updateStaff,
   deleteStaff,
@@ -48,6 +48,8 @@ const StaffTab = () => {
     }
   }, [isAdmin]);
 
+  // Admin: use facility from list (avoids GET /facilities/:id which can 500 when staff column missing).
+  // Non-admin: use current-facility endpoint (no staff include).
   const loadFacility = useCallback(async (id) => {
     if (!id) {
       setFacility(null);
@@ -57,8 +59,9 @@ const StaffTab = () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetchFacility(id);
-      setFacility(res?.data ?? res);
+      const res = await fetchCurrentFacility(id);
+      const data = res?.data ?? res;
+      setFacility(data ? { ...data, staff: data.staff || [] } : null);
     } catch (err) {
       setError(err.response?.data?.message || err.response?.data?.error || 'Failed to load facility');
       setFacility(null);
@@ -80,13 +83,22 @@ const StaffTab = () => {
     });
   }, [isAdmin, facilities]);
 
+  // Admin: set facility from list so we never call GET /facilities/:id. Non-admin: load current facility.
   useEffect(() => {
     if (isAdmin) {
-      loadFacility(selectedFacilityId);
+      if (!selectedFacilityId || facilities.length === 0) {
+        setFacility(null);
+        setLoading(false);
+        return;
+      }
+      const fromList = facilities.find((f) => f.id === selectedFacilityId);
+      setFacility(fromList ? { ...fromList, staff: [] } : null);
+      setLoading(false);
+      setError(null);
     } else {
       loadFacility(user?.nursingHomeFacilityId);
     }
-  }, [isAdmin, selectedFacilityId, user?.nursingHomeFacilityId, loadFacility]);
+  }, [isAdmin, selectedFacilityId, facilities, user?.nursingHomeFacilityId, loadFacility]);
 
   const staff = facility?.staff || [];
 
@@ -253,7 +265,12 @@ const StaffTab = () => {
             </select>
           )}
           <button type="button" className="btn-secondary" onClick={() => setUploadOpen(true)} disabled={!currentFacilityId}>
-            Upload spreadsheet
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            Upload
           </button>
           <button type="button" className="btn-primary" onClick={handleOpenAdd} disabled={!currentFacilityId}>
             Add Staff
@@ -284,7 +301,12 @@ const StaffTab = () => {
             Add Staff
           </button>
           <button type="button" className="btn-secondary" onClick={() => setUploadOpen(true)}>
-            Upload spreadsheet
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            Upload
           </button>
         </div>
       ) : (

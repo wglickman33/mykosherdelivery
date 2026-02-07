@@ -39,7 +39,7 @@
     }
 
     h1 {
-      color: $purple-600;
+      color: $indigo-600;
       font-size: $font-size-3xl;
       margin: 0 0 $spacing-sm 0;
     }
@@ -87,11 +87,11 @@
     .resident-info {
       margin-bottom: 1.5rem;
       padding: 1rem;
-      background: #faf5ff;
+      background: #eff6ff;
       border-radius: 8px;
 
       h3 {
-        color: #9333ea;
+        color: #475569;
         font-size: 1.25rem;
         margin: 0 0 0.25rem 0;
       }
@@ -135,7 +135,7 @@
         border-radius: 8px;
 
         h5 {
-          color: #9333ea;
+          color: #475569;
           font-size: 1rem;
           margin: 0 0 0.75rem 0;
         }
@@ -161,7 +161,7 @@
 
     .order-totals {
       padding: 1.5rem;
-      background: #faf5ff;
+      background: #eff6ff;
       border-radius: 8px;
       margin-bottom: 1.5rem;
 
@@ -172,12 +172,12 @@
         color: #64748b;
 
         &.grand-total {
-          border-top: 2px solid #e9d5ff;
+          border-top: 2px solid #bfdbfe;
           margin-top: 0.5rem;
           padding-top: 1rem;
           font-size: 1.25rem;
           font-weight: 700;
-          color: #9333ea;
+          color: #475569;
         }
       }
     }
@@ -299,7 +299,7 @@
           transition: border-color 0.2s;
 
           &--focus {
-            border-color: #9333ea;
+            border-color: #475569;
           }
 
           &--invalid {
@@ -425,7 +425,7 @@
     align-items: center;
     min-height: 400px;
     font-size: 1.25rem;
-    color: #9333ea;
+    color: #475569;
   }
 
   .error-message {

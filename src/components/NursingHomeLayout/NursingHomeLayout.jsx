@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { fetchCurrentFacility } from '../../services/nursingHomeService';
+import { NursingHomeFacilityContext } from '../../context/NursingHomeFacilityContext';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
+import whiteMKDLogo from '../../assets/whiteMKDLogo.png';
 import './NursingHomeLayout.scss';
 
 // Same SVG paths as AdminLayout for consistency
@@ -46,6 +48,11 @@ const Icons = {
             : 'M3 18h13v-2H3v2zm0-5h10v-2H3v2zm0-7v2h13V6H3z'
         }
       />
+    </svg>
+  ),
+  arrowBack: (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+      <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
     </svg>
   )
 };
@@ -99,8 +106,9 @@ const NursingHomeLayout = () => {
     (async () => {
       try {
         const res = await fetchCurrentFacility(user.role === 'admin' ? facilityIdParam : undefined);
-        if (!cancelled && res?.data) setFacility(res.data);
-        else if (!cancelled) setFacility(null);
+        if (cancelled) return;
+        const facilityData = res?.data ?? (res?.id && res?.name ? res : null);
+        setFacility(facilityData || null);
       } catch {
         if (!cancelled) setFacility(null);
       } finally {
@@ -126,7 +134,7 @@ const NursingHomeLayout = () => {
 
   const facilityDisplayName = facility?.name || 'Nursing Home';
   const facilityInitials = facility?.name
-    ? facility.name.replace(/\b\w/g, (c) => c.toUpperCase()).slice(0, 2)
+    ? (facility.name.slice(0, 2).toUpperCase().replace(/\s/g, '') || 'NH')
     : 'NH';
 
   if (loading) {
@@ -157,15 +165,8 @@ const NursingHomeLayout = () => {
         className={`nh-sidebar ${sidebarCollapsed ? 'collapsed' : ''} ${mobileSidebarOpen ? 'open' : ''}`}
       >
         <div className="nh-sidebar__header">
-          <div className="nh-logo">
-            {facility?.logoUrl ? (
-              <img src={facility.logoUrl} alt="" className="nh-logo__img" />
-            ) : (
-              <span className="nh-logo__icon" aria-hidden="true">
-                {facilityInitials}
-              </span>
-            )}
-            {!sidebarCollapsed && <span className="nh-logo__text">{facilityDisplayName}</span>}
+          <div className="nh-brand">
+            <img src={whiteMKDLogo} alt="MKD" className="nh-brand__logo" />
           </div>
           <button
             type="button"
@@ -196,6 +197,32 @@ const NursingHomeLayout = () => {
         </nav>
 
         <div className="nh-sidebar__footer">
+          <div className="nh-community">
+            {user.role === 'admin' && (
+              <button
+                type="button"
+                className="nh-community__back"
+                onClick={() => navigate('/admin/nursing-homes')}
+                aria-label="Return to MKD Admin"
+                title="Return to MKD Admin"
+              >
+                {Icons.arrowBack}
+              </button>
+            )}
+            <div className="nh-community__logo">
+              {facility?.logoUrl ? (
+                <img src={facility.logoUrl} alt="" className="nh-community__img" />
+              ) : (
+                <span className="nh-community__initials" aria-hidden="true">{facilityInitials}</span>
+              )}
+            </div>
+            {!sidebarCollapsed && (
+              <div className="nh-community__info">
+                <span className="nh-community__label">Community</span>
+                <span className="nh-community__name">{facilityDisplayName}</span>
+              </div>
+            )}
+          </div>
           <div className="nh-user">
             <div className="nh-user__avatar" aria-hidden="true">
               {Icons.user}
@@ -223,7 +250,7 @@ const NursingHomeLayout = () => {
       <main className="nh-main">
         <header className="nh-header">
           <div className="nh-header__title">
-            <h1>{facilityLoading ? 'Nursing Home Portal' : facilityDisplayName}</h1>
+            <h1>{facilityLoading ? 'Loading...' : facilityDisplayName}</h1>
             <p>Resident meals &amp; orders</p>
           </div>
           <button
@@ -237,7 +264,9 @@ const NursingHomeLayout = () => {
         </header>
 
         <div className="nh-content">
-          <Outlet />
+          <NursingHomeFacilityContext.Provider value={{ facility, facilityLoading }}>
+            <Outlet />
+          </NursingHomeFacilityContext.Provider>
         </div>
       </main>
     </div>

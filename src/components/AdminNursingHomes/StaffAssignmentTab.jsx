@@ -3,7 +3,7 @@ import { useAuth } from '../../hooks/useAuth';
 import {
   fetchResidents,
   fetchFacilitiesList,
-  fetchFacility,
+  fetchStaffForFacility,
   assignResidentToStaff,
   updateResident
 } from '../../services/nursingHomeService';
@@ -44,14 +44,13 @@ const StaffAssignmentTab = () => {
     try {
       setLoading(true);
       setError(null);
-      const [resRes, facRes] = await Promise.all([
+      const [resRes, staffRes] = await Promise.all([
         fetchResidents({ facilityId, limit: 200, isActive: 'true' }),
-        fetchFacility(facilityId)
+        fetchStaffForFacility(facilityId)
       ]);
       const body = resRes?.data;
       setResidents(Array.isArray(body?.data) ? body.data : []);
-      const fac = facRes?.data ?? facRes;
-      setStaff(fac?.staff || []);
+      setStaff(Array.isArray(staffRes?.data) ? staffRes.data : []);
     } catch (err) {
       setError(err.response?.data?.message || err.response?.data?.error || 'Failed to load data');
       setResidents([]);

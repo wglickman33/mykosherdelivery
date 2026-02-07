@@ -1,15 +1,15 @@
 @use '../../styles/design-system' as *;
 
 .nursing-home-dashboard {
-  max-width: 1400px;
+  max-width: 1200px;
   margin: 0 auto;
 
   .nh-api-unavailable {
-    margin-bottom: 20px;
-    padding: 12px 16px;
-    background: #fef3c7;
-    border: 1px solid #f59e0b;
-    border-radius: 8px;
+    margin-bottom: 24px;
+    padding: 14px 18px;
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+    border-radius: $border-radius-md;
     font-size: 0.9rem;
     color: #92400e;
 
@@ -23,65 +23,81 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 320px;
-    gap: 1rem;
+    min-height: 360px;
+    gap: 1.25rem;
 
     p {
       margin: 0;
-      color: $gray-500;
+      color: $slate-500;
+      font-size: 1rem;
     }
   }
 
   .retry-btn {
     margin-top: 1rem;
-    padding: 0.5rem 1rem;
-    background: $purple-600;
+    padding: 0.625rem 1.25rem;
+    background: $nh-primary;
     color: white;
     border: none;
     border-radius: $border-radius-md;
-    font-weight: 500;
+    font-weight: 600;
+    font-size: 0.9375rem;
     cursor: pointer;
+    transition: background 0.2s ease;
+
+    &:hover {
+      background: $nh-primary-hover;
+    }
+
+    &:focus-visible {
+      outline: 2px solid $nh-primary;
+      outline-offset: 2px;
+    }
   }
 
   .dashboard-header {
-    margin-bottom: 32px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid $gray-200;
+    margin-bottom: 36px;
+    padding-bottom: 24px;
+    padding-left: 20px;
+    border-bottom: 1px solid $slate-200;
+    border-left: 4px solid $slate-600;
 
     .header-content {
       h1 {
-        font-size: 2rem;
+        font-size: 1.75rem;
         font-weight: 700;
-        color: $gray-800;
-        margin: 0 0 8px 0;
+        color: $slate-800;
+        margin: 0 0 6px 0;
+        letter-spacing: -0.02em;
       }
 
       p {
-        color: $gray-500;
+        color: $slate-500;
         margin: 0;
-        font-size: 1rem;
+        font-size: 0.9375rem;
       }
     }
   }
 
   .metrics-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap: 24px;
-    margin-bottom: 32px;
+    margin-bottom: 36px;
 
     .metric-card {
-      background: white;
-      border-radius: 12px;
-      padding: 24px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-      border: 1px solid $gray-100;
-      transition: all 0.2s ease;
+      background: $white;
+      border-radius: 14px;
+      padding: 26px;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+      border: 1px solid $slate-200;
+      transition: box-shadow 0.25s ease, border-color 0.2s ease, transform 0.2s ease;
       position: relative;
       overflow: hidden;
 
       &:hover {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+        border-color: $slate-300;
       }
 
       &::before {
@@ -90,50 +106,62 @@
         top: 0;
         left: 0;
         right: 0;
-        height: 4px;
-        background: linear-gradient(90deg, $gray-200, $gray-300);
+        height: 3px;
+        background: $slate-300;
       }
 
       &.residents::before {
-        background: linear-gradient(90deg, $purple-500, $purple-600);
+        background: $nh-primary;
       }
 
       &.drafts::before {
-        background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+        background: $nh-primary;
       }
 
       &.pending::before {
-        background: linear-gradient(90deg, #f59e0b, #d97706);
+        background: $slate-700;
       }
 
       .metric-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 12px;
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
         display: flex;
         align-items: center;
         justify-content: center;
         margin-bottom: 16px;
-        background: $gray-50;
-        color: $gray-600;
+        background: $slate-100;
+        color: $slate-600;
+      }
+
+      &.residents .metric-icon,
+      &.drafts .metric-icon {
+        background: $nh-primary-light;
+        color: $nh-primary;
+      }
+
+      &.pending .metric-icon {
+        background: $slate-200;
+        color: $slate-700;
       }
 
       .metric-content {
         h3 {
-          font-size: 0.9rem;
+          font-size: 0.75rem;
           font-weight: 600;
-          color: $gray-500;
-          margin: 0 0 8px 0;
+          color: $slate-500;
+          margin: 0 0 6px 0;
           text-transform: uppercase;
-          letter-spacing: 0.5px;
+          letter-spacing: 0.06em;
         }
 
         .metric-value {
-          font-size: 2rem;
+          font-size: 1.75rem;
           font-weight: 700;
-          color: $gray-800;
+          color: $slate-800;
           margin: 0;
           font-variant-numeric: tabular-nums;
+          letter-spacing: -0.02em;
         }
       }
     }
@@ -142,17 +170,22 @@
   .dashboard-actions {
     .btn-primary {
       padding: 0.75rem 1.5rem;
-      background: $purple-600;
+      background: $nh-primary;
       color: white;
       border: none;
       border-radius: $border-radius-md;
       font-weight: 600;
-      font-size: 1rem;
+      font-size: 0.9375rem;
       cursor: pointer;
-      transition: background 0.2s;
+      transition: background 0.2s ease;
 
       &:hover {
-        background: $purple-700;
+        background: $nh-primary-hover;
+      }
+
+      &:focus-visible {
+        outline: 2px solid $nh-primary;
+        outline-offset: 2px;
       }
     }
   }

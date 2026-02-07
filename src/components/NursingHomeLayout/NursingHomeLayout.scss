@@ -1,10 +1,10 @@
 @use '../../styles/design-system' as *;
 
-// Mirror Admin Layout structure with purple theme
+// Nursing Home Portal — all slate (grey-blues)
 .nh-layout {
   display: flex;
   min-height: 100vh;
-  background: $gray-50;
+  background: $slate-50;
   font-family: $font-family-base;
 }
 
@@ -14,7 +14,7 @@
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, $purple-600 0%, $purple-800 100%);
+  background: linear-gradient(160deg, $nh-slate-800 0%, $nh-slate-900 100%);
   color: $white;
   gap: $spacing-lg;
 
@@ -25,10 +25,10 @@
   }
 }
 
-// Sidebar – same structure as admin, purple gradient
+// Sidebar — dark slate (calm, professional)
 .nh-sidebar {
   width: 280px;
-  background: linear-gradient(180deg, $purple-800 0%, $purple-900 100%);
+  background: linear-gradient(180deg, $nh-slate-800 0%, $nh-slate-900 100%);
   color: $white;
   transition: width 0.3s ease;
   display: flex;
@@ -52,37 +52,19 @@
     justify-content: space-between;
   }
 
-  .nh-logo {
+
+  .nh-brand {
     display: flex;
     align-items: center;
-    gap: $spacing-md;
+    flex: 1;
+    min-width: 0;
 
-    &__img {
-      width: 32px;
+    &__logo {
       height: 32px;
+      width: auto;
+      max-width: 160px;
       object-fit: contain;
-      border-radius: $border-radius-md;
-      flex-shrink: 0;
-      background: rgba(255, 255, 255, 0.1);
-    }
-
-    &__icon {
-      width: 36px;
-      height: 36px;
-      background: rgba(255, 255, 255, 0.15);
-      border-radius: $border-radius-md;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: $font-size-sm;
-      font-weight: $font-weight-bold;
-      flex-shrink: 0;
-    }
-
-    &__text {
-      font-size: 1.15rem;
-      font-weight: $font-weight-bold;
-      color: $white;
+      display: block;
     }
   }
 
@@ -99,6 +81,7 @@
     justify-content: center;
     width: 40px;
     height: 40px;
+    flex-shrink: 0;
 
     svg {
       width: 20px;
@@ -138,9 +121,9 @@
     }
 
     &.active {
-      background: rgba(233, 213, 255, 0.2);
-      color: $purple-200;
-      border-right: 3px solid $purple-400;
+      background: rgba(255, 255, 255, 0.1);
+      color: $white;
+      border-right: 3px solid $nh-primary;
     }
 
     &__icon {
@@ -167,13 +150,95 @@
     padding: 20px;
     border-top: 1px solid rgba(255, 255, 255, 0.12);
     margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+  }
+
+  .nh-community {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+    padding: 12px 14px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: $border-radius-md;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+
+    &__back {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      background: rgba(255, 255, 255, 0.12);
+      border: none;
+      border-radius: $border-radius-md;
+      color: $white;
+      cursor: pointer;
+      transition: background 0.2s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      svg {
+        width: 20px;
+        height: 20px;
+      }
+    }
+
+    &__logo {
+      flex-shrink: 0;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: $border-radius-md;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    &__img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    &__initials {
+      font-size: 0.85rem;
+      font-weight: $font-weight-bold;
+      color: $white;
+    }
+
+    &__info {
+      min-width: 0;
+    }
+
+    &__label {
+      display: block;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: rgba(255, 255, 255, 0.6);
+      margin-bottom: 2px;
+    }
+
+    &__name {
+      display: block;
+      font-size: 0.95rem;
+      font-weight: $font-weight-semibold;
+      color: $white;
+      @include truncate;
+    }
   }
 
   .nh-user {
     display: flex;
     align-items: center;
     gap: $spacing-md;
-    margin-bottom: $spacing-lg;
 
     &__avatar {
       width: 36px;
@@ -215,14 +280,15 @@
     align-items: center;
     justify-content: center;
     gap: $spacing-sm;
-    background: rgba(239, 68, 68, 0.2);
-    border: 1px solid rgba(239, 68, 68, 0.35);
-    color: #fca5a5;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: rgba(255, 255, 255, 0.9);
     padding: 8px 12px;
     border-radius: $border-radius-md;
     cursor: pointer;
     transition: all 0.2s ease;
     font-size: $font-size-sm;
+    font-weight: 500;
     width: 100%;
     min-height: 40px;
 
@@ -233,19 +299,22 @@
     }
 
     &:hover {
-      background: rgba(239, 68, 68, 0.35);
-      color: #fecaca;
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.25);
     }
   }
 
-  // Collapsed state (mirror Admin: logo hidden, toggle centered)
+  // Collapsed state: show only logo (small) + toggle; community and user compact
   &.collapsed {
     .nh-sidebar__header {
-      justify-content: center;
+      flex-direction: column;
+      gap: 8px;
+      justify-content: flex-start;
       padding: 14px 0;
 
-      .nh-logo {
-        display: none;
+      .nh-brand__logo {
+        height: 28px;
+        max-width: 44px;
       }
 
       .nh-sidebar__toggle {
@@ -253,6 +322,11 @@
         height: 40px;
         border-radius: 10px;
       }
+    }
+
+    .nh-community .nh-community__back {
+      width: 36px;
+      height: 36px;
     }
 
     .nh-sidebar__nav .nh-nav-item {
@@ -265,9 +339,23 @@
     }
 
     .nh-sidebar__footer {
+      .nh-community {
+        justify-content: center;
+        padding: 10px;
+
+        .nh-community__info {
+          display: none;
+        }
+
+        .nh-community__logo {
+          width: 36px;
+          height: 36px;
+        }
+      }
+
       .nh-user {
         justify-content: center;
-        margin-bottom: 10px;
+        margin-bottom: 0;
 
         .nh-user__info {
           display: none;
@@ -365,7 +453,7 @@
   flex: 1;
   padding: 24px 32px;
   overflow-y: auto;
-  background: $gray-50;
+  background: $slate-50;
 }
 
 // Mobile: sidebar becomes drawer

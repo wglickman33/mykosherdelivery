@@ -31,7 +31,7 @@
     h2 {
       margin: 0;
       font-size: 1.5rem;
-      color: #9333ea;
+      color: #475569;
     }
   }
 
@@ -156,13 +156,13 @@
       }
 
       &.btn-save {
-        background: #9333ea;
+        background: #475569;
         color: white;
 
         &:hover {
-          background: #7e22ce;
+          background: #334155;
           transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(147, 51, 234, 0.3);
+          box-shadow: 0 4px 12px rgba(71, 85, 105, 0.15);
         }
       }
     }

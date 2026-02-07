@@ -45,7 +45,7 @@
         flex: 1;
 
         h1 {
-          color: $purple-600;
+          color: $indigo-600;
           font-size: $font-size-2xl;
           margin: 0 0 $spacing-xs 0;
         }
@@ -154,15 +154,15 @@
         }
 
         &:hover:not(:disabled) {
-          border-color: $purple-600;
-          color: $purple-600;
-          background: $purple-50;
+          border-color: $indigo-600;
+          color: $indigo-600;
+          background: $indigo-50;
         }
 
         &.active {
-          background: $purple-600;
+          background: $indigo-600;
           color: $white;
-          border-color: $purple-600;
+          border-color: $indigo-600;
           box-shadow: $shadow-purple;
         }
 
@@ -216,14 +216,14 @@
         }
 
         &:hover:not(:disabled) {
-          border-color: $purple-600;
-          background: $purple-50;
+          border-color: $indigo-600;
+          background: $indigo-50;
         }
 
         &.active {
-          border-color: $purple-600;
-          color: $purple-600;
-          background: $purple-50;
+          border-color: $indigo-600;
+          color: $indigo-600;
+          background: $indigo-50;
           box-shadow: $shadow-purple;
         }
 
@@ -314,7 +314,7 @@
 
         &:focus {
           outline: none;
-          border-color: #9333ea;
+          border-color: #475569;
         }
       }
     }
@@ -326,7 +326,7 @@
       margin-bottom: 1rem;
 
       strong {
-        color: #9333ea;
+        color: #475569;
         display: block;
         margin-bottom: 0.5rem;
       }
@@ -342,7 +342,7 @@
         gap: 0.5rem;
 
         .selected-item-tag {
-          background: #9333ea;
+          background: #475569;
           color: white;
           padding: 0.25rem 0.75rem;
           border-radius: 20px;
@@ -397,7 +397,7 @@
         margin-bottom: 2rem;
 
         .category-title {
-          color: #9333ea;
+          color: #475569;
           font-size: 1rem;
           text-transform: uppercase;
           letter-spacing: 0.05em;
@@ -422,12 +422,12 @@
             position: relative;
 
             &:hover {
-              border-color: #9333ea;
+              border-color: #475569;
               background: #faf5ff;
             }
 
             &.selected {
-              border-color: #9333ea;
+              border-color: #475569;
               background: #faf5ff;
             }
 
@@ -450,7 +450,7 @@
 
             .item-price {
               font-weight: 700;
-              color: #9333ea;
+              color: #475569;
               margin-right: 2rem;
             }
 
@@ -489,7 +489,7 @@
       border-bottom: 2px solid #f1f5f9;
 
       h2 {
-        color: #9333ea;
+        color: #475569;
         font-size: 1.5rem;
         margin: 0 0 0.5rem 0;
       }
@@ -531,7 +531,7 @@
 
           .meal-type-label {
             font-weight: 600;
-            color: #9333ea;
+            color: #475569;
             text-transform: capitalize;
             margin-bottom: 0.5rem;
           }
@@ -582,7 +582,7 @@
           padding-top: 1rem;
           font-size: 1.125rem;
           font-weight: 700;
-          color: #9333ea;
+          color: #475569;
         }
       }
     }
@@ -593,7 +593,7 @@
       .save-draft-btn {
         width: 100%;
         padding: 1rem;
-        background: #9333ea;
+        background: #475569;
         color: white;
         border: none;
         border-radius: 8px;
@@ -640,7 +640,7 @@
     align-items: center;
     min-height: 400px;
     font-size: 1.25rem;
-    color: #9333ea;
+    color: #475569;
   }
 
   .error-message {

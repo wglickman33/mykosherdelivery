@@ -1,5 +1,6 @@
 const express = require('express');
-const { NursingHomeFacility, NursingHomeResident, NursingHomeMenuItem, NursingHomeInvoice, NursingHomeOrder, Profile } = require('../models');
+const { sequelize, NursingHomeFacility, NursingHomeResident, NursingHomeMenuItem, NursingHomeInvoice, NursingHomeOrder, Profile } = require('../models');
+const { QueryTypes } = require('sequelize');
 const { requireAdmin, requireNursingHomeAdmin, requireNursingHomeUser } = require('../middleware/auth');
 const { body, validationResult } = require('express-validator');
 const logger = require('../utils/logger');
@@ -96,19 +97,55 @@ router.get('/facilities/current', requireNursingHomeUser, async (req, res) => {
   }
 });
 
+// GET /facilities/:id/staff — must be before /facilities/:id so Express matches the more specific path
+router.get('/facilities/:id/staff', requireNursingHomeAdmin, async (req, res) => {
+  try {
+    const { id: facilityId } = req.params;
+    if (req.user.role !== 'admin' && req.user.nursingHomeFacilityId !== facilityId) {
+      return res.status(403).json({ success: false, error: 'Access denied' });
+    }
+    let staff = [];
+    try {
+      const rows = await sequelize.query(
+        `SELECT id, email, first_name AS "firstName", last_name AS "lastName", role, phone, created_at AS "createdAt"
+         FROM profiles
+         WHERE nursing_home_facility_id = :facilityId
+         ORDER BY last_name, first_name`,
+        { replacements: { facilityId }, type: QueryTypes.SELECT }
+      );
+      staff = rows || [];
+    } catch (dbErr) {
+      const msg = (dbErr.message || '') + (dbErr.original?.message || '');
+      if (/nursing_home_facility_id|column.*does not exist/i.test(msg)) {
+        logger.debug('profiles.nursing_home_facility_id not present, returning empty staff');
+      } else {
+        throw dbErr;
+      }
+    }
+    res.json({ success: true, data: staff });
+  } catch (error) {
+    logger.error('Error fetching facility staff:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch staff',
+      message: error.message
+    });
+  }
+});
+
 router.get('/facilities/:id', requireNursingHomeAdmin, async (req, res) => {
   try {
     const { id } = req.params;
 
-    const facility = await NursingHomeFacility.findByPk(id, {
-      include: [
-        {
-          model: Profile,
-          as: 'staff',
-          attributes: ['id', 'firstName', 'lastName', 'email', 'role', 'phone']
-        }
-      ]
-    });
+    // Raw SQL only: avoid Sequelize and any staff association (profiles.nursing_home_facility_id may not exist).
+    const rows = await sequelize.query(
+      `SELECT id, name, address, contact_email AS "contactEmail", contact_phone AS "contactPhone",
+              logo_url AS "logoUrl", billing_frequency AS "billingFrequency", is_active AS "isActive",
+              created_at AS "createdAt", updated_at AS "updatedAt"
+       FROM nursing_home_facilities WHERE id = :id`,
+      { replacements: { id }, type: QueryTypes.SELECT }
+    );
+    const facility = rows && rows[0] ? rows[0] : null;
 
     if (!facility) {
       return res.status(404).json({
@@ -124,6 +161,7 @@ router.get('/facilities/:id', requireNursingHomeAdmin, async (req, res) => {
       });
     }
 
+    facility.staff = [];
     res.json({
       success: true,
       data: facility

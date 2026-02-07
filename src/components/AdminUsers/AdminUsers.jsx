@@ -1,6 +1,7 @@
 import './AdminUsers.scss';
 import { useState, useEffect } from 'react';
 import { fetchAllUsers, updateUserProfile, deleteUser, createUser, logAdminAction } from '../../services/adminServices';
+import { fetchFacilitiesList } from '../../services/nursingHomeService';
 import { useAuth } from '../../hooks/useAuth';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import NotificationToast from '../NotificationToast/NotificationToast';
@@ -42,7 +43,8 @@ const AdminUsers = () => {
     email: '',
     password: '',
     role: USER_ROLES.USER,
-    phone: ''
+    phone: '',
+    nursingHomeFacilityId: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [filters, setFilters] = useState({
@@ -52,7 +54,20 @@ const AdminUsers = () => {
     limit: 20
   });
   const [pagination, setPagination] = useState({});
+  const [facilities, setFacilities] = useState([]);
   const { user: adminUser } = useAuth();
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetchFacilitiesList({ limit: 200 });
+        setFacilities(Array.isArray(res?.data) ? res.data : []);
+      } catch {
+        setFacilities([]);
+      }
+    };
+    load();
+  }, []);
 
   useEffect(() => {
     fetchUsers();
@@ -109,7 +124,11 @@ const AdminUsers = () => {
   };
 
   const handleCreateUser = async (formData) => {
-    const result = await createUser(formData);
+    const payload = {
+      ...formData,
+      nursing_home_facility_id: formData.nursingHomeFacilityId && formData.nursingHomeFacilityId.trim() ? formData.nursingHomeFacilityId.trim() : undefined
+    };
+    const result = await createUser(payload);
     
     if (result.success) {
       await logAdminAction(
@@ -358,7 +377,8 @@ const AdminUsers = () => {
                               last_name: user.last_name,
                               email: user.email,
                               phone_number: user.phone_number,
-                              role: user.role
+                              role: user.role,
+                              nursing_home_facility_id: user.nursing_home_facility_id || user.nursingHomeFacilityId || ''
                             });
                             setShowEditModal(true);
                           }}
@@ -535,6 +555,20 @@ const AdminUsers = () => {
                       <option value={USER_ROLES.NURSING_HOME_USER}>{ROLE_LABELS[USER_ROLES.NURSING_HOME_USER]}</option>
                     </select>
                   </div>
+                  {(editFormData.role === USER_ROLES.NURSING_HOME_ADMIN || editFormData.role === USER_ROLES.NURSING_HOME_USER) && (
+                    <div className="admin-users__form-group">
+                      <label>Nursing Home Facility</label>
+                      <select
+                        value={editFormData.nursing_home_facility_id || ''}
+                        onChange={(e) => setEditFormData({ ...editFormData, nursing_home_facility_id: e.target.value })}
+                      >
+                        <option value="">No facility</option>
+                        {facilities.map((f) => (
+                          <option key={f.id} value={f.id}>{f.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
                 <div className="admin-users__form-actions">
                   <button type="button" onClick={() => setShowEditModal(false)} disabled={saving}>
@@ -659,6 +693,20 @@ const AdminUsers = () => {
                       <option value={USER_ROLES.NURSING_HOME_USER}>{ROLE_LABELS[USER_ROLES.NURSING_HOME_USER]}</option>
                     </select>
                   </div>
+                  {(createFormData.role === USER_ROLES.NURSING_HOME_ADMIN || createFormData.role === USER_ROLES.NURSING_HOME_USER) && (
+                    <div className="admin-users__form-group">
+                      <label>Nursing Home Facility</label>
+                      <select
+                        value={createFormData.nursingHomeFacilityId || ''}
+                        onChange={(e) => setCreateFormData({ ...createFormData, nursingHomeFacilityId: e.target.value })}
+                      >
+                        <option value="">No facility</option>
+                        {facilities.map((f) => (
+                          <option key={f.id} value={f.id}>{f.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
                 <div className="admin-users__form-actions">
                   <button type="button" onClick={() => setShowCreateModal(false)}>

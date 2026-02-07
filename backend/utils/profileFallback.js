@@ -97,4 +97,52 @@ async function getProfilesForAdminList({ role, search, limit, offset }) {
   }));
 }
 
-module.exports = { isMissingColumnError, getProfileById, getProfilesRaw, countProfilesRaw, getProfilesForAdminList };
+/**
+ * Update profile by id using only columns that exist (no nursing_home_facility_id).
+ * updates: { firstName?, lastName?, phone?, email?, role? } (camelCase).
+ * Returns updated profile plain object or null if not found.
+ */
+async function updateProfileSafe(userId, updates) {
+  const setParts = [];
+  const replacements = { userId };
+  if (updates.firstName !== undefined) {
+    setParts.push('first_name = :firstName');
+    replacements.firstName = updates.firstName;
+  }
+  if (updates.lastName !== undefined) {
+    setParts.push('last_name = :lastName');
+    replacements.lastName = updates.lastName;
+  }
+  if (updates.phone !== undefined) {
+    setParts.push('phone = :phone');
+    replacements.phone = updates.phone;
+  }
+  if (updates.email !== undefined) {
+    setParts.push('email = :email');
+    replacements.email = updates.email;
+  }
+  if (updates.role !== undefined) {
+    setParts.push('role = :role');
+    replacements.role = updates.role;
+  }
+  if (setParts.length === 0) return getProfileById(userId);
+  const setClause = setParts.join(', ');
+  await sequelize.query(
+    `UPDATE profiles SET ${setClause}, updated_at = NOW() WHERE id = :userId`,
+    { replacements, type: QueryTypes.UPDATE }
+  );
+  return getProfileById(userId);
+}
+
+/**
+ * Check if another profile exists with the given email (excluding userId).
+ */
+async function profileExistsWithEmail(email, excludeUserId) {
+  const rows = await sequelize.query(
+    'SELECT id FROM profiles WHERE email = :email AND id != :excludeUserId',
+    { replacements: { email, excludeUserId }, type: QueryTypes.SELECT }
+  );
+  return Array.isArray(rows) && rows.length > 0;
+}
+
+module.exports = { isMissingColumnError, getProfileById, getProfilesRaw, countProfilesRaw, getProfilesForAdminList, updateProfileSafe, profileExistsWithEmail };

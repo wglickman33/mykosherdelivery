@@ -106,6 +106,7 @@
       padding: 10px 20px;
       background: none;
       border: none;
+      line-height: normal;
       color: rgba(255, 255, 255, 0.7);
       cursor: pointer;
       transition: all 0.2s ease;
@@ -293,6 +294,7 @@
   .nav-item--community {
     padding: 6px 20px;
     min-height: 40px;
+    line-height: normal;
 
     .nav-label {
       font-size: 0.9rem;

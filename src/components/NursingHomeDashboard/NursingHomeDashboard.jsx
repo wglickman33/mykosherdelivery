@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { fetchResidents, fetchResidentOrders } from '../../services/nursingHomeService';
+import { useNursingHomeFacility } from '../../context/NursingHomeFacilityContext';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import './NursingHomeDashboard.scss';
@@ -9,8 +10,11 @@ const IS_404_MESSAGE = 'The requested resource was not found.';
 
 const NursingHomeDashboard = () => {
   const [searchParams] = useSearchParams();
+  const { facility, facilityLoading } = useNursingHomeFacility();
   const facilityId = searchParams.get('facilityId');
   const [loading, setLoading] = useState(true);
+  const communityName = facility?.name;
+  const dashboardTitle = facilityLoading || !communityName ? 'Dashboard' : `${communityName} Dashboard`;
   const [error, setError] = useState(null);
   const [apiUnavailable, setApiUnavailable] = useState(false);
   const [stats, setStats] = useState({
@@ -89,7 +93,7 @@ const NursingHomeDashboard = () => {
 
       <div className="dashboard-header">
         <div className="header-content">
-          <h1>Dashboard Overview</h1>
+          <h1>{dashboardTitle}</h1>
           <p>Resident meals and orders at a glance</p>
         </div>
       </div>

@@ -12,6 +12,16 @@ const defaultAddress = {
   zip_code: ''
 };
 
+/** Format phone for display as XXX-XXX-XXXX (strips non-digits, takes first 10). */
+const formatPhone = (raw) => {
+  if (!raw) return '—';
+  const digits = String(raw).replace(/\D/g, '').slice(0, 10);
+  if (digits.length < 10) return digits.length ? digits : '—';
+  return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+};
+
+const PAGE_LIMIT_OPTIONS = [10, 20, 50, 100];
+
 const FacilitiesTab = () => {
   const navigate = useNavigate();
   const [facilities, setFacilities] = useState([]);
@@ -21,6 +31,8 @@ const FacilitiesTab = () => {
   const [editingFacility, setEditingFacility] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
   const [form, setForm] = useState({
     name: '',
     address: { ...defaultAddress },
@@ -29,11 +41,17 @@ const FacilitiesTab = () => {
     logoUrl: ''
   });
 
+  const total = facilities.length;
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const safePage = Math.max(1, Math.min(page, totalPages));
+  const startIdx = (safePage - 1) * limit;
+  const pagedFacilities = facilities.slice(startIdx, startIdx + limit);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetchFacilitiesList({ limit: 100 });
+      const res = await fetchFacilitiesList({ limit: 500 });
       const list = res?.data;
       setFacilities(Array.isArray(list) ? list : []);
       if (res && res.success === false) {
@@ -150,11 +168,22 @@ const FacilitiesTab = () => {
 
   return (
     <div className="facilities-tab">
-      <div className="tab-header">
-        <h2>Facilities</h2>
-        <button type="button" className="btn-primary" onClick={handleOpenAdd}>
-          Add Facility
-        </button>
+      <div className="facilities-header">
+        <div className="header-content">
+          <h1>Facilities</h1>
+          <p>Manage nursing home facilities and their settings</p>
+        </div>
+        <div className="header-actions">
+          <button type="button" className="btn-primary facilities-add-btn" onClick={handleOpenAdd}>
+            Add Facility
+          </button>
+        </div>
+        <div className="header-stats">
+          <div className="stat-card">
+            <span className="stat-label">Total Facilities</span>
+            <span className="stat-value">{total}</span>
+          </div>
+        </div>
       </div>
 
       {error && !modalOpen && (
@@ -171,18 +200,27 @@ const FacilitiesTab = () => {
           </button>
         </div>
       ) : (
-        <div className="facilities-table-wrap">
-          <table className="facilities-table" role="grid">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Address</th>
-                <th>Contact</th>
-                <th aria-label="Actions" />
-              </tr>
-            </thead>
-            <tbody>
-              {facilities.map((f) => (
+        <div className="facilities-table-container">
+          <div className="facilities-table-scroll">
+            <table className="facilities-table" role="grid">
+              <colgroup>
+                <col className="col-name" />
+                <col className="col-address" />
+                <col className="col-email" />
+                <col className="col-phone" />
+                <col className="col-actions" />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Address</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pagedFacilities.map((f) => (
                 <tr key={f.id}>
                   <td>
                     <div className="facility-name-cell">
@@ -197,31 +235,70 @@ const FacilitiesTab = () => {
                     </div>
                   </td>
                   <td>{addressLine(f)}</td>
-                  <td>
-                    {f.contactEmail || '—'}
-                    {f.contactPhone && ` · ${f.contactPhone}`}
-                  </td>
-                  <td>
+                  <td>{f.contactEmail || '—'}</td>
+                  <td className="facility-phone-cell">{formatPhone(f.contactPhone)}</td>
+                  <td className="facility-actions-cell">
                     <div className="facility-actions">
                       <button
                         type="button"
-                        className="btn-secondary btn-sm"
+                        className="facility-btn facility-btn-enter btn-sm"
                         onClick={() => navigate(`/nursing-homes/dashboard?facilityId=${f.id}`)}
                       >
-                        Enter community
+                        Enter
                       </button>
-                      <button type="button" className="btn-secondary btn-sm" onClick={() => handleOpenEdit(f)}>
+                      <button type="button" className="facility-btn facility-btn-edit btn-sm" onClick={() => handleOpenEdit(f)}>
                         Edit
                       </button>
-                      <button type="button" className="btn-danger btn-sm" onClick={() => handleDeleteClick(f)}>
+                      <button type="button" className="facility-btn facility-btn-deactivate btn-sm" onClick={() => handleDeleteClick(f)}>
                         Deactivate
                       </button>
                     </div>
                   </td>
                 </tr>
               ))}
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </div>
+          <div className="facilities-pagination">
+            <div className="pagination-info">
+              Showing {total > 0 ? startIdx + 1 : 0} to{' '}
+              {Math.min(startIdx + limit, total)} of {total} facilities
+            </div>
+            <div className="pagination-controls">
+              <label className="per-page-label">
+                Per page
+                <select
+                  value={limit}
+                  onChange={(e) => {
+                    setLimit(Number(e.target.value));
+                    setPage(1);
+                  }}
+                  className="per-page-select"
+                >
+                  {PAGE_LIMIT_OPTIONS.map((n) => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </select>
+              </label>
+              <button
+                type="button"
+                disabled={safePage <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                Previous
+              </button>
+              <span className="page-info">
+                Page {safePage} of {totalPages}
+              </span>
+              <button
+                type="button"
+                disabled={safePage >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              >
+                Next
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

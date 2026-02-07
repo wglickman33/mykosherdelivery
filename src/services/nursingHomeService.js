@@ -122,6 +122,20 @@ export const fetchFacility = async (id) => {
   }
 };
 
+/** Staff for a facility (does not call GET /facilities/:id, so safe when DB lacks nursing_home_facility_id). Returns { success, data } with data = array of staff. */
+export const fetchStaffForFacility = async (facilityId) => {
+  try {
+    const response = await api.get(`/nursing-homes/facilities/${facilityId}/staff`);
+    return response?.data ?? { success: true, data: [] };
+  } catch (error) {
+    if (error.response?.status === 404) {
+      return { success: true, data: [] };
+    }
+    logger.error(`Error fetching staff for facility ${facilityId}:`, error);
+    throw error;
+  }
+};
+
 /** For NH portal: current facility (for admin pass ?facilityId=) */
 export const fetchCurrentFacility = async (facilityId = null) => {
   try {

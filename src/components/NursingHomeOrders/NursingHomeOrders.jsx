@@ -69,10 +69,12 @@ const NursingHomeOrders = () => {
     );
   }
 
+  const dashboardPath = `/nursing-homes/dashboard${facilityId ? `?facilityId=${facilityId}` : ''}`;
+
   return (
     <div className="nursing-home-orders">
       <header className="orders-header">
-        <button className="back-btn" onClick={() => navigate('/nursing-homes/dashboard')}>
+        <button type="button" className="back-btn" onClick={() => navigate(dashboardPath)}>
           ← Dashboard
         </button>
         <h1>Order History</h1>
@@ -99,7 +101,7 @@ const NursingHomeOrders = () => {
       {orders.length === 0 ? (
         <section className="empty-state">
           <p>No orders found.</p>
-          <button className="btn-primary" onClick={() => navigate('/nursing-homes/dashboard')}>
+          <button type="button" className="btn-primary" onClick={() => navigate(dashboardPath)}>
             Back to Dashboard
           </button>
         </section>
