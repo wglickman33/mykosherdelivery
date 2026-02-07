@@ -62,8 +62,11 @@ const AdminUsers = () => {
     setLoading(true);
     const result = await fetchAllUsers(filters);
     if (result.success) {
-      setUsers(result.data);
-      setPagination(result.pagination);
+      setUsers(Array.isArray(result.data) ? result.data : []);
+      setPagination(result.pagination || {});
+    } else {
+      setUsers([]);
+      setPagination({});
     }
     setLoading(false);
   };

@@ -90,13 +90,12 @@ export const fetchDashboardStats = async (timeRange = '7d') => {
 
     await delay(100);
 
-    const [usersAny, restaurantsAny] = await Promise.all([
+    const [usersSettled, restaurantsSettled] = await Promise.allSettled([
       apiClient.get('/admin/users', { page: 1, limit: 1 }),
       apiClient.get('/admin/restaurants', { page: 1, limit: 1 })
     ]);
-
-    const totalUsers = usersAny?.pagination?.total || 0;
-    const totalRestaurants = restaurantsAny?.pagination?.total || 0;
+    const totalUsers = usersSettled.status === 'fulfilled' ? (usersSettled.value?.pagination?.total ?? 0) : 0;
+    const totalRestaurants = restaurantsSettled.status === 'fulfilled' ? (restaurantsSettled.value?.pagination?.total ?? 0) : 0;
 
     const currentAmounts = currentOrders.map(o => Number(o?.total || o?.amount || 0)).filter(n => Number.isFinite(n));
     const currentTotalRevenue = currentAmounts.reduce((a, b) => a + b, 0);

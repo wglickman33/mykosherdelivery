@@ -30,13 +30,17 @@ const FacilitiesTab = () => {
   });
 
   const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
       const res = await fetchFacilitiesList({ limit: 100 });
       const list = res?.data;
       setFacilities(Array.isArray(list) ? list : []);
+      if (res && res.success === false) {
+        setError('Failed to load facilities');
+      }
     } catch (err) {
+      setFacilities([]);
       setError(err.response?.data?.message || 'Failed to load facilities');
     } finally {
       setLoading(false);

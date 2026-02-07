@@ -9,7 +9,8 @@ const router = express.Router();
 router.get('/facilities', requireAdmin, async (req, res) => {
   try {
     const { page = 1, limit = 20, search = '', isActive } = req.query;
-    const offset = (page - 1) * limit;
+    const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+    const limitNum = parseInt(limit, 10) || 20;
 
     const where = {};
     if (search) {
@@ -19,28 +20,26 @@ router.get('/facilities', requireAdmin, async (req, res) => {
       where.isActive = isActive === 'true';
     }
 
-    const { count, rows: facilities } = await NursingHomeFacility.findAndCountAll({
+    // Do not include Profile (staff): profiles.nursing_home_facility_id may not exist in DB yet.
+    // Facilities list works without staff; staff can be loaded separately per facility if needed.
+    const result = await NursingHomeFacility.findAndCountAll({
       where,
-      limit: parseInt(limit),
+      limit: limitNum,
       offset,
-      order: [['name', 'ASC']],
-      include: [
-        {
-          model: Profile,
-          as: 'staff',
-          attributes: ['id', 'firstName', 'lastName', 'email', 'role']
-        }
-      ]
+      order: [['name', 'ASC']]
     });
+    const count = result.count;
+    const facilities = result.rows;
 
+    const totalPages = limitNum > 0 ? Math.ceil(count / limitNum) : 0;
     res.json({
       success: true,
       data: facilities,
       pagination: {
         total: count,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(count / limit)
+        page: parseInt(page, 10) || 1,
+        limit: limitNum,
+        totalPages
       }
     });
   } catch (error) {

@@ -134,20 +134,20 @@ export const fetchCurrentFacility = async (facilityId = null) => {
   }
 };
 
-/** Admin only: list all facilities (for sidebar communities). Returns { data: [] } on 404 (e.g. backend not yet deployed with nursing-home admin routes). */
+/** Admin only: list all facilities (for sidebar communities). Returns { data, pagination } (data array). On 404/5xx returns { data: [], success: false, pagination }. */
 export const fetchFacilitiesList = async (params = {}) => {
   try {
     const queryParams = new URLSearchParams(params).toString();
     const endpoint = `/nursing-homes/facilities${queryParams ? `?${queryParams}` : ''}`;
     const response = await api.get(endpoint);
-    return response.data;
+    return { data: response?.data ?? [], success: response?.success !== false, pagination: response?.pagination ?? { total: 0, page: 1, limit: 50, totalPages: 0 } };
   } catch (error) {
     if (error.response?.status === 404) {
       logger.warn('Nursing home facilities endpoint not found (404). Redeploy backend so /api/nursing-homes uses admin routes first.');
-      return { data: [] };
+      return { data: [], success: true, pagination: { total: 0, page: 1, limit: 50, totalPages: 0 } };
     }
     logger.error('Error fetching facilities list:', error);
-    throw error;
+    return { data: [], success: false, pagination: { total: 0, page: 1, limit: 50, totalPages: 0 } };
   }
 };
 

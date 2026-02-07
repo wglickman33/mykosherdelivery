@@ -6,6 +6,7 @@ const { requireAdmin } = require('../middleware/auth');
 const { body, param, validationResult } = require('express-validator');
 const { VALID_PROFILE_ROLES } = require('../config/constants');
 const logger = require('../utils/logger');
+const { isMissingColumnError, getProfilesForAdminList, countProfilesRaw } = require('../utils/profileFallback');
 const jwt = require('jsonwebtoken');
 const { appEvents } = require('../utils/events');
 const path = require('path');
@@ -91,76 +92,97 @@ const upload = multer({ storage });
 router.get('/users', requireAdmin, async (req, res) => {
   try {
     const { role, limit = 20, offset = 0, search, page = 1 } = req.query;
-    
-    const whereClause = {};
-    if (role && role !== 'all') {
-      whereClause.role = role;
-    }
-    
-    if (search) {
-      whereClause[Op.or] = [
-        { email: { [Op.iLike]: `%${search}%` } },
-        { first_name: { [Op.iLike]: `%${search}%` } },
-        { last_name: { [Op.iLike]: `%${search}%` } },
-        { phone: { [Op.iLike]: `%${search}%` } }
-      ];
-    }
+    const limitNum = Math.min(parseInt(limit, 10) || 20, 10000);
+    const offsetNum = parseInt(offset, 10) || (parseInt(page, 10) - 1) * limitNum;
 
-    const limitNum = parseInt(limit);
-    const offsetNum = parseInt(offset) || (parseInt(page) - 1) * limitNum;
+    let total;
+    let transformedUsers;
 
-    const total = await Profile.count({ where: whereClause });
-    
-    const users = await Profile.findAll({
-      where: whereClause,
-      attributes: { 
-        exclude: ['password'],
-        include: [
-          [
-            sequelize.literal(`(
-              SELECT login_time 
-              FROM user_login_activities 
-              WHERE user_id = "Profile"."id" 
-              ORDER BY login_time DESC 
-              LIMIT 1
-            )`),
-            'last_login'
+    try {
+      const whereClause = {};
+      if (role && role !== 'all') {
+        whereClause.role = role;
+      }
+      if (search) {
+        whereClause[Op.or] = [
+          { email: { [Op.iLike]: `%${search}%` } },
+          { first_name: { [Op.iLike]: `%${search}%` } },
+          { last_name: { [Op.iLike]: `%${search}%` } },
+          { phone: { [Op.iLike]: `%${search}%` } }
+        ];
+      }
+
+      total = await Profile.count({ where: whereClause });
+
+      const users = await Profile.findAll({
+        where: whereClause,
+        attributes: {
+          exclude: ['password'],
+          include: [
+            [
+              sequelize.literal(`(
+                SELECT login_time
+                FROM user_login_activities
+                WHERE user_id = "Profile"."id"
+                ORDER BY login_time DESC
+                LIMIT 1
+              )`),
+              'last_login'
+            ]
           ]
-        ]
-      },
-      order: [['createdAt', 'DESC']],
-      limit: limitNum,
-      offset: offsetNum
-    });
+        },
+        order: [['createdAt', 'DESC']],
+        limit: limitNum,
+        offset: offsetNum
+      });
 
-    const transformedUsers = users.map(user => {
-      const userData = user.toJSON();
-      return {
-        id: userData.id,
-        first_name: userData.firstName,
-        last_name: userData.lastName,
-        email: userData.email,
-        phone_number: userData.phone,
-        role: userData.role,
-        created_at: userData.createdAt,
-        last_login: userData.last_login,
-        address: userData.address,
-        addresses: userData.addresses,
-        primary_address_index: userData.primaryAddressIndex
-      };
-    });
+      transformedUsers = users.map(user => {
+        const userData = user.toJSON();
+        return {
+          id: userData.id,
+          first_name: userData.firstName,
+          last_name: userData.lastName,
+          email: userData.email,
+          phone_number: userData.phone,
+          role: userData.role,
+          created_at: userData.createdAt,
+          last_login: userData.last_login,
+          address: userData.address,
+          addresses: userData.addresses,
+          primary_address_index: userData.primaryAddressIndex
+        };
+      });
+    } catch (dbErr) {
+      if (isMissingColumnError(dbErr)) {
+        transformedUsers = await getProfilesForAdminList({ role, search, limit: limitNum, offset: offsetNum });
+        let whereClause = '1=1';
+        const countReplacements = {};
+        if (role && role !== 'all') {
+          whereClause += ' AND role = :role';
+          countReplacements.role = role;
+        }
+        if (search && search.trim()) {
+          whereClause += ` AND (LOWER(email) LIKE LOWER(:search) OR LOWER(first_name) LIKE LOWER(:search) OR LOWER(last_name) LIKE LOWER(:search) OR phone LIKE :searchPhone)`;
+          countReplacements.search = `%${search.trim()}%`;
+          countReplacements.searchPhone = `%${search.trim()}%`;
+        }
+        total = await countProfilesRaw(whereClause, countReplacements);
+      } else {
+        throw dbErr;
+      }
+    }
 
     const totalPages = Math.ceil(total / limitNum);
 
     res.json({
       data: transformedUsers,
       pagination: {
-        page: parseInt(page),
+        page: parseInt(page, 10) || 1,
         limit: limitNum,
         total,
         totalPages,
-        hasNext: parseInt(page) < totalPages,
-        hasPrev: parseInt(page) > 1
+        hasNext: (parseInt(page, 10) || 1) < totalPages,
+        hasPrev: (parseInt(page, 10) || 1) > 1
       }
     });
   } catch (error) {

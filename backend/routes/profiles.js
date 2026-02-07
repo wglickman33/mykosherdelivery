@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const { Profile, Order, UserRestaurantFavorite } = require("../models");
 const { authenticateToken } = require("../middleware/auth");
 const { body, validationResult } = require("express-validator");
+const { isMissingColumnError, getProfileById } = require("../utils/profileFallback");
 
 const router = express.Router();
 
@@ -326,9 +327,18 @@ router.get("/:id", authenticateToken, async (req, res) => {
       });
     }
 
-    const profile = await Profile.findByPk(userId, {
-      attributes: { exclude: ["password"] },
-    });
+    let profile = null;
+    try {
+      profile = await Profile.findByPk(userId, {
+        attributes: { exclude: ["password"] },
+      });
+    } catch (dbErr) {
+      if (isMissingColumnError(dbErr)) {
+        profile = await getProfileById(userId);
+      } else {
+        throw dbErr;
+      }
+    }
 
     if (!profile) {
       return res.status(404).json({
@@ -337,7 +347,7 @@ router.get("/:id", authenticateToken, async (req, res) => {
       });
     }
 
-    res.json(profile);
+    res.json(profile?.toJSON ? profile.toJSON() : profile);
   } catch (error) {
     console.error("Error fetching profile:", error);
     res.status(500).json({

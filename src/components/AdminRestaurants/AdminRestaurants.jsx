@@ -373,8 +373,9 @@ const AdminRestaurants = () => {
     setNursingHomeMenuLoading(true);
     const result = await fetchNursingHomeMenu(nhMenuFilters);
     if (result.success) {
-      setNursingHomeMenuItems(result.data.items || []);
+      setNursingHomeMenuItems(Array.isArray(result.data?.items) ? result.data.items : []);
     } else {
+      setNursingHomeMenuItems([]);
       showNotification(result.error || 'Failed to fetch nursing home menu', 'error');
     }
     setNursingHomeMenuLoading(false);
