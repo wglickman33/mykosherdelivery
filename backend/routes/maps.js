@@ -92,25 +92,29 @@ router.get('/restaurants', authenticateToken, async (req, res) => {
       raw: true
     });
 
-    let list = rows.map((r) => ({
-      id: r.id,
-      name: r.name,
-      address: r.address,
-      city: r.city,
-      state: r.state,
-      zip: r.zip,
-      latitude: r.latitude != null ? parseFloat(r.latitude) : null,
-      longitude: r.longitude != null ? parseFloat(r.longitude) : null,
-      phone: r.phone,
-      website: r.website,
-      kosherCertification: r.kosherCertification,
-      googleRating: r.googleRating != null ? parseFloat(r.googleRating) : null,
-      googlePlaceId: r.googlePlaceId,
-      dietTags: Array.isArray(r.dietTags) ? r.dietTags : [],
-      isActive: r.isActive,
-      deactivationReason: r.deactivationReason,
-      distance: null
-    }));
+    const toFloat = (v) => (v != null && Number.isFinite(parseFloat(v)) ? parseFloat(v) : null);
+    let list = rows.map((r) => {
+      const dietTags = r.dietTags ?? r.diet_tags;
+      return {
+        id: r.id,
+        name: r.name ?? '',
+        address: r.address ?? null,
+        city: r.city ?? null,
+        state: r.state ?? null,
+        zip: r.zip ?? null,
+        latitude: toFloat(r.latitude),
+        longitude: toFloat(r.longitude),
+        phone: r.phone ?? null,
+        website: r.website ?? null,
+        kosherCertification: r.kosherCertification ?? r.kosher_certification ?? null,
+        googleRating: toFloat(r.googleRating ?? r.google_rating),
+        googlePlaceId: r.googlePlaceId ?? r.google_place_id ?? null,
+        dietTags: Array.isArray(dietTags) ? dietTags : [],
+        isActive: Boolean(r.isActive ?? r.is_active ?? true),
+        deactivationReason: r.deactivationReason ?? r.deactivation_reason ?? null,
+        distance: null
+      };
+    });
 
     if (Number.isFinite(userLat) && Number.isFinite(userLng)) {
       list = list.map((r) => {

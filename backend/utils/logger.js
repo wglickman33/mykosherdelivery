@@ -18,11 +18,25 @@ const colors = {
 
 winston.addColors(colors);
 
+const SKIP_KEYS = new Set(['level', 'message', 'timestamp', 'splat', 'symbol']);
+
+function formatMetadata(info) {
+  const keys = Object.keys(info).filter((k) => !SKIP_KEYS.has(k) && info[k] !== undefined);
+  if (keys.length === 0) return '';
+  const meta = {};
+  keys.forEach((k) => { meta[k] = info[k]; });
+  try {
+    return ' ' + JSON.stringify(meta);
+  } catch {
+    return ' ' + String(meta);
+  }
+}
+
 const format = winston.format.combine(
-  winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
+  winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
   winston.format.colorize({ all: true }),
   winston.format.printf(
-    (info) => `${info.timestamp} ${info.level}: ${info.message}`,
+    (info) => `${info.timestamp} ${info.level}: ${info.message}${formatMetadata(info)}`,
   ),
 );
 

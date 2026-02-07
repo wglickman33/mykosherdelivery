@@ -1,7 +1,3 @@
-/**
- * When the DB is missing nursing_home_facility_id (migration not run), Sequelize Profile queries throw.
- * These helpers fetch profile data via raw SQL so endpoints still work.
- */
 const { sequelize, Profile } = require('../models');
 const { QueryTypes } = require('sequelize');
 
@@ -11,6 +7,20 @@ const PROFILE_COLUMNS_SAFE = `
   primary_address_index AS "primaryAddressIndex", role,
   created_at AS "createdAt", updated_at AS "updatedAt"
 `;
+
+const PROFILE_COLUMNS_WITH_FACILITY = `
+  id, email, first_name AS "firstName", last_name AS "lastName",
+  phone, preferred_name AS "preferredName", address, addresses,
+  primary_address_index AS "primaryAddressIndex", role,
+  nursing_home_facility_id AS "nursingHomeFacilityId",
+  created_at AS "createdAt", updated_at AS "updatedAt"
+`;
+
+function isColumnMissingError(err) {
+  const msg = String(err?.message || '');
+  const orig = String(err?.original?.message || '');
+  return /nursing_home_facility_id|column.*does not exist/i.test(msg + ' ' + orig);
+}
 
 function isMissingColumnError(err) {
   const msg = String(err?.message || '');
@@ -22,28 +32,46 @@ function isMissingColumnError(err) {
   );
 }
 
-/**
- * Fetch one profile by id (no password). Returns null if not found.
- */
 async function getProfileById(userId) {
-  const rows = await sequelize.query(
-    `SELECT ${PROFILE_COLUMNS_SAFE} FROM profiles WHERE id = :userId`,
-    { replacements: { userId }, type: QueryTypes.SELECT }
-  );
-  if (!rows || rows.length === 0) return null;
-  return rows[0];
+  const opts = { replacements: { userId }, type: QueryTypes.SELECT };
+  try {
+    const rows = await sequelize.query(
+      `SELECT ${PROFILE_COLUMNS_WITH_FACILITY} FROM profiles WHERE id = :userId`,
+      opts
+    );
+    if (!rows || rows.length === 0) return null;
+    return rows[0];
+  } catch (err) {
+    if (isColumnMissingError(err)) {
+      const rows = await sequelize.query(
+        `SELECT ${PROFILE_COLUMNS_SAFE} FROM profiles WHERE id = :userId`,
+        opts
+      );
+      if (!rows || rows.length === 0) return null;
+      return rows[0];
+    }
+    throw err;
+  }
 }
 
-/**
- * Fetch profiles for admin list (no password), with optional order/limit/offset.
- * whereClause is a raw WHERE fragment; replacements must include any params.
- */
 async function getProfilesRaw({ whereClause = '1=1', replacements = {}, order = 'created_at DESC', limit = 20, offset = 0 }) {
-  const rows = await sequelize.query(
-    `SELECT ${PROFILE_COLUMNS_SAFE} FROM profiles WHERE ${whereClause} ORDER BY ${order} LIMIT :limit OFFSET :offset`,
-    { replacements: { ...replacements, limit, offset }, type: QueryTypes.SELECT }
-  );
-  return rows || [];
+  const opts = { replacements: { ...replacements, limit, offset }, type: QueryTypes.SELECT };
+  try {
+    const rows = await sequelize.query(
+      `SELECT ${PROFILE_COLUMNS_WITH_FACILITY} FROM profiles WHERE ${whereClause} ORDER BY ${order} LIMIT :limit OFFSET :offset`,
+      opts
+    );
+    return rows || [];
+  } catch (err) {
+    if (isColumnMissingError(err)) {
+      const rows = await sequelize.query(
+        `SELECT ${PROFILE_COLUMNS_SAFE} FROM profiles WHERE ${whereClause} ORDER BY ${order} LIMIT :limit OFFSET :offset`,
+        opts
+      );
+      return rows || [];
+    }
+    throw err;
+  }
 }
 
 async function countProfilesRaw(whereClause = '1=1', replacements = {}) {
@@ -54,10 +82,6 @@ async function countProfilesRaw(whereClause = '1=1', replacements = {}) {
   return parseInt(result?.[0]?.count ?? 0, 10);
 }
 
-/**
- * Admin list: get profiles with optional role and search. Returns array of plain objects (camelCase).
- * Does not include last_login subquery.
- */
 async function getProfilesForAdminList({ role, search, limit, offset }) {
   let whereClause = '1=1';
   const replacements = {};
@@ -93,15 +117,11 @@ async function getProfilesForAdminList({ role, search, limit, offset }) {
     last_login: null,
     address: r.address,
     addresses: r.addresses,
-    primary_address_index: r.primaryAddressIndex
+    primary_address_index: r.primaryAddressIndex,
+    ...(r.nursingHomeFacilityId !== undefined && { nursing_home_facility_id: r.nursingHomeFacilityId ?? null })
   }));
 }
 
-/**
- * Update profile by id using only columns that exist (no nursing_home_facility_id).
- * updates: { firstName?, lastName?, phone?, email?, role? } (camelCase).
- * Returns updated profile plain object or null if not found.
- */
 async function updateProfileSafe(userId, updates) {
   const setParts = [];
   const replacements = { userId };
@@ -125,6 +145,10 @@ async function updateProfileSafe(userId, updates) {
     setParts.push('role = :role');
     replacements.role = updates.role;
   }
+  if (updates.nursingHomeFacilityId !== undefined) {
+    setParts.push('nursing_home_facility_id = :nursingHomeFacilityId');
+    replacements.nursingHomeFacilityId = updates.nursingHomeFacilityId;
+  }
   if (setParts.length === 0) return getProfileById(userId);
   const setClause = setParts.join(', ');
   await sequelize.query(
@@ -134,9 +158,6 @@ async function updateProfileSafe(userId, updates) {
   return getProfileById(userId);
 }
 
-/**
- * Check if another profile exists with the given email (excluding userId).
- */
 async function profileExistsWithEmail(email, excludeUserId) {
   const rows = await sequelize.query(
     'SELECT id FROM profiles WHERE email = :email AND id != :excludeUserId',

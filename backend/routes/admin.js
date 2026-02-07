@@ -130,21 +130,20 @@ router.get('/users', requireAdmin, async (req, res) => {
 
       const users = await Profile.findAll({
         where: whereClause,
-        attributes: {
-          exclude: ['password'],
-          include: [
-            [
-              sequelize.literal(`(
-                SELECT login_time
-                FROM user_login_activities
-                WHERE user_id = "Profile"."id"
-                ORDER BY login_time DESC
-                LIMIT 1
-              )`),
-              'last_login'
-            ]
+        attributes: [
+          'id', 'email', 'firstName', 'lastName', 'phone', 'address', 'addresses',
+          'primaryAddressIndex', 'role', 'nursingHomeFacilityId', 'createdAt', 'updatedAt',
+          [
+            sequelize.literal(`(
+              SELECT login_time
+              FROM user_login_activities
+              WHERE user_id = "Profile"."id"
+              ORDER BY login_time DESC
+              LIMIT 1
+            )`),
+            'last_login'
           ]
-        },
+        ],
         order: [['createdAt', 'DESC']],
         limit: limitNum,
         offset: offsetNum
@@ -167,9 +166,12 @@ router.get('/users', requireAdmin, async (req, res) => {
           nursing_home_facility_id: userData.nursingHomeFacilityId ?? null
         };
       });
+      logger.debug('GET /admin/users (Sequelize path)', { total: transformedUsers.length, sampleFacilityId: transformedUsers[0]?.nursing_home_facility_id });
     } catch (dbErr) {
       if (isMissingColumnError(dbErr)) {
+        logger.debug('GET /admin/users (fallback path)', { reason: dbErr.message?.slice(0, 80) });
         transformedUsers = await getProfilesForAdminList({ role, search, limit: limitNum, offset: offsetNum });
+        logger.debug('GET /admin/users fallback result', { total: transformedUsers?.length, sampleFacilityId: transformedUsers?.[0]?.nursing_home_facility_id });
         let whereClause = '1=1';
         const countReplacements = {};
         if (role && role !== 'all') {
@@ -209,6 +211,46 @@ router.get('/users', requireAdmin, async (req, res) => {
   }
 });
 
+router.get('/users/:userId', requireAdmin, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    let user = null;
+    try {
+      user = await Profile.findByPk(userId, {
+        attributes: ['id', 'email', 'firstName', 'lastName', 'phone', 'address', 'addresses', 'primaryAddressIndex', 'role', 'nursingHomeFacilityId', 'createdAt', 'updatedAt']
+      });
+    } catch (findErr) {
+      if (isMissingColumnError(findErr)) {
+        user = await getProfileById(userId);
+      } else {
+        throw findErr;
+      }
+    }
+    if (!user) {
+      return res.status(404).json({ error: 'User not found', message: 'User does not exist' });
+    }
+    const data = typeof user.toJSON === 'function' ? user.toJSON() : user;
+    const transformed = {
+      id: data.id,
+      first_name: data.firstName,
+      last_name: data.lastName,
+      email: data.email,
+      phone_number: data.phone,
+      role: data.role,
+      created_at: data.createdAt,
+      last_login: null,
+      address: data.address,
+      addresses: data.addresses,
+      primary_address_index: data.primaryAddressIndex,
+      nursing_home_facility_id: data.nursingHomeFacilityId ?? null
+    };
+    return res.json({ success: true, data: transformed });
+  } catch (error) {
+    logger.error('Error fetching user:', error);
+    return res.status(500).json({ error: 'Internal server error', message: 'Failed to fetch user' });
+  }
+});
+
 router.put('/users/:userId', requireAdmin, [
   body('email').optional({ checkFalsy: true }).isEmail().normalizeEmail(),
   body('first_name').optional({ checkFalsy: true }).trim().notEmpty().withMessage('First name cannot be empty'),
@@ -218,7 +260,7 @@ router.put('/users/:userId', requireAdmin, [
   body('nursing_home_facility_id').optional().custom((val) => !val || val === '' || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(val).trim())).withMessage('Facility must be a valid UUID')
 ], async (req, res) => {
   const putUserId = req.params.userId;
-  console.log('[PUT /admin/users/:userId] START', { userId: putUserId, bodyKeys: Object.keys(req.body || {}), role: req.body?.role });
+  logger.info('PUT /admin/users/:userId', { userId: putUserId, bodyKeys: Object.keys(req.body || {}), role: req.body?.role, nursing_home_facility_id: req.body?.nursing_home_facility_id });
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -237,6 +279,17 @@ router.put('/users/:userId', requireAdmin, [
 
     const { userId } = req.params;
     const updates = req.body;
+
+    const nursingHomeRoles = ['nursing_home_admin', 'nursing_home_user'];
+    if (updates.role && nursingHomeRoles.includes(String(updates.role).trim())) {
+      const facilityVal = updates.nursing_home_facility_id != null && String(updates.nursing_home_facility_id).trim() !== '';
+      if (!facilityVal) {
+        return res.status(400).json({
+          error: 'Validation failed',
+          message: 'Nursing Home Admin and Nursing Home User roles require a facility to be assigned.'
+        });
+      }
+    }
 
     delete updates.password;
 
@@ -298,7 +351,6 @@ router.put('/users/:userId', requireAdmin, [
         }
       } catch (enumCheckError) {
         logger.warn('Enum check failed, proceeding with update', { error: enumCheckError.message });
-        // Continue; DB update will fail with 400 if role is invalid
       }
 
       transformedUpdates.role = roleVal;
@@ -308,8 +360,11 @@ router.put('/users/:userId', requireAdmin, [
         newRole: roleVal
       });
     }
-    if (updates.nursing_home_facility_id !== undefined && !useRawPath) {
-      transformedUpdates.nursingHomeFacilityId = updates.nursing_home_facility_id && updates.nursing_home_facility_id.trim() ? updates.nursing_home_facility_id.trim() : null;
+    if (Object.prototype.hasOwnProperty.call(updates, 'nursing_home_facility_id')) {
+      const raw = updates.nursing_home_facility_id;
+      const val = raw != null && String(raw).trim() !== '' ? String(raw).trim() : null;
+      transformedUpdates.nursingHomeFacilityId = val;
+      logger.debug('PUT /admin/users/:userId facility', { received: raw, applied: val, useRawPath });
     }
     if (updates.email !== undefined && updates.email !== user.email) {
       if (useRawPath) {
@@ -450,7 +505,8 @@ router.put('/users/:userId', requireAdmin, [
       last_login: newValues.last_login ?? null,
       address: newValues.address,
       addresses: newValues.addresses,
-      primary_address_index: newValues.primaryAddressIndex
+      primary_address_index: newValues.primaryAddressIndex,
+      nursing_home_facility_id: newValues.nursingHomeFacilityId ?? null
     };
     
     res.json({
@@ -580,6 +636,14 @@ router.post('/users', requireAdmin, [
 
     const { email, password, firstName, lastName, role, phone, nursing_home_facility_id: nursingHomeFacilityIdParam } = req.body;
     const nursingHomeFacilityId = nursingHomeFacilityIdParam && String(nursingHomeFacilityIdParam).trim() ? String(nursingHomeFacilityIdParam).trim() : null;
+
+    const nursingHomeRoles = ['nursing_home_admin', 'nursing_home_user'];
+    if (role && nursingHomeRoles.includes(String(role).trim()) && !nursingHomeFacilityId) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        message: 'Nursing Home Admin and Nursing Home User roles require a facility to be assigned.'
+      });
+    }
 
     const existingUser = await Profile.findOne({ where: { email } });
     if (existingUser) {
