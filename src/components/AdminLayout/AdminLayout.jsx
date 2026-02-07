@@ -153,7 +153,6 @@ const AdminLayout = () => {
         
         es.onerror = () => {
           console.warn('❌ SSE connection error');
-          // Diagnose: EventSource doesn't expose status, so probe the same URL to see why it failed
           fetch(streamUrl)
             .then(async (r) => {
               if (r.status === 401) {

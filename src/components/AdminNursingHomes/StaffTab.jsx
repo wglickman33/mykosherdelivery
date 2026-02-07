@@ -48,8 +48,6 @@ const StaffTab = () => {
     }
   }, [isAdmin]);
 
-  // Admin: use facility from list (avoids GET /facilities/:id which can 500 when staff column missing).
-  // Non-admin: use current-facility endpoint (no staff include).
   const loadFacility = useCallback(async (id) => {
     if (!id) {
       setFacility(null);
@@ -74,7 +72,6 @@ const StaffTab = () => {
     loadFacilities();
   }, [loadFacilities]);
 
-  // When facilities load and there's exactly one (or we have none selected), auto-select so Add Staff / Upload aren't stuck disabled
   useEffect(() => {
     if (!isAdmin || facilities.length === 0) return;
     setSelectedFacilityId((prev) => {
@@ -83,7 +80,6 @@ const StaffTab = () => {
     });
   }, [isAdmin, facilities]);
 
-  // Admin: set facility from list so we never call GET /facilities/:id. Non-admin: load current facility.
   useEffect(() => {
     if (isAdmin) {
       if (!selectedFacilityId || facilities.length === 0) {

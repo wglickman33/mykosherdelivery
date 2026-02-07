@@ -7,7 +7,6 @@ import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import whiteMKDLogo from '../../assets/whiteMKDLogo.png';
 import './NursingHomeLayout.scss';
 
-// Same SVG paths as AdminLayout for consistency
 const Icons = {
   dashboard: (
     <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">

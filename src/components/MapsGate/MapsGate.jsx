@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { getMapsAccess } from '../../services/mapsService';
+import { MapsThemeProvider, MapsThemeRoot } from '../../context/MapsThemeContext';
+import MapsThemeToggle from '../MapsLayout/MapsThemeToggle';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import './MapsGate.scss';
 
@@ -33,9 +36,13 @@ const MapsGate = ({ children }) => {
 
   if (authLoading || accessLoading) {
     return (
-      <div className="maps-gate maps-gate--loading">
-        <LoadingSpinner size="large" text="Loading…" />
-      </div>
+      <MapsThemeProvider>
+        <MapsThemeRoot>
+          <div className="maps-gate maps-gate--loading">
+            <LoadingSpinner size="large" text="Loading…" />
+          </div>
+        </MapsThemeRoot>
+      </MapsThemeProvider>
     );
   }
 
@@ -46,25 +53,42 @@ const MapsGate = ({ children }) => {
 
   if (!hasAccess) {
     return (
-      <div className="maps-gate maps-gate--no-access">
-        <div className="maps-gate__card">
-          <h1>My Kosher Maps</h1>
-          <p>An active subscription is required to access the kosher restaurant directory.</p>
-          <p className="maps-gate__hint">Subscribe to My Kosher Maps to see every kosher restaurant, filter by diet, get directions, and more.</p>
-          <div className="maps-gate__actions">
-            <button type="button" className="maps-gate__btn-primary" onClick={() => navigate('/account')}>
-              Manage subscription
-            </button>
-            <button type="button" className="maps-gate__btn-secondary" onClick={() => navigate('/home')}>
-              Back to home
-            </button>
+      <MapsThemeProvider>
+        <MapsThemeRoot>
+<div className="maps-gate maps-gate--no-access">
+          <div className="maps-gate__card">
+            <div className="maps-gate__card-corner">
+              <MapsThemeToggle />
+            </div>
+            <h1>My Kosher Maps</h1>
+              <p>An active subscription is required to access the kosher restaurant directory.</p>
+              <p className="maps-gate__hint">Subscribe to My Kosher Maps to see every kosher restaurant, filter by diet, get directions, and more.</p>
+              <div className="maps-gate__actions">
+                <button type="button" className="maps-gate__btn-primary" onClick={() => navigate('/account')}>
+                  Manage subscription
+                </button>
+                <button type="button" className="maps-gate__btn-secondary" onClick={() => navigate('/home')}>
+                  Back to home
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        </MapsThemeRoot>
+      </MapsThemeProvider>
     );
   }
 
-  return children;
+  return (
+    <MapsThemeProvider>
+      <MapsThemeRoot>
+        {children}
+      </MapsThemeRoot>
+    </MapsThemeProvider>
+  );
+};
+
+MapsGate.propTypes = {
+  children: PropTypes.node,
 };
 
 export default MapsGate;

@@ -1,0 +1,60 @@
+.maps-theme-toggle {
+  --toggle-size: 40px;
+  width: var(--toggle-size);
+  height: var(--toggle-size);
+  border: none;
+  border-radius: 12px;
+  background: var(--maps-header-toggle-bg, rgba(255, 255, 255, 0.15));
+  color: var(--maps-header-toggle-icon, #fff);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.25s ease, color 0.25s ease;
+
+  &:hover {
+    background: var(--maps-header-toggle-bg-hover, rgba(255, 255, 255, 0.25));
+  }
+
+  &:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+}
+
+.maps-theme-toggle__svg {
+  width: 22px;
+  height: 22px;
+  position: relative;
+}
+
+.maps-theme-toggle__sun {
+  opacity: 1;
+  transform: rotate(0deg);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.maps-theme-toggle__moon {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+// Light theme: show sun (click to go dark)
+.maps-theme--light .maps-theme-toggle__sun {
+  opacity: 1;
+}
+
+.maps-theme--light .maps-theme-toggle__moon {
+  opacity: 0;
+}
+
+// Dark theme: show moon (click to go light)
+.maps-theme--dark .maps-theme-toggle__sun {
+  opacity: 0;
+}
+
+.maps-theme--dark .maps-theme-toggle__moon {
+  opacity: 1;
+}

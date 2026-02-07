@@ -5,6 +5,7 @@ import {
   updateAdminMapsRestaurant,
   importAdminMapsRestaurantsCsv
 } from '../../services/mapsService';
+import { MapPin, Upload } from 'lucide-react';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import './AdminMaps.scss';
@@ -193,9 +194,9 @@ const AdminMaps = () => {
       setImporting(false);
       e.target.value = '';
       load();
-      alert(`Import complete: ${result.created} created, ${result.updated} updated.${result.errors?.length ? ` ${result.errors.length} errors.` : ''}`);
+      alert(`Upload complete: ${result.created} created, ${result.updated} updated.${result.errors?.length ? ` ${result.errors.length} errors.` : ''}`);
     } catch (err) {
-      setError(err?.message || 'Import failed');
+      setError(err?.message || 'Upload failed');
     } finally {
       setImporting(false);
     }
@@ -221,8 +222,11 @@ const AdminMaps = () => {
         <button type="button" className="btn-primary" onClick={handleOpenAdd}>
           Add Restaurant
         </button>
-        <label className="admin-maps__import-label">
-          <span className="btn-secondary">{importing ? 'Importing…' : 'Import CSV'}</span>
+        <label className="admin-maps__upload-label">
+          <span className="btn-secondary">
+            <Upload size={18} className="admin-maps__upload-icon" aria-hidden />
+            {importing ? 'Uploading…' : 'Upload'}
+          </span>
           <input
             type="file"
             accept=".csv"
@@ -266,10 +270,16 @@ const AdminMaps = () => {
         <LoadingSpinner size="large" />
       ) : list.length === 0 ? (
         <div className="admin-maps__empty">
-          <p>No restaurants yet. Add one or import a CSV.</p>
-          <button type="button" className="btn-primary" onClick={handleOpenAdd}>
-            Add Restaurant
-          </button>
+          <div className="admin-maps__empty-icon" aria-hidden>
+            <MapPin size={48} strokeWidth={1.5} />
+          </div>
+          <h2 className="admin-maps__empty-title">No restaurants yet</h2>
+          <p className="admin-maps__empty-text">Add your first restaurant or upload a CSV to build your map directory.</p>
+          <div className="admin-maps__empty-actions">
+            <button type="button" className="admin-maps__empty-btn admin-maps__empty-btn--primary" onClick={handleOpenAdd}>
+              Add Restaurant
+            </button>
+          </div>
         </div>
       ) : (
         <div className="admin-maps__table-wrap">

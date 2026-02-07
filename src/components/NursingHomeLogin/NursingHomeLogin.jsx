@@ -3,8 +3,6 @@ import { USER_ROLES } from '../../config/constants';
 import './NursingHomeLogin.scss';
 
 const NursingHomeLogin = () => {
-  // Everyone lands in the nursing home portal (their own dashboard), not main MKD admin.
-  // Admin and nursing_home_admin can use "Admin panel" from the dashboard to reach admin tools.
   const getRedirectPath = () => '/nursing-homes/dashboard';
 
   return (

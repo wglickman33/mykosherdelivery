@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { MapPin } from 'lucide-react';
 import { getMapsRestaurants } from '../../services/mapsService';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
@@ -78,7 +79,7 @@ const MapsPage = () => {
   };
 
   useEffect(() => {
-    const key = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+    const key = import.meta.env.VITE_GOOGLE_PLACES_API_KEY;
     if (!key) {
       setMapReady(true);
       return;
@@ -172,7 +173,8 @@ const MapsPage = () => {
           <option value="distance">Sort by distance</option>
           <option value="rating">Sort by rating</option>
         </select>
-        <button type="button" className="maps-page__location-btn" onClick={requestLocation}>
+        <button type="button" className="maps-page__location-btn" onClick={requestLocation} title="Center map on your location and sort by distance">
+          <MapPin size={18} className="maps-page__location-icon" aria-hidden />
           Use my location
         </button>
       </div>
@@ -182,9 +184,9 @@ const MapsPage = () => {
       <div className="maps-page__split">
         <div className="maps-page__map-wrap">
           <div ref={mapRef} className="maps-page__map" />
-          {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY && (
+          {!import.meta.env.VITE_GOOGLE_PLACES_API_KEY && (
             <div className="maps-page__map-placeholder">
-              <p>Add VITE_GOOGLE_MAPS_API_KEY to show the map.</p>
+              <p>Add VITE_GOOGLE_PLACES_API_KEY to show the map.</p>
               <p>Restaurant list and directions links work without it.</p>
             </div>
           )}

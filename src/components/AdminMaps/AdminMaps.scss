@@ -34,10 +34,11 @@
       border-radius: 8px;
       font-weight: 600;
       cursor: pointer;
-      transition: background 0.2s;
+      transition: background 0.3s, box-shadow 0.3s;
 
       &:hover:not(:disabled) {
         background: #334155;
+        box-shadow: 0 2px 10px rgba(51, 65, 85, 0.35);
       }
 
       &:disabled {
@@ -54,12 +55,29 @@
       border-radius: 8px;
       font-weight: 500;
       cursor: pointer;
+      transition: color 0.3s, border-color 0.3s;
     }
   }
 
-  &__import-label {
+  &__upload-label {
     cursor: pointer;
     margin: 0;
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+
+      &:hover {
+        color: #2563eb;
+        border-color: #2563eb;
+        background: #f1f5f9;
+      }
+    }
+  }
+
+  &__upload-icon {
+    flex-shrink: 0;
   }
 
   &__filters {
@@ -90,25 +108,68 @@
   }
 
   &__empty {
-    padding: 3rem;
-    background: #f8fafc;
-    border: 2px dashed #e2e8f0;
-    border-radius: 12px;
+    padding: 3.5rem 2.5rem;
     text-align: center;
+    border-radius: 16px;
+    background: linear-gradient(165deg, #eff6ff 0%, #dbeafe 50%, #e0e7ff 100%);
+    border: 2px solid rgba(6, 23, 87, 0.12);
+    box-shadow: 0 4px 24px rgba(37, 99, 235, 0.08);
 
-    p {
-      margin: 0 0 1rem 0;
-      color: #64748b;
+    .admin-maps__empty-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      background: rgba(6, 23, 87, 0.08);
+      color: #1e40af;
+      margin-bottom: 1.25rem;
     }
 
-    .btn-primary {
+    .admin-maps__empty-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #061757;
+      margin: 0 0 0.5rem 0;
+    }
+
+    .admin-maps__empty-text {
+      margin: 0 0 1.5rem 0;
+      color: #1e40af;
+      font-size: 1rem;
+      max-width: 360px;
+      margin-left: auto;
+      margin-right: auto;
+      line-height: 1.5;
+    }
+
+    .admin-maps__empty-actions {
+      display: flex;
+      justify-content: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .admin-maps__empty-btn {
       padding: 0.75rem 1.5rem;
-      background: #475569;
-      color: white;
       border: none;
-      border-radius: 8px;
+      border-radius: 10px;
       font-weight: 600;
+      font-size: 0.9375rem;
       cursor: pointer;
+      transition: box-shadow 0.2s ease;
+
+      &--primary {
+        background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+        color: white;
+        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+
+        &:hover {
+          background: linear-gradient(180deg, #1d4ed8 0%, #1e40af 100%);
+          box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+        }
+      }
     }
   }
 

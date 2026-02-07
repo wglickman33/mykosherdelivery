@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import logoImg from "../../assets/whiteMKDLogo.png";
-import navyMKDLogo from "../../assets/navyMKDLogo.png";
 import "./Footer.scss";
 
 const Footer = () => {
@@ -10,7 +9,6 @@ const Footer = () => {
     <footer className="footer">
       <div className="footer__container">
         <div className="footer__content">
-          {}
           <div className="footer__brand">
             <div className="footer__logo">
               <Link to="/home">
@@ -23,7 +21,6 @@ const Footer = () => {
             </p>
           </div>
 
-          {}
           <div className="footer__section">
             <h3 className="footer__section-title">Company</h3>
             <nav className="footer__nav">
@@ -40,20 +37,10 @@ const Footer = () => {
               <Link to="/partner" className="footer__link">Partner With Us</Link>
               <Link to="/advertise" className="footer__link">Advertise With Us</Link>
               <Link to="/gift-card" className="footer__link">MKD Gift Card</Link>
+              <Link to="/subscriptions" className="footer__link">Subscriptions</Link>
             </nav>
           </div>
 
-          {}
-          <div className="footer__section footer__section--subscriptions">
-            <h3 className="footer__section-title">Subscriptions</h3>
-            <Link to="/maps" className="footer__subscriptions-link">
-              <img src={navyMKDLogo} alt="My Kosher Maps" className="footer__subscriptions-logo" />
-              <span className="footer__subscriptions-label">My Kosher Maps</span>
-            </Link>
-            <p className="footer__subscriptions-desc">Kosher restaurant directory — search, filter, directions.</p>
-          </div>
-
-          {}
           <div className="footer__section">
             <h3 className="footer__section-title">Legal</h3>
             <nav className="footer__nav">
@@ -62,7 +49,6 @@ const Footer = () => {
             </nav>
           </div>
 
-          {}
           <div className="footer__section">
             <h3 className="footer__section-title">Follow Us</h3>
             <div className="footer__social">
@@ -94,7 +80,6 @@ const Footer = () => {
           </div>
         </div>
 
-        {}
         <div className="footer__bottom">
           <div className="footer__bottom-content">
             <p className="footer__copyright">

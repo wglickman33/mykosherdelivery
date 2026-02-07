@@ -1,7 +1,6 @@
 import api from '../lib/api';
 import logger from '../utils/logger';
 
-/** Returns axios response. On 404 (e.g. backend not yet deployed with admin routes first) returns empty data so UI can show empty state without throwing. */
 export const fetchResidents = async (params = {}) => {
   try {
     const queryParams = new URLSearchParams(params).toString();
@@ -122,7 +121,6 @@ export const fetchFacility = async (id) => {
   }
 };
 
-/** Staff for a facility (does not call GET /facilities/:id, so safe when DB lacks nursing_home_facility_id). Returns { success, data } with data = array of staff. */
 export const fetchStaffForFacility = async (facilityId) => {
   try {
     const response = await api.get(`/nursing-homes/facilities/${facilityId}/staff`);
@@ -136,7 +134,6 @@ export const fetchStaffForFacility = async (facilityId) => {
   }
 };
 
-/** For NH portal: current facility (for admin pass ?facilityId=) */
 export const fetchCurrentFacility = async (facilityId = null) => {
   try {
     const query = facilityId ? `?facilityId=${encodeURIComponent(facilityId)}` : '';
@@ -148,7 +145,6 @@ export const fetchCurrentFacility = async (facilityId = null) => {
   }
 };
 
-/** Admin only: list all facilities (for sidebar communities). Returns { data, pagination } (data array). On 404/5xx returns { data: [], success: false, pagination }. */
 export const fetchFacilitiesList = async (params = {}) => {
   try {
     const queryParams = new URLSearchParams(params).toString();
@@ -165,7 +161,6 @@ export const fetchFacilitiesList = async (params = {}) => {
   }
 };
 
-/** Admin only: create facility */
 export const createFacility = async (data) => {
   try {
     const response = await api.post('/nursing-homes/facilities', data);
@@ -176,7 +171,6 @@ export const createFacility = async (data) => {
   }
 };
 
-/** Admin only: update facility */
 export const updateFacility = async (id, data) => {
   try {
     const response = await api.put(`/nursing-homes/facilities/${id}`, data);
@@ -187,7 +181,6 @@ export const updateFacility = async (id, data) => {
   }
 };
 
-/** Admin only: delete (deactivate) facility */
 export const deleteFacility = async (id) => {
   try {
     const response = await api.delete(`/nursing-homes/facilities/${id}`);
@@ -198,7 +191,6 @@ export const deleteFacility = async (id) => {
   }
 };
 
-/** Create resident (admin or nursing_home_admin) */
 export const createResident = async (data) => {
   try {
     const response = await api.post('/nursing-homes/residents', data);
@@ -209,7 +201,6 @@ export const createResident = async (data) => {
   }
 };
 
-/** Update resident */
 export const updateResident = async (id, data) => {
   try {
     const response = await api.put(`/nursing-homes/residents/${id}`, data);
@@ -220,7 +211,6 @@ export const updateResident = async (id, data) => {
   }
 };
 
-/** Deactivate resident */
 export const deleteResident = async (id) => {
   try {
     const response = await api.delete(`/nursing-homes/residents/${id}`);
@@ -231,7 +221,6 @@ export const deleteResident = async (id) => {
   }
 };
 
-/** Assign resident to staff */
 export const assignResidentToStaff = async (residentId, assignedUserId) => {
   try {
     const response = await api.post(`/nursing-homes/residents/${residentId}/assign`, { assignedUserId });
@@ -242,7 +231,6 @@ export const assignResidentToStaff = async (residentId, assignedUserId) => {
   }
 };
 
-/** Create staff for a facility */
 export const createStaff = async (facilityId, data) => {
   try {
     const response = await api.post(`/nursing-homes/facilities/${facilityId}/staff`, data);
@@ -253,7 +241,6 @@ export const createStaff = async (facilityId, data) => {
   }
 };
 
-/** Update staff */
 export const updateStaff = async (facilityId, userId, data) => {
   try {
     const response = await api.put(`/nursing-homes/facilities/${facilityId}/staff/${userId}`, data);
@@ -264,7 +251,6 @@ export const updateStaff = async (facilityId, userId, data) => {
   }
 };
 
-/** Remove staff from facility */
 export const deleteStaff = async (facilityId, userId) => {
   try {
     const response = await api.delete(`/nursing-homes/facilities/${facilityId}/staff/${userId}`);
@@ -275,7 +261,6 @@ export const deleteStaff = async (facilityId, userId) => {
   }
 };
 
-/** Bulk create staff (e.g. from spreadsheet) */
 export const bulkCreateStaff = async (facilityId, staffList) => {
   try {
     const response = await api.post(`/nursing-homes/facilities/${facilityId}/staff/bulk`, { staff: staffList });

@@ -12,7 +12,6 @@ const defaultAddress = {
   zip_code: ''
 };
 
-/** Format phone for display as XXX-XXX-XXXX (strips non-digits, takes first 10). */
 const formatPhone = (raw) => {
   if (!raw) return '—';
   const digits = String(raw).replace(/\D/g, '').slice(0, 10);

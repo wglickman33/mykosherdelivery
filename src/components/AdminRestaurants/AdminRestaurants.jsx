@@ -886,7 +886,6 @@ const AdminRestaurants = () => {
         </div>
       )}
 
-      {/* Nursing Home Menu Tab */}
       {activeTab === 'nursing-home-menu' && (
         <div className="admin-restaurants__nursing-home-menu-tab">
           <div className="admin-restaurants__nh-menu-header">
@@ -894,7 +893,6 @@ const AdminRestaurants = () => {
             <p>Manage breakfast, lunch, and dinner menu items for nursing home facilities</p>
           </div>
 
-          {/* Filters */}
           <div className="admin-restaurants__nh-menu-filters">
             <div className="admin-restaurants__filter-group">
               <label>Meal Type</label>
@@ -935,7 +933,6 @@ const AdminRestaurants = () => {
             </div>
           </div>
 
-          {/* Menu Items List */}
           {nursingHomeMenuLoading ? (
             <div className="admin-restaurants__loading">
               <LoadingSpinner />
@@ -1338,7 +1335,6 @@ const AdminRestaurants = () => {
         />
       )}
       
-      {/* Nursing Home Menu Item Modal */}
       {showNHMenuItemModal && (
         <NursingHomeMenuItemModal
           isOpen={showNHMenuItemModal}

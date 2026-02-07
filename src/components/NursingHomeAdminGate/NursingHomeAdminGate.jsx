@@ -3,10 +3,6 @@ import { useAuth } from '../../hooks/useAuth';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import './NursingHomeAdminGate.scss';
 
-/**
- * Gate for /nursing-homes/admin: redirect to login if no session,
- * or to Admin Nursing Homes if already logged in as admin or nursing_home_admin.
- */
 const NursingHomeAdminGate = () => {
   const { user, loading } = useAuth();
 

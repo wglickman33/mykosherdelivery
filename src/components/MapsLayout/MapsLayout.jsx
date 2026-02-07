@@ -1,4 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
+import PropTypes from 'prop-types';
+import MapsThemeToggle from './MapsThemeToggle';
+import whiteMKMLogo from '../../assets/whiteMKMLogo.png';
 import './MapsLayout.scss';
 
 const MapsLayout = ({ children }) => {
@@ -9,16 +12,14 @@ const MapsLayout = ({ children }) => {
       <header className="maps-layout__header">
         <div className="maps-layout__header-inner">
           <Link to="/maps" className="maps-layout__logo" aria-label="My Kosher Maps home">
-            <span className="maps-layout__logo-text">My Kosher Maps</span>
-            <svg className="maps-layout__logo-icon" viewBox="0 0 24 24" fill="currentColor" width="28" height="28">
-              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-            </svg>
+            <img src={whiteMKMLogo} alt="My Kosher Maps" className="maps-layout__logo-img" />
           </Link>
           <nav className="maps-layout__nav">
-            <button type="button" className="maps-layout__nav-link" onClick={() => navigate('/home')}>
+            <MapsThemeToggle />
+            <button type="button" className="maps-layout__btn maps-layout__btn--secondary" onClick={() => navigate('/home')}>
               Back to MKD
             </button>
-            <Link to="/account" className="maps-layout__nav-link">Account</Link>
+            <Link to="/account" className="maps-layout__btn maps-layout__btn--account">Account</Link>
           </nav>
         </div>
       </header>
@@ -27,6 +28,10 @@ const MapsLayout = ({ children }) => {
       </main>
     </div>
   );
+};
+
+MapsLayout.propTypes = {
+  children: PropTypes.node,
 };
 
 export default MapsLayout;
