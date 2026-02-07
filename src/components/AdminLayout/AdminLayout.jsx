@@ -107,7 +107,7 @@ const AdminLayout = () => {
   }, [authLoading, user]);
 
   useEffect(() => {
-    if (authLoading || !user || sseSetupRef.current) {
+    if (authLoading || !user || user?.role !== 'admin' || sseSetupRef.current) {
       return;
     }
 
@@ -122,7 +122,8 @@ const AdminLayout = () => {
           return;
         }
 
-        const es = new EventSource(`${import.meta.env.VITE_API_BASE_URL}/admin/orders/stream?token=${tokenRes.token}`);
+        const streamUrl = `${import.meta.env.VITE_API_BASE_URL}/admin/orders/stream?token=${encodeURIComponent(tokenRes.token)}`;
+        const es = new EventSource(streamUrl);
         sseConnectionRef.current = es;
         
         es.addEventListener('admin.notification.created', (e) => {
@@ -152,6 +153,16 @@ const AdminLayout = () => {
         
         es.onerror = () => {
           console.warn('❌ SSE connection error');
+          // Diagnose: EventSource doesn't expose status, so probe the same URL to see why it failed
+          fetch(streamUrl)
+            .then((r) => {
+              if (r.status === 401) {
+                console.warn('SSE stream returned 401 Unauthorized. Backend may be matching GET /orders/stream to /orders/:orderId (requireAdmin). Deploy the route-order fix so GET /orders/stream is registered before /orders/:orderId.');
+              } else if (!r.ok) {
+                console.warn(`SSE stream returned ${r.status} ${r.statusText}`);
+              }
+            })
+            .catch(() => {});
         };
 
         es.onclose = () => {
