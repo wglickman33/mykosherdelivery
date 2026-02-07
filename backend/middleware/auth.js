@@ -89,25 +89,40 @@ const authenticateToken = async (req, res, next) => {
     try {
       user = await Profile.findByPk(decoded.userId);
     } catch (dbError) {
-      if (dbError.message?.includes('nursing_home_facility_id') || dbError.original?.message?.includes('nursing_home_facility_id')) {
-        // Column doesn't exist yet - query without it
-        const { sequelize } = require('../models');
-        const { QueryTypes } = require('sequelize');
-        const rows = await sequelize.query(`
-          SELECT id, email, password, first_name AS "firstName", last_name AS "lastName", 
-                 phone, preferred_name AS "preferredName", address, addresses, 
-                 primary_address_index AS "primaryAddressIndex", role, 
-                 created_at AS "createdAt", updated_at AS "updatedAt"
-          FROM profiles 
-          WHERE id = :userId
-        `, {
-          replacements: { userId: decoded.userId },
-          type: QueryTypes.SELECT
-        });
-        if (rows && rows.length > 0) {
-          user = Profile.build(rows[0], { isNewRecord: false });
-        } else {
-          user = null;
+      // On any DB error (missing column, enum, etc.), try loading with a minimal raw query
+      const isColumnOrSchema = dbError.message?.includes('nursing_home_facility_id') ||
+        dbError.original?.message?.includes('nursing_home_facility_id') ||
+        dbError.message?.includes('does not exist') ||
+        dbError.original?.message?.includes('does not exist') ||
+        dbError.message?.includes('enum') ||
+        dbError.original?.message?.includes('enum');
+      if (isColumnOrSchema) {
+        try {
+          const { sequelize } = require('../models');
+          const { QueryTypes } = require('sequelize');
+          const rows = await sequelize.query(`
+            SELECT id, email, password, first_name AS "firstName", last_name AS "lastName", 
+                   phone, preferred_name AS "preferredName", address, addresses, 
+                   primary_address_index AS "primaryAddressIndex", role, 
+                   created_at AS "createdAt", updated_at AS "updatedAt"
+            FROM profiles 
+            WHERE id = :userId
+          `, {
+            replacements: { userId: decoded.userId },
+            type: QueryTypes.SELECT
+          });
+          if (rows && rows.length > 0) {
+            user = Profile.build(rows[0], { isNewRecord: false });
+          } else {
+            user = null;
+          }
+        } catch (fallbackError) {
+          logger.warn('Auth fallback query failed', {
+            userId: decoded.userId,
+            dbError: dbError.message,
+            fallbackError: fallbackError.message
+          });
+          throw dbError;
         }
       } else {
         throw dbError;
@@ -155,7 +170,13 @@ const authenticateToken = async (req, res, next) => {
       });
     }
 
-    logger.error('Auth middleware error:', error, { ip: clientIp });
+    logger.error('Auth middleware error', {
+      ip: clientIp,
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+      originalMessage: error.original?.message
+    });
     return res.status(500).json({ 
       error: 'Authentication error',
       message: 'Internal server error during authentication'
