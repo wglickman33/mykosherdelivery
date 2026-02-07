@@ -1,4 +1,4 @@
-@import '../MapsLayout/MapsThemeVars.scss';
+@use '../MapsLayout/MapsThemeVars.scss' as *;
 
 .maps-gate {
   min-height: 60vh;

@@ -362,7 +362,7 @@ OrderDetailsModal.propTypes = {
 };
 
 
-const DeleteAccountModal = ({ isOpen, onClose, onDelete }) => {
+const DeleteAccountModal = ({ isOpen, onClose, onDelete, error }) => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -382,6 +382,11 @@ const DeleteAccountModal = ({ isOpen, onClose, onDelete }) => {
           <h2 className="account-modal__title">Delete Account</h2>
           <button className="account-modal__close-btn" onClick={onClose}>×</button>
         </div>
+        {error && (
+          <div className="account-modal__error" role="alert">
+            {error}
+          </div>
+        )}
         <div className="account-modal__warning">
           <p>⚠️ This action cannot be undone. This will permanently delete your account and all associated data.</p>
           <p>Please enter your password to confirm:</p>
@@ -412,7 +417,8 @@ const DeleteAccountModal = ({ isOpen, onClose, onDelete }) => {
 DeleteAccountModal.propTypes = {
   isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
-  onDelete: PropTypes.func.isRequired
+  onDelete: PropTypes.func.isRequired,
+  error: PropTypes.string
 };
 
 export default function AccountPage() {
@@ -433,6 +439,7 @@ export default function AccountPage() {
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteAccountError, setDeleteAccountError] = useState(null);
   const [showAddressModal, setShowAddressModal] = useState(false);
 
   useEffect(() => {
@@ -572,12 +579,15 @@ export default function AccountPage() {
 
 
   const handleDeleteAccount = async (password) => {
+    setDeleteAccountError(null);
     const result = await deleteUserAccount(user.id, password);
     if (result.success) {
       await signOut();
       navigate('/');
     } else {
-      alert(result.error);
+      const msg = result.error || 'Failed to delete account';
+      setDeleteAccountError(msg);
+      console.error('[AccountPage] Delete account failed:', msg, result);
     }
   };
 
@@ -989,8 +999,9 @@ export default function AccountPage() {
 
       <DeleteAccountModal
         isOpen={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
+        onClose={() => { setDeleteAccountError(null); setShowDeleteModal(false); }}
         onDelete={handleDeleteAccount}
+        error={deleteAccountError}
       />
 
       <AddressManagementModal

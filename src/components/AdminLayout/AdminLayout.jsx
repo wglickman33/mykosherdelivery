@@ -59,15 +59,24 @@ const AdminLayout = () => {
 
   useEffect(() => {
     if (authLoading || !user) return;
-    
-    const loadInitialCounts = async () => {
-      const result = await fetchNotificationCounts();
-      if (result?.success) {
-        setNotifications(result.data);
-      }
-    };
 
-    loadInitialCounts();
+    const timeoutId = window.setTimeout(() => {
+      const loadCountsThenNotifications = async () => {
+        const result = await fetchNotificationCounts();
+        if (result?.success) {
+          setNotifications(result.data);
+        }
+        await new Promise((r) => setTimeout(r, 400));
+        const res = await fetchAdminNotifications(250);
+        if (res?.success) {
+          setNotifList(Array.isArray(res.data) ? res.data : []);
+          setNotifUnread(typeof res.unreadCount === 'number' ? res.unreadCount : 0);
+        }
+      };
+      loadCountsThenNotifications();
+    }, 2200);
+
+    return () => clearTimeout(timeoutId);
   }, [authLoading, user]);
 
   useEffect(() => {
@@ -91,20 +100,6 @@ const AdminLayout = () => {
     window.addEventListener('mkd-admin-active-requests', onActiveRequests);
     return () => window.removeEventListener('mkd-admin-active-requests', onActiveRequests);
   }, []);
-
-  useEffect(() => {
-      if (authLoading || !user) return;
-    
-    const loadInitialNotifications = async () => {
-      const res = await fetchAdminNotifications(250);
-      if (res?.success) {
-        setNotifList(Array.isArray(res.data) ? res.data : []);
-        setNotifUnread(typeof res.unreadCount === 'number' ? res.unreadCount : 0);
-      }
-    };
-
-    loadInitialNotifications();
-  }, [authLoading, user]);
 
   useEffect(() => {
     if (authLoading || !user || user?.role !== 'admin' || sseSetupRef.current) {

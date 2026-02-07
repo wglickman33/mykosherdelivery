@@ -379,9 +379,25 @@ export const fetchOrderRefunds = async (orderId) => {
 export const fetchAllUsers = async (filters = {}) => {
   try {
     const response = await apiClient.get('/admin/users', filters);
-    return { success: true, data: response.data, pagination: response.pagination };
+    const list = Array.isArray(response.data) ? response.data : (response.data?.data ?? []);
+    const pagination = response.pagination ?? response.data?.pagination ?? {};
+    return { success: true, data: list, pagination };
   } catch (error) {
     logger.error('Error fetching users:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const fetchUserById = async (userId) => {
+  try {
+    const response = await apiClient.get(`/admin/users/${userId}`);
+    const data = response.data?.data ?? response.data;
+    return { success: true, data };
+  } catch (error) {
+    if (error.message && error.message.includes('not found')) {
+      return { success: false, notFound: true, error: error.message };
+    }
+    logger.error('Error fetching user:', error);
     return { success: false, error: error.message };
   }
 };
@@ -2078,17 +2094,17 @@ export const updateSystemSetting = async (key, value) => {
 export const fetchNotificationCounts = async () => {
   try {
     const activeStatuses = ['pending', 'confirmed', 'preparing', 'out_for_delivery'];
-
-    const results = await Promise.all(
-      activeStatuses.map(status => apiClient.get('/admin/orders', { status, page: 1, limit: 1 }))
-    );
-
+    const results = [];
+    for (const status of activeStatuses) {
+      const resp = await apiClient.get('/admin/orders', { status, page: 1, limit: 1 });
+      results.push(resp);
+      await delay(80);
+    }
     const activeOrders = results.reduce((sum, resp) => sum + (resp?.pagination?.total || 0), 0);
 
-    const [supportTicketsResp, menuRequestsResp] = await Promise.all([
-      apiClient.get('/admin/support-tickets', { status: 'open,in_progress', page: 1, limit: 1 }),
-      apiClient.get('/admin/menu-change-requests', { status: 'pending', page: 1, limit: 1 })
-    ]);
+    const supportTicketsResp = await apiClient.get('/admin/support-tickets', { status: 'open,in_progress', page: 1, limit: 1 });
+    await delay(80);
+    const menuRequestsResp = await apiClient.get('/admin/menu-change-requests', { status: 'pending', page: 1, limit: 1 });
 
     const activeTickets = (supportTicketsResp?.pagination?.total || 0) + (menuRequestsResp?.pagination?.total || 0);
 

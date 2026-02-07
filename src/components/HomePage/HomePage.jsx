@@ -4,6 +4,7 @@ import "./HomePage.scss";
 import Footer from "../Footer/Footer";
 import Countdown from "../Countdown/Countdown";
 import LoadingSpinner from "../LoadingSpinner/LoadingSpinner";
+import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import { fetchFeaturedRestaurants } from "../../services/restaurantsService";
 import { useAuth } from "../../hooks/useAuth";
 import { HeartIcon } from "../Icons/IconSet";
@@ -18,6 +19,7 @@ const HomePage = () => {
   const [featuredRestaurants, setFeaturedRestaurants] = useState([]);
   const [favorites, setFavorites] = useState(new Set());
   const [loading, setLoading] = useState(true);
+  const [flashError, setFlashError] = useState(null);
 
   useEffect(() => {
     const loadFeaturedRestaurants = async () => {
@@ -71,10 +73,12 @@ const HomePage = () => {
 
   const handleFavoriteToggle = async (restaurantId) => {
     if (!user) {
-      alert('Please log in to add favorites');
+      setFlashError('Please log in to add favorites');
+      console.warn('[HomePage] Favorite clicked while logged out');
       return;
     }
 
+    setFlashError(null);
     const isFavorite = favorites.has(restaurantId);
     
     try {
@@ -96,16 +100,22 @@ const HomePage = () => {
           setFavorites(prev => new Set(prev).add(restaurantId));
         }
       } else {
-        console.error('Failed to update favorite:', result.error);
+        setFlashError(result.error || 'Could not update favorite');
+        console.error('[HomePage] Failed to update favorite:', result.error, { restaurantId });
       }
     } catch (error) {
-      console.error('Error toggling favorite:', error);
+      const msg = error?.message || 'Could not update favorite';
+      setFlashError(msg);
+      console.error('[HomePage] Error toggling favorite:', error, { restaurantId });
     }
   };
 
   return (
     <div className="home-page">
       <div className="home-content">
+        {flashError && (
+          <ErrorMessage message={flashError} type="warning" onDismiss={() => setFlashError(null)} />
+        )}
         <section className="hero-section">
           <div className="hero-content">
             <h1>Welcome to<br />My Kosher Delivery</h1>

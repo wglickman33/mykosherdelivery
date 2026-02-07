@@ -1,6 +1,6 @@
 import './AdminUsers.scss';
 import { useState, useEffect } from 'react';
-import { fetchAllUsers, updateUserProfile, deleteUser, createUser, logAdminAction } from '../../services/adminServices';
+import { fetchAllUsers, fetchUserById, updateUserProfile, deleteUser, createUser, logAdminAction } from '../../services/adminServices';
 import { fetchFacilitiesList } from '../../services/nursingHomeService';
 import { useAuth } from '../../hooks/useAuth';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
@@ -55,6 +55,8 @@ const AdminUsers = () => {
   });
   const [pagination, setPagination] = useState({});
   const [facilities, setFacilities] = useState([]);
+  const [viewUserDetail, setViewUserDetail] = useState(null);
+  const [loadingViewUser, setLoadingViewUser] = useState(false);
   const { user: adminUser } = useAuth();
 
   useEffect(() => {
@@ -73,6 +75,38 @@ const AdminUsers = () => {
     fetchUsers();
   }, [filters]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (showEditModal && selectedUser) {
+      const facilityId = [selectedUser.nursing_home_facility_id, selectedUser.nursingHomeFacilityId]
+        .find((v) => v != null && v !== '');
+      setEditFormData({
+        first_name: selectedUser.first_name ?? '',
+        last_name: selectedUser.last_name ?? '',
+        email: selectedUser.email ?? '',
+        phone_number: selectedUser.phone_number ?? '',
+        role: selectedUser.role ?? '',
+        nursing_home_facility_id: facilityId != null ? String(facilityId) : ''
+      });
+    }
+  }, [showEditModal, selectedUser]);
+
+  useEffect(() => {
+    if (showUserModal && selectedUser?.id) {
+      setViewUserDetail(null);
+      setLoadingViewUser(true);
+      const id = selectedUser.id;
+      fetchUserById(id)
+        .then((res) => {
+          if (res.success && res.data) setViewUserDetail(res.data);
+          else setViewUserDetail(selectedUser);
+        })
+        .catch(() => setViewUserDetail(selectedUser))
+        .finally(() => setLoadingViewUser(false));
+    } else {
+      setViewUserDetail(null);
+    }
+  }, [showUserModal, selectedUser]);
+
   const fetchUsers = async () => {
     setLoading(true);
     const result = await fetchAllUsers(filters);
@@ -87,9 +121,24 @@ const AdminUsers = () => {
   };
 
   const handleEditUser = async (formData) => {
+    const isNursingHomeRole = formData.role === USER_ROLES.NURSING_HOME_ADMIN || formData.role === USER_ROLES.NURSING_HOME_USER;
+    const hasFacility = formData.nursing_home_facility_id != null && String(formData.nursing_home_facility_id).trim() !== '';
+    if (isNursingHomeRole && !hasFacility) {
+      showNotification('Please assign a facility for Nursing Home Admin or Nursing Home User.', 'error');
+      return;
+    }
     setSaving(true);
     try {
-      const result = await updateUserProfile(selectedUser.id, formData);
+      const facilityValue = hasFacility ? String(formData.nursing_home_facility_id).trim() : null;
+      const payload = {
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        email: formData.email,
+        phone_number: formData.phone_number || null,
+        role: formData.role,
+        nursing_home_facility_id: facilityValue
+      };
+      const result = await updateUserProfile(selectedUser.id, payload);
       if (result.success) {
         await logAdminAction(
           adminUser.id,
@@ -100,11 +149,16 @@ const AdminUsers = () => {
           formData
         );
         const updatedUser = result.data?.data || result.data;
+        const merged = {
+          ...(updatedUser || {}),
+          nursing_home_facility_id: updatedUser?.nursing_home_facility_id ?? facilityValue ?? null
+        };
         setUsers(users.map(user =>
-          user.id === selectedUser.id ? { ...user, ...(updatedUser || formData) } : user
+          user.id === selectedUser.id ? { ...user, ...merged } : user
         ));
         setShowEditModal(false);
         setSelectedUser(null);
+        fetchUsers();
         window.dispatchEvent(new CustomEvent('mkd-refresh-notifications'));
         showNotification('User updated successfully', 'success');
       } else {
@@ -124,6 +178,12 @@ const AdminUsers = () => {
   };
 
   const handleCreateUser = async (formData) => {
+    const isNursingHomeRole = formData.role === USER_ROLES.NURSING_HOME_ADMIN || formData.role === USER_ROLES.NURSING_HOME_USER;
+    const hasFacility = formData.nursingHomeFacilityId != null && String(formData.nursingHomeFacilityId).trim() !== '';
+    if (isNursingHomeRole && !hasFacility) {
+      showNotification('Please assign a facility for Nursing Home Admin or Nursing Home User.', 'error');
+      return;
+    }
     const payload = {
       ...formData,
       nursing_home_facility_id: formData.nursingHomeFacilityId && formData.nursingHomeFacilityId.trim() ? formData.nursingHomeFacilityId.trim() : undefined
@@ -372,14 +432,6 @@ const AdminUsers = () => {
                           className="edit-btn"
                           onClick={() => {
                             setSelectedUser(user);
-                            setEditFormData({
-                              first_name: user.first_name,
-                              last_name: user.last_name,
-                              email: user.email,
-                              phone_number: user.phone_number,
-                              role: user.role,
-                              nursing_home_facility_id: user.nursing_home_facility_id || user.nursingHomeFacilityId || ''
-                            });
                             setShowEditModal(true);
                           }}
                         >
@@ -433,10 +485,10 @@ const AdminUsers = () => {
       {}
       {showUserModal && selectedUser && (
         <div className="admin-users__overlay" onClick={() => setShowUserModal(false)}>
-          <div className="admin-users__modal admin-users__modal--view" onClick={(e) => e.stopPropagation()}>
+          <div className="admin-users__modal admin-users__modal--view admin-users__modal--edit" onClick={(e) => e.stopPropagation()}>
             <div className="admin-users__modal-header">
               <h2>User Details</h2>
-              <button 
+              <button
                 className="admin-users__modal-close"
                 onClick={() => setShowUserModal(false)}
               >
@@ -444,38 +496,60 @@ const AdminUsers = () => {
               </button>
             </div>
             <div className="admin-users__modal-content">
-              <div className="admin-users__overview">
-                <h3>{selectedUser.first_name} {selectedUser.last_name}</h3>
-                
-                <div className="admin-users__info-grid">
-                  <div className="admin-users__info-item">
-                    <label>User ID:</label>
-                    <span>{selectedUser.id}</span>
+              {loadingViewUser ? (
+                <div className="admin-users__view-loading">Loading…</div>
+              ) : (() => {
+                const u = viewUserDetail || selectedUser;
+                const facilityId = u?.nursing_home_facility_id ?? u?.nursingHomeFacilityId;
+                const facility = facilityId && facilities.find((f) => f.id === facilityId || f.id === String(facilityId));
+                const facilityDisplay = facility ? facility.name : facilityId ? `ID: ${facilityId}` : 'Not assigned';
+                return (
+                  <div className="admin-users__form-grid">
+                    <div className="admin-users__form-group">
+                      <label>First Name</label>
+                      <div className="admin-users__view-value">{u?.first_name ?? '—'}</div>
+                    </div>
+                    <div className="admin-users__form-group">
+                      <label>Last Name</label>
+                      <div className="admin-users__view-value">{u?.last_name ?? '—'}</div>
+                    </div>
+                    <div className="admin-users__form-group">
+                      <label>Email</label>
+                      <div className="admin-users__view-value">{u?.email ?? '—'}</div>
+                    </div>
+                    <div className="admin-users__form-group">
+                      <label>Phone</label>
+                      <div className="admin-users__view-value">{formatPhoneNumber(u?.phone_number) || 'Not provided'}</div>
+                    </div>
+                    <div className="admin-users__form-group">
+                      <label>Role</label>
+                      <div className="admin-users__view-value">
+                        <span className="admin-users__role-badge" style={{ backgroundColor: getRoleBadgeColor(u?.role), color: 'white' }}>
+                          {getRoleLabel(u?.role)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="admin-users__form-group">
+                      <label>Joined</label>
+                      <div className="admin-users__view-value">{u?.created_at ? formatDate(u.created_at) : '—'}</div>
+                    </div>
+                    <div className="admin-users__form-group">
+                      <label>Last Login</label>
+                      <div className="admin-users__view-value">{u?.last_login ? formatDate(u.last_login) : 'Never'}</div>
+                    </div>
+                    <div className="admin-users__form-group">
+                      <label>User ID</label>
+                      <div className="admin-users__view-value admin-users__view-value--mono">{u?.id ?? '—'}</div>
+                    </div>
+                    {(u?.role === USER_ROLES.NURSING_HOME_ADMIN || u?.role === USER_ROLES.NURSING_HOME_USER) && (
+                      <div className="admin-users__form-group admin-users__form-group--full">
+                        <label>Nursing Home Facility</label>
+                        <div className="admin-users__view-value">{facilityDisplay}</div>
+                      </div>
+                    )}
                   </div>
-                  <div className="admin-users__info-item">
-                    <label>Email:</label>
-                    <span>{selectedUser.email}</span>
-                  </div>
-                  <div className="admin-users__info-item">
-                    <label>Phone:</label>
-                    <span>{formatPhoneNumber(selectedUser.phone_number)}</span>
-                  </div>
-                  <div className="admin-users__info-item">
-                    <label>Role:</label>
-                    <span className="admin-users__role-badge" style={{ backgroundColor: getRoleBadgeColor(selectedUser.role), color: 'white' }}>
-                      {getRoleLabel(selectedUser.role)}
-                    </span>
-                  </div>
-                  <div className="admin-users__info-item">
-                    <label>Joined:</label>
-                    <span>{formatDate(selectedUser.created_at)}</span>
-                  </div>
-                  <div className="admin-users__info-item">
-                    <label>Last Login:</label>
-                    <span>{selectedUser.last_login ? formatDate(selectedUser.last_login) : 'Never'}</span>
-                  </div>
-                </div>
-              </div>
+                );
+              })()}
             </div>
           </div>
         </div>
@@ -557,12 +631,13 @@ const AdminUsers = () => {
                   </div>
                   {(editFormData.role === USER_ROLES.NURSING_HOME_ADMIN || editFormData.role === USER_ROLES.NURSING_HOME_USER) && (
                     <div className="admin-users__form-group">
-                      <label>Nursing Home Facility</label>
+                      <label>Nursing Home Facility *</label>
                       <select
-                        value={editFormData.nursing_home_facility_id || ''}
+                        value={String(editFormData.nursing_home_facility_id ?? '')}
                         onChange={(e) => setEditFormData({ ...editFormData, nursing_home_facility_id: e.target.value })}
+                        required
                       >
-                        <option value="">No facility</option>
+                        <option value="">Select a facility</option>
                         {facilities.map((f) => (
                           <option key={f.id} value={f.id}>{f.name}</option>
                         ))}
@@ -695,12 +770,13 @@ const AdminUsers = () => {
                   </div>
                   {(createFormData.role === USER_ROLES.NURSING_HOME_ADMIN || createFormData.role === USER_ROLES.NURSING_HOME_USER) && (
                     <div className="admin-users__form-group">
-                      <label>Nursing Home Facility</label>
+                      <label>Nursing Home Facility *</label>
                       <select
                         value={createFormData.nursingHomeFacilityId || ''}
                         onChange={(e) => setCreateFormData({ ...createFormData, nursingHomeFacilityId: e.target.value })}
+                        required
                       >
-                        <option value="">No facility</option>
+                        <option value="">Select a facility</option>
                         {facilities.map((f) => (
                           <option key={f.id} value={f.id}>{f.name}</option>
                         ))}

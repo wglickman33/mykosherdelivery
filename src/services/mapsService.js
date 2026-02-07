@@ -28,6 +28,11 @@ export async function updateAdminMapsRestaurant(id, data) {
   return res;
 }
 
+export async function deleteAdminMapsRestaurant(id) {
+  const res = await api.delete(`${ADMIN_MAPS_BASE}/restaurants/${id}`);
+  return res;
+}
+
 export async function importAdminMapsRestaurantsCsv(file) {
   const formData = new FormData();
   formData.append('file', file);

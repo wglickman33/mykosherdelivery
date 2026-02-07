@@ -3,11 +3,14 @@ import {
   getAdminMapsRestaurants,
   createAdminMapsRestaurant,
   updateAdminMapsRestaurant,
+  deleteAdminMapsRestaurant,
   importAdminMapsRestaurantsCsv
 } from '../../services/mapsService';
 import { MapPin, Upload } from 'lucide-react';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
+import NotificationToast from '../NotificationToast/NotificationToast';
+import { useNotification } from '../../hooks/useNotification';
 import './AdminMaps.scss';
 
 const DEACTIVATION_OPTIONS = [
@@ -20,6 +23,7 @@ const DEACTIVATION_OPTIONS = [
 const DIET_TAG_OPTIONS = ['meat', 'dairy', 'parve', 'sushi', 'fish', 'vegan', 'vegetarian', 'bakery', 'pizza', 'deli'];
 
 const AdminMaps = () => {
+  const { notification, showNotification, hideNotification } = useNotification();
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -32,6 +36,8 @@ const AdminMaps = () => {
   const [search, setSearch] = useState('');
   const [filterActive, setFilterActive] = useState('');
   const [filterDiet, setFilterDiet] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [rowToDelete, setRowToDelete] = useState(null);
   const [form, setForm] = useState({
     name: '',
     address: '',
@@ -63,11 +69,15 @@ const AdminMaps = () => {
       setList(Array.isArray(res?.data) ? res.data : []);
       setPagination(res?.pagination || { page: 1, limit: 50, total: 0, totalPages: 1 });
     } catch (err) {
-      setError(err?.message || 'Failed to load map restaurants');
+      const msg = err?.message || 'Failed to load map restaurants';
       setList([]);
+      showNotification(msg, 'error');
+      console.error('[AdminMaps] Load failed:', msg, err);
     } finally {
       setLoading(false);
     }
+  // showNotification intentionally omitted to avoid request loop (it changes every render)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, search, filterActive, filterDiet]);
 
   useEffect(() => {
@@ -154,7 +164,10 @@ const AdminMaps = () => {
       setModalOpen(false);
       load();
     } catch (err) {
-      setError(err?.message || 'Failed to save');
+      const msg = err?.message || 'Failed to save';
+      setError(null);
+      showNotification(msg, 'error');
+      console.error('[AdminMaps] Save failed:', msg, { error: err, editing: !!editing });
     } finally {
       setSubmitting(false);
     }
@@ -184,19 +197,58 @@ const AdminMaps = () => {
     setModalOpen(true);
   };
 
+  const handleView = () => {
+    const base = window.location.origin;
+    window.open(`${base}/maps`, '_blank', 'noopener');
+  };
+
+  const handleDeleteClick = (row) => {
+    setRowToDelete(row);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!rowToDelete) return;
+    try {
+      await deleteAdminMapsRestaurant(rowToDelete.id);
+      setShowDeleteConfirm(false);
+      setRowToDelete(null);
+      load();
+      showNotification('Restaurant deleted', 'success');
+    } catch (err) {
+      showNotification(err?.message || 'Failed to delete', 'error');
+    }
+  };
+
   const handleCsvImport = async (e) => {
     const file = e?.target?.files?.[0];
     if (!file) return;
     setImporting(true);
-    setError(null);
     try {
       const result = await importAdminMapsRestaurantsCsv(file);
-      setImporting(false);
       e.target.value = '';
       load();
-      alert(`Upload complete: ${result.created} created, ${result.updated} updated.${result.errors?.length ? ` ${result.errors.length} errors.` : ''}`);
+      const created = result.created ?? 0;
+      const updated = result.updated ?? 0;
+      const errCount = result.errors?.length ?? 0;
+      const msg = `${created} created, ${updated} updated${errCount ? `. ${errCount} row(s) skipped.` : '.'}`;
+      showNotification(msg, 'success');
+      if (result.errors?.length) {
+        const byMessage = {};
+        result.errors.forEach(({ row, message }) => {
+          byMessage[message] = (byMessage[message] || []).concat(row);
+        });
+        const summary = Object.entries(byMessage)
+          .map(([m, rows]) => `${rows.length}× ${m} (rows: ${rows.join(', ')})`)
+          .join('; ');
+        console.warn('[AdminMaps] Upload complete with row errors:', msg, '—', summary);
+      } else {
+        console.log('[AdminMaps] Upload complete:', msg);
+      }
     } catch (err) {
-      setError(err?.message || 'Upload failed');
+      const msg = err?.message || 'Upload failed';
+      showNotification(msg, 'error');
+      console.error('[AdminMaps] Upload failed:', msg, { error: err, fileName: file?.name });
     } finally {
       setImporting(false);
     }
@@ -211,141 +263,193 @@ const AdminMaps = () => {
     }));
   };
 
+  const activeCount = list.filter((r) => r.isActive !== false).length;
+  const inactiveCount = list.length - activeCount;
+
   return (
     <div className="admin-maps">
-      <div className="admin-maps__header">
-        <h1>Kosher Maps – Restaurants</h1>
-        <p>Manage the directory of kosher restaurants for My Kosher Maps.</p>
+      <div className="maps-header">
+        <div className="header-content">
+          <h1>Kosher Maps – Restaurants</h1>
+          <p>Manage the directory of kosher restaurants for My Kosher Maps.</p>
+        </div>
+        <div className="header-actions">
+          <button type="button" className="maps-btn-primary" onClick={handleOpenAdd}>
+            Add Restaurant
+          </button>
+          <label className="maps-upload-label">
+            <span className="maps-btn-secondary">
+              <Upload size={18} className="maps-upload-icon" aria-hidden />
+              {importing ? 'Uploading…' : 'Upload CSV / Excel'}
+            </span>
+            <input
+              type="file"
+              accept=".csv,.xlsx"
+              onChange={handleCsvImport}
+              disabled={importing}
+              style={{ display: 'none' }}
+            />
+          </label>
+        </div>
       </div>
 
-      <div className="admin-maps__toolbar">
-        <button type="button" className="btn-primary" onClick={handleOpenAdd}>
-          Add Restaurant
-        </button>
-        <label className="admin-maps__upload-label">
-          <span className="btn-secondary">
-            <Upload size={18} className="admin-maps__upload-icon" aria-hidden />
-            {importing ? 'Uploading…' : 'Upload'}
-          </span>
-          <input
-            type="file"
-            accept=".csv"
-            onChange={handleCsvImport}
-            disabled={importing}
-            style={{ display: 'none' }}
-          />
-        </label>
-        <div className="admin-maps__filters">
+      <div className="stats-grid">
+        <div className="stat-card">
+          <span className="stat-label">Total</span>
+          <span className="stat-value">{pagination.total}</span>
+        </div>
+        <div className="stat-card stat-card--success">
+          <span className="stat-label">Active</span>
+          <span className="stat-value">{activeCount}</span>
+        </div>
+        <div className="stat-card stat-card--muted">
+          <span className="stat-label">Inactive</span>
+          <span className="stat-value">{inactiveCount}</span>
+        </div>
+      </div>
+
+      <div className="maps-filters">
+        <div className="filter-group">
+          <label>Search</label>
           <input
             type="text"
-            placeholder="Search name, address…"
+            placeholder="Name, address…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="admin-maps__search"
           />
+        </div>
+        <div className="filter-group">
+          <label>Status</label>
           <select
             value={filterActive}
             onChange={(e) => setFilterActive(e.target.value)}
-            className="admin-maps__filter"
           >
-            <option value="">All status</option>
+            <option value="">All</option>
             <option value="true">Active</option>
             <option value="false">Inactive</option>
           </select>
+        </div>
+        <div className="filter-group">
+          <label>Diet tag</label>
           <input
             type="text"
-            placeholder="Diet tag"
+            placeholder="e.g. meat, dairy"
             value={filterDiet}
             onChange={(e) => setFilterDiet(e.target.value)}
-            className="admin-maps__filter-input"
           />
         </div>
       </div>
 
-      {error && !modalOpen && (
-        <ErrorMessage message={error} type="error" onDismiss={() => setError(null)} />
-      )}
-
-      {loading ? (
-        <LoadingSpinner size="large" />
-      ) : list.length === 0 ? (
-        <div className="admin-maps__empty">
-          <div className="admin-maps__empty-icon" aria-hidden>
-            <MapPin size={48} strokeWidth={1.5} />
+      <div className="maps-table-container">
+        {loading ? (
+          <div className="maps-loading">
+            <LoadingSpinner size="large" />
+            <p>Loading restaurants…</p>
           </div>
-          <h2 className="admin-maps__empty-title">No restaurants yet</h2>
-          <p className="admin-maps__empty-text">Add your first restaurant or upload a CSV to build your map directory.</p>
-          <div className="admin-maps__empty-actions">
-            <button type="button" className="admin-maps__empty-btn admin-maps__empty-btn--primary" onClick={handleOpenAdd}>
-              Add Restaurant
-            </button>
+        ) : list.length === 0 ? (
+          <div className="maps-empty">
+            <div className="maps-empty-icon" aria-hidden>
+              <MapPin size={48} strokeWidth={1.5} />
+            </div>
+            <h2 className="maps-empty-title">No restaurants yet</h2>
+            <p className="maps-empty-text">Add your first restaurant or upload a CSV or Excel file to build your map directory.</p>
+            <div className="maps-empty-actions">
+              <button type="button" className="maps-btn-primary" onClick={handleOpenAdd}>
+                Add Restaurant
+              </button>
+            </div>
           </div>
-        </div>
-      ) : (
-        <div className="admin-maps__table-wrap">
-          <table className="admin-maps__table data-table" role="grid">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Address</th>
-                <th>Diet</th>
-                <th>Certification</th>
-                <th>Phone</th>
-                <th>Rating</th>
-                <th>Active</th>
-                <th>Reason</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {list.map((row) => (
-                <tr key={row.id} className={row.isActive === false ? 'admin-maps__row--inactive' : ''}>
-                  <td>{row.name}</td>
-                  <td>{[row.address, row.city, row.state, row.zip].filter(Boolean).join(', ') || '—'}</td>
-                  <td>{(row.dietTags || []).join(', ') || '—'}</td>
-                  <td>{row.kosherCertification || '—'}</td>
-                  <td>{row.phone || '—'}</td>
-                  <td>{row.googleRating != null ? row.googleRating : '—'}</td>
-                  <td>{row.isActive ? 'Yes' : 'No'}</td>
-                  <td>{row.deactivationReason ? row.deactivationReason.replace(/_/g, ' ') : '—'}</td>
-                  <td>
-                    <div className="row-actions">
-                      <button type="button" className="edit-btn" onClick={() => handleOpenEdit(row)}>
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        className={row.isActive ? 'archive-btn' : 'view-btn'}
-                        onClick={() => handleToggleActive(row)}
-                      >
-                        {row.isActive ? 'Deactivate' : 'Activate'}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+        ) : (
+          <>
+            <div className="maps-table-scroll">
+              <table className="maps-table" role="grid">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Address</th>
+                    <th>Diet</th>
+                    <th>Certification</th>
+                    <th>Phone</th>
+                    <th>Rating</th>
+                    <th>Active</th>
+                    <th>Reason</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {list.map((row) => (
+                    <tr key={row.id} className={row.isActive === false ? 'maps-row--inactive' : ''}>
+                      <td className="maps-name">{row.name}</td>
+                      <td className="maps-address">{[row.address, row.city, row.state, row.zip].filter(Boolean).join(', ') || '—'}</td>
+                      <td className="maps-diet">{(row.dietTags || []).join(', ') || '—'}</td>
+                      <td className="maps-cert">{row.kosherCertification || '—'}</td>
+                      <td className="maps-phone">{row.phone || '—'}</td>
+                      <td className="maps-rating">{row.googleRating != null ? Number(row.googleRating).toFixed(1) : '—'}</td>
+                      <td className="maps-active">
+                        <span className={`maps-pill maps-pill--${row.isActive !== false ? 'success' : 'error'}`}>
+                          {row.isActive !== false ? 'Yes' : 'No'}
+                        </span>
+                      </td>
+                      <td className="maps-reason">{row.deactivationReason ? row.deactivationReason.replace(/_/g, ' ') : '—'}</td>
+                      <td className="maps-actions">
+                        <button type="button" className="maps-action maps-action--view" onClick={handleView}>View</button>
+                        <button type="button" className="maps-action maps-action--edit" onClick={() => handleOpenEdit(row)}>Edit</button>
+                        <button
+                          type="button"
+                          className="maps-action maps-action--deactivate"
+                          onClick={() => handleToggleActive(row)}
+                        >
+                          {row.isActive ? 'Deactivate' : 'Activate'}
+                        </button>
+                        <button type="button" className="maps-action maps-action--delete" onClick={() => handleDeleteClick(row)}>Delete</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {list.length > 0 && (
+              <div className="pagination">
+                <div className="pagination-info">
+                  Showing {pagination.total > 0 ? ((pagination.page - 1) * (pagination.limit || 50)) + 1 : 0} to{' '}
+                  {Math.min(pagination.page * (pagination.limit || 50), pagination.total)} of{' '}
+                  {pagination.total || 0} restaurants
+                </div>
+                <div className="pagination-controls">
+                  <button
+                    type="button"
+                    disabled={pagination.page <= 1}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  >
+                    Previous
+                  </button>
+                  <span className="page-info">
+                    Page {pagination.page || 1} of {pagination.totalPages || 1}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={pagination.page >= pagination.totalPages}
+                    onClick={() => setPage((p) => p + 1)}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
-      {!loading && list.length > 0 && pagination.totalPages > 1 && (
-        <div className="admin-maps__pagination">
-          <button
-            type="button"
-            disabled={page <= 1}
-            onClick={() => setPage((p) => p - 1)}
-          >
-            Previous
-          </button>
-          <span>Page {page} of {pagination.totalPages}</span>
-          <button
-            type="button"
-            disabled={page >= pagination.totalPages}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            Next
-          </button>
+      {showDeleteConfirm && rowToDelete && (
+        <div className="maps-delete-overlay" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="maps-delete-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Delete restaurant?</h3>
+            <p>“{rowToDelete.name}” will be removed from the map directory. This cannot be undone.</p>
+            <div className="maps-delete-actions">
+              <button type="button" className="maps-btn-secondary" onClick={() => setShowDeleteConfirm(false)}>Cancel</button>
+              <button type="button" className="maps-btn-danger" onClick={handleDeleteConfirm}>Delete</button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -525,6 +629,8 @@ const AdminMaps = () => {
           </div>
         </div>
       )}
+
+      <NotificationToast notification={notification} onClose={hideNotification} />
     </div>
   );
 };

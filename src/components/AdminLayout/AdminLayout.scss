@@ -543,8 +543,10 @@
 
 .admin-content {
   flex: 1;
+  min-width: 0;
   padding: 24px 32px;
   overflow-y: auto;
+  overflow-x: auto;
   background: #f8fafc;
 }
 
@@ -596,6 +598,38 @@
 
   .admin-content {
     padding: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-content {
+    padding: 12px;
+  }
+
+  .admin-header {
+    padding: 12px 16px;
+  }
+}
+
+@media (max-width: 360px) {
+  .admin-content {
+    padding: 10px;
+  }
+
+  .admin-header {
+    padding: 10px 12px;
+
+    &__title h1 {
+      font-size: 1.25rem;
+    }
+  }
+}
+
+@media (min-width: 2000px) {
+  .admin-content {
+    max-width: 1920px;
+    margin-left: auto;
+    margin-right: auto;
   }
 }
 

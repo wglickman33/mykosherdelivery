@@ -5,6 +5,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { HeartIcon } from '../Icons/IconSet';
 import Footer from '../Footer/Footer';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
+import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import navyMKDIcon from '../../assets/navyMKDIcon.png';
 import { 
   fetchRestaurants, 
@@ -21,6 +22,7 @@ export default function RestaurantsPage() {
   const [favoritesLoading, setFavoritesLoading] = useState(false);
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [flashError, setFlashError] = useState(null);
 
   const cuisineCategories = {
     'all': { label: 'All Restaurants', keywords: [] },
@@ -80,10 +82,12 @@ export default function RestaurantsPage() {
 
   const handleFavoriteToggle = async (restaurantId) => {
     if (!user) {
-      alert('Please log in to add favorites');
+      setFlashError('Please log in to add favorites');
+      console.warn('[RestaurantsPage] Favorite clicked while logged out');
       return;
     }
 
+    setFlashError(null);
     const isFavorite = favorites.has(restaurantId);
     
     if (isFavorite) {
@@ -114,7 +118,9 @@ export default function RestaurantsPage() {
             return newFavorites;
           });
         }
-        console.error('Failed to update favorite:', result.error);
+        const msg = result.error || 'Could not update favorite';
+        setFlashError(msg);
+        console.error('[RestaurantsPage] Failed to update favorite:', result.error, { restaurantId });
       }
     } catch (error) {
       if (isFavorite) {
@@ -126,7 +132,9 @@ export default function RestaurantsPage() {
           return newFavorites;
         });
       }
-      console.error('Error toggling favorite:', error);
+      const msg = error?.message || 'Could not update favorite';
+      setFlashError(msg);
+      console.error('[RestaurantsPage] Error toggling favorite:', error, { restaurantId });
     }
   };
 
@@ -168,6 +176,9 @@ export default function RestaurantsPage() {
   return (
     <div className="restaurants-page">
       <div className="restaurants-page__content">
+        {flashError && (
+          <ErrorMessage message={flashError} type="warning" onDismiss={() => setFlashError(null)} />
+        )}
         <div className="restaurants-header">
           <h1>Our Restaurant Partners</h1>
           <p>Discover amazing local restaurants and order your favorite meals</p>
