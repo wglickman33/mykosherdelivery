@@ -8,7 +8,7 @@ const NursingHomeAdminLogin = () => {
       title="Nursing Home Admin Portal"
       subtitle="Manage residents, staff, and orders"
       allowedRoles={[USER_ROLES.NURSING_HOME_ADMIN, USER_ROLES.ADMIN]}
-      redirectPath="/nursing-homes/admin/dashboard"
+      redirectPath="/admin/nursing-homes"
       errorMessage="Invalid credentials for nursing home admin portal"
       footerText="Need help? Contact MKD support"
       className="nursing-home-admin-login"

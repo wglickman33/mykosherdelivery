@@ -1,5 +1,6 @@
 // Design System for Nursing Home Portal
 // Purple Theme (#9333ea)
+@use 'sass:color';
 
 // ============================================
 // COLORS
@@ -232,7 +233,7 @@ $z-tooltip: 1070;
   color: $white;
 
   &:hover:not(:disabled) {
-    background: darken($error, 5%);
+    background: color.adjust($error, $lightness: -5%);
   }
 }
 

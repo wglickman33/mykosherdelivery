@@ -17,8 +17,7 @@ const promoCodeRoutes = require('./routes/promo-codes');
 const supportRoutes = require('./routes/support');
 const countdownRoutes = require('./routes/countdown');
 const taxRoutes = require('./routes/tax');
-const nursingHomeAdminRoutes = require('./routes/nursing-home-admin');
-const nursingHomeOrdersRoutes = require('./routes/nursing-home-orders');
+const nursingHomeRoutes = require('./routes/nursing-homes');
 
 const app = express();
 
@@ -26,13 +25,25 @@ app.use(helmet({
   contentSecurityPolicy: false,
   crossOriginEmbedderPolicy: false
 }));
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:3000',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:5174',
+  'http://127.0.0.1:3000',
+  'https://mykosherdelivery.com',
+  'https://www.mykosherdelivery.com',
+  'https://mykosherdelivery.netlify.app',
+  'https://mykosherdelivery-659274a65452.herokuapp.com'
+];
 app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'https://mykosherdelivery.com',
-    'https://www.mykosherdelivery.com',
-    'https://mykosherdelivery.netlify.app'
-  ],
+  origin: (origin, cb) => {
+    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    if (process.env.NODE_ENV !== 'production' && /^https?:\/\/localhost(:\d+)?$/.test(origin)) return cb(null, true);
+    if (process.env.NODE_ENV !== 'production' && /^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(origin)) return cb(null, true);
+    cb(null, false);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID']
@@ -93,8 +104,7 @@ app.use('/api/support', supportRoutes);
 app.use('/api/countdown', countdownRoutes);
 app.use('/api/tax', taxRoutes);
 app.use('/api/images', require('./routes/images'));
-app.use('/api/nursing-homes', nursingHomeAdminRoutes);
-app.use('/api/nursing-homes', nursingHomeOrdersRoutes);
+app.use('/api/nursing-homes', nursingHomeRoutes);
 
 app.get('/api/health', async (req, res) => {
   try {
@@ -118,18 +128,21 @@ app.get('/api/health', async (req, res) => {
 
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
-  const safeError = {
-    message: err.message,
-    status: err.status,
-    name: err.name,
+  const status = err.status || 500;
+  const name = err.name || 'Error';
+  const safeMessage = err.message || 'Unknown error';
+  // Always log full error to terminal so you see it when running the server
+  console.error('[GLOBAL ERROR HANDLER]', name, safeMessage);
+  console.error('[GLOBAL ERROR HANDLER] Stack:', err.stack || '(no stack)');
+  logger.error('Unhandled error:', { message: safeMessage, status, name, path: req.path });
+  // Always send error name so client/debugging can see what broke (e.g. TypeError, SequelizeDatabaseError)
+  const body = {
+    error: process.env.NODE_ENV === 'production' ? 'Internal server error' : safeMessage,
+    message: process.env.NODE_ENV === 'production' ? `Internal server error (${name})` : safeMessage,
+    serverErrorName: name,
   };
-  logger.error('Unhandled error:', safeError);
-  
-  res.status(err.status || 500).json({
-    error: process.env.NODE_ENV === 'production' 
-      ? 'Internal server error' 
-      : err.message,
-  });
+  if (err.stack) body.serverStack = err.stack.split('\n').slice(0, 12).join('\n');
+  res.status(status).json(body);
 });
 
 app.use('*', (req, res) => {

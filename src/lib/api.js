@@ -83,16 +83,28 @@ class ApiClient {
 
       if (response.status === 401) {
         const errorData = await response.json().catch(() => ({}));
-        
-        if (errorData.error === 'Token expired' || 
-            errorData.error === 'Invalid token' || 
-            errorData.error === 'Token revoked') {
-          logger.warn("Token expired/invalid - clearing token", errorData);
+        const hadToken = !!token;
+        if (
+          hadToken &&
+          (errorData.error === "Token expired" ||
+            errorData.error === "Invalid token" ||
+            errorData.error === "Token revoked")
+        ) {
+          logger.warn("Token invalid for this server - clearing (e.g. switched API URL)", errorData);
           this.setToken(null);
-        } else {
-          logger.warn("Authentication failed but keeping token", errorData);
+          try {
+            window.dispatchEvent(new CustomEvent("mkd-auth-invalid"));
+          } catch (e) {
+            logger.debug("mkd-auth-invalid dispatch", e);
+          }
+        } else if (hadToken) {
+          this.setToken(null);
+          try {
+            window.dispatchEvent(new CustomEvent("mkd-auth-invalid"));
+          } catch (e) {
+            logger.debug("mkd-auth-invalid dispatch", e);
+          }
         }
-        
         throw new Error(errorData.message || "Authentication required. Please sign in again.");
       }
 
@@ -114,14 +126,30 @@ class ApiClient {
       if (response.status >= 500) {
         logger.error(`Server error: ${response.status}`);
         let errorMessage = "Server error. Please try again later.";
+        let serverErrorName, serverStack;
         try {
           const errorData = await response.json();
-          errorMessage = errorData.message || errorData.error || errorMessage;
-          logger.error('Server error details:', errorData);
+          serverErrorName = errorData.serverErrorName;
+          serverStack = errorData.serverStack;
+          errorMessage =
+            errorData.message ||
+            errorData.error ||
+            errorData.details?.message ||
+            errorData.originalMessage ||
+            errorMessage;
+          logger.error("Server error details:", {
+            message: errorMessage,
+            serverErrorName,
+            serverStack: serverStack ? serverStack.split("\n").slice(0, 3) : undefined,
+            fullError: errorData,
+          });
         } catch (jsonError) {
-          logger.error('Failed to parse error response:', jsonError);
+          logger.error("Failed to parse error response:", jsonError);
         }
-        throw new Error(errorMessage);
+        const err = new Error(errorMessage);
+        if (serverErrorName) err.serverErrorName = serverErrorName;
+        if (serverStack) err.serverStack = serverStack;
+        throw err;
       }
 
       if (!response.ok) {

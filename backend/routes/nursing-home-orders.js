@@ -8,6 +8,7 @@ const {
   NursingHomeMenuItem,
   Profile 
 } = require('../models');
+const { Op } = require('sequelize');
 const { requireNursingHomeAdmin, requireNursingHomeUser } = require('../middleware/auth');
 const { body, query, validationResult } = require('express-validator');
 const { generateOrderNumber: generateBaseOrderNumber } = require('../services/orderService');
@@ -15,13 +16,151 @@ const { NH_CONFIG, API_CONFIG, ORDER_CONFIG } = require('../config/constants');
 const logger = require('../utils/logger');
 const XLSX = require('xlsx');
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY not configured');
+const stripe = process.env.STRIPE_SECRET_KEY
+  ? require('stripe')(process.env.STRIPE_SECRET_KEY)
+  : null;
+if (!stripe) {
+  logger.warn('STRIPE_SECRET_KEY not set; nursing home payment routes will fail');
 }
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 const router = express.Router();
 
+// --- Portal: residents (dashboard) and menu (order creation) ---
+router.get('/residents', requireNursingHomeUser, async (req, res) => {
+  try {
+    const { page = 1, limit = 50, search = '', facilityId, assignedUserId } = req.query;
+    const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+    const where = {};
+
+    if (req.user.role === 'admin') {
+      if (facilityId) where.facilityId = facilityId;
+    } else if (req.user.role === 'nursing_home_admin') {
+      where.facilityId = req.user.nursingHomeFacilityId;
+    } else {
+      where.facilityId = req.user.nursingHomeFacilityId;
+      where.assignedUserId = req.user.id;
+    }
+    if (assignedUserId && (req.user.role === 'admin' || req.user.role === 'nursing_home_user')) {
+      where.assignedUserId = assignedUserId;
+    }
+    if (search) {
+      where.name = { [Op.iLike]: `%${search}%` };
+    }
+
+    const { count, rows: residents } = await NursingHomeResident.findAndCountAll({
+      where,
+      limit: Math.min(parseInt(limit, 10) || 50, 100),
+      offset,
+      order: [['name', 'ASC']],
+      include: [
+        { model: NursingHomeFacility, as: 'facility', attributes: ['id', 'name'] },
+        { model: Profile, as: 'assignedUser', attributes: ['id', 'firstName', 'lastName', 'email'] }
+      ]
+    });
+
+    res.json({
+      success: true,
+      data: residents,
+      pagination: {
+        total: count,
+        page: parseInt(page, 10),
+        limit: parseInt(limit, 10),
+        totalPages: Math.ceil(count / (parseInt(limit, 10) || 50))
+      }
+    });
+  } catch (error) {
+    logger.error('Error fetching residents:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch residents',
+      message: error.message
+    });
+  }
+});
+
+router.get('/residents/:id', requireNursingHomeUser, async (req, res) => {
+  try {
+    const resident = await NursingHomeResident.findByPk(req.params.id, {
+      include: [
+        { model: NursingHomeFacility, as: 'facility', attributes: ['id', 'name', 'address'] },
+        { model: Profile, as: 'assignedUser', attributes: ['id', 'firstName', 'lastName', 'email', 'phone'] }
+      ]
+    });
+    if (!resident) {
+      return res.status(404).json({ success: false, error: 'Resident not found' });
+    }
+    if (req.user.role === 'nursing_home_user' && resident.assignedUserId !== req.user.id) {
+      return res.status(403).json({ success: false, error: 'Access denied' });
+    }
+    if (req.user.role === 'nursing_home_admin' && resident.facilityId !== req.user.nursingHomeFacilityId) {
+      return res.status(403).json({ success: false, error: 'Access denied' });
+    }
+    res.json({ success: true, data: resident });
+  } catch (error) {
+    logger.error('Error fetching resident:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch resident',
+      message: error.message
+    });
+  }
+});
+
+router.get('/menu', requireNursingHomeUser, async (req, res) => {
+  try {
+    const { mealType, category, isActive = 'true' } = req.query;
+    const where = { isActive: isActive === 'true' };
+    if (mealType) where.mealType = mealType;
+    if (category) where.category = category;
+
+    const menuItems = await NursingHomeMenuItem.findAll({
+      where,
+      order: [['mealType', 'ASC'], ['category', 'ASC'], ['displayOrder', 'ASC']]
+    });
+
+    const groupedMenu = {
+      breakfast: { main: [], side: [] },
+      lunch: { entree: [], side: [] },
+      dinner: { entree: [], side: [], soup: [], dessert: [] }
+    };
+    menuItems.forEach(item => {
+      if (groupedMenu[item.mealType] && groupedMenu[item.mealType][item.category]) {
+        groupedMenu[item.mealType][item.category].push(item);
+      }
+    });
+
+    res.json({
+      success: true,
+      data: { items: menuItems, grouped: groupedMenu }
+    });
+  } catch (error) {
+    logger.error('Error fetching menu:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch menu',
+      message: error.message
+    });
+  }
+});
+
+router.get('/menu/:id', requireNursingHomeUser, async (req, res) => {
+  try {
+    const menuItem = await NursingHomeMenuItem.findByPk(req.params.id);
+    if (!menuItem) {
+      return res.status(404).json({ success: false, error: 'Menu item not found' });
+    }
+    res.json({ success: true, data: menuItem });
+  } catch (error) {
+    logger.error('Error fetching menu item:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch menu item',
+      message: error.message
+    });
+  }
+});
+
+// --- Resident orders (portal) ---
 const paymentLimiter = rateLimit({
   windowMs: API_CONFIG.RATE_LIMIT.WINDOW_MS,
   max: API_CONFIG.RATE_LIMIT.PAYMENT_MAX_REQUESTS,
@@ -434,12 +573,48 @@ router.put('/resident-orders/:id', requireNursingHomeUser, validateOrderUpdate, 
   }
 });
 
+router.get('/resident-orders/:id', requireNursingHomeUser, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const order = await NursingHomeResidentOrder.findByPk(id, {
+      include: [
+        { model: NursingHomeResident, as: 'resident', attributes: ['id', 'name', 'roomNumber', 'facilityId'] },
+        { model: NursingHomeFacility, as: 'facility', attributes: ['id', 'name', 'address'] }
+      ]
+    });
+
+    if (!order) {
+      return res.status(404).json({ success: false, error: 'Order not found' });
+    }
+
+    if (req.user.role === 'nursing_home_user') {
+      const resident = order.resident || await NursingHomeResident.findByPk(order.residentId);
+      if (!resident || resident.assignedUserId !== req.user.id) {
+        return res.status(403).json({ success: false, error: 'Access denied' });
+      }
+    } else if (req.user.role === 'nursing_home_admin' && order.facilityId !== req.user.nursingHomeFacilityId) {
+      return res.status(403).json({ success: false, error: 'Access denied' });
+    } else if (req.user.role !== 'admin' && req.user.role !== 'nursing_home_admin' && req.user.role !== 'nursing_home_user') {
+      return res.status(403).json({ success: false, error: 'Access denied' });
+    }
+
+    res.json({ success: true, data: order });
+  } catch (error) {
+    logger.error('Error fetching resident order:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch order', message: error.message });
+  }
+});
+
 router.post('/resident-orders/:id/submit-and-pay', paymentLimiter, requireNursingHomeUser, [
-  body('paymentMethodId').optional().isString().trim()
+  body('paymentMethodId').optional().isString().trim(),
+  body('billingEmail').optional().isEmail().normalizeEmail(),
+  body('billingName').optional().isString().trim(),
+  body('billingPhone').optional().isString().trim()
 ], async (req, res) => {
   try {
     const { id } = req.params;
-    const { paymentMethodId } = req.body;
+    const { paymentMethodId, billingEmail, billingName, billingPhone } = req.body;
 
     const order = await NursingHomeResidentOrder.findByPk(id, {
       include: [{
@@ -480,6 +655,25 @@ router.post('/resident-orders/:id/submit-and-pay', paymentLimiter, requireNursin
       });
     }
 
+    if (billingEmail || billingName || billingPhone !== undefined) {
+      await order.update({
+        ...(billingEmail && { billingEmail }),
+        ...(billingName && { billingName }),
+        ...(billingPhone !== undefined && { billingPhone })
+      });
+    }
+
+    const receiptEmail = billingEmail || order.billingEmail;
+    const billingNameVal = billingName || order.billingName || '';
+
+    if (!stripe) {
+      return res.status(503).json({
+        success: false,
+        error: 'Payment not configured',
+        message: 'STRIPE_SECRET_KEY is not set on the server.'
+      });
+    }
+
     let paymentIntent;
     try {
       paymentIntent = await stripe.paymentIntents.create({
@@ -496,9 +690,9 @@ router.post('/resident-orders/:id/submit-and-pay', paymentLimiter, requireNursin
           weekStartDate: order.weekStartDate,
           weekEndDate: order.weekEndDate,
           totalMeals: order.totalMeals.toString(),
-          billingName: order.billingName || ''
+          billingName: billingNameVal
         },
-        receipt_email: order.billingEmail,
+        receipt_email: receiptEmail,
         statement_descriptor: 'MKD MEALS'
       });
 

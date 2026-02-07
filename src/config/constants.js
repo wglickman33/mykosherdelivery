@@ -50,6 +50,15 @@ export const USER_ROLES = {
   NURSING_HOME_USER: 'nursing_home_user'
 };
 
+/** Singular labels for badges and dropdowns. Use everywhere for consistency. */
+export const ROLE_LABELS = {
+  [USER_ROLES.USER]: 'User',
+  [USER_ROLES.ADMIN]: 'Admin',
+  [USER_ROLES.RESTAURANT_OWNER]: 'Restaurant Owner',
+  [USER_ROLES.NURSING_HOME_ADMIN]: 'Nursing Home Admin',
+  [USER_ROLES.NURSING_HOME_USER]: 'Nursing Home User'
+};
+
 export const ROLE_COLORS = {
   [USER_ROLES.USER]: 'green',
   [USER_ROLES.ADMIN]: 'red',

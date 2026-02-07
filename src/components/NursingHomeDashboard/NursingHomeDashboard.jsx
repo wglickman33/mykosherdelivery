@@ -1,67 +1,69 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { fetchResidents, fetchResidentOrders } from '../../services/nursingHomeService';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import './NursingHomeDashboard.scss';
 
+const IS_404_MESSAGE = 'The requested resource was not found.';
+
 const NursingHomeDashboard = () => {
-  const [residents, setResidents] = useState([]);
+  const [searchParams] = useSearchParams();
+  const facilityId = searchParams.get('facilityId');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [apiUnavailable, setApiUnavailable] = useState(false);
   const [stats, setStats] = useState({
     totalResidents: 0,
-    activeOrders: 0,
-    pendingOrders: 0
+    draftOrders: 0,
+    pendingPayment: 0
   });
   const navigate = useNavigate();
 
   useEffect(() => {
     loadDashboardData();
-  }, []);
+  }, [facilityId]);
 
   const loadDashboardData = async () => {
     try {
       setLoading(true);
       setError(null);
-
-      const residentsRes = await fetchResidents();
-      const ordersRes = await fetchResidentOrders({ status: 'draft' });
-
-      setResidents(residentsRes.data || []);
-      
+      setApiUnavailable(false);
+      const params = facilityId ? { facilityId } : {};
+      const [residentsRes, ordersRes] = await Promise.all([
+        fetchResidents(params),
+        fetchResidentOrders(params)
+      ]);
+      const residentsList = residentsRes?.data?.data ?? [];
+      const allOrders = ordersRes?.data?.data ?? [];
       setStats({
-        totalResidents: residentsRes.data?.length || 0,
-        activeOrders: ordersRes.data?.filter(o => o.status === 'draft').length || 0,
-        pendingOrders: ordersRes.data?.filter(o => o.paymentStatus === 'pending').length || 0
+        totalResidents: Array.isArray(residentsList) ? residentsList.length : 0,
+        draftOrders: (allOrders ?? []).filter((o) => o.status === 'draft').length,
+        pendingPayment: (allOrders ?? []).filter((o) => o.paymentStatus === 'pending').length
       });
     } catch (err) {
-      console.error('Error loading dashboard:', err);
-      setError(err.response?.data?.message || 'Failed to load dashboard data');
+      const msg = err?.message || '';
+      if (msg.includes('not found') || msg === IS_404_MESSAGE) {
+        setApiUnavailable(true);
+        setStats({ totalResidents: 0, draftOrders: 0, pendingPayment: 0 });
+      } else {
+        setError(err.response?.data?.message || msg || 'Failed to load dashboard data');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCreateOrder = (resident) => {
-    navigate(`/nursing-homes/order/new/${resident.id}`);
-  };
-
-  const handleViewOrders = (resident) => {
-    navigate(`/nursing-homes/orders?residentId=${resident.id}`);
-  };
-
-  const handleKeyPress = (e, callback, resident) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      callback(resident);
-    }
-  };
+  const search = searchParams.toString();
+  const ordersPath = `/nursing-homes/orders${search ? `?${search}` : ''}`;
 
   if (loading) {
     return (
       <div className="nursing-home-dashboard">
-        <LoadingSpinner size="large" />
+        <div className="nh-dashboard-loading">
+          <LoadingSpinner size="large" />
+          <p>Loading dashboard...</p>
+        </div>
       </div>
     );
   }
@@ -70,11 +72,7 @@ const NursingHomeDashboard = () => {
     return (
       <div className="nursing-home-dashboard">
         <ErrorMessage message={error} type="error" />
-        <button 
-          onClick={loadDashboardData}
-          className="retry-btn"
-          aria-label="Retry loading dashboard"
-        >
+        <button type="button" className="retry-btn" onClick={loadDashboardData}>
           Try Again
         </button>
       </div>
@@ -83,113 +81,61 @@ const NursingHomeDashboard = () => {
 
   return (
     <div className="nursing-home-dashboard">
-      <header className="dashboard-header">
-        <h1>My Residents</h1>
-        <p className="subtitle">Create and manage weekly meal orders for your assigned residents</p>
-      </header>
-
-      <section className="stats-cards" aria-label="Dashboard statistics">
-        <div className="stat-card" role="group" aria-labelledby="stat-residents">
-          <div className="stat-value" id="stat-residents" aria-label={`${stats.totalResidents} assigned residents`}>
-            {stats.totalResidents}
-          </div>
-          <div className="stat-label">Assigned Residents</div>
+      {apiUnavailable && (
+        <div className="nh-api-unavailable" role="status">
+          <p>Nursing home data is not available on this server. Deploy the latest backend (with nursing-home routes) to see metrics.</p>
         </div>
-        <div className="stat-card" role="group" aria-labelledby="stat-drafts">
-          <div className="stat-value" id="stat-drafts" aria-label={`${stats.activeOrders} draft orders`}>
-            {stats.activeOrders}
-          </div>
-          <div className="stat-label">Draft Orders</div>
-        </div>
-        <div className="stat-card" role="group" aria-labelledby="stat-pending">
-          <div className="stat-value" id="stat-pending" aria-label={`${stats.pendingOrders} pending payment`}>
-            {stats.pendingOrders}
-          </div>
-          <div className="stat-label">Pending Payment</div>
-        </div>
-      </section>
-
-      {residents.length === 0 ? (
-        <section className="empty-state" role="status">
-          <p>No residents assigned to you yet.</p>
-          <p className="hint">Contact your administrator to assign residents to your account.</p>
-        </section>
-      ) : (
-        <section className="residents-grid" aria-label="Assigned residents list">
-          {residents.map((resident) => (
-            <article 
-              key={resident.id} 
-              className="resident-card"
-              aria-labelledby={`resident-${resident.id}-name`}
-            >
-              <div className="resident-header">
-                <h3 id={`resident-${resident.id}-name`}>{resident.name}</h3>
-                {resident.roomNumber && (
-                  <span className="room-badge" aria-label={`Room number ${resident.roomNumber}`}>
-                    Room {resident.roomNumber}
-                  </span>
-                )}
-              </div>
-
-              <dl className="resident-details">
-                {resident.dietaryRestrictions && (
-                  <div className="detail-item">
-                    <dt className="detail-label">Dietary:</dt>
-                    <dd className="detail-value">{resident.dietaryRestrictions}</dd>
-                  </div>
-                )}
-                {resident.allergies && (
-                  <div className="detail-item allergies">
-                    <dt className="detail-label">Allergies:</dt>
-                    <dd className="detail-value" role="alert">{resident.allergies}</dd>
-                  </div>
-                )}
-                {resident.billingEmail && (
-                  <div className="detail-item">
-                    <dt className="detail-label">Billing:</dt>
-                    <dd className="detail-value">{resident.billingEmail}</dd>
-                  </div>
-                )}
-              </dl>
-
-              <div className="resident-actions">
-                <button
-                  className="btn-primary"
-                  onClick={() => handleCreateOrder(resident)}
-                  onKeyPress={(e) => handleKeyPress(e, handleCreateOrder, resident)}
-                  aria-label={`Create order for ${resident.name}`}
-                >
-                  Create Order
-                </button>
-                <button
-                  className="btn-secondary"
-                  onClick={() => handleViewOrders(resident)}
-                  onKeyPress={(e) => handleKeyPress(e, handleViewOrders, resident)}
-                  aria-label={`View orders for ${resident.name}`}
-                >
-                  View Orders
-                </button>
-              </div>
-            </article>
-          ))}
-        </section>
       )}
 
-      <div className="dashboard-info">
-        <div className="info-card">
-          <h3>Weekly Order Deadline</h3>
-          <p className="deadline-text">Orders must be submitted by <strong>Sunday 12:00 PM</strong></p>
-          <p className="hint">Orders cover Monday-Sunday of the following week</p>
+      <div className="dashboard-header">
+        <div className="header-content">
+          <h1>Dashboard Overview</h1>
+          <p>Resident meals and orders at a glance</p>
         </div>
-        <div className="info-card">
-          <h3>Need Help?</h3>
-          <p>Contact your facility administrator for assistance with:</p>
-          <ul>
-            <li>Resident assignments</li>
-            <li>Payment issues</li>
-            <li>Special dietary requests</li>
-          </ul>
+      </div>
+
+      <div className="metrics-grid">
+        <div className="metric-card residents">
+          <div className="metric-icon">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+              <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          </div>
+          <div className="metric-content">
+            <h3>Assigned Residents</h3>
+            <p className="metric-value">{stats.totalResidents.toLocaleString()}</p>
+          </div>
         </div>
+
+        <div className="metric-card drafts">
+          <div className="metric-icon">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+              <path d="M19 7h-3V6a4 4 0 0 0-8 0v1H5a1 1 0 0 0-1 1v11a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V8a1 1 0 0 0-1-1zM10 6a2 2 0 0 1 4 0v1h-4V6zm8 13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V9h2v1a1 1 0 0 0 2 0V9h4v1a1 1 0 0 0 2 0V9h2v10z" />
+            </svg>
+          </div>
+          <div className="metric-content">
+            <h3>Draft Orders</h3>
+            <p className="metric-value">{stats.draftOrders.toLocaleString()}</p>
+          </div>
+        </div>
+
+        <div className="metric-card pending">
+          <div className="metric-icon">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05.82 1.87 2.65 1.87 1.96 0 2.4-.98 2.4-1.59 0-.83-.44-1.61-2.67-2.14-2.48-.6-4.18-1.62-4.18-3.67 0-1.72 1.39-2.84 3.11-3.21V4h2.67v1.95c1.86.45 2.79 1.86 2.85 3.39H14.3c-.05-1.11-.64-1.87-2.22-1.87-1.5 0-2.4.68-2.4 1.64 0 .84.65 1.39 2.67 1.91s4.18 1.39 4.18 3.91c-.01 1.83-1.38 2.83-3.12 3.16z" />
+            </svg>
+          </div>
+          <div className="metric-content">
+            <h3>Pending Payment</h3>
+            <p className="metric-value">{stats.pendingPayment.toLocaleString()}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="dashboard-actions">
+        <button type="button" className="btn-primary" onClick={() => navigate(ordersPath)}>
+          View Orders
+        </button>
       </div>
     </div>
   );

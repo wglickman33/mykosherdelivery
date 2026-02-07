@@ -53,15 +53,29 @@ import "./App.scss";
 import HelpPage from "./components/HelpPage/HelpPage";
 import NursingHomeLogin from "./components/NursingHomeLogin/NursingHomeLogin";
 import NursingHomeAdminLogin from "./components/NursingHomeAdminLogin/NursingHomeAdminLogin";
+import NursingHomeAdminGate from "./components/NursingHomeAdminGate/NursingHomeAdminGate";
+import NursingHomeLayout from "./components/NursingHomeLayout/NursingHomeLayout";
 import NursingHomeDashboard from "./components/NursingHomeDashboard/NursingHomeDashboard";
 import NursingHomeOrderCreation from "./components/NursingHomeOrderCreation/OrderCreation";
 import NursingHomeOrderPayment from "./components/NursingHomeOrderPayment/OrderPayment";
+import NursingHomeOrders from "./components/NursingHomeOrders/NursingHomeOrders";
+import NursingHomeOrderDetails from "./components/NursingHomeOrderDetails/OrderDetails";
+import NursingHomeOrderConfirmation from "./components/NursingHomeOrderConfirmation/OrderConfirmation";
+
+function NhRedirectToDashboard() {
+  const location = useLocation();
+  return <Navigate to={`/nursing-homes/dashboard${location.search}`} replace />;
+}
+
+const PUBLIC_ROUTES = ["/landing", "/signin", "/signup", "/blog", "/faq", "/contact", "/partner", "/advertise", "/help", "/terms", "/privacy", "/admin", "/nursing-homes/login", "/nursing-homes/admin", "/nursing-homes/admin/login"];
+const APP_ROUTES = ["/home", "/restaurants", "/restaurant", "/cart", "/checkout", "/order-confirmation", "/gift-card", "/account"];
 
 function AuthenticatedApp() {
   const { user, loading, tempAddress } = useAuth();
   const location = useLocation();
   const [initialLoad, setInitialLoad] = useState(true);
-  
+  const pathname = location.pathname;
+
   useScrollToTop();
 
   useEffect(() => {
@@ -74,20 +88,12 @@ function AuthenticatedApp() {
     logger.debug('App.jsx - State changed:', {
       user: !!user,
       userId: user?.id,
+      loading,
       tempAddress: !!tempAddress,
-      isGuest: !user && !tempAddress,
-      pathname: location.pathname
+      pathname,
+      userObject: user ? { id: user.id, email: user.email } : null
     });
-  }, [user, tempAddress, location.pathname]);
-
-  logger.debug('App.jsx - Current state:', {
-    user: !!user,
-    userId: user?.id,
-    loading,
-    tempAddress: !!tempAddress,
-    pathname: location.pathname,
-    userObject: user ? { id: user.id, email: user.email } : null
-  });
+  }, [user, loading, tempAddress, pathname]);
 
   if (loading && initialLoad) {
     return (
@@ -101,13 +107,8 @@ function AuthenticatedApp() {
     );
   }
 
-  const pathname = location.pathname;
-
-  const publicRoutes = ["/landing", "/signin", "/signup", "/blog", "/faq", "/contact", "/partner", "/advertise", "/help", "/terms", "/privacy", "/admin", "/nursing-homes/login", "/nursing-homes/admin/login"];
-  const isPublicRoute = publicRoutes.some(route => pathname === route || pathname.startsWith(route + "/"));
-
-  const appRoutes = ["/home", "/restaurants", "/restaurant", "/cart", "/checkout", "/order-confirmation", "/gift-card", "/account"];
-  const isAppRoute = appRoutes.some(route => pathname === route || pathname.startsWith(route + "/"));
+  const isPublicRoute = PUBLIC_ROUTES.some(route => pathname === route || pathname.startsWith(route + "/"));
+  const isAppRoute = APP_ROUTES.some(route => pathname === route || pathname.startsWith(route + "/"));
 
   if (pathname === "/") {
     if (user) {
@@ -131,12 +132,7 @@ function AuthenticatedApp() {
   }
 
   if (tempAddress) {
-    if (isAppRoute || isPublicRoute) {
-      return renderApp();
-    } else {
-      logger.debug('App.jsx - Guest accessing unknown route, showing 404 page');
-      return renderApp();
-    }
+    return renderApp();
   }
 
   if (isPublicRoute) {
@@ -160,10 +156,17 @@ function AuthenticatedApp() {
         <Routes>
           <Route path="/nursing-homes/login" element={<NursingHomeLogin />} />
           <Route path="/nursing-homes/admin/login" element={<NursingHomeAdminLogin />} />
-          <Route path="/nursing-homes/dashboard" element={<NursingHomeDashboard />} />
-          <Route path="/nursing-homes/order/new/:residentId" element={<NursingHomeOrderCreation />} />
-          <Route path="/nursing-homes/order/:orderId/payment" element={<NursingHomeOrderPayment />} />
-          <Route path="/nursing-homes" element={<Navigate to="/nursing-homes/login" replace />} />
+          <Route path="/nursing-homes/admin" element={<NursingHomeAdminGate />} />
+          <Route path="/nursing-homes" element={<NursingHomeLayout />}>
+            <Route path="dashboard" element={<NursingHomeDashboard />} />
+            <Route path="orders" element={<NursingHomeOrders />} />
+            <Route path="orders/:orderId" element={<NursingHomeOrderDetails />} />
+            <Route path="orders/:orderId/confirmation" element={<NursingHomeOrderConfirmation />} />
+            <Route path="order/new/:residentId" element={<NursingHomeOrderCreation />} />
+            <Route path="order/:orderId/payment" element={<NursingHomeOrderPayment />} />
+            <Route index element={<NhRedirectToDashboard />} />
+            <Route path="*" element={<NotFoundPage />} />
+          </Route>
           <Route path="/nursing-homes/*" element={<NotFoundPage />} />
         </Routes>
       );

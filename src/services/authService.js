@@ -104,16 +104,15 @@ export const authService = {
       return result;
     } catch (error) {
       logger.error('Get session error:', error);
-      
       const result = { success: false, user: null };
-      
-      if (error.message.includes('Token expired') || 
-          error.message.includes('Invalid token')) {
-        lastSessionResult = result;
-        return result;
+      lastSessionResult = result;
+      const isInvalidToken =
+        /token expired|invalid token|malformed|revoked/i.test(error.message || '');
+      if (isInvalidToken) {
+        logger.debug('Session invalid for this server (e.g. switched API URL) – sign in again');
+      } else {
+        logger.warn('Session check failed but may be temporary:', error.message);
       }
-      
-      logger.warn('Session check failed but may be temporary:', error.message);
       return result;
     }
   },

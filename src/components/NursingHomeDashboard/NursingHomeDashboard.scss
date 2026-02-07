@@ -1,390 +1,159 @@
 @use '../../styles/design-system' as *;
 
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border-width: 0;
-}
-
 .nursing-home-dashboard {
   max-width: 1400px;
   margin: 0 auto;
-  padding: $spacing-2xl;
-  min-height: 100vh;
-  background: $gray-50;
 
-  @include respond-to(md) {
-    padding: $spacing-xl;
+  .nh-api-unavailable {
+    margin-bottom: 20px;
+    padding: 12px 16px;
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    color: #92400e;
+
+    p {
+      margin: 0;
+    }
   }
 
-  @include respond-to(sm) {
-    padding: $spacing-lg;
+  .nh-dashboard-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 320px;
+    gap: 1rem;
+
+    p {
+      margin: 0;
+      color: $gray-500;
+    }
+  }
+
+  .retry-btn {
+    margin-top: 1rem;
+    padding: 0.5rem 1rem;
+    background: $purple-600;
+    color: white;
+    border: none;
+    border-radius: $border-radius-md;
+    font-weight: 500;
+    cursor: pointer;
   }
 
   .dashboard-header {
-    margin-bottom: $spacing-2xl;
+    margin-bottom: 32px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid $gray-200;
 
-    h1 {
-      color: $purple-600;
-      font-size: $font-size-4xl;
-      font-weight: $font-weight-bold;
-      margin-bottom: $spacing-sm;
-      line-height: $line-height-tight;
-
-      @include respond-to(md) {
-        font-size: $font-size-3xl;
-      }
-
-      @include respond-to(sm) {
-        font-size: $font-size-2xl;
-      }
-    }
-
-    .subtitle {
-      color: $gray-500;
-      font-size: $font-size-lg;
-      line-height: $line-height-normal;
-
-      @include respond-to(sm) {
-        font-size: $font-size-base;
-      }
-    }
-  }
-
-  .stats-cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: $spacing-xl;
-    margin-bottom: $spacing-2xl;
-
-    @include respond-to(md) {
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: $spacing-lg;
-    }
-
-    @include respond-to(sm) {
-      grid-template-columns: 1fr;
-      gap: $spacing-md;
-    }
-
-    .stat-card {
-      @include card;
-      padding: $spacing-xl;
-      border-left: $border-width-thick solid $purple-600;
-      transition: $transition-hover;
-      cursor: default;
-
-      &:hover {
-        box-shadow: $shadow-lg;
-        border-left-color: $purple-700;
-      }
-
-      .stat-value {
-        font-size: $font-size-4xl;
-        font-weight: $font-weight-bold;
-        color: $purple-600;
-        margin-bottom: $spacing-sm;
-        line-height: $line-height-tight;
-        font-variant-numeric: tabular-nums;
-
-        @include respond-to(sm) {
-          font-size: $font-size-3xl;
-        }
-      }
-
-      .stat-label {
-        color: $gray-500;
-        font-size: $font-size-sm;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        font-weight: $font-weight-semibold;
-      }
-    }
-  }
-
-  .residents-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-    gap: $spacing-xl;
-    margin-bottom: $spacing-2xl;
-
-    @include respond-to(lg) {
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    }
-
-    @include respond-to(md) {
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: $spacing-lg;
-    }
-
-    @include respond-to(sm) {
-      grid-template-columns: 1fr;
-      gap: $spacing-lg;
-    }
-
-    .resident-card {
-      @include card;
-      @include card-hover;
-      padding: $spacing-xl;
-      position: relative;
-      border-top: 4px solid $purple-600;
-
-      &:hover {
-        border-top-color: $purple-700;
-      }
-
-      .resident-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1rem;
-        padding-bottom: 1rem;
-        border-bottom: 2px solid #f1f5f9;
-
-        h3 {
-          color: #1e293b;
-          font-size: 1.25rem;
-          margin: 0;
-        }
-
-        .room-badge {
-          background: #9333ea;
-          color: white;
-          padding: 0.25rem 0.75rem;
-          border-radius: 20px;
-          font-size: 0.875rem;
-          font-weight: 600;
-        }
-      }
-
-      .resident-details {
-        margin-bottom: $spacing-xl;
-        margin: 0;
-        padding: 0;
-
-        .detail-item {
-          margin-bottom: $spacing-md;
-          display: flex;
-          gap: $spacing-sm;
-          align-items: flex-start;
-
-          &.allergies {
-            background: $error-light;
-            padding: $spacing-sm $spacing-md;
-            border-radius: $border-radius-sm;
-            margin: $spacing-sm 0;
-            border-left: 3px solid $error;
-
-            .detail-label::before {
-              content: '⚠';
-              margin-right: $spacing-xs;
-              font-weight: bold;
-            }
-
-            .detail-value {
-              color: $error;
-              font-weight: $font-weight-semibold;
-            }
-          }
-
-          .detail-label {
-            color: $gray-500;
-            font-weight: $font-weight-semibold;
-            min-width: 80px;
-            font-size: $font-size-sm;
-            margin: 0;
-          }
-
-          .detail-value {
-            color: $gray-800;
-            flex: 1;
-            font-size: $font-size-sm;
-            line-height: $line-height-normal;
-            word-break: break-word;
-            margin: 0;
-          }
-        }
-      }
-
-      .resident-actions {
-        display: flex;
-        gap: $spacing-md;
-        margin-top: $spacing-lg;
-
-        @include respond-to(sm) {
-          flex-direction: column;
-          gap: $spacing-sm;
-        }
-
-        button {
-          flex: 1;
-          @include button-base;
-          padding: $spacing-md $spacing-lg;
-          font-size: $font-size-sm;
-          min-height: 44px; // Touch target size
-          touch-action: manipulation;
-
-          @include respond-to(sm) {
-            width: 100%;
-          }
-
-          &.btn-primary {
-            @include button-primary;
-          }
-
-          &.btn-secondary {
-            @include button-secondary;
-          }
-
-          &:focus-visible {
-            @include focus-visible;
-          }
-        }
-      }
-    }
-  }
-
-  .dashboard-info {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1.5rem;
-    margin-top: 2rem;
-
-    .info-card {
-      background: #faf5ff;
-      border-radius: 12px;
-      padding: 1.5rem;
-      border: 2px solid #e9d5ff;
-
-      h3 {
-        color: #9333ea;
-        font-size: 1.125rem;
-        margin-bottom: 1rem;
+    .header-content {
+      h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        color: $gray-800;
+        margin: 0 0 8px 0;
       }
 
       p {
-        color: #64748b;
-        line-height: 1.6;
-        margin-bottom: 0.75rem;
-
-        &.deadline-text {
-          font-size: 1.125rem;
-          color: #1e293b;
-
-          strong {
-            color: #9333ea;
-          }
-        }
-
-        &.hint {
-          font-size: 0.875rem;
-          font-style: italic;
-        }
-      }
-
-      ul {
-        list-style: none;
-        padding: 0;
+        color: $gray-500;
         margin: 0;
+        font-size: 1rem;
+      }
+    }
+  }
 
-        li {
-          color: #64748b;
-          padding: 0.5rem 0;
-          padding-left: 1.5rem;
-          position: relative;
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 24px;
+    margin-bottom: 32px;
 
-          &:before {
-            content: "•";
-            color: #9333ea;
-            font-weight: bold;
-            position: absolute;
-            left: 0;
-          }
+    .metric-card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      border: 1px solid $gray-100;
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+
+      &:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      }
+
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, $gray-200, $gray-300);
+      }
+
+      &.residents::before {
+        background: linear-gradient(90deg, $purple-500, $purple-600);
+      }
+
+      &.drafts::before {
+        background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+      }
+
+      &.pending::before {
+        background: linear-gradient(90deg, #f59e0b, #d97706);
+      }
+
+      .metric-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 16px;
+        background: $gray-50;
+        color: $gray-600;
+      }
+
+      .metric-content {
+        h3 {
+          font-size: 0.9rem;
+          font-weight: 600;
+          color: $gray-500;
+          margin: 0 0 8px 0;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .metric-value {
+          font-size: 2rem;
+          font-weight: 700;
+          color: $gray-800;
+          margin: 0;
+          font-variant-numeric: tabular-nums;
         }
       }
     }
   }
 
-  .empty-state {
-    background: white;
-    border-radius: 12px;
-    padding: 3rem;
-    text-align: center;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  .dashboard-actions {
+    .btn-primary {
+      padding: 0.75rem 1.5rem;
+      background: $purple-600;
+      color: white;
+      border: none;
+      border-radius: $border-radius-md;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
 
-    p {
-      color: #64748b;
-      font-size: 1.125rem;
-      margin-bottom: 0.5rem;
-
-      &.hint {
-        font-size: 0.875rem;
-        color: #94a3b8;
+      &:hover {
+        background: $purple-700;
       }
-    }
-  }
-
-  .loading-spinner {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 400px;
-    font-size: $font-size-xl;
-    color: $purple-600;
-
-    &::after {
-      content: '';
-      @include loading-spinner;
-      width: 40px;
-      height: 40px;
-      border-width: 4px;
-      border-color: $purple-200;
-      border-top-color: $purple-600;
-    }
-  }
-
-  .error-message {
-    @include card;
-    background: $error-light;
-    color: $error;
-    padding: $spacing-xl;
-    border-left: $border-width-thick solid $error;
-
-    @include respond-to(sm) {
-      padding: $spacing-lg;
-    }
-  }
-
-  // Accessibility improvements
-  @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-    }
-  }
-
-  // Dark mode support (future)
-  @media (prefers-color-scheme: dark) {
-    // Can be implemented later
-  }
-
-  // High contrast mode
-  @media (prefers-contrast: high) {
-    .resident-card {
-      border: $border-width-base solid $gray-900;
-    }
-
-    button {
-      border: $border-width-base solid currentColor;
     }
   }
 }

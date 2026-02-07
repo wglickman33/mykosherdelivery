@@ -1,9 +1,10 @@
 import './AdminLayout.scss';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import { fetchNotificationCounts, fetchAdminNotifications, markNotificationRead, markAllNotificationsRead, fetchOrdersStreamToken, deleteNotification } from '../../services/adminServices';
+import { fetchFacilitiesList } from '../../services/nursingHomeService';
 import whiteMKDIcon from '../../assets/whiteMKDIcon.png';
 
 const AdminLayout = () => {
@@ -18,6 +19,7 @@ const AdminLayout = () => {
   const [notifList, setNotifList] = useState([]);
   const [notifUnread, setNotifUnread] = useState(0);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [communities, setCommunities] = useState([]);
   const { user, loading: authContextLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -177,6 +179,27 @@ const AdminLayout = () => {
     };
   }, [authLoading, user]);
 
+  const loadCommunities = useCallback(async () => {
+    if (user?.role !== 'admin') return;
+    try {
+      const res = await fetchFacilitiesList({ limit: 50, isActive: 'true' });
+      const list = res?.data;
+      if (Array.isArray(list)) setCommunities(list);
+    } catch {
+      setCommunities([]);
+    }
+  }, [user?.role]);
+
+  useEffect(() => {
+    loadCommunities();
+  }, [loadCommunities]);
+
+  useEffect(() => {
+    const onRefresh = () => loadCommunities();
+    window.addEventListener('mkd-communities-refresh', onRefresh);
+    return () => window.removeEventListener('mkd-communities-refresh', onRefresh);
+  }, [loadCommunities]);
+
   useEffect(() => {
     const handleRefreshCounts = async () => {
       const result = await fetchNotificationCounts();
@@ -332,6 +355,26 @@ const AdminLayout = () => {
               )}
             </button>
           ))}
+          {user?.role === 'admin' && communities.length > 0 && !sidebarCollapsed && (
+            <div className="admin-sidebar__communities">
+              <div className="admin-sidebar__communities-label">Enter community</div>
+              {communities.map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  className="nav-item nav-item--community"
+                  onClick={() => navigate(`/nursing-homes/dashboard?facilityId=${f.id}`)}
+                >
+                  <span className="nav-icon">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                      <path d="M12 3L4 9v12h16V9l-8-6zm6 16h-3v-3h-2v3H10v-5H8v5H5V10l7-5 7 5v9z" />
+                    </svg>
+                  </span>
+                  <span className="nav-label">{f.name}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </nav>
 
         <div className="admin-sidebar__footer">

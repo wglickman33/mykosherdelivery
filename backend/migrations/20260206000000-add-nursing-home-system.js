@@ -6,17 +6,6 @@ module.exports = {
       ALTER TYPE "enum_profiles_role" ADD VALUE IF NOT EXISTS 'nursing_home_admin';
       ALTER TYPE "enum_profiles_role" ADD VALUE IF NOT EXISTS 'nursing_home_user';
     `);
-    
-    await queryInterface.addColumn('profiles', 'nursing_home_facility_id', {
-      type: Sequelize.UUID,
-      allowNull: true,
-      references: {
-        model: 'nursing_home_facilities',
-        key: 'id'
-      },
-      onUpdate: 'CASCADE',
-      onDelete: 'SET NULL'
-    });
 
     await queryInterface.createTable('nursing_home_facilities', {
       id: {
@@ -61,6 +50,12 @@ module.exports = {
         defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
       }
     });
+
+    await queryInterface.sequelize.query(`
+      ALTER TABLE profiles
+      ADD COLUMN IF NOT EXISTS nursing_home_facility_id UUID
+      REFERENCES nursing_home_facilities(id) ON UPDATE CASCADE ON DELETE SET NULL;
+    `);
 
     await queryInterface.createTable('nursing_home_residents', {
       id: {
@@ -125,8 +120,8 @@ module.exports = {
       }
     });
 
-    await queryInterface.addIndex('nursing_home_residents', ['facility_id']);
-    await queryInterface.addIndex('nursing_home_residents', ['assigned_user_id']);
+    await queryInterface.sequelize.query('CREATE INDEX IF NOT EXISTS nursing_home_residents_facility_id ON nursing_home_residents (facility_id);');
+    await queryInterface.sequelize.query('CREATE INDEX IF NOT EXISTS nursing_home_residents_assigned_user_id ON nursing_home_residents (assigned_user_id);');
 
     await queryInterface.createTable('nursing_home_menu_items', {
       id: {
@@ -187,8 +182,8 @@ module.exports = {
       }
     });
 
-    await queryInterface.addIndex('nursing_home_menu_items', ['meal_type', 'category']);
-    await queryInterface.addIndex('nursing_home_menu_items', ['is_active']);
+    await queryInterface.sequelize.query('CREATE INDEX IF NOT EXISTS nursing_home_menu_items_meal_type_category ON nursing_home_menu_items (meal_type, category);');
+    await queryInterface.sequelize.query('CREATE INDEX IF NOT EXISTS nursing_home_menu_items_is_active ON nursing_home_menu_items (is_active);');
 
     await queryInterface.createTable('nursing_home_orders', {
       id: {
@@ -282,11 +277,11 @@ module.exports = {
       }
     });
 
-    await queryInterface.addIndex('nursing_home_orders', ['order_number'], { unique: true });
-    await queryInterface.addIndex('nursing_home_orders', ['facility_id']);
-    await queryInterface.addIndex('nursing_home_orders', ['created_by_user_id']);
-    await queryInterface.addIndex('nursing_home_orders', ['status']);
-    await queryInterface.addIndex('nursing_home_orders', ['week_start_date', 'week_end_date']);
+    await queryInterface.sequelize.query('CREATE UNIQUE INDEX IF NOT EXISTS nursing_home_orders_order_number ON nursing_home_orders (order_number);');
+    await queryInterface.sequelize.query('CREATE INDEX IF NOT EXISTS nursing_home_orders_facility_id ON nursing_home_orders (facility_id);');
+    await queryInterface.sequelize.query('CREATE INDEX IF NOT EXISTS nursing_home_orders_created_by_user_id ON nursing_home_orders (created_by_user_id);');
+    await queryInterface.sequelize.query('CREATE INDEX IF NOT EXISTS nursing_home_orders_status ON nursing_home_orders (status);');
+    await queryInterface.sequelize.query('CREATE INDEX IF NOT EXISTS nursing_home_orders_week_start_date_week_end_date ON nursing_home_orders (week_start_date, week_end_date);');
 
     await queryInterface.createTable('nursing_home_invoices', {
       id: {
@@ -367,10 +362,10 @@ module.exports = {
       }
     });
 
-    await queryInterface.addIndex('nursing_home_invoices', ['invoice_number'], { unique: true });
-    await queryInterface.addIndex('nursing_home_invoices', ['facility_id']);
-    await queryInterface.addIndex('nursing_home_invoices', ['status']);
-    await queryInterface.addIndex('nursing_home_invoices', ['billing_period_start', 'billing_period_end']);
+    await queryInterface.sequelize.query('CREATE UNIQUE INDEX IF NOT EXISTS nursing_home_invoices_invoice_number ON nursing_home_invoices (invoice_number);');
+    await queryInterface.sequelize.query('CREATE INDEX IF NOT EXISTS nursing_home_invoices_facility_id ON nursing_home_invoices (facility_id);');
+    await queryInterface.sequelize.query('CREATE INDEX IF NOT EXISTS nursing_home_invoices_status ON nursing_home_invoices (status);');
+    await queryInterface.sequelize.query('CREATE INDEX IF NOT EXISTS nursing_home_invoices_billing_period_start_billing_period_end ON nursing_home_invoices (billing_period_start, billing_period_end);');
   },
 
   down: async (queryInterface, Sequelize) => {

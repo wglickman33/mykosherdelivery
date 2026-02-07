@@ -1,0 +1,50 @@
+@use '../../styles/design-system' as *;
+
+.nursing-home-order-confirmation {
+  min-height: 100vh;
+  background: $gray-50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-2xl;
+}
+
+.confirmation-card {
+  background: $white;
+  border-radius: $border-radius-lg;
+  padding: $spacing-2xl;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: $shadow-base;
+  text-align: center;
+
+  h1 {
+    color: $purple-600;
+    font-size: $font-size-3xl;
+    margin: 0 0 $spacing-md 0;
+  }
+
+  .order-number {
+    font-size: $font-size-lg;
+    color: $gray-700;
+    margin: 0 0 $spacing-sm 0;
+  }
+
+  .total {
+    font-size: $font-size-xl;
+    font-weight: $font-weight-bold;
+    margin: 0 0 $spacing-lg 0;
+  }
+
+  .receipt-note {
+    color: $gray-600;
+    font-size: $font-size-sm;
+    margin: 0 0 $spacing-xl 0;
+  }
+
+  .confirmation-actions {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+  }
+}

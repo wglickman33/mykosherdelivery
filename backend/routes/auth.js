@@ -1,7 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { Profile, UserLoginActivity, AdminNotification } = require('../models');
+const { Profile, UserLoginActivity, AdminNotification, sequelize } = require('../models');
 const { authenticateToken } = require('../middleware/auth');
 const { body, validationResult } = require('express-validator');
 const logger = require('../utils/logger');
@@ -83,7 +83,26 @@ router.post('/signup', [
 
     const { email, password, firstName, lastName } = req.body;
 
-    const existingUser = await Profile.findOne({ where: { email } });
+    let existingUser;
+    try {
+      existingUser = await Profile.findOne({ where: { email } });
+    } catch (dbError) {
+      if (dbError.message?.includes('nursing_home_facility_id') || dbError.original?.message?.includes('nursing_home_facility_id')) {
+        const { sequelize } = require('../models');
+        const { QueryTypes } = require('sequelize');
+        const [results] = await sequelize.query(`
+          SELECT id, email FROM profiles 
+          WHERE email = :email AND deleted_at IS NULL
+        `, {
+          replacements: { email },
+          type: QueryTypes.SELECT
+        });
+        existingUser = results && results.length > 0 ? { id: results[0].id, email: results[0].email } : null;
+      } else {
+        throw dbError;
+      }
+    }
+    
     if (existingUser) {
       return res.status(400).json({
         error: 'User already exists',
@@ -153,9 +172,69 @@ router.post('/signin', [
     }
 
     const { email, password } = req.body;
+    
+    logger.debug('Signin attempt', { 
+      email: email.substring(0, 5) + '***',
+      emailLength: email.length 
+    });
 
-    const user = await Profile.findOne({ where: { email } });
+    let user;
+    try {
+      user = await Profile.findOne({ 
+        where: sequelize.where(
+          sequelize.fn('LOWER', sequelize.col('email')), 
+          sequelize.fn('LOWER', email)
+        ),
+        attributes: { include: ['password'] }
+      });
+    } catch (dbError) {
+      if (dbError.message?.includes('nursing_home_facility_id') || dbError.original?.message?.includes('nursing_home_facility_id')) {
+        const { sequelize } = require('../models');
+        const { QueryTypes } = require('sequelize');
+        const results = await sequelize.query(`
+          SELECT id, email, password, first_name AS "firstName", last_name AS "lastName", 
+                 phone, preferred_name AS "preferredName", address, addresses, 
+                 primary_address_index AS "primaryAddressIndex", role, 
+                 created_at AS "createdAt", updated_at AS "updatedAt"
+          FROM profiles 
+          WHERE LOWER(email) = LOWER(:email) AND deleted_at IS NULL
+        `, {
+          replacements: { email },
+          type: QueryTypes.SELECT
+        });
+        if (results && results.length > 0) {
+          const userData = results[0];
+          user = Profile.build({
+            id: userData.id,
+            email: userData.email,
+            password: userData.password,
+            firstName: userData.firstName,
+            lastName: userData.lastName,
+            phone: userData.phone,
+            preferredName: userData.preferredName,
+            address: userData.address,
+            addresses: userData.addresses,
+            primaryAddressIndex: userData.primaryAddressIndex,
+            role: userData.role,
+            createdAt: userData.createdAt,
+            updatedAt: userData.updatedAt
+          }, { isNewRecord: false });
+          
+          if (user.setDataValue) {
+            user.setDataValue('password', userData.password);
+          } else {
+            user.password = userData.password;
+          }
+        } else {
+          user = null;
+        }
+      } else {
+        throw dbError;
+      }
+    }
+    
     if (!user) {
+      logger.warn('Login failed: User not found', { email: email.substring(0, 5) + '***' });
       await logLoginActivity(null, req, false);
       return res.status(401).json({
         error: 'Invalid credentials',
@@ -163,14 +242,63 @@ router.post('/signin', [
       });
     }
 
-    const isValidPassword = await bcrypt.compare(password, user.password);
+    let passwordHash = null;
+    if (user.getDataValue) {
+      passwordHash = user.getDataValue('password');
+    }
+    if (!passwordHash && user.dataValues && user.dataValues.password) {
+      passwordHash = user.dataValues.password;
+    }
+    if (!passwordHash && user.get) {
+      passwordHash = user.get('password');
+    }
+    if (!passwordHash && user.password) {
+      passwordHash = user.password;
+    }
+    
+    if (!passwordHash) {
+      logger.error('Login failed: User has no password hash', { 
+        userId: user.id, 
+        email: email.substring(0, 5) + '***',
+        hasGetDataValue: !!user.getDataValue,
+        hasGet: !!user.get,
+        hasPassword: !!user.password
+      });
+      await logLoginActivity(user.id, req, false);
+      return res.status(500).json({
+        error: 'Account error',
+        message: 'Your account is missing password information. Please contact support.'
+      });
+    }
+    
+    logger.debug('Password comparison attempt', {
+      userId: user.id,
+      passwordHashLength: passwordHash.length,
+      passwordHashPrefix: passwordHash.substring(0, 20),
+      inputPasswordLength: password.length,
+      inputPasswordPrefix: password.substring(0, 5) + '***'
+    });
+    
+    const isValidPassword = await bcrypt.compare(password, passwordHash);
+    
+    logger.debug('Password comparison result', {
+      userId: user.id,
+      isValid: isValidPassword
+    });
+    
     if (!isValidPassword) {
+      logger.warn('Login failed: Invalid password', { 
+        userId: user.id, 
+        email: email.substring(0, 5) + '***'
+      });
       await logLoginActivity(user.id, req, false);
       return res.status(401).json({
         error: 'Invalid credentials', 
         message: 'Email or password is incorrect'
       });
     }
+    
+    logger.debug('Password comparison successful', { userId: user.id });
 
     const token = generateToken(user.id);
 

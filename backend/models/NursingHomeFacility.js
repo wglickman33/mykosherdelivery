@@ -27,6 +27,11 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
       field: 'contact_phone'
     },
+    logoUrl: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: 'logo_url'
+    },
     billingFrequency: {
       type: DataTypes.ENUM('weekly', 'monthly'),
       allowNull: false,

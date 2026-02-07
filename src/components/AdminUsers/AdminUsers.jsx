@@ -6,7 +6,24 @@ import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import NotificationToast from '../NotificationToast/NotificationToast';
 import { useNotification } from '../../hooks/useNotification';
 import { formatPhoneNumber, formatPhoneForInput } from '../../utils/phoneFormatter';
-import { USER_ROLES } from '../../config/constants';
+import { USER_ROLES, ROLE_LABELS } from '../../config/constants';
+
+const USER_ROLES_FILTER = [
+  { value: 'all', label: 'All Roles' },
+  { value: USER_ROLES.USER, label: 'Users' },
+  { value: USER_ROLES.ADMIN, label: 'Admins' },
+  { value: USER_ROLES.RESTAURANT_OWNER, label: 'Restaurant Owners' },
+  { value: USER_ROLES.NURSING_HOME_ADMIN, label: 'Nursing Home Admins' },
+  { value: USER_ROLES.NURSING_HOME_USER, label: 'Nursing Home Users' }
+];
+
+const ROLE_BADGE_COLORS = {
+  [USER_ROLES.USER]: '#10b981',
+  [USER_ROLES.ADMIN]: '#ef4444',
+  [USER_ROLES.RESTAURANT_OWNER]: '#3b82f6',
+  [USER_ROLES.NURSING_HOME_ADMIN]: '#ec4899',
+  [USER_ROLES.NURSING_HOME_USER]: '#a855f7'
+};
 
 const AdminUsers = () => {
   const [users, setUsers] = useState([]);
@@ -16,6 +33,7 @@ const AdminUsers = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [saving, setSaving] = useState(false);
   const { notification, showNotification, hideNotification } = useNotification();
   const [editFormData, setEditFormData] = useState({});
   const [createFormData, setCreateFormData] = useState({
@@ -51,30 +69,39 @@ const AdminUsers = () => {
   };
 
   const handleEditUser = async (formData) => {
-    const result = await updateUserProfile(selectedUser.id, formData);
-    
-    if (result.success) {
-      await logAdminAction(
-        adminUser.id,
-        'UPDATE',
-        'profiles',
-        selectedUser.id,
-        selectedUser,
-        formData
-      );
-      
-      setUsers(users.map(user => 
-        user.id === selectedUser.id ? { ...user, ...formData } : user
-      ));
-      
-      setShowEditModal(false);
-      setSelectedUser(null);
-      
-      window.dispatchEvent(new CustomEvent('mkd-refresh-notifications'));
-      
-      showNotification('User updated successfully', 'success');
-    } else {
-      showNotification(`Failed to update user: ${result.error}`, 'error');
+    setSaving(true);
+    try {
+      const result = await updateUserProfile(selectedUser.id, formData);
+      if (result.success) {
+        await logAdminAction(
+          adminUser.id,
+          'UPDATE',
+          'profiles',
+          selectedUser.id,
+          selectedUser,
+          formData
+        );
+        const updatedUser = result.data?.data || result.data;
+        setUsers(users.map(user =>
+          user.id === selectedUser.id ? { ...user, ...(updatedUser || formData) } : user
+        ));
+        setShowEditModal(false);
+        setSelectedUser(null);
+        window.dispatchEvent(new CustomEvent('mkd-refresh-notifications'));
+        showNotification('User updated successfully', 'success');
+      } else {
+        const msg = result.error || 'Failed to update user';
+        showNotification(msg.split('\n')[0], 'error');
+        if (result.serverErrorName || result.serverStack) {
+          console.error('[Admin Users] Update failed:', result.serverErrorName || result.error, result.serverStack || '');
+        }
+      }
+    } catch (err) {
+      const msg = err?.message || 'Failed to update user profile';
+      showNotification(msg.split('\n')[0], 'error');
+      console.error('[Admin Users] Update error:', err?.serverErrorName || err?.name, err?.message, err?.serverStack || '');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -147,43 +174,15 @@ const AdminUsers = () => {
     });
   };
 
-  const getRoleBadgeColor = (role) => {
-    const colors = {
-      [USER_ROLES.USER]: '#10b981',
-      [USER_ROLES.ADMIN]: '#ef4444',
-      [USER_ROLES.RESTAURANT_OWNER]: '#3b82f6',
-      [USER_ROLES.NURSING_HOME_ADMIN]: '#ec4899',
-      [USER_ROLES.NURSING_HOME_USER]: '#a855f7'
-    };
-    return colors[role] || '#6b7280';
-  };
-
-  const getRoleLabel = (role) => {
-    const labels = {
-      [USER_ROLES.USER]: 'Customer',
-      [USER_ROLES.ADMIN]: 'Administrator',
-      [USER_ROLES.RESTAURANT_OWNER]: 'Restaurant Owner',
-      [USER_ROLES.NURSING_HOME_ADMIN]: 'Nursing Home Admin',
-      [USER_ROLES.NURSING_HOME_USER]: 'Nursing Home User'
-    };
-    return labels[role] || 'User';
-  };
-
-  const userRoles = [
-    { value: 'all', label: 'All Roles' },
-    { value: USER_ROLES.USER, label: 'Customers' },
-    { value: USER_ROLES.RESTAURANT_OWNER, label: 'Restaurant Owners' },
-    { value: USER_ROLES.ADMIN, label: 'Administrators' },
-    { value: USER_ROLES.NURSING_HOME_ADMIN, label: 'Nursing Home Admins' },
-    { value: USER_ROLES.NURSING_HOME_USER, label: 'Nursing Home Users' }
-  ];
+  const getRoleBadgeColor = (role) => ROLE_BADGE_COLORS[role] || '#6b7280';
+  const getRoleLabel = (role) => ROLE_LABELS[role] || 'User';
 
   return (
     <div className="admin-users">
       <div className="users-header">
         <div className="header-content">
           <h1>User Management</h1>
-          <p>Manage customer accounts, restaurant owners, administrators, and nursing home users</p>
+          <p>Manage users, restaurant owners, admins, and nursing home staff</p>
         </div>
         <div className="header-actions">
           <button 
@@ -208,9 +207,15 @@ const AdminUsers = () => {
           </span>
         </div>
         <div className="stat-card">
-          <span className="stat-label">Customers</span>
+          <span className="stat-label">Users</span>
           <span className="stat-value">
             {users.filter(u => u.role === USER_ROLES.USER).length}
+          </span>
+        </div>
+        <div className="stat-card">
+          <span className="stat-label">Admins</span>
+          <span className="stat-value">
+            {users.filter(u => u.role === USER_ROLES.ADMIN).length}
           </span>
         </div>
         <div className="stat-card">
@@ -241,7 +246,7 @@ const AdminUsers = () => {
             value={filters.role}
             onChange={(e) => setFilters({ ...filters, role: e.target.value, page: 1 })}
           >
-            {userRoles.map(role => (
+            {USER_ROLES_FILTER.map(role => (
               <option key={role.value} value={role.value}>
                 {role.label}
               </option>
@@ -520,20 +525,20 @@ const AdminUsers = () => {
                       onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value })}
                       required
                     >
-                      <option value={USER_ROLES.USER}>Customer</option>
-                      <option value={USER_ROLES.RESTAURANT_OWNER}>Restaurant Owner</option>
-                      <option value={USER_ROLES.ADMIN}>Administrator</option>
-                      <option value={USER_ROLES.NURSING_HOME_ADMIN}>Nursing Home Admin</option>
-                      <option value={USER_ROLES.NURSING_HOME_USER}>Nursing Home User</option>
+                      <option value={USER_ROLES.USER}>{ROLE_LABELS[USER_ROLES.USER]}</option>
+                      <option value={USER_ROLES.ADMIN}>{ROLE_LABELS[USER_ROLES.ADMIN]}</option>
+                      <option value={USER_ROLES.RESTAURANT_OWNER}>{ROLE_LABELS[USER_ROLES.RESTAURANT_OWNER]}</option>
+                      <option value={USER_ROLES.NURSING_HOME_ADMIN}>{ROLE_LABELS[USER_ROLES.NURSING_HOME_ADMIN]}</option>
+                      <option value={USER_ROLES.NURSING_HOME_USER}>{ROLE_LABELS[USER_ROLES.NURSING_HOME_USER]}</option>
                     </select>
                   </div>
                 </div>
                 <div className="admin-users__form-actions">
-                  <button type="button" onClick={() => setShowEditModal(false)}>
+                  <button type="button" onClick={() => setShowEditModal(false)} disabled={saving}>
                     Cancel
                   </button>
-                  <button type="submit" className="admin-users__save-btn">
-                    Save Changes
+                  <button type="submit" className="admin-users__save-btn" disabled={saving}>
+                    {saving ? 'Saving…' : 'Save Changes'}
                   </button>
                 </div>
               </form>
@@ -644,11 +649,11 @@ const AdminUsers = () => {
                       onChange={(e) => setCreateFormData({ ...createFormData, role: e.target.value })}
                       required
                     >
-                      <option value={USER_ROLES.USER}>Customer</option>
-                      <option value={USER_ROLES.RESTAURANT_OWNER}>Restaurant Owner</option>
-                      <option value={USER_ROLES.ADMIN}>Administrator</option>
-                      <option value={USER_ROLES.NURSING_HOME_ADMIN}>Nursing Home Admin</option>
-                      <option value={USER_ROLES.NURSING_HOME_USER}>Nursing Home User</option>
+                      <option value={USER_ROLES.USER}>{ROLE_LABELS[USER_ROLES.USER]}</option>
+                      <option value={USER_ROLES.ADMIN}>{ROLE_LABELS[USER_ROLES.ADMIN]}</option>
+                      <option value={USER_ROLES.RESTAURANT_OWNER}>{ROLE_LABELS[USER_ROLES.RESTAURANT_OWNER]}</option>
+                      <option value={USER_ROLES.NURSING_HOME_ADMIN}>{ROLE_LABELS[USER_ROLES.NURSING_HOME_ADMIN]}</option>
+                      <option value={USER_ROLES.NURSING_HOME_USER}>{ROLE_LABELS[USER_ROLES.NURSING_HOME_USER]}</option>
                     </select>
                   </div>
                 </div>

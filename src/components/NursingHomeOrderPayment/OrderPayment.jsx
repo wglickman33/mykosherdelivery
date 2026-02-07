@@ -1,47 +1,117 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import PropTypes from 'prop-types';
 import { loadStripe } from '@stripe/stripe-js';
-import { Elements } from '@stripe/react-stripe-js';
-import { fetchResidentOrders, submitAndPayOrder } from '../../services/nursingHomeService';
+import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { fetchResidentOrder, submitAndPayOrder } from '../../services/nursingHomeService';
 import { NH_CONFIG } from '../../config/constants';
-import StripePaymentForm from '../StripePaymentForm/StripePaymentForm';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import './OrderPayment.scss';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
+const cardElementOptions = {
+  style: {
+    base: { fontSize: '16px', color: '#1e293b', '::placeholder': { color: '#94a3b8' } },
+    invalid: { color: '#dc2626' }
+  }
+};
+
+function PaymentFormInner({ order, billingInfo, onSuccess, onError }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!stripe || !elements || !order) return;
+
+    setIsProcessing(true);
+    onError(null);
+
+    try {
+      const cardEl = elements.getElement(CardElement);
+      const { error, paymentMethod } = await stripe.createPaymentMethod({ type: 'card', card: cardEl });
+      if (error) {
+        onError(error.message);
+        return;
+      }
+
+      const result = await submitAndPayOrder(order.id, {
+        paymentMethodId: paymentMethod.id,
+        billingEmail: billingInfo?.email || order.billingEmail,
+        billingName: billingInfo?.name || order.billingName,
+        billingPhone: billingInfo?.phone || order.billingPhone
+      });
+
+      if (result?.success) {
+        onSuccess();
+      } else {
+        onError(result?.error || result?.message || 'Payment failed');
+      }
+    } catch (err) {
+      onError(err.response?.data?.error || err.message || 'Payment failed');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="payment-form-inner">
+      <div className="payment-form-inner__card">
+        <label className="payment-form-inner__label">Card</label>
+        <CardElement options={cardElementOptions} />
+      </div>
+      <button type="submit" className="payment-form-inner__submit" disabled={!stripe || isProcessing}>
+        {isProcessing ? 'Processing…' : `Pay $${parseFloat(order?.total || 0).toFixed(2)}`}
+      </button>
+    </form>
+  );
+}
+
+PaymentFormInner.propTypes = {
+  order: PropTypes.object,
+  billingInfo: PropTypes.object,
+  onSuccess: PropTypes.func.isRequired,
+  onError: PropTypes.func.isRequired
+};
+
 const OrderPayment = () => {
   const { orderId } = useParams();
   const navigate = useNavigate();
-  
+
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [paymentError, setPaymentError] = useState(null);
+  const [billingInfo, setBillingInfo] = useState({ email: '', name: '', phone: '' });
 
   const loadOrder = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
+      const response = await fetchResidentOrder(orderId);
+      const data = response?.data;
 
-      const response = await fetchResidentOrders({ });
-      const foundOrder = response.data?.find(o => o.id === orderId);
-
-      if (!foundOrder) {
+      if (!data) {
         setError('Order not found');
         return;
       }
 
-      if (foundOrder.status !== 'draft' && foundOrder.paymentStatus !== 'pending') {
-        navigate(`/nursing-homes/orders/${orderId}`);
+      if (data.status !== 'draft' && data.paymentStatus !== 'pending') {
+        navigate(`/nursing-homes/orders/${orderId}`, { replace: true });
         return;
       }
 
-      setOrder(foundOrder);
+      setOrder(data);
+      setBillingInfo({
+        email: data.billingEmail || '',
+        name: data.billingName || '',
+        phone: data.billingPhone || ''
+      });
     } catch (err) {
-      console.error('Error loading order:', err);
-      setError(err.response?.data?.message || 'Failed to load order');
+      setError(err.response?.data?.error || err.response?.data?.message || 'Failed to load order');
     } finally {
       setLoading(false);
     }
@@ -51,23 +121,8 @@ const OrderPayment = () => {
     loadOrder();
   }, [loadOrder]);
 
-  const createPaymentIntent = async () => {
-    const result = await submitAndPayOrder(order.id, {});
-    if (!result.success) {
-      throw new Error(result.error || 'Failed to create payment intent');
-    }
-    return {
-      clientSecret: result.clientSecret,
-      paymentIntentId: result.paymentIntentId
-    };
-  };
-
   const handlePaymentSuccess = () => {
-    navigate(`/nursing-homes/orders/${order.id}/confirmation`);
-  };
-
-  const handlePaymentError = (errorMessage) => {
-    setPaymentError(errorMessage);
+    navigate(`/nursing-homes/orders/${order.id}/confirmation`, { replace: true });
   };
 
   const getMealsByDay = () => {
@@ -120,8 +175,10 @@ const OrderPayment = () => {
           <h2>Order Review</h2>
           
           <div className="resident-info">
-            <h3>{order?.residentName}</h3>
-            {order?.roomNumber && <p>Room {order.roomNumber}</p>}
+            <h3>{order?.residentName ?? order?.resident?.name}</h3>
+            {(order?.roomNumber ?? order?.resident?.roomNumber) && (
+              <p>Room {order?.roomNumber ?? order?.resident?.roomNumber}</p>
+            )}
           </div>
 
           <div className="order-details">
@@ -170,35 +227,51 @@ const OrderPayment = () => {
             </div>
           </div>
 
-          <div className="billing-info">
-            <h4>Billing Information</h4>
-            {order?.billingEmail && (
-              <p>Receipt will be sent to: <strong>{order.billingEmail}</strong></p>
-            )}
-            {order?.billingName && (
-              <p>Billing name: <strong>{order.billingName}</strong></p>
-            )}
-          </div>
         </div>
 
         <div className="payment-section">
-          <h2>Payment</h2>
-          
+          <h2>Billing &amp; Payment</h2>
+
+          <div className="billing-fields">
+            <label className="billing-field">
+              <span>Email (receipt)</span>
+              <input
+                type="email"
+                value={billingInfo.email}
+                onChange={(e) => setBillingInfo((p) => ({ ...p, email: e.target.value }))}
+                placeholder="billing@example.com"
+              />
+            </label>
+            <label className="billing-field">
+              <span>Name</span>
+              <input
+                type="text"
+                value={billingInfo.name}
+                onChange={(e) => setBillingInfo((p) => ({ ...p, name: e.target.value }))}
+                placeholder="Billing name"
+              />
+            </label>
+            <label className="billing-field">
+              <span>Phone</span>
+              <input
+                type="tel"
+                value={billingInfo.phone}
+                onChange={(e) => setBillingInfo((p) => ({ ...p, phone: e.target.value }))}
+                placeholder="555-1234"
+              />
+            </label>
+          </div>
+
           {paymentError && (
-            <ErrorMessage 
-              message={paymentError} 
-              type="error"
-              onDismiss={() => setPaymentError(null)}
-            />
+            <ErrorMessage message={paymentError} type="error" onDismiss={() => setPaymentError(null)} />
           )}
 
           <Elements stripe={stripePromise}>
-            <StripePaymentForm
-              amount={order.total}
-              createPaymentIntent={createPaymentIntent}
+            <PaymentFormInner
+              order={order}
+              billingInfo={billingInfo}
               onSuccess={handlePaymentSuccess}
-              onError={handlePaymentError}
-              saveCardOption={true}
+              onError={setPaymentError}
             />
           </Elements>
 

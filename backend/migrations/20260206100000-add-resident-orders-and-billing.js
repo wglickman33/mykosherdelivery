@@ -141,37 +141,20 @@ module.exports = {
       }
     });
 
-    await queryInterface.addIndex('nursing_home_resident_orders', ['order_number'], { unique: true });
-    await queryInterface.addIndex('nursing_home_resident_orders', ['resident_id']);
-    await queryInterface.addIndex('nursing_home_resident_orders', ['facility_id']);
-    await queryInterface.addIndex('nursing_home_resident_orders', ['created_by_user_id']);
-    await queryInterface.addIndex('nursing_home_resident_orders', ['status']);
-    await queryInterface.addIndex('nursing_home_resident_orders', ['payment_status']);
-    await queryInterface.addIndex('nursing_home_resident_orders', ['week_start_date', 'week_end_date']);
+    await queryInterface.sequelize.query('CREATE UNIQUE INDEX IF NOT EXISTS nursing_home_resident_orders_order_number ON nursing_home_resident_orders (order_number);');
+    await queryInterface.sequelize.query('CREATE INDEX IF NOT EXISTS nursing_home_resident_orders_resident_id ON nursing_home_resident_orders (resident_id);');
+    await queryInterface.sequelize.query('CREATE INDEX IF NOT EXISTS nursing_home_resident_orders_facility_id ON nursing_home_resident_orders (facility_id);');
+    await queryInterface.sequelize.query('CREATE INDEX IF NOT EXISTS nursing_home_resident_orders_created_by_user_id ON nursing_home_resident_orders (created_by_user_id);');
+    await queryInterface.sequelize.query('CREATE INDEX IF NOT EXISTS nursing_home_resident_orders_status ON nursing_home_resident_orders (status);');
+    await queryInterface.sequelize.query('CREATE INDEX IF NOT EXISTS nursing_home_resident_orders_payment_status ON nursing_home_resident_orders (payment_status);');
+    await queryInterface.sequelize.query('CREATE INDEX IF NOT EXISTS nursing_home_resident_orders_week_start_date_week_end_date ON nursing_home_resident_orders (week_start_date, week_end_date);');
 
-    await queryInterface.addColumn('nursing_home_residents', 'billing_email', {
-      type: Sequelize.STRING,
-      allowNull: true,
-      comment: 'Email for weekly invoices (resident or family member)'
-    });
-
-    await queryInterface.addColumn('nursing_home_residents', 'billing_name', {
-      type: Sequelize.STRING,
-      allowNull: true,
-      comment: 'Name of person responsible for payment'
-    });
-
-    await queryInterface.addColumn('nursing_home_residents', 'billing_phone', {
-      type: Sequelize.STRING,
-      allowNull: true,
-      comment: 'Phone number for billing contact'
-    });
-
-    await queryInterface.addColumn('nursing_home_residents', 'payment_method_id', {
-      type: Sequelize.STRING,
-      allowNull: true,
-      comment: 'Stripe payment method ID for automatic weekly billing'
-    });
+    await queryInterface.sequelize.query(`
+      ALTER TABLE nursing_home_residents ADD COLUMN IF NOT EXISTS billing_email VARCHAR(255) NULL;
+      ALTER TABLE nursing_home_residents ADD COLUMN IF NOT EXISTS billing_name VARCHAR(255) NULL;
+      ALTER TABLE nursing_home_residents ADD COLUMN IF NOT EXISTS billing_phone VARCHAR(255) NULL;
+      ALTER TABLE nursing_home_residents ADD COLUMN IF NOT EXISTS payment_method_id VARCHAR(255) NULL;
+    `);
   },
 
   down: async (queryInterface, Sequelize) => {

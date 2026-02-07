@@ -55,10 +55,19 @@ const LoginForm = ({
   return (
     <div className={`login-form-wrapper ${className}`}>
       <div className="login-form-container">
+        {logo && (
+          <div className="login-logo-container">
+            <img 
+              src={logo} 
+              alt="MyKosherDelivery Logo" 
+              className="login-logo" 
+            />
+          </div>
+        )}
+        
         <div className="login-form-header">
-          {logo && <img src={logo} alt={title} className="login-logo" />}
           <h1>{title}</h1>
-          {subtitle && <p>{subtitle}</p>}
+          {subtitle && <p className="login-subtitle">{subtitle}</p>}
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">

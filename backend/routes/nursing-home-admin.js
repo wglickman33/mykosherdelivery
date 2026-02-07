@@ -53,6 +53,50 @@ router.get('/facilities', requireAdmin, async (req, res) => {
   }
 });
 
+router.get('/facilities/current', requireNursingHomeUser, async (req, res) => {
+  try {
+    const { facilityId: queryFacilityId } = req.query;
+    let facility = null;
+
+    if (req.user.role === 'admin') {
+      if (!queryFacilityId) {
+        return res.status(400).json({
+          success: false,
+          error: 'facilityId query is required for admin'
+        });
+      }
+      facility = await NursingHomeFacility.findByPk(queryFacilityId);
+    } else if (req.user.role === 'nursing_home_admin' && req.user.nursingHomeFacilityId) {
+      facility = await NursingHomeFacility.findByPk(req.user.nursingHomeFacilityId);
+    } else if (req.user.role === 'nursing_home_user') {
+      const resident = await NursingHomeResident.findOne({
+        where: { assignedUserId: req.user.id },
+        include: [{ model: NursingHomeFacility, as: 'facility' }]
+      });
+      facility = resident?.facility || null;
+    }
+
+    if (!facility) {
+      return res.status(404).json({
+        success: false,
+        error: 'Facility not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: facility
+    });
+  } catch (error) {
+    logger.error('Error fetching current facility:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch facility',
+      message: error.message
+    });
+  }
+});
+
 router.get('/facilities/:id', requireNursingHomeAdmin, async (req, res) => {
   try {
     const { id } = req.params;
@@ -104,7 +148,8 @@ router.post('/facilities', requireAdmin, [
   body('address.zip_code').notEmpty(),
   body('contactEmail').optional().isEmail(),
   body('contactPhone').optional(),
-  body('billingFrequency').optional().isIn(['weekly', 'monthly'])
+  body('billingFrequency').optional().isIn(['weekly', 'monthly']),
+  body('logoUrl').optional().isURL()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -116,7 +161,7 @@ router.post('/facilities', requireAdmin, [
       });
     }
 
-    const { name, address, contactEmail, contactPhone, billingFrequency } = req.body;
+    const { name, address, contactEmail, contactPhone, billingFrequency, logoUrl } = req.body;
 
     const facility = await NursingHomeFacility.create({
       name,
@@ -124,6 +169,7 @@ router.post('/facilities', requireAdmin, [
       contactEmail,
       contactPhone,
       billingFrequency: billingFrequency || 'monthly',
+      logoUrl: logoUrl || null,
       isActive: true
     });
 
@@ -153,7 +199,8 @@ router.put('/facilities/:id', requireAdmin, [
   body('contactEmail').optional().isEmail(),
   body('contactPhone').optional(),
   body('billingFrequency').optional().isIn(['weekly', 'monthly']),
-  body('isActive').optional().isBoolean()
+  body('isActive').optional().isBoolean(),
+  body('logoUrl').optional().isURL()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -166,7 +213,8 @@ router.put('/facilities/:id', requireAdmin, [
     }
 
     const { id } = req.params;
-    const updateData = req.body;
+    const updateData = { ...req.body };
+    if (updateData.logoUrl === '') updateData.logoUrl = null;
 
     const facility = await NursingHomeFacility.findByPk(id);
     if (!facility) {
@@ -227,6 +275,174 @@ router.delete('/facilities/:id', requireAdmin, async (req, res) => {
       error: 'Failed to deactivate facility',
       message: error.message
     });
+  }
+});
+
+function requireFacilityStaffAdmin(req, res, next) {
+  if (req.user.role === 'admin') return next();
+  if (req.user.role === 'nursing_home_admin' && req.user.nursingHomeFacilityId === req.params.facilityId) return next();
+  return res.status(403).json({ success: false, error: 'Access denied' });
+}
+
+function requireAdminOrNursingHomeAdmin(req, res, next) {
+  if (req.user.role === 'admin' || req.user.role === 'nursing_home_admin') return next();
+  return res.status(403).json({ success: false, error: 'Access denied' });
+}
+
+router.post('/facilities/:facilityId/staff', requireAdminOrNursingHomeAdmin, requireFacilityStaffAdmin, [
+  body('email').isEmail().normalizeEmail(),
+  body('password').isLength({ min: 8, max: 128 }).withMessage('Password must be 8–128 characters'),
+  body('firstName').notEmpty().trim(),
+  body('lastName').notEmpty().trim(),
+  body('role').isIn(['nursing_home_user', 'nursing_home_admin']),
+  body('phone').optional().trim()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, error: 'Validation failed', details: errors.array() });
+    }
+    const { facilityId } = req.params;
+    const { email, password, firstName, lastName, role, phone } = req.body;
+
+    const facility = await NursingHomeFacility.findByPk(facilityId);
+    if (!facility) {
+      return res.status(404).json({ success: false, error: 'Facility not found' });
+    }
+
+    const existing = await Profile.findOne({ where: { email } });
+    if (existing) {
+      return res.status(400).json({ success: false, error: 'An account with this email already exists' });
+    }
+
+    const bcrypt = require('bcryptjs');
+    const hashedPassword = await bcrypt.hash(password, parseInt(process.env.BCRYPT_SALT_ROUNDS) || 12);
+
+    const user = await Profile.create({
+      email,
+      password: hashedPassword,
+      firstName,
+      lastName,
+      phone: phone || null,
+      role,
+      nursingHomeFacilityId: facilityId
+    });
+
+    logger.info('Nursing home staff created', { userId: user.id, facilityId, createdBy: req.user.id });
+
+    const out = user.toJSON();
+    delete out.password;
+    res.status(201).json({ success: true, data: out });
+  } catch (error) {
+    logger.error('Error creating nursing home staff:', error);
+    res.status(500).json({ success: false, error: 'Failed to create staff', message: error.message });
+  }
+});
+
+router.put('/facilities/:facilityId/staff/:userId', requireAdminOrNursingHomeAdmin, requireFacilityStaffAdmin, [
+  body('firstName').optional().notEmpty().trim(),
+  body('lastName').optional().notEmpty().trim(),
+  body('role').optional().isIn(['nursing_home_user', 'nursing_home_admin']),
+  body('phone').optional().trim()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, error: 'Validation failed', details: errors.array() });
+    }
+    const { facilityId, userId } = req.params;
+    const updateData = req.body;
+
+    const user = await Profile.findByPk(userId);
+    if (!user || user.nursingHomeFacilityId !== facilityId) {
+      return res.status(404).json({ success: false, error: 'Staff member not found' });
+    }
+
+    await user.update(updateData);
+    logger.info('Nursing home staff updated', { userId, facilityId, updatedBy: req.user.id });
+    const out = user.toJSON();
+    delete out.password;
+    res.json({ success: true, data: out });
+  } catch (error) {
+    logger.error('Error updating nursing home staff:', error);
+    res.status(500).json({ success: false, error: 'Failed to update staff', message: error.message });
+  }
+});
+
+router.delete('/facilities/:facilityId/staff/:userId', requireAdminOrNursingHomeAdmin, requireFacilityStaffAdmin, async (req, res) => {
+  try {
+    const { facilityId, userId } = req.params;
+    const user = await Profile.findByPk(userId);
+    if (!user || user.nursingHomeFacilityId !== facilityId) {
+      return res.status(404).json({ success: false, error: 'Staff member not found' });
+    }
+    if (user.role === 'admin') {
+      return res.status(400).json({ success: false, error: 'Cannot remove an admin from facility this way' });
+    }
+    await user.update({ nursingHomeFacilityId: null, role: 'user' });
+    logger.info('Staff removed from facility', { userId, facilityId, removedBy: req.user.id });
+    res.json({ success: true, message: 'Staff removed from facility' });
+  } catch (error) {
+    logger.error('Error removing staff:', error);
+    res.status(500).json({ success: false, error: 'Failed to remove staff', message: error.message });
+  }
+});
+
+router.post('/facilities/:facilityId/staff/bulk', requireAdminOrNursingHomeAdmin, requireFacilityStaffAdmin, [
+  body('staff').isArray(),
+  body('staff.*.email').isEmail().normalizeEmail(),
+  body('staff.*.firstName').notEmpty().trim(),
+  body('staff.*.lastName').notEmpty().trim(),
+  body('staff.*.role').isIn(['nursing_home_user', 'nursing_home_admin']),
+  body('staff.*.password').optional().isLength({ min: 8, max: 128 }),
+  body('staff.*.phone').optional().trim()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, error: 'Validation failed', details: errors.array() });
+    }
+    const { facilityId } = req.params;
+    const { staff: staffList } = req.body;
+
+    const facility = await NursingHomeFacility.findByPk(facilityId);
+    if (!facility) {
+      return res.status(404).json({ success: false, error: 'Facility not found' });
+    }
+
+    const bcrypt = require('bcryptjs');
+    const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS) || 12;
+    const results = { created: [], skipped: [], errors: [] };
+    const defaultPassword = process.env.NURSING_HOME_DEFAULT_STAFF_PASSWORD || 'ChangeMe123!';
+
+    for (const row of staffList) {
+      try {
+        const existing = await Profile.findOne({ where: { email: row.email } });
+        if (existing) {
+          results.skipped.push({ email: row.email, reason: 'Email already exists' });
+          continue;
+        }
+        const password = row.password || defaultPassword;
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
+        const user = await Profile.create({
+          email: row.email,
+          password: hashedPassword,
+          firstName: row.firstName,
+          lastName: row.lastName,
+          phone: row.phone || null,
+          role: row.role,
+          nursingHomeFacilityId: facilityId
+        });
+        results.created.push({ id: user.id, email: user.email, name: `${user.firstName} ${user.lastName}` });
+      } catch (err) {
+        results.errors.push({ email: row.email, message: err.message });
+      }
+    }
+
+    res.status(201).json({ success: true, data: results });
+  } catch (error) {
+    logger.error('Error bulk creating staff:', error);
+    res.status(500).json({ success: false, error: 'Failed to bulk create staff', message: error.message });
   }
 });
 

@@ -41,17 +41,23 @@ const OrderCreation = () => {
         fetchMenuItems({ mealType: 'dinner', isActive: true })
       ]);
 
-      setResident(residentRes.data);
-      
-      if (residentRes.data.facilityId) {
-        const facilityRes = await fetchFacility(residentRes.data.facilityId);
-        setFacility(facilityRes.data);
+      const residentData = residentRes?.data ?? null;
+      setResident(residentData);
+
+      if (residentData?.facilityId) {
+        const facilityRes = await fetchFacility(residentData.facilityId);
+        const facilityData = facilityRes?.data ?? null;
+        setFacility(facilityData);
       }
 
+      const bItems = breakfastRes?.data?.items ?? [];
+      const lItems = lunchRes?.data?.items ?? [];
+      const dItems = dinnerRes?.data?.items ?? [];
+
       setMenuItems({
-        breakfast: breakfastRes.data || [],
-        lunch: lunchRes.data || [],
-        dinner: dinnerRes.data || []
+        breakfast: Array.isArray(bItems) ? bItems : [],
+        lunch: Array.isArray(lItems) ? lItems : [],
+        dinner: Array.isArray(dItems) ? dItems : []
       });
     } catch (err) {
       console.error('Error loading data:', err);
@@ -102,9 +108,12 @@ const OrderCreation = () => {
       };
 
       const response = await createResidentOrder(orderData);
+      const created = response?.data;
 
-      if (response.success) {
-        navigate(`/nursing-homes/order/${response.data.id}/payment`);
+      if (response?.success && created?.id) {
+        navigate(`/nursing-homes/order/${created.id}/payment`);
+      } else {
+        setError(response?.error || response?.message || 'Failed to create order');
       }
     } catch (err) {
       console.error('Error saving order:', err);
