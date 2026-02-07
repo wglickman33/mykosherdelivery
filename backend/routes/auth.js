@@ -11,9 +11,9 @@ const router = express.Router();
 
 const generateToken = (userId) => {
   return jwt.sign(
-    { userId }, 
-    process.env.JWT_SECRET, 
-    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+    { userId },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRES_IN || '7d', algorithm: 'HS256' }
   );
 };
 
@@ -90,14 +90,13 @@ router.post('/signup', [
       if (dbError.message?.includes('nursing_home_facility_id') || dbError.original?.message?.includes('nursing_home_facility_id')) {
         const { sequelize } = require('../models');
         const { QueryTypes } = require('sequelize');
-        const [results] = await sequelize.query(`
-          SELECT id, email FROM profiles 
-          WHERE email = :email AND deleted_at IS NULL
+        const rows = await sequelize.query(`
+          SELECT id, email FROM profiles WHERE LOWER(email) = LOWER(:email)
         `, {
           replacements: { email },
           type: QueryTypes.SELECT
         });
-        existingUser = results && results.length > 0 ? { id: results[0].id, email: results[0].email } : null;
+        existingUser = rows && rows.length > 0 ? { id: rows[0].id, email: rows[0].email } : null;
       } else {
         throw dbError;
       }
@@ -191,19 +190,19 @@ router.post('/signin', [
       if (dbError.message?.includes('nursing_home_facility_id') || dbError.original?.message?.includes('nursing_home_facility_id')) {
         const { sequelize } = require('../models');
         const { QueryTypes } = require('sequelize');
-        const results = await sequelize.query(`
+        const rows = await sequelize.query(`
           SELECT id, email, password, first_name AS "firstName", last_name AS "lastName", 
                  phone, preferred_name AS "preferredName", address, addresses, 
                  primary_address_index AS "primaryAddressIndex", role, 
                  created_at AS "createdAt", updated_at AS "updatedAt"
           FROM profiles 
-          WHERE LOWER(email) = LOWER(:email) AND deleted_at IS NULL
+          WHERE LOWER(email) = LOWER(:email)
         `, {
           replacements: { email },
           type: QueryTypes.SELECT
         });
-        if (results && results.length > 0) {
-          const userData = results[0];
+        if (rows && rows.length > 0) {
+          const userData = rows[0];
           user = Profile.build({
             id: userData.id,
             email: userData.email,
@@ -271,20 +270,11 @@ router.post('/signin', [
       });
     }
     
-    logger.debug('Password comparison attempt', {
-      userId: user.id,
-      passwordHashLength: passwordHash.length,
-      passwordHashPrefix: passwordHash.substring(0, 20),
-      inputPasswordLength: password.length,
-      inputPasswordPrefix: password.substring(0, 5) + '***'
-    });
-    
+    logger.debug('Password comparison attempt', { userId: user.id });
+
     const isValidPassword = await bcrypt.compare(password, passwordHash);
-    
-    logger.debug('Password comparison result', {
-      userId: user.id,
-      isValid: isValidPassword
-    });
+
+    logger.debug('Password comparison result', { userId: user.id, isValid: isValidPassword });
     
     if (!isValidPassword) {
       logger.warn('Login failed: Invalid password', { 

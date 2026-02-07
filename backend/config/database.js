@@ -35,7 +35,7 @@ const commonConfig = {
   define: {
     timestamps: true,
     underscored: true,
-    paranoid: true,
+    paranoid: false,
     freezeTableName: true
   },
   retry: {

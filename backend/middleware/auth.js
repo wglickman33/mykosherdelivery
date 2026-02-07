@@ -76,7 +76,7 @@ const authenticateToken = async (req, res, next) => {
       });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
 
     logger.debug('Token verified successfully', {
       userId: decoded.userId,
@@ -93,19 +93,19 @@ const authenticateToken = async (req, res, next) => {
         // Column doesn't exist yet - query without it
         const { sequelize } = require('../models');
         const { QueryTypes } = require('sequelize');
-        const [results] = await sequelize.query(`
+        const rows = await sequelize.query(`
           SELECT id, email, password, first_name AS "firstName", last_name AS "lastName", 
                  phone, preferred_name AS "preferredName", address, addresses, 
                  primary_address_index AS "primaryAddressIndex", role, 
                  created_at AS "createdAt", updated_at AS "updatedAt"
           FROM profiles 
-          WHERE id = :userId AND deleted_at IS NULL
+          WHERE id = :userId
         `, {
           replacements: { userId: decoded.userId },
           type: QueryTypes.SELECT
         });
-        if (results && results.length > 0) {
-          user = Profile.build(results[0], { isNewRecord: false });
+        if (rows && rows.length > 0) {
+          user = Profile.build(rows[0], { isNewRecord: false });
         } else {
           user = null;
         }
@@ -216,28 +216,26 @@ const optionalAuth = async (req, res, next) => {
     const token = authHeader && authHeader.split(' ')[1];
 
     if (token) {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
       let user;
       try {
         user = await Profile.findByPk(decoded.userId);
       } catch (dbError) {
         if (dbError.message?.includes('nursing_home_facility_id') || dbError.original?.message?.includes('nursing_home_facility_id')) {
-          // Column doesn't exist yet - query without it
           const { sequelize } = require('../models');
           const { QueryTypes } = require('sequelize');
-          const [results] = await sequelize.query(`
-            SELECT id, email, password, first_name AS "firstName", last_name AS "lastName", 
-                   phone, preferred_name AS "preferredName", address, addresses, 
-                   primary_address_index AS "primaryAddressIndex", role, 
+          const rows = await sequelize.query(`
+            SELECT id, email, password, first_name AS "firstName", last_name AS "lastName",
+                   phone, preferred_name AS "preferredName", address, addresses,
+                   primary_address_index AS "primaryAddressIndex", role,
                    created_at AS "createdAt", updated_at AS "updatedAt"
-            FROM profiles 
-            WHERE id = :userId AND deleted_at IS NULL
+            FROM profiles WHERE id = :userId
           `, {
             replacements: { userId: decoded.userId },
             type: QueryTypes.SELECT
           });
-          if (results && results.length > 0) {
-            user = Profile.build(results[0], { isNewRecord: false });
+          if (rows && rows.length > 0) {
+            user = Profile.build(rows[0], { isNewRecord: false });
           }
         }
       }

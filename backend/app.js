@@ -4,6 +4,11 @@ const helmet = require('helmet');
 require('dotenv').config();
 
 const logger = require('./utils/logger');
+
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+  logger.error('JWT_SECRET is required and must be at least 32 characters. Set it in backend/.env');
+  process.exit(1);
+}
 const { sequelize } = require('./models');
 const { sanitizeInput, validateRateLimit } = require('./middleware/validation');
 const authRoutes = require('./routes/auth');

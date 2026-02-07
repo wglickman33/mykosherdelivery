@@ -3463,7 +3463,7 @@ router.post('/orders/stream-token', requireAdmin, async (req, res) => {
     const token = jwt.sign(
       { userId: req.user.id, scope: 'orders_stream' },
       process.env.JWT_SECRET,
-      { expiresIn: '1h' }
+      { expiresIn: '1h', algorithm: 'HS256' }
     );
     res.json({ token });
   } catch (error) {
@@ -3484,7 +3484,7 @@ router.get('/orders/stream', async (req, res) => {
     
     let decoded;
     try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET);
+      decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
     } catch (jwtError) {
       if (jwtError.name === 'TokenExpiredError') {
         logger.warn('SSE stream: Token expired', { expiredAt: jwtError.expiredAt });
