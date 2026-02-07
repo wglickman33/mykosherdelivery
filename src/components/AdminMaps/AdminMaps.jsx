@@ -38,6 +38,7 @@ const AdminMaps = () => {
   const [filterDiet, setFilterDiet] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [rowToDelete, setRowToDelete] = useState(null);
+  const [viewingRow, setViewingRow] = useState(null);
   const [form, setForm] = useState({
     name: '',
     address: '',
@@ -53,6 +54,7 @@ const AdminMaps = () => {
     dietTags: [],
     isActive: true,
     deactivationReason: '',
+    hoursOfOperation: '',
     notes: ''
   });
 
@@ -101,6 +103,7 @@ const AdminMaps = () => {
       dietTags: [],
       isActive: true,
       deactivationReason: '',
+      hoursOfOperation: '',
       notes: ''
     });
     setError(null);
@@ -154,6 +157,7 @@ const AdminMaps = () => {
         dietTags: form.dietTags,
         isActive: form.isActive,
         deactivationReason: form.deactivationReason || null,
+        hoursOfOperation: form.hoursOfOperation.trim() || null,
         notes: form.notes.trim() || null
       };
       if (editing) {
@@ -197,9 +201,8 @@ const AdminMaps = () => {
     setModalOpen(true);
   };
 
-  const handleView = () => {
-    const base = window.location.origin;
-    window.open(`${base}/maps`, '_blank', 'noopener');
+  const handleView = (row) => {
+    setViewingRow(row);
   };
 
   const handleDeleteClick = (row) => {
@@ -392,7 +395,7 @@ const AdminMaps = () => {
                       </td>
                       <td className="maps-reason">{row.deactivationReason ? row.deactivationReason.replace(/_/g, ' ') : '—'}</td>
                       <td className="maps-actions">
-                        <button type="button" className="maps-action maps-action--view" onClick={handleView}>View</button>
+                        <button type="button" className="maps-action maps-action--view" onClick={() => handleView(row)}>View</button>
                         <button type="button" className="maps-action maps-action--edit" onClick={() => handleOpenEdit(row)}>Edit</button>
                         <button
                           type="button"
@@ -448,6 +451,87 @@ const AdminMaps = () => {
             <div className="maps-delete-actions">
               <button type="button" className="maps-btn-secondary" onClick={() => setShowDeleteConfirm(false)}>Cancel</button>
               <button type="button" className="maps-btn-danger" onClick={handleDeleteConfirm}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewingRow && (
+        <div className="admin-maps__overlay" onClick={() => setViewingRow(null)}>
+          <div className="admin-maps__modal admin-maps__modal--view" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-maps__modal-header">
+              <h2>{viewingRow.name}</h2>
+              <button
+                type="button"
+                className="admin-maps__modal-close"
+                onClick={() => setViewingRow(null)}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <div className="admin-maps__view-content">
+              <dl className="admin-maps__view-grid">
+                <dt>Address</dt>
+                <dd>{[viewingRow.address, viewingRow.city, viewingRow.state, viewingRow.zip].filter(Boolean).join(', ') || '—'}</dd>
+
+                <dt>Phone</dt>
+                <dd>{viewingRow.phone || '—'}</dd>
+
+                <dt>Website</dt>
+                <dd>
+                  {viewingRow.website ? (
+                    <a href={viewingRow.website.startsWith('http') ? viewingRow.website : `https://${viewingRow.website}`} target="_blank" rel="noopener noreferrer">{viewingRow.website}</a>
+                  ) : '—'}
+                </dd>
+
+                <dt>Kosher certification</dt>
+                <dd>{viewingRow.kosherCertification || '—'}</dd>
+
+                <dt>Google rating</dt>
+                <dd>{viewingRow.googleRating != null ? Number(viewingRow.googleRating).toFixed(1) : '—'}</dd>
+
+                <dt>Diet</dt>
+                <dd>{(viewingRow.dietTags || []).join(', ') || '—'}</dd>
+
+                <dt>Hours of operation</dt>
+                <dd className="admin-maps__view-hours">{viewingRow.hoursOfOperation || '—'}</dd>
+
+                <dt>Status</dt>
+                <dd>
+                  <span className={`maps-pill maps-pill--${viewingRow.isActive !== false ? 'success' : 'error'}`}>
+                    {viewingRow.isActive !== false ? 'Active' : 'Inactive'}
+                  </span>
+                  {viewingRow.isActive === false && viewingRow.deactivationReason && (
+                    <span className="admin-maps__view-reason"> ({viewingRow.deactivationReason.replace(/_/g, ' ')})</span>
+                  )}
+                </dd>
+
+                {viewingRow.notes && (
+                  <>
+                    <dt>Notes</dt>
+                    <dd>{viewingRow.notes}</dd>
+                  </>
+                )}
+
+                <dt>Coordinates</dt>
+                <dd>
+                  {viewingRow.latitude != null && viewingRow.longitude != null
+                    ? `${Number(viewingRow.latitude).toFixed(5)}, ${Number(viewingRow.longitude).toFixed(5)}`
+                    : '—'}
+                </dd>
+
+                {viewingRow.googlePlaceId && (
+                  <>
+                    <dt>Google Place ID</dt>
+                    <dd className="admin-maps__view-place-id">{viewingRow.googlePlaceId}</dd>
+                  </>
+                )}
+              </dl>
+            </div>
+            <div className="admin-maps__view-actions">
+              <button type="button" className="maps-btn-secondary" onClick={() => setViewingRow(null)}>Close</button>
+              <button type="button" className="maps-btn-primary" onClick={() => { setViewingRow(null); handleOpenEdit(viewingRow); }}>Edit</button>
             </div>
           </div>
         </div>
@@ -607,6 +691,16 @@ const AdminMaps = () => {
                       </select>
                     </div>
                   )}
+                  <div className="admin-maps__form-group admin-maps__form-group--full">
+                    <label>Hours of operation</label>
+                    <textarea
+                      value={form.hoursOfOperation}
+                      onChange={(e) => setForm((p) => ({ ...p, hoursOfOperation: e.target.value }))}
+                      placeholder="e.g. Sun–Thu 9am–9pm; Fri 9am–2pm; Closed Sat; AS 8pm"
+                      rows={2}
+                    />
+                    <span className="admin-maps__form-hint">AS = After Shabbat (understood in community)</span>
+                  </div>
                   <div className="admin-maps__form-group admin-maps__form-group--full">
                     <label>Notes</label>
                     <textarea

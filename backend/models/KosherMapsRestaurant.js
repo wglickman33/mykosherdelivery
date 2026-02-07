@@ -60,6 +60,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       field: 'deactivation_reason'
     },
+    hoursOfOperation: {
+      type: DataTypes.TEXT,
+      field: 'hours_of_operation'
+    },
     notes: {
       type: DataTypes.TEXT
     },

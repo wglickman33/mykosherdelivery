@@ -221,6 +221,7 @@ function normalizePayload(body, options = {}) {
     dietTags,
     isActive: body.isActive !== false && body.isActive !== 'false' && body.isActive !== '0',
     deactivationReason,
+    hoursOfOperation: toStr(body.hoursOfOperation ?? body.hours_of_operation, MAX_TEXT),
     notes: toStr(body.notes, MAX_TEXT)
   };
 }
@@ -391,6 +392,7 @@ router.post('/restaurants/import', requireAdmin, upload.single('file'), async (r
       const dietTags = dietRaw ? dietRaw.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean) : [];
       const isActive = col(row, 'is_active', 'active') !== 'false' && col(row, 'is_active', 'active') !== '0';
       const deactivationReason = DEACTIVATION_REASONS.includes(col(row, 'deactivation_reason')) ? col(row, 'deactivation_reason') : null;
+      const hoursOfOperation = col(row, 'hours_of_operation', 'hours of operation', 'hours');
       const notes = col(row, 'notes');
 
       const rowBody = {
@@ -409,6 +411,7 @@ router.post('/restaurants/import', requireAdmin, upload.single('file'), async (r
         dietTags,
         isActive,
         deactivationReason,
+        hoursOfOperation: hoursOfOperation || undefined,
         notes
       };
       const payload = normalizePayload(rowBody);

@@ -50,11 +50,10 @@ $maps-error: #dc2626;
   font-weight: 700;
   font-size: 0.9rem;
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.2s ease;
+  transition: box-shadow 0.2s ease;
   box-shadow: 0 4px 14px rgba(13, 148, 136, 0.35);
 
   &:hover:not(:disabled) {
-    transform: translateY(-1px);
     box-shadow: 0 6px 20px rgba(13, 148, 136, 0.4);
   }
 
@@ -122,10 +121,9 @@ $maps-error: #dc2626;
     box-shadow: 0 2px 8px rgba(13, 148, 136, 0.08);
     border: 1px solid rgba(13, 148, 136, 0.12);
     text-align: center;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: box-shadow 0.2s ease;
 
     &:hover {
-      transform: translateY(-2px);
       box-shadow: 0 8px 24px rgba(13, 148, 136, 0.12);
     }
 
@@ -591,6 +589,82 @@ $maps-error: #dc2626;
   &__modal-content {
     padding: 22px 24px;
     overflow-y: auto;
+  }
+
+  &__modal--view {
+    max-width: 520px;
+
+    .admin-maps__modal-content {
+      padding-bottom: 16px;
+    }
+  }
+
+  &__view-content {
+    padding: 0 4px;
+  }
+
+  &__view-grid {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 10px 20px;
+    margin: 0;
+    font-size: 0.95rem;
+
+    dt {
+      margin: 0;
+      font-weight: 700;
+      color: #475569;
+    }
+
+    dd {
+      margin: 0;
+      color: #0f172a;
+
+      a {
+        color: $maps-accent;
+        text-decoration: none;
+
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+    }
+
+    .maps-pill {
+      vertical-align: middle;
+    }
+  }
+
+  &__view-hours {
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  &__view-reason {
+    color: #64748b;
+    font-size: 0.9em;
+  }
+
+  &__view-place-id {
+    font-size: 0.85em;
+    word-break: break-all;
+    color: #64748b;
+  }
+
+  &__view-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px 22px;
+    border-top: 1px solid #e2e8f0;
+    background: #f8fafc;
+  }
+
+  &__form-hint {
+    display: block;
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-top: 4px;
   }
 
   &__form-grid {
