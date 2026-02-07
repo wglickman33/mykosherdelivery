@@ -310,6 +310,9 @@ const AdminLayout = () => {
     { id: 'restaurants', label: 'Restaurants', icon: (
         <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M8.1 13.34l2.83-2.83L3.91 3.5a4.008 4.008 0 000 5.66l4.19 4.18zm6.78-1.81c1.53.71 3.68.21 5.27-1.38 1.91-1.91 2.28-4.65.81-6.12-1.46-1.46-4.2-1.1-6.12.81-1.59 1.59-2.09 3.74-1.38 5.27L3.7 19.87l1.41 1.41L12 14.41l6.88 6.88 1.41-1.41-5.51-5.51z"/></svg>
       ), path: '/admin/restaurants', roles: ['admin'] },
+    { id: 'maps', label: 'Maps', icon: (
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+      ), path: '/admin/maps', roles: ['admin'] },
     { id: 'nursing-homes', label: 'Nursing Homes', icon: (
         <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 3L4 9v12h16V9l-8-6zm6 16h-3v-3h-2v3H10v-5H8v5H5V10l7-5 7 5v9z"/></svg>
       ), path: '/admin/nursing-homes', roles: ['admin', 'nursing_home_admin'] },

@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import logoImg from "../../assets/whiteMKDLogo.png";
+import navyMKDLogo from "../../assets/navyMKDLogo.png";
 import "./Footer.scss";
 
 const Footer = () => {
@@ -40,6 +41,16 @@ const Footer = () => {
               <Link to="/advertise" className="footer__link">Advertise With Us</Link>
               <Link to="/gift-card" className="footer__link">MKD Gift Card</Link>
             </nav>
+          </div>
+
+          {}
+          <div className="footer__section footer__section--subscriptions">
+            <h3 className="footer__section-title">Subscriptions</h3>
+            <Link to="/maps" className="footer__subscriptions-link">
+              <img src={navyMKDLogo} alt="My Kosher Maps" className="footer__subscriptions-logo" />
+              <span className="footer__subscriptions-label">My Kosher Maps</span>
+            </Link>
+            <p className="footer__subscriptions-desc">Kosher restaurant directory — search, filter, directions.</p>
           </div>
 
           {}

@@ -1,0 +1,231 @@
+.maps-page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 1rem;
+
+  &__toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    align-items: center;
+  }
+
+  &__search {
+    flex: 1;
+    min-width: 200px;
+    padding: 0.65rem 1rem;
+    border: 2px solid #93c5fd;
+    border-radius: 12px;
+    font-size: 1rem;
+    background: #fff;
+    transition: border-color 0.2s, box-shadow 0.2s;
+
+    &::placeholder {
+      color: #94a3b8;
+    }
+
+    &:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
+    }
+  }
+
+  &__select {
+    padding: 0.65rem 1rem;
+    border: 2px solid #93c5fd;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    background: #fff;
+    min-width: 140px;
+    color: #1e40af;
+    font-weight: 500;
+
+    &:focus {
+      outline: none;
+      border-color: #2563eb;
+    }
+  }
+
+  &__location-btn {
+    padding: 0.65rem 1.35rem;
+    background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+    transition: transform 0.15s, box-shadow 0.2s;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+    }
+  }
+
+  &__split {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+    min-height: 0;
+
+    @media (max-width: 900px) {
+      grid-template-columns: 1fr;
+      grid-template-rows: 300px 1fr;
+    }
+  }
+
+  &__map-wrap {
+    position: relative;
+    background: linear-gradient(145deg, #bfdbfe 0%, #93c5fd 100%);
+    border-radius: 16px;
+    overflow: hidden;
+    min-height: 400px;
+    box-shadow: 0 4px 20px rgba(37, 99, 235, 0.12);
+  }
+
+  &__map {
+    width: 100%;
+    height: 100%;
+    min-height: 400px;
+  }
+
+  &__map-placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(145deg, #dbeafe 0%, #bfdbfe 100%);
+    color: #1e40af;
+    text-align: center;
+    padding: 1.5rem;
+    font-weight: 500;
+
+    p {
+      margin: 0.35rem 0;
+    }
+  }
+
+  &__list-wrap {
+    overflow-y: auto;
+    background: #fff;
+    border-radius: 16px;
+    border: 2px solid #93c5fd;
+    padding: 0.75rem;
+    box-shadow: 0 4px 20px rgba(37, 99, 235, 0.08);
+  }
+
+  &__empty {
+    padding: 3rem;
+    text-align: center;
+    color: #64748b;
+  }
+
+  &__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  &__card {
+    padding: 1rem 1.25rem;
+    border: 2px solid #bfdbfe;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s, transform 0.15s, box-shadow 0.2s;
+
+    &:hover {
+      border-color: #93c5fd;
+      background: #eff6ff;
+      transform: translateX(2px);
+      box-shadow: 0 2px 12px rgba(37, 99, 235, 0.1);
+    }
+
+    &--selected {
+      border-color: #2563eb;
+      background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+    }
+  }
+
+  &__card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.35rem;
+  }
+
+  &__card-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1e40af;
+    margin: 0;
+  }
+
+  &__card-rating {
+    font-size: 0.9rem;
+    color: #2563eb;
+    font-weight: 700;
+  }
+
+  &__card-address {
+    font-size: 0.9rem;
+    color: #475569;
+    margin: 0 0 0.5rem 0;
+    line-height: 1.4;
+  }
+
+  &__card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.5rem;
+  }
+
+  &__tag {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.6rem;
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    color: #1d4ed8;
+    border-radius: 8px;
+  }
+
+  &__card-cert {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin: 0 0 0.5rem 0;
+  }
+
+  &__card-meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.85rem;
+    color: #64748b;
+  }
+
+  &__card-directions {
+    color: #2563eb;
+    font-weight: 700;
+    text-decoration: none;
+    transition: color 0.2s;
+
+    &:hover {
+      color: #1d4ed8;
+      text-decoration: underline;
+    }
+  }
+}

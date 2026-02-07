@@ -23,6 +23,9 @@ const supportRoutes = require('./routes/support');
 const countdownRoutes = require('./routes/countdown');
 const taxRoutes = require('./routes/tax');
 const nursingHomeRoutes = require('./routes/nursing-homes');
+const mapsRoutes = require('./routes/maps');
+const adminMapsRoutes = require('./routes/admin-maps');
+const { requireAdmin } = require('./middleware/auth');
 
 const app = express();
 
@@ -103,6 +106,7 @@ app.use('/api/restaurants', restaurantRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/favorites', favoriteRoutes);
+app.use('/api/admin/maps', requireAdmin, adminMapsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/promo-codes', promoCodeRoutes);
 app.use('/api/support', supportRoutes);
@@ -110,6 +114,7 @@ app.use('/api/countdown', countdownRoutes);
 app.use('/api/tax', taxRoutes);
 app.use('/api/images', require('./routes/images'));
 app.use('/api/nursing-homes', nursingHomeRoutes);
+app.use('/api/maps', mapsRoutes);
 
 app.get('/api/health', async (req, res) => {
   try {

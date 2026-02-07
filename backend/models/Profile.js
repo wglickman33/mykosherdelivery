@@ -53,6 +53,21 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
       field: 'nursing_home_facility_id'
     },
+    stripeCustomerId: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: 'stripe_customer_id'
+    },
+    mapsSubscriptionActive: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+      field: 'maps_subscription_active'
+    },
+    mapsSubscriptionId: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: 'maps_subscription_id'
+    },
     createdAt: {
       type: DataTypes.DATE,
       field: 'created_at',

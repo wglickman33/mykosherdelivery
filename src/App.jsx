@@ -38,6 +38,7 @@ import AdminSettings from "./components/AdminSettings/AdminSettings";
 import AdminRequests from "./components/AdminRequests/AdminRequests";
 import AdminCampaigns from "./components/AdminCampaigns/AdminCampaigns";
 import AdminNursingHomes from "./components/AdminNursingHomes/AdminNursingHomes";
+import AdminMaps from "./components/AdminMaps/AdminMaps";
 import AdminNotFoundPage from "./components/AdminNotFoundPage/AdminNotFoundPage";
 import NotFoundPage from "./components/NotFoundPage/NotFoundPage";
 import ErrorBoundary from "./components/ErrorBoundary/ErrorBoundary";
@@ -61,6 +62,9 @@ import NursingHomeOrderPayment from "./components/NursingHomeOrderPayment/OrderP
 import NursingHomeOrders from "./components/NursingHomeOrders/NursingHomeOrders";
 import NursingHomeOrderDetails from "./components/NursingHomeOrderDetails/OrderDetails";
 import NursingHomeOrderConfirmation from "./components/NursingHomeOrderConfirmation/OrderConfirmation";
+import MapsGate from "./components/MapsGate/MapsGate";
+import MapsLayout from "./components/MapsLayout/MapsLayout";
+import MapsPage from "./components/MapsPage/MapsPage";
 
 function NhRedirectToDashboard() {
   const location = useLocation();
@@ -135,6 +139,10 @@ function AuthenticatedApp() {
     return renderApp();
   }
 
+  if (pathname === "/maps" || pathname.startsWith("/maps/")) {
+    return <Navigate to="/signin" state={{ from: location.pathname }} replace />;
+  }
+
   if (isPublicRoute) {
     return renderApp();
   } else if (isAppRoute) {
@@ -150,7 +158,17 @@ function AuthenticatedApp() {
     const isLandingRoute = pathname === "/landing";
     const isAdminRoute = pathname.startsWith("/admin");
     const isNursingHomeRoute = pathname.startsWith("/nursing-homes");
-    
+    const isMapsRoute = pathname === "/maps" || pathname.startsWith("/maps/");
+
+    if (isMapsRoute) {
+      return (
+        <Routes>
+          <Route path="/maps" element={<MapsGate><MapsLayout><MapsPage /></MapsLayout></MapsGate>} />
+          <Route path="/maps/*" element={<MapsGate><MapsLayout><MapsPage /></MapsLayout></MapsGate>} />
+        </Routes>
+      );
+    }
+
     if (isNursingHomeRoute) {
       return (
         <Routes>
@@ -183,6 +201,7 @@ function AuthenticatedApp() {
             <Route path="orders/:orderId" element={<AdminOrderEdit />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="restaurants" element={<AdminRestaurants />} />
+            <Route path="maps" element={<AdminMaps />} />
             <Route path="analytics" element={<AdminAnalytics />} />
             <Route path="analytics/overview" element={<AdminAnalyticsOverview />} />
             <Route path="analytics/revenue" element={<AdminAnalyticsRevenue />} />

@@ -91,6 +91,42 @@ $gray-500: #919191;
   }
 }
 
+.footer__section--subscriptions {
+  .footer__subscriptions-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: $primary-color;
+    text-decoration: none;
+    margin-bottom: 0.5rem;
+    transition: opacity 0.2s;
+
+    &:hover {
+      opacity: 1;
+      color: $white;
+    }
+  }
+
+  .footer__subscriptions-logo {
+    height: 36px;
+    width: auto;
+    display: block;
+  }
+
+  .footer__subscriptions-label {
+    font-weight: 700;
+    font-size: 1rem;
+  }
+
+  .footer__subscriptions-desc {
+    font-size: 0.85rem;
+    color: $primary-color;
+    opacity: 0.85;
+    margin: 0;
+    line-height: 1.4;
+  }
+}
+
 .footer__social {
   display: flex;
   flex-direction: column;

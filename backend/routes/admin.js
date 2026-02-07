@@ -88,7 +88,6 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-
 router.get('/users', requireAdmin, async (req, res) => {
   try {
     const { role, limit = 20, offset = 0, search, page = 1 } = req.query;

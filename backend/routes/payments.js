@@ -526,6 +526,53 @@ router.post(
           break;
         }
 
+        case "customer.subscription.created":
+        case "customer.subscription.updated":
+        case "customer.subscription.deleted": {
+          const subscription = event.data.object;
+          const mapsPriceId = process.env.STRIPE_MAPS_PRICE_ID;
+          if (!mapsPriceId) break;
+
+          const hasMapsPrice = subscription.items?.data?.some(
+            (item) => item.price?.id === mapsPriceId
+          );
+          const isActive = subscription.status === "active" && hasMapsPrice;
+
+          try {
+            let profile = await Profile.findOne({
+              where: { stripeCustomerId: subscription.customer },
+            });
+            if (!profile && subscription.customer) {
+              const customer = await stripe.customers.retrieve(subscription.customer);
+              if (customer && !customer.deleted && customer.email) {
+                profile = await Profile.findOne({
+                  where: { email: customer.email },
+                });
+                if (profile) {
+                  await profile.update({ stripeCustomerId: subscription.customer });
+                }
+              }
+            }
+            if (profile) {
+              await profile.update({
+                mapsSubscriptionActive: isActive,
+                mapsSubscriptionId: isActive ? subscription.id : null,
+              });
+              logger.info("Maps subscription sync via webhook", {
+                userId: profile.id,
+                subscriptionId: subscription.id,
+                isActive,
+              });
+            }
+          } catch (subErr) {
+            logger.error("Maps subscription webhook error", {
+              err: subErr.message,
+              subscriptionId: subscription.id,
+            });
+          }
+          break;
+        }
+
         default:
           logger.debug("Unhandled webhook event type:", event.type);
       }
