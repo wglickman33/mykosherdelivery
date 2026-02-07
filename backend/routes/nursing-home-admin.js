@@ -1,5 +1,5 @@
 const express = require('express');
-const { sequelize, NursingHomeFacility, NursingHomeResident, NursingHomeMenuItem, NursingHomeInvoice, NursingHomeOrder, Profile } = require('../models');
+const { sequelize, NursingHomeFacility, NursingHomeResident, NursingHomeResidentOrder, NursingHomeMenuItem, NursingHomeInvoice, NursingHomeOrder, Profile } = require('../models');
 const { QueryTypes } = require('sequelize');
 const { requireAdmin, requireNursingHomeAdmin, requireNursingHomeUser } = require('../middleware/auth');
 const { body, validationResult } = require('express-validator');
@@ -21,8 +21,6 @@ router.get('/facilities', requireAdmin, async (req, res) => {
       where.isActive = isActive === 'true';
     }
 
-    // Do not include Profile (staff): profiles.nursing_home_facility_id may not exist in DB yet.
-    // Facilities list works without staff; staff can be loaded separately per facility if needed.
     const result = await NursingHomeFacility.findAndCountAll({
       where,
       limit: limitNum,
@@ -137,7 +135,6 @@ router.get('/facilities/:id', requireNursingHomeAdmin, async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Raw SQL only: avoid Sequelize and any staff association (profiles.nursing_home_facility_id may not exist).
     const rows = await sequelize.query(
       `SELECT id, name, address, contact_email AS "contactEmail", contact_phone AS "contactPhone",
               logo_url AS "logoUrl", billing_frequency AS "billingFrequency", is_active AS "isActive",
@@ -855,6 +852,54 @@ router.delete('/residents/:id', requireNursingHomeAdmin, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to deactivate resident',
+      message: error.message
+    });
+  }
+});
+
+router.delete('/residents/:id/permanent', requireNursingHomeAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const resident = await NursingHomeResident.findByPk(id);
+    if (!resident) {
+      return res.status(404).json({
+        success: false,
+        error: 'Resident not found'
+      });
+    }
+
+    if (req.user.role !== 'admin' && resident.facilityId !== req.user.nursingHomeFacilityId) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied'
+      });
+    }
+
+    const orderCount = await NursingHomeResidentOrder.count({ where: { residentId: id } });
+    if (orderCount > 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Cannot permanently delete resident with existing orders. Deactivate instead.'
+      });
+    }
+
+    await resident.destroy();
+
+    logger.info('Resident permanently deleted', {
+      residentId: resident.id,
+      deletedBy: req.user.id
+    });
+
+    res.json({
+      success: true,
+      message: 'Resident deleted permanently'
+    });
+  } catch (error) {
+    logger.error('Error permanently deleting resident:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete resident',
       message: error.message
     });
   }

@@ -12,7 +12,6 @@ const defaultAddress = {
   zip_code: ''
 };
 
-/** Format phone for display as XXX-XXX-XXXX (strips non-digits, takes first 10). */
 const formatPhone = (raw) => {
   if (!raw) return '—';
   const digits = String(raw).replace(/\D/g, '').slice(0, 10);
@@ -212,11 +211,11 @@ const FacilitiesTab = () => {
               </colgroup>
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Address</th>
-                  <th>Email</th>
-                  <th>Phone</th>
-                  <th>Actions</th>
+                  <th scope="col">Name</th>
+                  <th scope="col">Address</th>
+                  <th scope="col">Contact email</th>
+                  <th scope="col">Phone</th>
+                  <th scope="col">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -238,18 +237,18 @@ const FacilitiesTab = () => {
                   <td>{f.contactEmail || '—'}</td>
                   <td className="facility-phone-cell">{formatPhone(f.contactPhone)}</td>
                   <td className="facility-actions-cell">
-                    <div className="facility-actions">
+                    <div className="facility-actions row-actions">
                       <button
                         type="button"
-                        className="facility-btn facility-btn-enter btn-sm"
+                        className="view-btn"
                         onClick={() => navigate(`/nursing-homes/dashboard?facilityId=${f.id}`)}
                       >
                         Enter
                       </button>
-                      <button type="button" className="facility-btn facility-btn-edit btn-sm" onClick={() => handleOpenEdit(f)}>
+                      <button type="button" className="edit-btn" onClick={() => handleOpenEdit(f)}>
                         Edit
                       </button>
-                      <button type="button" className="facility-btn facility-btn-deactivate btn-sm" onClick={() => handleDeleteClick(f)}>
+                      <button type="button" className="deactivate-btn" onClick={() => handleDeleteClick(f)}>
                         Deactivate
                       </button>
                     </div>

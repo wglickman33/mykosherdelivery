@@ -48,8 +48,6 @@ const StaffTab = () => {
     }
   }, [isAdmin]);
 
-  // Admin: use facility from list (avoids GET /facilities/:id which can 500 when staff column missing).
-  // Non-admin: use current-facility endpoint (no staff include).
   const loadFacility = useCallback(async (id) => {
     if (!id) {
       setFacility(null);
@@ -74,7 +72,6 @@ const StaffTab = () => {
     loadFacilities();
   }, [loadFacilities]);
 
-  // When facilities load and there's exactly one (or we have none selected), auto-select so Add Staff / Upload aren't stuck disabled
   useEffect(() => {
     if (!isAdmin || facilities.length === 0) return;
     setSelectedFacilityId((prev) => {
@@ -83,7 +80,6 @@ const StaffTab = () => {
     });
   }, [isAdmin, facilities]);
 
-  // Admin: set facility from list so we never call GET /facilities/:id. Non-admin: load current facility.
   useEffect(() => {
     if (isAdmin) {
       if (!selectedFacilityId || facilities.length === 0) {
@@ -310,38 +306,40 @@ const StaffTab = () => {
           </button>
         </div>
       ) : (
-        <div className="table-wrap">
-          <table className="data-table" role="grid">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Phone</th>
-                <th aria-label="Actions" />
-              </tr>
-            </thead>
-            <tbody>
-              {staff.map((u) => (
-                <tr key={u.id}>
-                  <td>{[u.firstName, u.lastName].filter(Boolean).join(' ')}</td>
-                  <td>{u.email}</td>
-                  <td>{u.role === 'nursing_home_admin' ? 'Admin' : 'User'}</td>
-                  <td>{u.phone || '—'}</td>
-                  <td>
-                    <div className="row-actions">
-                      <button type="button" className="btn-secondary btn-sm" onClick={() => handleOpenEdit(u)}>
-                        Edit
-                      </button>
-                      <button type="button" className="btn-danger btn-sm" onClick={() => handleDeleteClick(u)}>
-                        Remove
-                      </button>
-                    </div>
-                  </td>
+        <div className="nursing-table-container">
+          <div className="nursing-table-scroll">
+            <table className="data-table" role="grid">
+              <thead>
+                <tr>
+                  <th scope="col">Name</th>
+                  <th scope="col">Email</th>
+                  <th scope="col">Role</th>
+                  <th scope="col">Phone</th>
+                  <th scope="col">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {staff.map((u) => (
+                  <tr key={u.id}>
+                    <td>{[u.firstName, u.lastName].filter(Boolean).join(' ')}</td>
+                    <td>{u.email}</td>
+                    <td>{u.role === 'nursing_home_admin' ? 'Admin' : 'User'}</td>
+                    <td>{u.phone || '—'}</td>
+                    <td>
+                      <div className="row-actions">
+                        <button type="button" className="edit-btn" onClick={() => handleOpenEdit(u)}>
+                          Edit
+                        </button>
+                        <button type="button" className="delete-btn" onClick={() => handleDeleteClick(u)}>
+                          Remove
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
