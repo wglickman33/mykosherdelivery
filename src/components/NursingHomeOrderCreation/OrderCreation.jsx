@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { fetchResident, fetchMenuItems, createResidentOrder, fetchFacility } from '../../services/nursingHomeService';
 import { NH_CONFIG } from '../../config/constants';
@@ -25,11 +25,7 @@ const OrderCreation = () => {
   const [selectedMealType, setSelectedMealType] = useState('breakfast');
   const [meals, setMeals] = useState({});
 
-  useEffect(() => {
-    loadData();
-  }, [residentId]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -65,7 +61,11 @@ const OrderCreation = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [residentId]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const getMealKey = (day, mealType) => `${day}-${mealType}`;
 

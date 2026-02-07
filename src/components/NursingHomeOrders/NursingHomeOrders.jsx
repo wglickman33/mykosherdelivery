@@ -46,7 +46,7 @@ const NursingHomeOrders = () => {
     } finally {
       setLoading(false);
     }
-  }, [pagination.page, pagination.limit, filterResidentId, facilityId]);
+  }, [pagination.page, pagination.limit, filterResidentId, facilityId, residents.length]);
 
   useEffect(() => {
     load();
@@ -54,7 +54,7 @@ const NursingHomeOrders = () => {
 
   useEffect(() => {
     if (residentIdParam && !filterResidentId) setFilterResidentId(residentIdParam);
-  }, [residentIdParam]);
+  }, [residentIdParam, filterResidentId]);
 
   const handleFilter = () => {
     setPagination(p => ({ ...p, page: 1 }));

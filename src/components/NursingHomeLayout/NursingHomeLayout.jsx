@@ -50,6 +50,8 @@ const Icons = {
   )
 };
 
+const ALLOWED_ROLES = ['nursing_home_user', 'nursing_home_admin', 'admin'];
+
 const NursingHomeLayout = () => {
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
@@ -61,16 +63,14 @@ const NursingHomeLayout = () => {
 
   const search = location.search || '';
   const facilityIdParam = new URLSearchParams(search).get('facilityId');
-  const allowedRoles = ['nursing_home_user', 'nursing_home_admin', 'admin'];
 
   useEffect(() => {
     if (loading) return;
-    if (!user || !allowedRoles.includes(user.role)) {
+    if (!user || !ALLOWED_ROLES.includes(user.role)) {
       navigate('/nursing-homes/login', { replace: true, state: { from: location.pathname } });
     }
   }, [user, loading, navigate, location.pathname]);
 
-  // Same responsive breakpoints as AdminLayout
   useEffect(() => {
     const applyResponsive = () => {
       const w = window.innerWidth;
@@ -87,7 +87,7 @@ const NursingHomeLayout = () => {
   }, [location.pathname]);
 
   useEffect(() => {
-    if (!user || !allowedRoles.includes(user.role)) return;
+    if (!user || !ALLOWED_ROLES.includes(user.role)) return;
     const isAdminNoFacility = user.role === 'admin' && !facilityIdParam;
     if (isAdminNoFacility) {
       setFacility(null);
@@ -108,7 +108,7 @@ const NursingHomeLayout = () => {
       }
     })();
     return () => { cancelled = true; };
-  }, [user?.role, facilityIdParam]);
+  }, [user, facilityIdParam]);
 
   const handleSignOut = async () => {
     await signOut(() => navigate('/nursing-homes/login', { replace: true }));
@@ -138,7 +138,7 @@ const NursingHomeLayout = () => {
     );
   }
 
-  if (!user || !allowedRoles.includes(user.role)) {
+  if (!user || !ALLOWED_ROLES.includes(user.role)) {
     return null;
   }
 

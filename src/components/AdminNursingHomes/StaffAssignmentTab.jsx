@@ -32,7 +32,7 @@ const StaffAssignmentTab = () => {
     } catch {
       setFacilities([]);
     }
-  }, [isAdmin]);
+  }, [isAdmin, selectedFacilityId]);
 
   const loadResidentsAndStaff = useCallback(async (facilityId) => {
     if (!facilityId) {

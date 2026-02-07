@@ -16,7 +16,6 @@ const ResidentsTab = () => {
   const isAdmin = user?.role === 'admin';
   const [facilities, setFacilities] = useState([]);
   const [residents, setResidents] = useState([]);
-  const [pagination, setPagination] = useState({ page: 1, total: 0, totalPages: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [facilityFilter, setFacilityFilter] = useState('');
@@ -55,7 +54,6 @@ const ResidentsTab = () => {
       const body = res?.data;
       const list = body?.data;
       setResidents(Array.isArray(list) ? list : []);
-      setPagination(body?.pagination || { page: 1, total: 0, totalPages: 0 });
     } catch (err) {
       setError(err.response?.data?.message || err.response?.data?.error || 'Failed to load residents');
       setResidents([]);
@@ -104,6 +102,10 @@ const ResidentsTab = () => {
     e.preventDefault();
     if (!form.name.trim()) {
       setError('Name is required');
+      return;
+    }
+    if (!editingResident && !form.roomNumber.trim()) {
+      setError('Room number is required');
       return;
     }
     if (!form.facilityId && isAdmin) {
@@ -246,98 +248,109 @@ const ResidentsTab = () => {
       )}
 
       {deleteConfirm && (
-        <div className="modal-backdrop" onClick={() => !submitting && setDeleteConfirm(null)}>
-          <div className="modal-content facilities-modal" onClick={(e) => e.stopPropagation()}>
-            <h3>Deactivate resident</h3>
-            <p>Deactivate &quot;{deleteConfirm.name}&quot;? They will no longer appear in active lists.</p>
-            <div className="modal-actions">
-              <button type="button" className="btn-secondary" onClick={() => setDeleteConfirm(null)} disabled={submitting}>
-                Cancel
-              </button>
-              <button type="button" className="btn-danger" onClick={handleDeleteConfirm} disabled={submitting}>
-                {submitting ? 'Deactivating…' : 'Deactivate'}
-              </button>
+        <div className="admin-nursing-homes__overlay" onClick={() => !submitting && setDeleteConfirm(null)}>
+          <div className="admin-nursing-homes__modal admin-nursing-homes__modal--delete" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-nursing-homes__modal-header">
+              <h2>Deactivate resident</h2>
+              <button type="button" className="admin-nursing-homes__modal-close" onClick={() => setDeleteConfirm(null)} disabled={submitting} aria-label="Close">×</button>
+            </div>
+            <div className="admin-nursing-homes__modal-content">
+              <p style={{ margin: '0 0 20px 0', color: 'rgba(6, 23, 87, 0.7)', lineHeight: 1.6 }}>
+                Deactivate &quot;{deleteConfirm.name}&quot;? They will no longer appear in active lists.
+              </p>
+              <div className="admin-nursing-homes__form-actions">
+                <button type="button" onClick={() => setDeleteConfirm(null)} disabled={submitting}>Cancel</button>
+                <button type="button" className="btn-danger" onClick={handleDeleteConfirm} disabled={submitting}>
+                  {submitting ? 'Deactivating…' : 'Deactivate'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
       {modalOpen && (
-        <div className="modal-backdrop" onClick={() => !submitting && setModalOpen(false)}>
-          <div className="modal-content facilities-modal" onClick={(e) => e.stopPropagation()}>
-            <h3>{editingResident ? 'Edit Resident' : 'Add Resident'}</h3>
-            {error && <ErrorMessage message={error} type="error" onDismiss={() => setError(null)} />}
-            <form onSubmit={handleSubmit}>
-              {isAdmin && (
-                <label>
-                  <span>Facility *</span>
-                  <select
-                    value={form.facilityId}
-                    onChange={(e) => setForm(prev => ({ ...prev, facilityId: e.target.value }))}
-                    required
-                  >
-                    <option value="">Select facility</option>
-                    {facilities.map(f => (
-                      <option key={f.id} value={f.id}>{f.name}</option>
-                    ))}
-                  </select>
-                </label>
-              )}
-              <label>
-                <span>Name *</span>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="Resident name"
-                  required
-                />
-              </label>
-              <label>
-                <span>Room number</span>
-                <input
-                  type="text"
-                  value={form.roomNumber}
-                  onChange={(e) => setForm(prev => ({ ...prev, roomNumber: e.target.value }))}
-                  placeholder="e.g. 101"
-                />
-              </label>
-              <label>
-                <span>Dietary restrictions</span>
-                <input
-                  type="text"
-                  value={form.dietaryRestrictions}
-                  onChange={(e) => setForm(prev => ({ ...prev, dietaryRestrictions: e.target.value }))}
-                  placeholder="e.g. Low sodium"
-                />
-              </label>
-              <label>
-                <span>Allergies</span>
-                <input
-                  type="text"
-                  value={form.allergies}
-                  onChange={(e) => setForm(prev => ({ ...prev, allergies: e.target.value }))}
-                  placeholder="e.g. Nuts, shellfish"
-                />
-              </label>
-              <label>
-                <span>Notes</span>
-                <textarea
-                  value={form.notes}
-                  onChange={(e) => setForm(prev => ({ ...prev, notes: e.target.value }))}
-                  placeholder="Optional notes"
-                  rows={2}
-                />
-              </label>
-              <div className="modal-actions">
-                <button type="button" className="btn-secondary" onClick={() => !submitting && setModalOpen(false)} disabled={submitting}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn-primary" disabled={submitting}>
-                  {submitting ? 'Saving…' : (editingResident ? 'Save' : 'Create Resident')}
-                </button>
-              </div>
-            </form>
+        <div className="admin-nursing-homes__overlay" onClick={() => !submitting && setModalOpen(false)}>
+          <div className="admin-nursing-homes__modal admin-nursing-homes__modal--form" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-nursing-homes__modal-header">
+              <h2>{editingResident ? 'Edit Resident' : 'Add Resident'}</h2>
+              <button type="button" className="admin-nursing-homes__modal-close" onClick={() => !submitting && setModalOpen(false)} aria-label="Close">×</button>
+            </div>
+            <div className="admin-nursing-homes__modal-content">
+              {error && <ErrorMessage message={error} type="error" onDismiss={() => setError(null)} />}
+              <form onSubmit={handleSubmit}>
+                <div className="admin-nursing-homes__form-grid">
+                  {isAdmin && (
+                    <div className="admin-nursing-homes__form-group admin-nursing-homes__form-group--full">
+                      <label>Facility *</label>
+                      <select
+                        value={form.facilityId}
+                        onChange={(e) => setForm(prev => ({ ...prev, facilityId: e.target.value }))}
+                        required
+                      >
+                        <option value="">Select facility</option>
+                        {facilities.map(f => (
+                          <option key={f.id} value={f.id}>{f.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  <div className="admin-nursing-homes__form-group admin-nursing-homes__form-group--full">
+                    <label>Name *</label>
+                    <input
+                      type="text"
+                      value={form.name}
+                      onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="Resident name"
+                      required
+                    />
+                  </div>
+                  <div className="admin-nursing-homes__form-group">
+                    <label>Room Number {!editingResident && '*'}</label>
+                    <input
+                      type="text"
+                      value={form.roomNumber}
+                      onChange={(e) => setForm(prev => ({ ...prev, roomNumber: e.target.value }))}
+                      placeholder="e.g. 101"
+                      required={!editingResident}
+                    />
+                  </div>
+                  <div className="admin-nursing-homes__form-group admin-nursing-homes__form-group--full">
+                    <label>Dietary Restrictions</label>
+                    <input
+                      type="text"
+                      value={form.dietaryRestrictions}
+                      onChange={(e) => setForm(prev => ({ ...prev, dietaryRestrictions: e.target.value }))}
+                      placeholder="e.g. Low sodium"
+                    />
+                  </div>
+                  <div className="admin-nursing-homes__form-group admin-nursing-homes__form-group--full">
+                    <label>Allergies</label>
+                    <input
+                      type="text"
+                      value={form.allergies}
+                      onChange={(e) => setForm(prev => ({ ...prev, allergies: e.target.value }))}
+                      placeholder="e.g. Nuts, shellfish"
+                    />
+                  </div>
+                  <div className="admin-nursing-homes__form-group admin-nursing-homes__form-group--full">
+                    <label>Notes</label>
+                    <textarea
+                      value={form.notes}
+                      onChange={(e) => setForm(prev => ({ ...prev, notes: e.target.value }))}
+                      placeholder="Optional notes"
+                      rows={2}
+                    />
+                  </div>
+                </div>
+                <div className="admin-nursing-homes__form-actions">
+                  <button type="button" onClick={() => !submitting && setModalOpen(false)} disabled={submitting}>Cancel</button>
+                  <button type="submit" className="btn-primary" disabled={submitting}>
+                    {submitting ? 'Saving…' : (editingResident ? 'Save' : 'Create Resident')}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}

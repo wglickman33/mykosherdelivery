@@ -579,7 +579,7 @@ router.get('/residents/:id', requireNursingHomeUser, async (req, res) => {
 router.post('/residents', requireNursingHomeAdmin, [
   body('facilityId').isUUID(),
   body('name').notEmpty().trim(),
-  body('roomNumber').optional().trim(),
+  body('roomNumber').notEmpty().trim(),
   body('dietaryRestrictions').optional().trim(),
   body('allergies').optional().trim(),
   body('notes').optional().trim(),

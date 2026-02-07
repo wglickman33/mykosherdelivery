@@ -226,116 +226,124 @@ const FacilitiesTab = () => {
       )}
 
       {deleteConfirm && (
-        <div className="modal-backdrop" onClick={() => !submitting && setDeleteConfirm(null)}>
-          <div className="modal-content facilities-modal" onClick={(e) => e.stopPropagation()}>
-            <h3>Deactivate facility</h3>
-            <p>Deactivate &quot;{deleteConfirm.name}&quot;? Staff and residents will need to be reassigned. This can be reverted later by editing the facility.</p>
-            <div className="modal-actions">
-              <button type="button" className="btn-secondary" onClick={() => setDeleteConfirm(null)} disabled={submitting}>
-                Cancel
-              </button>
-              <button type="button" className="btn-danger" onClick={handleDeleteConfirm} disabled={submitting}>
-                {submitting ? 'Deactivating…' : 'Deactivate'}
-              </button>
+        <div className="admin-nursing-homes__overlay" onClick={() => !submitting && setDeleteConfirm(null)}>
+          <div className="admin-nursing-homes__modal admin-nursing-homes__modal--delete" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-nursing-homes__modal-header">
+              <h2>Deactivate facility</h2>
+              <button type="button" className="admin-nursing-homes__modal-close" onClick={() => setDeleteConfirm(null)} disabled={submitting} aria-label="Close">×</button>
+            </div>
+            <div className="admin-nursing-homes__modal-content">
+              <p style={{ margin: '0 0 20px 0', color: 'rgba(6, 23, 87, 0.7)', lineHeight: 1.6 }}>
+                Deactivate &quot;{deleteConfirm.name}&quot;? Staff and residents will need to be reassigned. This can be reverted later by editing the facility.
+              </p>
+              <div className="admin-nursing-homes__form-actions">
+                <button type="button" onClick={() => setDeleteConfirm(null)} disabled={submitting}>Cancel</button>
+                <button type="button" className="btn-danger" onClick={handleDeleteConfirm} disabled={submitting}>
+                  {submitting ? 'Deactivating…' : 'Deactivate'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
       {modalOpen && (
-        <div className="modal-backdrop" onClick={() => !submitting && setModalOpen(false)}>
-          <div className="modal-content facilities-modal" onClick={(e) => e.stopPropagation()}>
-            <h3>{editingFacility ? 'Edit Facility' : 'Add Facility'}</h3>
-            {error && <ErrorMessage message={error} type="error" onDismiss={() => setError(null)} />}
-            <form onSubmit={handleSubmit}>
-              <label>
-                <span>Name *</span>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => handleChange('name', e.target.value)}
-                  placeholder="e.g. Sunrise Senior Living"
-                  required
-                />
-              </label>
-              <label>
-                <span>Street *</span>
-                <input
-                  type="text"
-                  value={form.address.street}
-                  onChange={(e) => handleChange('address.street', e.target.value)}
-                  placeholder="123 Main St"
-                  required
-                />
-              </label>
-              <div className="form-row">
-                <label>
-                  <span>City *</span>
-                  <input
-                    type="text"
-                    value={form.address.city}
-                    onChange={(e) => handleChange('address.city', e.target.value)}
-                    placeholder="Great Neck"
-                    required
-                  />
-                </label>
-                <label>
-                  <span>State *</span>
-                  <input
-                    type="text"
-                    value={form.address.state}
-                    onChange={(e) => handleChange('address.state', e.target.value)}
-                    placeholder="NY"
-                    required
-                  />
-                </label>
-                <label>
-                  <span>ZIP *</span>
-                  <input
-                    type="text"
-                    value={form.address.zip_code}
-                    onChange={(e) => handleChange('address.zip_code', e.target.value)}
-                    placeholder="11021"
-                    required
-                  />
-                </label>
-              </div>
-              <label>
-                <span>Contact email</span>
-                <input
-                  type="email"
-                  value={form.contactEmail}
-                  onChange={(e) => handleChange('contactEmail', e.target.value)}
-                  placeholder="admin@facility.com"
-                />
-              </label>
-              <label>
-                <span>Contact phone</span>
-                <input
-                  type="tel"
-                  value={form.contactPhone}
-                  onChange={(e) => handleChange('contactPhone', e.target.value)}
-                  placeholder="555-123-4567"
-                />
-              </label>
-              <label>
-                <span>Logo URL (placeholder)</span>
-                <input
-                  type="url"
-                  value={form.logoUrl}
-                  onChange={(e) => handleChange('logoUrl', e.target.value)}
-                  placeholder="https://..."
-                />
-              </label>
-              <div className="modal-actions">
-                <button type="button" className="btn-secondary" onClick={() => !submitting && setModalOpen(false)} disabled={submitting}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn-primary" disabled={submitting}>
-                  {submitting ? (editingFacility ? 'Saving…' : 'Creating…') : (editingFacility ? 'Save' : 'Create Facility')}
-                </button>
-              </div>
-            </form>
+        <div className="admin-nursing-homes__overlay" onClick={() => !submitting && setModalOpen(false)}>
+          <div className="admin-nursing-homes__modal admin-nursing-homes__modal--form" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-nursing-homes__modal-header">
+              <h2>{editingFacility ? 'Edit Facility' : 'Add Facility'}</h2>
+              <button type="button" className="admin-nursing-homes__modal-close" onClick={() => !submitting && setModalOpen(false)} aria-label="Close">×</button>
+            </div>
+            <div className="admin-nursing-homes__modal-content">
+              {error && <ErrorMessage message={error} type="error" onDismiss={() => setError(null)} />}
+              <form onSubmit={handleSubmit}>
+                <div className="admin-nursing-homes__form-grid">
+                  <div className="admin-nursing-homes__form-group admin-nursing-homes__form-group--full">
+                    <label>Name *</label>
+                    <input
+                      type="text"
+                      value={form.name}
+                      onChange={(e) => handleChange('name', e.target.value)}
+                      placeholder="e.g. Sunrise Senior Living"
+                      required
+                    />
+                  </div>
+                  <div className="admin-nursing-homes__form-group admin-nursing-homes__form-group--full">
+                    <label>Street *</label>
+                    <input
+                      type="text"
+                      value={form.address.street}
+                      onChange={(e) => handleChange('address.street', e.target.value)}
+                      placeholder="123 Main St"
+                      required
+                    />
+                  </div>
+                  <div className="admin-nursing-homes__form-group">
+                    <label>City *</label>
+                    <input
+                      type="text"
+                      value={form.address.city}
+                      onChange={(e) => handleChange('address.city', e.target.value)}
+                      placeholder="Great Neck"
+                      required
+                    />
+                  </div>
+                  <div className="admin-nursing-homes__form-group">
+                    <label>State *</label>
+                    <input
+                      type="text"
+                      value={form.address.state}
+                      onChange={(e) => handleChange('address.state', e.target.value)}
+                      placeholder="NY"
+                      required
+                    />
+                  </div>
+                  <div className="admin-nursing-homes__form-group">
+                    <label>Zip Code *</label>
+                    <input
+                      type="text"
+                      value={form.address.zip_code}
+                      onChange={(e) => handleChange('address.zip_code', e.target.value)}
+                      placeholder="11021"
+                      required
+                    />
+                  </div>
+                  <div className="admin-nursing-homes__form-group admin-nursing-homes__form-group--full">
+                    <label>Contact Email</label>
+                    <input
+                      type="email"
+                      value={form.contactEmail}
+                      onChange={(e) => handleChange('contactEmail', e.target.value)}
+                      placeholder="admin@facility.com"
+                    />
+                  </div>
+                  <div className="admin-nursing-homes__form-group admin-nursing-homes__form-group--full">
+                    <label>Contact Phone</label>
+                    <input
+                      type="tel"
+                      value={form.contactPhone}
+                      onChange={(e) => handleChange('contactPhone', e.target.value)}
+                      placeholder="555-123-4567"
+                    />
+                  </div>
+                  <div className="admin-nursing-homes__form-group admin-nursing-homes__form-group--full">
+                    <label>Logo URL (Optional)</label>
+                    <input
+                      type="url"
+                      value={form.logoUrl}
+                      onChange={(e) => handleChange('logoUrl', e.target.value)}
+                      placeholder="https://..."
+                    />
+                  </div>
+                </div>
+                <div className="admin-nursing-homes__form-actions">
+                  <button type="button" onClick={() => !submitting && setModalOpen(false)} disabled={submitting}>Cancel</button>
+                  <button type="submit" className="btn-primary" disabled={submitting}>
+                    {submitting ? (editingFacility ? 'Saving…' : 'Creating…') : (editingFacility ? 'Save' : 'Create Facility')}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}

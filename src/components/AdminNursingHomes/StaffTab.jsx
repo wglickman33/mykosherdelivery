@@ -324,126 +324,143 @@ const StaffTab = () => {
       )}
 
       {deleteConfirm && (
-        <div className="modal-backdrop" onClick={() => !submitting && setDeleteConfirm(null)}>
-          <div className="modal-content facilities-modal" onClick={(e) => e.stopPropagation()}>
-            <h3>Remove staff</h3>
-            <p>Remove {deleteConfirm.firstName} {deleteConfirm.lastName} from this facility? They will no longer have access.</p>
-            <div className="modal-actions">
-              <button type="button" className="btn-secondary" onClick={() => setDeleteConfirm(null)} disabled={submitting}>
-                Cancel
-              </button>
-              <button type="button" className="btn-danger" onClick={handleDeleteConfirm} disabled={submitting}>
-                {submitting ? 'Removing…' : 'Remove'}
-              </button>
+        <div className="admin-nursing-homes__overlay" onClick={() => !submitting && setDeleteConfirm(null)}>
+          <div className="admin-nursing-homes__modal admin-nursing-homes__modal--delete" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-nursing-homes__modal-header">
+              <h2>Remove staff</h2>
+              <button type="button" className="admin-nursing-homes__modal-close" onClick={() => setDeleteConfirm(null)} disabled={submitting} aria-label="Close">×</button>
+            </div>
+            <div className="admin-nursing-homes__modal-content">
+              <p style={{ margin: '0 0 20px 0', color: 'rgba(6, 23, 87, 0.7)', lineHeight: 1.6 }}>
+                Remove {deleteConfirm.firstName} {deleteConfirm.lastName} from this facility? They will no longer have access.
+              </p>
+              <div className="admin-nursing-homes__form-actions">
+                <button type="button" onClick={() => setDeleteConfirm(null)} disabled={submitting}>Cancel</button>
+                <button type="button" className="btn-danger" onClick={handleDeleteConfirm} disabled={submitting}>
+                  {submitting ? 'Removing…' : 'Remove'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
       {modalOpen && (
-        <div className="modal-backdrop" onClick={() => !submitting && setModalOpen(false)}>
-          <div className="modal-content facilities-modal" onClick={(e) => e.stopPropagation()}>
-            <h3>{editingUser ? 'Edit Staff' : 'Add Staff'}</h3>
-            {error && <ErrorMessage message={error} type="error" onDismiss={() => setError(null)} />}
-            <form onSubmit={handleSubmit}>
-              {!editingUser && (
-                <>
-                  <label>
-                    <span>Email *</span>
+        <div className="admin-nursing-homes__overlay" onClick={() => !submitting && setModalOpen(false)}>
+          <div className="admin-nursing-homes__modal admin-nursing-homes__modal--form" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-nursing-homes__modal-header">
+              <h2>{editingUser ? 'Edit Staff' : 'Add Staff'}</h2>
+              <button type="button" className="admin-nursing-homes__modal-close" onClick={() => !submitting && setModalOpen(false)} aria-label="Close">×</button>
+            </div>
+            <div className="admin-nursing-homes__modal-content">
+              {error && <ErrorMessage message={error} type="error" onDismiss={() => setError(null)} />}
+              <form onSubmit={handleSubmit}>
+                <div className="admin-nursing-homes__form-grid">
+                  {!editingUser && (
+                    <>
+                      <div className="admin-nursing-homes__form-group admin-nursing-homes__form-group--full">
+                        <label>Email *</label>
+                        <input
+                          type="email"
+                          value={form.email}
+                          onChange={(e) => setForm(prev => ({ ...prev, email: e.target.value }))}
+                          placeholder="staff@facility.com"
+                          required
+                        />
+                      </div>
+                      <div className="admin-nursing-homes__form-group admin-nursing-homes__form-group--full">
+                        <label>Password *</label>
+                        <input
+                          type="password"
+                          value={form.password}
+                          onChange={(e) => setForm(prev => ({ ...prev, password: e.target.value }))}
+                          placeholder="Min 8 characters"
+                          minLength={8}
+                          required={!editingUser}
+                        />
+                      </div>
+                    </>
+                  )}
+                  <div className="admin-nursing-homes__form-group">
+                    <label>First name *</label>
                     <input
-                      type="email"
-                      value={form.email}
-                      onChange={(e) => setForm(prev => ({ ...prev, email: e.target.value }))}
-                      placeholder="staff@facility.com"
+                      type="text"
+                      value={form.firstName}
+                      onChange={(e) => setForm(prev => ({ ...prev, firstName: e.target.value }))}
                       required
                     />
-                  </label>
-                  <label>
-                    <span>Password *</span>
+                  </div>
+                  <div className="admin-nursing-homes__form-group">
+                    <label>Last name *</label>
                     <input
-                      type="password"
-                      value={form.password}
-                      onChange={(e) => setForm(prev => ({ ...prev, password: e.target.value }))}
-                      placeholder="Min 8 characters"
-                      minLength={8}
-                      required={!editingUser}
+                      type="text"
+                      value={form.lastName}
+                      onChange={(e) => setForm(prev => ({ ...prev, lastName: e.target.value }))}
+                      required
                     />
-                  </label>
-                </>
-              )}
-              <label>
-                <span>First name *</span>
-                <input
-                  type="text"
-                  value={form.firstName}
-                  onChange={(e) => setForm(prev => ({ ...prev, firstName: e.target.value }))}
-                  required
-                />
-              </label>
-              <label>
-                <span>Last name *</span>
-                <input
-                  type="text"
-                  value={form.lastName}
-                  onChange={(e) => setForm(prev => ({ ...prev, lastName: e.target.value }))}
-                  required
-                />
-              </label>
-              <label>
-                <span>Role</span>
-                <select
-                  value={form.role}
-                  onChange={(e) => setForm(prev => ({ ...prev, role: e.target.value }))}
-                >
-                  <option value="nursing_home_user">User</option>
-                  <option value="nursing_home_admin">Admin</option>
-                </select>
-              </label>
-              <label>
-                <span>Phone</span>
-                <input
-                  type="tel"
-                  value={form.phone}
-                  onChange={(e) => setForm(prev => ({ ...prev, phone: e.target.value }))}
-                />
-              </label>
-              <div className="modal-actions">
-                <button type="button" className="btn-secondary" onClick={() => !submitting && setModalOpen(false)} disabled={submitting}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn-primary" disabled={submitting}>
-                  {submitting ? 'Saving…' : (editingUser ? 'Save' : 'Create')}
-                </button>
-              </div>
-            </form>
+                  </div>
+                  <div className="admin-nursing-homes__form-group">
+                    <label>Role</label>
+                    <select
+                      value={form.role}
+                      onChange={(e) => setForm(prev => ({ ...prev, role: e.target.value }))}
+                    >
+                      <option value="nursing_home_user">User</option>
+                      <option value="nursing_home_admin">Admin</option>
+                    </select>
+                  </div>
+                  <div className="admin-nursing-homes__form-group admin-nursing-homes__form-group--full">
+                    <label>Phone</label>
+                    <input
+                      type="tel"
+                      value={form.phone}
+                      onChange={(e) => setForm(prev => ({ ...prev, phone: e.target.value }))}
+                    />
+                  </div>
+                </div>
+                <div className="admin-nursing-homes__form-actions">
+                  <button type="button" onClick={() => !submitting && setModalOpen(false)} disabled={submitting}>Cancel</button>
+                  <button type="submit" className="btn-primary" disabled={submitting}>
+                    {submitting ? 'Saving…' : (editingUser ? 'Save' : 'Create')}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}
 
       {uploadOpen && (
-        <div className="modal-backdrop" onClick={() => !submitting && setUploadOpen(false)}>
-          <div className="modal-content facilities-modal" onClick={(e) => e.stopPropagation()}>
-            <h3>Upload staff (CSV)</h3>
-            <p>Upload a CSV with columns: <strong>email</strong>, <strong>firstName</strong>, <strong>lastName</strong>, <strong>role</strong> (nursing_home_user or nursing_home_admin). Optional: password, phone.</p>
-            {error && <ErrorMessage message={error} type="error" onDismiss={() => setError(null)} />}
-            <form onSubmit={handleUploadSubmit}>
-              <label>
-                <span>CSV file</span>
-                <input
-                  type="file"
-                  accept=".csv,.txt"
-                  onChange={(e) => setUploadFile(e.target.files?.[0])}
-                />
-              </label>
-              <div className="modal-actions">
-                <button type="button" className="btn-secondary" onClick={() => setUploadOpen(false)} disabled={submitting}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn-primary" disabled={submitting || !uploadFile}>
-                  {submitting ? 'Uploading…' : 'Upload'}
-                </button>
-              </div>
-            </form>
+        <div className="admin-nursing-homes__overlay" onClick={() => !submitting && setUploadOpen(false)}>
+          <div className="admin-nursing-homes__modal admin-nursing-homes__modal--form" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-nursing-homes__modal-header">
+              <h2>Upload staff (CSV)</h2>
+              <button type="button" className="admin-nursing-homes__modal-close" onClick={() => setUploadOpen(false)} disabled={submitting} aria-label="Close">×</button>
+            </div>
+            <div className="admin-nursing-homes__modal-content">
+              <p style={{ margin: '0 0 16px 0', color: 'rgba(6, 23, 87, 0.7)', lineHeight: 1.6, fontSize: '0.9rem' }}>
+                Upload a CSV with columns: <strong>email</strong>, <strong>firstName</strong>, <strong>lastName</strong>, <strong>role</strong> (nursing_home_user or nursing_home_admin). Optional: password, phone.
+              </p>
+              {error && <ErrorMessage message={error} type="error" onDismiss={() => setError(null)} />}
+              <form onSubmit={handleUploadSubmit}>
+                <div className="admin-nursing-homes__form-grid">
+                  <div className="admin-nursing-homes__form-group admin-nursing-homes__form-group--full">
+                    <label>CSV file</label>
+                    <input
+                      type="file"
+                      accept=".csv,.txt"
+                      onChange={(e) => setUploadFile(e.target.files?.[0])}
+                    />
+                  </div>
+                </div>
+                <div className="admin-nursing-homes__form-actions">
+                  <button type="button" onClick={() => setUploadOpen(false)} disabled={submitting}>Cancel</button>
+                  <button type="submit" className="btn-primary" disabled={submitting || !uploadFile}>
+                    {submitting ? 'Uploading…' : 'Upload'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}

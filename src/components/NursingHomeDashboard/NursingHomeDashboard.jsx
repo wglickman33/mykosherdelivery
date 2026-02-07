@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { fetchResidents, fetchResidentOrders } from '../../services/nursingHomeService';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
@@ -20,11 +20,7 @@ const NursingHomeDashboard = () => {
   });
   const navigate = useNavigate();
 
-  useEffect(() => {
-    loadDashboardData();
-  }, [facilityId]);
-
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -52,7 +48,11 @@ const NursingHomeDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [facilityId]);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
 
   const search = searchParams.toString();
   const ordersPath = `/nursing-homes/orders${search ? `?${search}` : ''}`;

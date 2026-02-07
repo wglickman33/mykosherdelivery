@@ -309,7 +309,7 @@
       border: 1px solid var(--color-neutral-300, #d1d5db);
       border-radius: 6px;
       font-size: 1rem;
-      resize: vertical;
+      resize: none;
     }
 
     .facilities-table-wrap {
@@ -395,66 +395,176 @@
       }
     }
 
-    .modal-backdrop {
+    // Shared modal styling (match Admin Users / Admin Restaurants)
+    .admin-nursing-homes__overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.5);
+      background: rgba(6, 23, 87, 0.45);
+      backdrop-filter: saturate(140%) blur(2px);
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 1000;
       padding: 20px;
+      animation: admin-nursing-homes__fadeIn 120ms ease-out;
     }
 
-    .modal-content.facilities-modal {
-      background: white;
-      border-radius: 12px;
-      padding: 24px;
-      max-width: 480px;
+    .admin-nursing-homes__modal {
+      background: #fff;
+      border-radius: 16px;
       width: 100%;
       max-height: 90vh;
+      overflow: hidden;
+      box-shadow: 0 24px 60px rgba(6, 23, 87, 0.22);
+      border: 1px solid rgba(6, 23, 87, 0.08);
+      display: flex;
+      flex-direction: column;
+      animation: admin-nursing-homes__slideUp 140ms ease-out;
+
+      &--form {
+        max-width: 520px;
+      }
+      &--delete {
+        max-width: 450px;
+      }
+    }
+
+    .admin-nursing-homes__modal-header {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 18px 22px;
+      border-bottom: 1px solid #e2e8f0;
+      background: #ffffff;
+      h2 {
+        font-size: 1.35rem;
+        font-weight: 800;
+        color: #061757;
+        margin: 0;
+      }
+    }
+
+    .admin-nursing-homes__modal-close {
+      background: none;
+      border: 2px solid #e5e7eb;
+      font-size: 1.25rem;
+      color: #6b7280;
+      cursor: pointer;
+      padding: 6px 10px;
+      border-radius: 10px;
+      line-height: 1;
+      transition: all 0.16s ease;
+      &:hover {
+        color: #061757;
+        border-color: #061757;
+        background: #f1f5f9;
+      }
+    }
+
+    .admin-nursing-homes__modal-content {
+      padding: 22px 24px;
       overflow-y: auto;
+    }
 
-      h3 {
-        margin: 0 0 20px 0;
-        font-size: 1.25rem;
+    .admin-nursing-homes__form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px 18px;
+      margin-bottom: 18px;
+    }
+
+    .admin-nursing-homes__form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      &--full {
+        grid-column: 1 / -1;
       }
-
       label {
-        display: block;
-        margin-bottom: 14px;
-
-        span {
-          display: block;
-          font-size: 0.875rem;
-          font-weight: 500;
-          margin-bottom: 4px;
-          color: var(--color-text-dark, #1a1a1a);
+        font-weight: 700;
+        color: #061757;
+        font-size: 0.9rem;
+      }
+      input,
+      select,
+      textarea {
+        padding: 12px;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        font-size: 0.95rem;
+        background: #ffffff;
+        transition: all 0.16s ease;
+        &:focus {
+          outline: none;
+          border-color: #5fb4f9;
+          box-shadow: 0 0 0 3px rgba(95, 180, 249, 0.15);
         }
+      }
+      textarea {
+        resize: none;
+        min-height: 72px;
+      }
+    }
 
-        input {
-          width: 100%;
-          padding: 8px 12px;
-          border: 1px solid var(--color-neutral-300, #d1d5db);
-          border-radius: 6px;
-          font-size: 1rem;
+    .admin-nursing-homes__form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 20px;
+      margin-top: 8px;
+      button {
+        padding: 10px 20px;
+        border-radius: 10px;
+        font-size: 0.9rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 2px solid transparent;
+      }
+      button[type="button"] {
+        color: #061757;
+        border-color: #e5e7eb;
+        background: #fff;
+        &:hover:not(:disabled) {
+          background: #f1f5f9;
+          border-color: #cbd5e1;
         }
       }
-
-      .form-row {
-        display: grid;
-        grid-template-columns: 1fr 80px 100px;
-        gap: 12px;
+      .btn-primary {
+        background: #5b21b6;
+        color: #fff;
+        border-color: #5b21b6;
+        &:hover:not(:disabled) {
+          background: #4c1d95;
+          border-color: #4c1d95;
+        }
       }
-
-      .modal-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 12px;
-        margin-top: 24px;
-        padding-top: 16px;
-        border-top: 1px solid #e2e8f0;
+      .btn-danger {
+        background: #ef4444;
+        color: #fff;
+        border-color: #ef4444;
+        &:hover:not(:disabled) {
+          background: #dc2626;
+          border-color: #dc2626;
+        }
       }
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    }
+
+    @keyframes admin-nursing-homes__fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes admin-nursing-homes__slideUp {
+      from { transform: translateY(8px); opacity: 0.96; }
+      to { transform: translateY(0); opacity: 1; }
     }
   }
 }
@@ -484,6 +594,19 @@
 
       .content-placeholder {
         padding: 2rem 1rem;
+      }
+
+      .admin-nursing-homes__modal {
+        max-width: 94vw;
+      }
+      .admin-nursing-homes__modal-header {
+        padding: 14px 16px;
+      }
+      .admin-nursing-homes__modal-content {
+        padding: 16px;
+      }
+      .admin-nursing-homes__form-actions {
+        padding-top: 16px;
       }
     }
   }
