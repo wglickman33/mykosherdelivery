@@ -157,9 +157,31 @@ function parseCsvLine(line) {
   return result;
 }
 
+/** Split CSV text into logical lines (newlines inside quoted fields are kept). */
+function splitCsvLines(text) {
+  const lines = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (c === '"') {
+      inQuotes = !inQuotes;
+      current += c;
+    } else if ((c === '\r' || c === '\n') && !inQuotes) {
+      if (c === '\n' || text[i + 1] !== '\n') lines.push(current);
+      current = '';
+      if (c === '\r' && text[i + 1] === '\n') i++;
+    } else {
+      if (c !== '\r') current += c;
+    }
+  }
+  if (current.length > 0) lines.push(current);
+  return lines;
+}
+
 function parseCsvBuffer(buffer) {
   const text = buffer.toString('utf8');
-  const lines = text.split(/\r?\n/).filter((l) => l.trim());
+  const lines = splitCsvLines(text).filter((l) => l.trim().length > 0);
   if (lines.length === 0) return { headers: [], rows: [] };
   const headers = parseCsvLine(lines[0]).map((h) => h.replace(/^\s*["']|["']\s*$/g, '').trim());
   const rows = [];
@@ -167,7 +189,7 @@ function parseCsvBuffer(buffer) {
     const values = parseCsvLine(lines[i]).map((v) => v.replace(/^\s*["']|["']\s*$/g, '').trim());
     if (values.some((v) => v.length > 0)) {
       const row = {};
-      headers.forEach((h, j) => { row[h] = values[j] || ''; });
+      headers.forEach((h, j) => { row[h] = values[j] != null ? values[j] : ''; });
       rows.push(row);
     }
   }
@@ -228,6 +250,7 @@ function normalizePayload(body, options = {}) {
     isActive: body.isActive !== false && body.isActive !== 'false' && body.isActive !== '0',
     deactivationReason,
     hoursOfOperation: toStr(body.hoursOfOperation ?? body.hours_of_operation, MAX_TEXT),
+    timezone: toStr(body.timezone, 64) || null,
     notes: toStr(body.notes, MAX_TEXT)
   };
 }
@@ -399,6 +422,7 @@ router.post('/restaurants/import', requireAdmin, upload.single('file'), async (r
       const isActive = col(row, 'is_active', 'active') !== 'false' && col(row, 'is_active', 'active') !== '0';
       const deactivationReason = DEACTIVATION_REASONS.includes(col(row, 'deactivation_reason')) ? col(row, 'deactivation_reason') : null;
       const hoursOfOperation = col(row, 'hours_of_operation', 'hours of operation', 'hours');
+      const timezone = col(row, 'timezone', 'tz');
       const notes = col(row, 'notes');
 
       const rowBody = {
@@ -418,6 +442,7 @@ router.post('/restaurants/import', requireAdmin, upload.single('file'), async (r
         isActive,
         deactivationReason,
         hoursOfOperation: hoursOfOperation || undefined,
+        timezone: timezone || undefined,
         notes
       };
       const payload = normalizePayload(rowBody);
@@ -426,12 +451,34 @@ router.post('/restaurants/import', requireAdmin, upload.single('file'), async (r
         continue;
       }
 
+      const has = (val) => val != null && String(val).trim() !== '';
+      const hasCol = (...names) => names.some((n) => headers.some((h) => norm(h) === norm(n)));
+
       try {
         const where = { name: { [Op.iLike]: payload.name } };
         if (payload.address) where.address = payload.address;
         const existing = await KosherMapsRestaurant.findOne({ where });
         if (existing) {
-          await existing.update(payload);
+          // Partial update: only set fields that were provided in the CSV so partial rows don't wipe existing data
+          const updatePayload = { name: payload.name };
+          if (has(address)) updatePayload.address = payload.address;
+          if (has(city)) updatePayload.city = payload.city;
+          if (has(state)) updatePayload.state = payload.state;
+          if (has(zip)) updatePayload.zip = payload.zip;
+          if (has(lat)) updatePayload.latitude = payload.latitude;
+          if (has(lng)) updatePayload.longitude = payload.longitude;
+          if (has(phone)) updatePayload.phone = payload.phone;
+          if (has(website)) updatePayload.website = payload.website;
+          if (has(certification)) updatePayload.kosherCertification = payload.kosherCertification;
+          if (has(rating) || hasCol('google_rating', 'rating')) updatePayload.googleRating = payload.googleRating;
+          if (has(placeId) || hasCol('google_place_id', 'place_id')) updatePayload.googlePlaceId = payload.googlePlaceId;
+          if (hasCol('diet_tags', 'diet tags', 'tags')) updatePayload.dietTags = payload.dietTags;
+          if (hasCol('is_active', 'active')) updatePayload.isActive = payload.isActive;
+          if (hasCol('deactivation_reason')) updatePayload.deactivationReason = payload.deactivationReason;
+          if (has(hoursOfOperation)) updatePayload.hoursOfOperation = payload.hoursOfOperation;
+          if (has(timezone)) updatePayload.timezone = payload.timezone;
+          if (has(notes)) updatePayload.notes = payload.notes;
+          await existing.update(updatePayload);
           updated++;
         } else {
           await KosherMapsRestaurant.create(payload);

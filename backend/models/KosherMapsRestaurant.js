@@ -64,6 +64,11 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.TEXT,
       field: 'hours_of_operation'
     },
+    timezone: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      comment: 'IANA timezone e.g. America/New_York for open-hours and AS (after Shabbat)'
+    },
     notes: {
       type: DataTypes.TEXT
     },

@@ -1,0 +1,8 @@
+name,address,city,state,zip,latitude,longitude,phone,website,kosher_certification,google_rating,diet_tags,hours_of_operation,timezone,notes
+"Example Restaurant",123 Main St,Brooklyn,NY,11201,40.7128,-74.006,555-123-4567,https://example.com,OU,4.5,"dairy,bakery","Saturday Closed
+Sunday 6 AM–3:30 PM
+Monday 6 AM–3:30 PM
+Tuesday 6 AM–3:30 PM
+Wednesday 6 AM–3:30 PM
+Thursday 6 AM–3:30 PM
+Friday 6 AM–2:30 PM",America/New_York,Optional notes here

@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { MapPin } from 'lucide-react';
 import { getMapsRestaurants } from '../../services/mapsService';
+import { isOpenNow } from '../../utils/mapsHoursUtils';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import logger from '../../utils/logger';
@@ -66,6 +67,20 @@ const MapsPage = () => {
   useEffect(() => {
     loadRestaurants();
   }, [loadRestaurants]);
+
+  const openStatusById = useMemo(() => {
+    const out = {};
+    list.forEach((place) => {
+      const status = isOpenNow(
+        place.hoursOfOperation ?? place.hours_of_operation ?? '',
+        place.latitude ?? null,
+        place.longitude ?? null,
+        place.timezone ?? null
+      );
+      out[place.id] = status;
+    });
+    return out;
+  }, [list]);
 
   const requestLocation = () => {
     if (!navigator.geolocation) {
@@ -184,11 +199,23 @@ const MapsPage = () => {
           if (place.latitude == null || place.longitude == null) return;
           const pos = { lat: Number(place.latitude), lng: Number(place.longitude) };
           bounds.extend(pos);
+          const isOpen = isOpenNow(
+            place.hoursOfOperation ?? place.hours_of_operation ?? '',
+            place.latitude,
+            place.longitude,
+            place.timezone ?? null
+          );
+          const pinEl = document.createElement('div');
+          pinEl.className = 'maps-page__marker-pin'
+            + (isOpen === true ? ' maps-page__marker-pin--open' : isOpen === false ? ' maps-page__marker-pin--closed' : '');
+          pinEl.title = place.name;
+          pinEl.setAttribute('aria-label', place.name);
           const marker = new AdvancedMarkerElement({
             position: pos,
             map,
             title: place.name,
-            gmpClickable: true
+            gmpClickable: true,
+            content: pinEl
           });
           marker.addListener('click', () => setSelectedId(place.id));
           markersRef.current.push(marker);
@@ -299,10 +326,13 @@ const MapsPage = () => {
             </div>
           ) : (
             <ul className="maps-page__list">
-              {list.map((place) => (
+              {list.map((place) => {
+                const isOpen = openStatusById[place.id];
+                const openClass = isOpen === true ? 'maps-page__card--open' : isOpen === false ? 'maps-page__card--closed' : '';
+                return (
                 <li
                   key={place.id}
-                  className={`maps-page__card ${selectedId === place.id ? 'maps-page__card--selected' : ''}`}
+                  className={`maps-page__card ${selectedId === place.id ? 'maps-page__card--selected' : ''} ${openClass}`}
                   onClick={() => setSelectedId(place.id)}
                 >
                   <div className="maps-page__card-header">
@@ -326,6 +356,11 @@ const MapsPage = () => {
                   )}
                   <div className="maps-page__card-meta">
                     {place.distance != null && <span>{place.distance} mi away</span>}
+                    {isOpen !== undefined && isOpen !== null && (
+                      <span className={`maps-page__card-status maps-page__card-status--${isOpen ? 'open' : 'closed'}`}>
+                        {isOpen ? 'Open' : 'Closed'}
+                      </span>
+                    )}
                     <a
                       href={getDirectionsUrl(place)}
                       target="_blank"
@@ -337,7 +372,7 @@ const MapsPage = () => {
                     </a>
                   </div>
                 </li>
-              ))}
+              ); })}
             </ul>
           )}
         </div>

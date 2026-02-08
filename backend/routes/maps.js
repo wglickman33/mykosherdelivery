@@ -62,7 +62,8 @@ router.get('/restaurants', authenticateToken, async (req, res) => {
       'id', 'name', 'address', 'city', 'state', 'zip',
       'latitude', 'longitude', 'phone', 'website',
       'kosherCertification', 'googleRating', 'googlePlaceId',
-      'dietTags', 'isActive', 'deactivationReason'
+      'dietTags', 'isActive', 'deactivationReason',
+      'hoursOfOperation', 'timezone'
     ];
 
     let order = [['name', 'ASC']];
@@ -96,6 +97,8 @@ router.get('/restaurants', authenticateToken, async (req, res) => {
         dietTags: Array.isArray(dietTags) ? dietTags : [],
         isActive: Boolean(r.isActive ?? r.is_active ?? true),
         deactivationReason: r.deactivationReason ?? r.deactivation_reason ?? null,
+        hoursOfOperation: r.hoursOfOperation ?? r.hours_of_operation ?? null,
+        timezone: r.timezone ?? null,
         distance: null
       };
     });

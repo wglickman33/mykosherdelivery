@@ -122,6 +122,24 @@
     pointer-events: none;
   }
 
+  &__marker-pin {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: #666;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+    pointer-events: none;
+
+    &--open {
+      background-color: #228b22;
+    }
+
+    &--closed {
+      background-color: #b43232;
+    }
+  }
+
   &__map-placeholder {
     position: absolute;
     inset: 0;
@@ -181,6 +199,33 @@
       border-color: var(--maps-accent);
       background: var(--maps-accent-soft);
       box-shadow: 0 0 0 3px var(--maps-input-focus-ring);
+    }
+
+    &--open {
+      background: rgba(34, 139, 34, 0.08);
+      border-left: 4px solid rgba(34, 139, 34, 0.6);
+    }
+
+    &--closed {
+      background: rgba(180, 50, 50, 0.08);
+      border-left: 4px solid rgba(180, 50, 50, 0.5);
+    }
+  }
+
+  &__card-status {
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+
+    &--open {
+      color: #1a6b1a;
+      background: rgba(34, 139, 34, 0.15);
+    }
+
+    &--closed {
+      color: #a03030;
+      background: rgba(180, 50, 50, 0.15);
     }
   }
 
