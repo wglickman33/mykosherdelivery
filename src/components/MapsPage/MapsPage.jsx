@@ -3,6 +3,7 @@ import { MapPin } from 'lucide-react';
 import { getMapsRestaurants } from '../../services/mapsService';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
+import logger from '../../utils/logger';
 import './MapsPage.scss';
 
 const DEFAULT_CENTER = { lat: 40.7128, lng: -74.006 };
@@ -27,9 +28,11 @@ const MapsPage = () => {
   const [userLocation, setUserLocation] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [mapReady, setMapReady] = useState(false);
+  const [mapInstanceReady, setMapInstanceReady] = useState(false);
   const mapRef = useRef(null);
   const markersRef = useRef([]);
   const mapInstanceRef = useRef(null);
+  const userMarkerRef = useRef(null);
 
   const loadRestaurants = useCallback(async () => {
     setLoading(true);
@@ -81,68 +84,163 @@ const MapsPage = () => {
   useEffect(() => {
     const key = import.meta.env.VITE_GOOGLE_PLACES_API_KEY;
     if (!key) {
+      logger.debug('MapsPage: no API key, map placeholder only', null);
       setMapReady(true);
       return;
     }
     if (window.google?.maps) {
+      logger.debug('MapsPage: Google Maps already loaded', null);
       setMapReady(true);
+      return;
+    }
+    const existing = document.querySelector('script[src*="maps.googleapis.com"]');
+    if (existing) {
+      let attempts = 0;
+      const maxAttempts = 150; // ~2.5s at 60fps
+      const check = () => {
+        if (window.google?.maps) {
+          setMapReady(true);
+          return;
+        }
+        if (++attempts < maxAttempts) requestAnimationFrame(check);
+      };
+      check();
       return;
     }
     const script = document.createElement('script');
     script.src = `https://maps.googleapis.com/maps/api/js?key=${key}`;
     script.async = true;
     script.defer = true;
-    script.onload = () => setMapReady(true);
-    script.onerror = () => setError('Failed to load map.');
+    script.onload = () => {
+      logger.debug('MapsPage: Maps script loaded', null);
+      setMapReady(true);
+    };
+    script.onerror = () => {
+      setError('Failed to load map.');
+    };
     document.head.appendChild(script);
+    // Do not remove script on unmount — avoids loading the API multiple times
+  }, []);
+
+  useEffect(() => {
+    if (!mapReady || !window.google?.maps || !mapRef.current) {
+      if (mapReady && !window.google?.maps) logger.debug('MapsPage: mapReady but no window.google.maps', null);
+      return;
+    }
+    logger.debug('MapsPage: initializing map', { listLength: list.length, hasUserLocation: !!userLocation });
+    let cancelled = false;
+    const center = userLocation || DEFAULT_CENTER;
+
+    const clearMarkers = () => {
+      markersRef.current.forEach((m) => {
+        if (m && m.map !== undefined) m.map = null;
+      });
+      markersRef.current = [];
+      if (userMarkerRef.current) {
+        userMarkerRef.current.map = null;
+        userMarkerRef.current = null;
+      }
+    };
+
+    (async () => {
+      try {
+        const { AdvancedMarkerElement } = await window.google.maps.importLibrary('marker');
+        if (cancelled) return;
+
+        let map = mapInstanceRef.current;
+        if (!map) {
+          map = new window.google.maps.Map(mapRef.current, {
+            mapId: 'DEMO_MAP_ID',
+            center: { lat: center.lat, lng: center.lng },
+            zoom: 12,
+            mapTypeControl: true,
+            fullscreenControl: true,
+            zoomControl: true
+          });
+          mapInstanceRef.current = map;
+          logger.debug('MapsPage: using AdvancedMarkerElement', null);
+        }
+
+        if (cancelled) return;
+        clearMarkers();
+
+        if (userLocation) {
+          const userPin = document.createElement('div');
+          userPin.className = 'maps-page__user-pin';
+          userPin.title = 'Your location';
+          userPin.setAttribute('aria-label', 'Your location');
+          userMarkerRef.current = new AdvancedMarkerElement({
+            position: { lat: userLocation.lat, lng: userLocation.lng },
+            map,
+            title: 'Your location',
+            content: userPin
+          });
+        }
+
+        const bounds = new window.google.maps.LatLngBounds();
+        if (userLocation) bounds.extend({ lat: userLocation.lat, lng: userLocation.lng });
+
+        list.forEach((place) => {
+          if (place.latitude == null || place.longitude == null) return;
+          const pos = { lat: Number(place.latitude), lng: Number(place.longitude) };
+          bounds.extend(pos);
+          const marker = new AdvancedMarkerElement({
+            position: pos,
+            map,
+            title: place.name,
+            gmpClickable: true
+          });
+          marker.addListener('click', () => setSelectedId(place.id));
+          markersRef.current.push(marker);
+        });
+
+        if (cancelled) return;
+        if (list.length > 0 && list.some((p) => p.latitude != null)) {
+          if (list.length === 1 && !userLocation) map.setZoom(14);
+          else map.fitBounds(bounds, 40);
+        }
+        if (userLocation && list.length === 0) {
+          map.setCenter({ lat: userLocation.lat, lng: userLocation.lng });
+        }
+        if (!cancelled) setMapInstanceReady(true);
+      } catch (err) {
+        logger.error('MapsPage: map init failed', err, { message: err?.message });
+        if (!cancelled) {
+          setError(err?.message || 'Map failed to load.');
+          setMapInstanceReady(false);
+        }
+      }
+    })();
     return () => {
-      if (script.parentNode) script.parentNode.removeChild(script);
+      cancelled = true;
+    };
+  }, [mapReady, list, userLocation]);
+
+  useEffect(() => {
+    return () => {
+      markersRef.current.forEach((m) => {
+        if (m && m.map !== undefined) m.map = null;
+      });
+      markersRef.current = [];
+      if (userMarkerRef.current) {
+        userMarkerRef.current.map = null;
+        userMarkerRef.current = null;
+      }
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current = null;
+      }
     };
   }, []);
 
   useEffect(() => {
-    if (!mapReady || !window.google?.maps || !mapRef.current) return;
-    const center = userLocation || DEFAULT_CENTER;
-    const map = new window.google.maps.Map(mapRef.current, {
-      center: { lat: center.lat, lng: center.lng },
-      zoom: 12,
-      mapTypeControl: true,
-      fullscreenControl: true,
-      zoomControl: true
-    });
-    mapInstanceRef.current = map;
-    const bounds = new window.google.maps.LatLngBounds();
-    markersRef.current.forEach((m) => m.setMap(null));
-    markersRef.current = [];
-    list.forEach((place) => {
-      if (place.latitude == null || place.longitude == null) return;
-      const pos = { lat: Number(place.latitude), lng: Number(place.longitude) };
-      bounds.extend(pos);
-      const marker = new window.google.maps.Marker({
-        position: pos,
-        map,
-        title: place.name
-      });
-      marker.addListener('click', () => setSelectedId(place.id));
-      markersRef.current.push(marker);
-    });
-    if (list.length > 0 && list.some((p) => p.latitude != null)) {
-      if (list.length === 1) map.setZoom(14);
-      else map.fitBounds(bounds, 40);
-    }
-    if (userLocation) {
-      map.setCenter({ lat: userLocation.lat, lng: userLocation.lng });
-    }
-  }, [mapReady, list, userLocation]);
-
-  useEffect(() => {
-    if (!selectedId || !mapInstanceRef.current || !markersRef.current.length) return;
+    if (!selectedId || !mapInstanceReady || !mapInstanceRef.current) return;
     const place = list.find((p) => p.id === selectedId);
     if (place?.latitude != null && place?.longitude != null) {
-      mapInstanceRef.current.panTo({ lat: Number(place.latitude), lng: Number(place.longitude) });
-      mapInstanceRef.current.setZoom(15);
+      const map = mapInstanceRef.current;
+      map.panTo({ lat: Number(place.latitude), lng: Number(place.longitude) });
+      map.setZoom(15);
     }
-  }, [selectedId, list]);
+  }, [selectedId, list, mapInstanceReady]);
 
   return (
     <div className="maps-page">

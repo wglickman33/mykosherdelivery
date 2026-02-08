@@ -37,7 +37,6 @@ const Footer = () => {
               <Link to="/partner" className="footer__link">Partner With Us</Link>
               <Link to="/advertise" className="footer__link">Advertise With Us</Link>
               <Link to="/gift-card" className="footer__link">MKD Gift Card</Link>
-              <Link to="/subscriptions" className="footer__link">Subscriptions</Link>
             </nav>
           </div>
 

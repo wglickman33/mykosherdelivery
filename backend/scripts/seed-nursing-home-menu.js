@@ -1,9 +1,12 @@
 const path = require('path');
+// Load .env from project root so DATABASE_URL is set (same as when app runs)
 require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 const { NursingHomeMenuItem } = require('../models');
 const logger = require('../utils/logger');
 
-const menuItems = [
+// Run from backend: npm run seed:nh-menu  (or: node scripts/seed-nursing-home-menu.js)
+// On Heroku: heroku run "cd backend && node scripts/seed-nursing-home-menu.js" -a YOUR_APP_NAME
+const menuItemsRaw = [
   { mealType: 'breakfast', category: 'main', name: 'Scrambled Eggs', description: '', price: 15.00, requiresBagelType: false, excludesSide: false, displayOrder: 1 },
   { mealType: 'breakfast', category: 'main', name: 'Omelet', description: '', price: 15.00, requiresBagelType: false, excludesSide: false, displayOrder: 2 },
   { mealType: 'breakfast', category: 'main', name: 'Egg White Omelet', description: '', price: 15.00, requiresBagelType: false, excludesSide: false, displayOrder: 3 },
@@ -93,16 +96,19 @@ const menuItems = [
   { mealType: 'dinner', category: 'dessert', name: 'Oatmeal Raisin Cookie', description: '', price: 0, requiresBagelType: false, excludesSide: false, displayOrder: 4 }
 ];
 
+const menuItems = menuItemsRaw.map(item => ({ ...item, isActive: true }));
+
 async function seedMenu() {
   try {
     logger.info('Starting nursing home menu seed...');
-    
+    logger.info('DATABASE_URL present: ' + !!process.env.DATABASE_URL);
+
     await NursingHomeMenuItem.destroy({ where: {} });
     logger.info('Cleared existing menu items');
-    
+
     await NursingHomeMenuItem.bulkCreate(menuItems);
     logger.info(`Successfully seeded ${menuItems.length} nursing home menu items`);
-    
+
     const breakfast = menuItems.filter(i => i.mealType === 'breakfast');
     const lunch = menuItems.filter(i => i.mealType === 'lunch');
     const dinner = menuItems.filter(i => i.mealType === 'dinner');

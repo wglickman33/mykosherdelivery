@@ -3,11 +3,6 @@ import api from '../lib/api';
 const MAPS_BASE = '/maps';
 const ADMIN_MAPS_BASE = '/admin/maps';
 
-export async function getMapsAccess() {
-  const res = await api.get(`${MAPS_BASE}/access`);
-  return res;
-}
-
 export async function getMapsRestaurants(params = {}) {
   const res = await api.get(`${MAPS_BASE}/restaurants`, params);
   return res;

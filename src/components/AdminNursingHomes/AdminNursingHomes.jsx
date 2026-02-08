@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import FacilitiesTab from './FacilitiesTab';
+import MenuTab from './MenuTab';
 import ResidentsTab from './ResidentsTab';
 import StaffTab from './StaffTab';
 import StaffAssignmentTab from './StaffAssignmentTab';
@@ -22,6 +23,7 @@ const AdminNursingHomes = () => {
     { id: 'staff', label: 'Staff', roles: ['admin', 'nursing_home_admin'] },
     { id: 'staff-assignment', label: 'Staff Assignment', roles: ['admin', 'nursing_home_admin'] },
     { id: 'orders', label: 'Orders', roles: ['admin', 'nursing_home_admin'] },
+    { id: 'menu', label: 'Menu', roles: ['admin', 'nursing_home_admin'] },
     { id: 'facilities', label: 'Facilities', roles: ['admin'] },
   ].filter(tab => tab.roles.includes(user?.role));
 
@@ -68,6 +70,7 @@ const AdminNursingHomes = () => {
         {activeTab === 'staff' && <StaffTab />}
         {activeTab === 'staff-assignment' && <StaffAssignmentTab />}
         {activeTab === 'orders' && <OrdersTab />}
+        {activeTab === 'menu' && <MenuTab />}
         {activeTab === 'facilities' && isSuperAdmin && <FacilitiesTab />}
       </div>
     </div>

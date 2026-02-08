@@ -83,6 +83,48 @@
     }
   }
 
+  .admin-nursing-homes__menu-tab {
+    max-width: 900px;
+  }
+
+  .admin-nursing-homes__menu-tab-header {
+    margin-bottom: 1.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 1rem;
+
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--color-text-dark, #1a1a1a);
+      margin: 0 0 0.25rem 0;
+    }
+
+    p {
+      flex: 1 1 100%;
+      margin: 0;
+      color: #64748b;
+      font-size: 0.9375rem;
+    }
+  }
+
+  .admin-nursing-homes__edit-menu-btn {
+    padding: 0.5rem 1rem;
+    background: #475569;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+
+    &:hover {
+      background: #334155;
+    }
+  }
+
   .tab-content {
     .tab-header {
       display: flex;

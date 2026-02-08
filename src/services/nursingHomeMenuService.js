@@ -17,12 +17,14 @@ export const fetchNursingHomeMenu = async (filters = {}) => {
     const queryString = params.toString();
     const url = queryString ? `/nursing-homes/menu?${queryString}` : '/nursing-homes/menu';
     const response = await api.get(url);
-    return { success: true, data: response.data.data };
+    // api.get returns response body directly: { success, data: { items, grouped } }
+    const payload = response?.data ?? response;
+    return { success: true, data: payload };
   } catch (error) {
     logger.error('Error fetching nursing home menu:', error);
-    return { 
-      success: false, 
-      error: error.response?.data?.error || 'Failed to fetch menu' 
+    return {
+      success: false,
+      error: error?.message || error?.response?.data?.error || 'Failed to fetch menu'
     };
   }
 };

@@ -6,12 +6,6 @@ const logger = require('../utils/logger');
 
 const router = express.Router();
 
-function hasMapsAccess(profile) {
-  if (!profile) return false;
-  if (profile.role === 'admin') return true;
-  return !!(profile.mapsSubscriptionActive === true);
-}
-
 function haversineDistance(lat1, lon1, lat2, lon2) {
   const R = 3959;
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -27,10 +21,8 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
 router.get('/access', authenticateToken, async (req, res) => {
   try {
     const profile = req.user;
-    const hasAccess = hasMapsAccess(profile);
     res.json({
-      hasAccess,
-      subscriptionStatus: hasAccess ? 'active' : (profile.mapsSubscriptionId ? 'inactive' : 'none'),
+      hasAccess: true,
       isAdmin: profile.role === 'admin'
     });
   } catch (err) {
@@ -41,14 +33,6 @@ router.get('/access', authenticateToken, async (req, res) => {
 
 router.get('/restaurants', authenticateToken, async (req, res) => {
   try {
-    const profile = req.user;
-    if (!hasMapsAccess(profile)) {
-      return res.status(403).json({
-        error: 'Maps subscription required',
-        message: 'An active My Kosher Maps subscription is required to view the directory.'
-      });
-    }
-
     const { search, diet, active = 'true', lat, lng } = req.query;
     const where = {};
 

@@ -12,6 +12,7 @@ const { appEvents } = require('../utils/events');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
+const ExcelJS = require('exceljs');
 
 const logAdminAction = async (adminId, action, tableName, recordId, oldValues, newValues, req = null) => {
   try {
@@ -414,55 +415,84 @@ router.put('/users/:userId', requireAdmin, [
         newValues = user.toJSON();
       }
     } catch (updateError) {
-      console.error('[ERROR] Sequelize update error:', {
-        name: updateError.name,
-        message: updateError.message,
-        originalMessage: updateError.original?.message,
-        originalCode: updateError.original?.code,
-        userId: userId,
-        transformedUpdates: transformedUpdates,
-        stack: updateError.stack?.substring(0, 500)
-      });
-      logger.error('Sequelize update error:', {
-        error: updateError.message,
-        name: updateError.name,
-        userId: userId,
-        updates: transformedUpdates,
-        stack: updateError.stack
-      });
-      
-      if (updateError.name === 'SequelizeValidationError') {
-        return res.status(400).json({
-          error: 'Validation error',
-          message: updateError.errors.map(e => e.message).join(', ')
-        });
-      }
-      
-      if (updateError.name === 'SequelizeUniqueConstraintError') {
-        return res.status(400).json({
-          error: 'Unique constraint violation',
-          message: 'A user with this information already exists'
-        });
-      }
-      
-      const errMsg = (updateError.original?.message || updateError.message || 'Update failed').toString();
-      const isEnumError = /enum|invalid input value/i.test(errMsg);
-      if (updateError.name === 'SequelizeDatabaseError' || updateError.original || isEnumError) {
-        if (isEnumError) {
+      if (isMissingColumnError(updateError) && transformedUpdates.nursingHomeFacilityId !== undefined) {
+        delete transformedUpdates.nursingHomeFacilityId;
+        if (Object.keys(transformedUpdates).length === 0) {
           return res.status(400).json({
-            error: 'Invalid role value',
-            message: 'The selected role is not valid. Please ensure the database migrations have been run.'
+            error: 'Database migration required',
+            message: 'Facility assignment requires the nursing_home_facility_id column. Run your database migrations on this environment (e.g. Heroku Postgres) to enable it.'
+          });
+        }
+        try {
+          if (useRawPath) {
+            const updated = await updateProfileSafe(userId, transformedUpdates);
+            if (!updated) {
+              return res.status(500).json({ error: 'Update failed', message: 'Failed to update user profile' });
+            }
+            newValues = { ...updated, last_login: updated.last_login ?? null };
+          } else {
+            await user.update(transformedUpdates);
+            await user.reload();
+            newValues = user.toJSON();
+          }
+        } catch (retryErr) {
+          logger.error('Sequelize update error (after dropping facility):', { error: retryErr.message, userId });
+          return res.status(400).json({
+            error: 'Update failed',
+            message: retryErr.original?.message || retryErr.message || 'Failed to update user profile'
+          });
+        }
+      } else {
+        console.error('[ERROR] Sequelize update error:', {
+          name: updateError.name,
+          message: updateError.message,
+          originalMessage: updateError.original?.message,
+          originalCode: updateError.original?.code,
+          userId: userId,
+          transformedUpdates: transformedUpdates,
+          stack: updateError.stack?.substring(0, 500)
+        });
+        logger.error('Sequelize update error:', {
+          error: updateError.message,
+          name: updateError.name,
+          userId: userId,
+          updates: transformedUpdates,
+          stack: updateError.stack
+        });
+
+        if (updateError.name === 'SequelizeValidationError') {
+          return res.status(400).json({
+            error: 'Validation error',
+            message: updateError.errors.map(e => e.message).join(', ')
+          });
+        }
+
+        if (updateError.name === 'SequelizeUniqueConstraintError') {
+          return res.status(400).json({
+            error: 'Unique constraint violation',
+            message: 'A user with this information already exists'
+          });
+        }
+
+        const errMsg = (updateError.original?.message || updateError.message || 'Update failed').toString();
+        const isEnumError = /enum|invalid input value/i.test(errMsg);
+        if (updateError.name === 'SequelizeDatabaseError' || updateError.original || isEnumError) {
+          if (isEnumError) {
+            return res.status(400).json({
+              error: 'Invalid role value',
+              message: 'The selected role is not valid. Please ensure the database migrations have been run.'
+            });
+          }
+          return res.status(400).json({
+            error: 'Database error',
+            message: errMsg || 'Failed to update user due to a database constraint'
           });
         }
         return res.status(400).json({
-          error: 'Database error',
-          message: errMsg || 'Failed to update user due to a database constraint'
+          error: 'Update failed',
+          message: errMsg
         });
       }
-      return res.status(400).json({
-        error: 'Update failed',
-        message: errMsg
-      });
     }
 
     delete newValues.password;
@@ -2427,6 +2457,216 @@ router.get('/orders', requireAdmin, async (req, res) => {
       error: 'Internal server error',
       message: 'Failed to fetch orders'
     });
+  }
+});
+
+// Helpers for orders Excel export (must match frontend formatting)
+function formatAddressForExport(deliveryAddress) {
+  if (!deliveryAddress) return '—';
+  const parts = [];
+  const street = deliveryAddress.street || deliveryAddress.address || deliveryAddress.line1 || '';
+  const apartment = deliveryAddress.apartment || deliveryAddress.unit || '';
+  const limitedApartment = apartment ? String(apartment).substring(0, 20) : '';
+  const city = deliveryAddress.city || '';
+  const state = deliveryAddress.state || '';
+  const zip = deliveryAddress.zip_code || deliveryAddress.zipCode || deliveryAddress.postal_code || '';
+  if (street) {
+    parts.push(limitedApartment ? `${street}, ${limitedApartment}` : street);
+  }
+  if (city || state || zip) parts.push([city, state, zip].filter(Boolean).join(', '));
+  return parts.length ? parts.join('\n') : '—';
+}
+
+function formatItemDetailsForExport(item) {
+  let details = item.name || 'Unknown Item';
+  const variant = item.selectedVariant || item.variant || item.type;
+  if (variant) {
+    const variantName = variant.name || (typeof variant === 'string' ? variant : null);
+    if (variantName) details += ` - ${variantName}`;
+  }
+  const configs = item.selectedConfigurations || item.configurations || item.config || item.selections;
+  if (configs && (Array.isArray(configs) ? configs.length : Object.keys(configs || {}).length)) {
+    const configStrings = Array.isArray(configs)
+      ? configs.map(c => (c && c.option ? `${c.category}: ${c.option}` : (c && c.name ? c.name : String(c)))).filter(Boolean)
+      : Object.entries(configs).map(([k, v]) => (v && v.option ? `${v.category}: ${v.option}` : `${k}: ${String(v)}`)).filter(Boolean);
+    if (configStrings.length) details += ` (${configStrings.join(', ')})`;
+  }
+  return details;
+}
+
+function getRestaurantNameForItemExport(order, item) {
+  if (item.restaurantName) return item.restaurantName;
+  const rid = item.restaurantId || (order.restaurant && order.restaurant.id);
+  if (order.restaurants && Array.isArray(order.restaurants)) {
+    const r = order.restaurants.find(x => String(x.id) === String(rid));
+    if (r) return r.name;
+  }
+  if (order.restaurant && String(order.restaurant.id) === String(rid)) return order.restaurant.name;
+  if (order.restaurantGroups && typeof order.restaurantGroups === 'object') {
+    for (const rId of Object.keys(order.restaurantGroups)) {
+      if (String(rId) === String(rid)) {
+        const rest = order.restaurants && order.restaurants.find(x => String(x.id) === String(rId));
+        return rest ? rest.name : 'Unknown Restaurant';
+      }
+    }
+  }
+  return 'Unknown Restaurant';
+}
+
+router.get('/orders/export/individual', requireAdmin, async (req, res) => {
+  try {
+    const { startDate: startParam, endDate: endParam } = req.query;
+    const startDate = startParam ? new Date(startParam) : null;
+    const endDate = endParam ? new Date(endParam) : null;
+    if (!startDate || !endDate || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return res.status(400).json({ error: 'startDate and endDate query params required (ISO)' });
+    }
+    const whereClause = { createdAt: { [Op.gte]: startDate, [Op.lte]: endDate } };
+    const include = [
+      { model: Profile, as: 'user', attributes: ['firstName', 'lastName', 'email'] },
+      { model: Restaurant, as: 'restaurant', attributes: ['name'] }
+    ];
+    const rows = await Order.findAll({
+      where: whereClause,
+      include,
+      order: [['createdAt', 'ASC']],
+      limit: 10000
+    });
+    const enhancedOrders = await Promise.all(rows.map(async (order) => {
+      const orderData = order.toJSON();
+      if (orderData.restaurantGroups && Object.keys(orderData.restaurantGroups).length > 0) {
+        const restaurantIds = Object.keys(orderData.restaurantGroups);
+        const restaurants = await Restaurant.findAll({ where: { id: restaurantIds }, attributes: ['id', 'name'] });
+        orderData.restaurants = restaurants;
+      } else if (orderData.restaurant) {
+        orderData.restaurants = [orderData.restaurant];
+      }
+      return orderData;
+    }));
+
+    const exportData = [];
+    enhancedOrders.forEach(order => {
+      const lastName = order.user?.lastName || order.guestInfo?.lastName || 'Unknown';
+      let allItems = [];
+      if (order.restaurantGroups) {
+        Object.entries(order.restaurantGroups).forEach(([, group]) => {
+          const groupItems = Array.isArray(group.items) ? group.items : Object.values(group.items || {});
+          groupItems.forEach(item => {
+            allItems.push({ ...item, restaurantName: getRestaurantNameForItemExport(order, item) });
+          });
+        });
+      } else if (Array.isArray(order.items)) {
+        order.items.forEach(item => {
+          allItems.push({ ...item, restaurantName: getRestaurantNameForItemExport(order, item) });
+        });
+      }
+      const formattedAddress = formatAddressForExport(order.deliveryAddress || order.delivery_address);
+      allItems.forEach((item, index) => {
+        exportData.push({
+          'Last Name': index === 0 ? lastName : '',
+          'Qty/Item': `${item.quantity || 1}x ${formatItemDetailsForExport(item)} (${item.restaurantName})`,
+          'Address': index === 0 ? formattedAddress : ''
+        });
+      });
+    });
+
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Orders');
+    const headers = exportData.length ? Object.keys(exportData[0]) : ['Last Name', 'Qty/Item', 'Address'];
+    ws.addRow(headers);
+    exportData.forEach(row => ws.addRow(headers.map(h => row[h])));
+    const buffer = await wb.xlsx.writeBuffer();
+    const filename = `orders_individual_${startDate.toISOString().split('T')[0]}_to_${endDate.toISOString().split('T')[0]}.xlsx`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(Buffer.from(buffer));
+  } catch (error) {
+    logger.error('Error exporting orders (individual):', error);
+    res.status(500).json({ error: 'Internal server error', message: 'Failed to export orders' });
+  }
+});
+
+router.get('/orders/export/totalled', requireAdmin, async (req, res) => {
+  try {
+    const { startDate: startParam, endDate: endParam } = req.query;
+    const startDate = startParam ? new Date(startParam) : null;
+    const endDate = endParam ? new Date(endParam) : null;
+    if (!startDate || !endDate || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return res.status(400).json({ error: 'startDate and endDate query params required (ISO)' });
+    }
+    const whereClause = { createdAt: { [Op.gte]: startDate, [Op.lte]: endDate } };
+    const include = [
+      { model: Profile, as: 'user', attributes: ['firstName', 'lastName'] },
+      { model: Restaurant, as: 'restaurant', attributes: ['name'] }
+    ];
+    const rows = await Order.findAll({
+      where: whereClause,
+      include,
+      order: [['createdAt', 'ASC']],
+      limit: 10000
+    });
+    const enhancedOrders = await Promise.all(rows.map(async (order) => {
+      const orderData = order.toJSON();
+      if (orderData.restaurantGroups && Object.keys(orderData.restaurantGroups).length > 0) {
+        const restaurantIds = Object.keys(orderData.restaurantGroups);
+        const restaurants = await Restaurant.findAll({ where: { id: restaurantIds }, attributes: ['id', 'name'] });
+        orderData.restaurants = restaurants;
+      } else if (orderData.restaurant) {
+        orderData.restaurants = [orderData.restaurant];
+      }
+      return orderData;
+    }));
+
+    const restaurantTotals = {};
+    enhancedOrders.forEach(order => {
+      let allItems = [];
+      if (order.restaurantGroups) {
+        Object.entries(order.restaurantGroups).forEach(([rId, group]) => {
+          const groupItems = Array.isArray(group.items) ? group.items : Object.values(group.items || {});
+          groupItems.forEach(item => {
+            const withRest = { ...item, restaurantId: rId, restaurantName: getRestaurantNameForItemExport(order, { ...item, restaurantId: rId }) };
+            allItems.push(withRest);
+          });
+        });
+      } else if (Array.isArray(order.items)) {
+        order.items.forEach(item => {
+          allItems.push({ ...item, restaurantName: getRestaurantNameForItemExport(order, item) });
+        });
+      }
+      allItems.forEach(item => {
+        const restaurantName = item.restaurantName || 'Unknown Restaurant';
+        const itemDetails = formatItemDetailsForExport(item);
+        const itemKey = `${restaurantName}|||${itemDetails}`;
+        if (!restaurantTotals[itemKey]) {
+          restaurantTotals[itemKey] = { restaurant: restaurantName, item: itemDetails, quantity: 0 };
+        }
+        restaurantTotals[itemKey].quantity += item.quantity || 1;
+      });
+    });
+
+    const restaurantGroups = {};
+    Object.values(restaurantTotals).forEach(entry => {
+      if (!restaurantGroups[entry.restaurant]) restaurantGroups[entry.restaurant] = [];
+      restaurantGroups[entry.restaurant].push(`${entry.quantity}x ${entry.item}`);
+    });
+    const exportData = Object.entries(restaurantGroups).map(([restaurant, items]) => ({
+      'Restaurant': restaurant,
+      'Items': items.join('\n')
+    }));
+
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Totals');
+    const headers = exportData.length ? Object.keys(exportData[0]) : ['Restaurant', 'Items'];
+    ws.addRow(headers);
+    exportData.forEach(row => ws.addRow(headers.map(h => row[h])));
+    const buffer = await wb.xlsx.writeBuffer();
+    const filename = `orders_totalled_${startDate.toISOString().split('T')[0]}_to_${endDate.toISOString().split('T')[0]}.xlsx`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(Buffer.from(buffer));
+  } catch (error) {
+    logger.error('Error exporting orders (totalled):', error);
+    res.status(500).json({ error: 'Internal server error', message: 'Failed to export totalled orders' });
   }
 });
 

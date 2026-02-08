@@ -2,7 +2,7 @@ const express = require('express');
 const { Op } = require('sequelize');
 const multer = require('multer');
 const path = require('path');
-const XLSX = require('xlsx');
+const ExcelJS = require('exceljs');
 const { KosherMapsRestaurant } = require('../models');
 const { requireAdmin } = require('../middleware/auth');
 const logger = require('../utils/logger');
@@ -16,9 +16,22 @@ function debugLog(location, message, data, hypothesisId) {
 }
 // #endregion
 
-function parseXlsxBuffer(buffer) {
-  const workbook = XLSX.read(buffer, { type: 'buffer', raw: false });
-  const sheetNames = workbook.SheetNames || [];
+function sheetToRaw(worksheet) {
+  const raw = [];
+  worksheet.eachRow({ includeEmpty: true }, (row, rowNumber) => {
+    const vals = [];
+    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+      vals[colNumber - 1] = cell.value == null ? '' : cell.value;
+    });
+    raw.push(vals);
+  });
+  return raw;
+}
+
+async function parseXlsxBuffer(buffer) {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer);
+  const sheetNames = workbook.worksheets.map((ws) => ws.name);
   if (sheetNames.length === 0) return { headers: [], rows: [] };
 
   const norm = (h) => (h || '').toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
@@ -27,9 +40,10 @@ function parseXlsxBuffer(buffer) {
 
   const cellStr = (val) => (val == null || val === '') ? '' : String(val).trim();
 
-  for (const sheetName of sheetNames) {
-    const sheet = workbook.Sheets[sheetName];
-    const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false });
+  for (let si = 0; si < workbook.worksheets.length; si++) {
+    const sheet = workbook.worksheets[si];
+    const sheetName = sheet.name;
+    const raw = sheetToRaw(sheet);
     if (raw.length < 2) continue;
 
     for (let headerRowIdx = 0; headerRowIdx <= Math.min(2, raw.length - 2); headerRowIdx++) {
@@ -55,28 +69,26 @@ function parseXlsxBuffer(buffer) {
           });
           return obj;
         });
-      // #region agent log
-      const firstRow = rows[0];
       debugLog('admin-maps.js:parseXlsxBuffer_return_matched', 'parseXlsxBuffer returning from matched header path', {
         sheetName,
         headerRowIdx,
         headers,
         rowCount: rows.length,
-        firstRowKeys: firstRow ? Object.keys(firstRow) : [],
-        firstRowHasNameKey: firstRow ? ('name' in firstRow) : false,
-        firstRowNameLen: firstRow && firstRow.name != null ? String(firstRow.name).length : 0,
+        firstRowKeys: rows[0] ? Object.keys(rows[0]) : [],
+        firstRowHasNameKey: rows[0] ? ('name' in rows[0]) : false,
+        firstRowNameLen: rows[0] && rows[0].name != null ? String(rows[0].name).length : 0,
         firstHeader: headers[0],
-        firstRowFirstHeaderValueLen: firstRow && headers[0] && firstRow[headers[0]] != null ? String(firstRow[headers[0]]).length : 0
+        firstRowFirstHeaderValueLen: rows[0] && headers[0] && rows[0][headers[0]] != null ? String(rows[0][headers[0]]).length : 0
       }, 'A');
-      // #endregion
       return { headers, rows };
     }
   }
 
   let best = { count: 0, headers: null, rows: null, sheetName: null };
-  for (const sheetName of sheetNames) {
-    const sheet = workbook.Sheets[sheetName];
-    const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false });
+  for (let si = 0; si < workbook.worksheets.length; si++) {
+    const sheet = workbook.worksheets[si];
+    const sheetName = sheet.name;
+    const raw = sheetToRaw(sheet);
     if (raw.length < 2) continue;
     const headerRow = raw[0].map((h) => cellStr(h));
     const dataRows = raw.slice(1).filter((row) => row.some((cell) => cellStr(cell) !== ''));
@@ -95,25 +107,21 @@ function parseXlsxBuffer(buffer) {
     }
   }
   if (best.headers) {
-    // #region agent log
-    const firstRow = best.rows[0];
     debugLog('admin-maps.js:parseXlsxBuffer_return_best', 'parseXlsxBuffer returning from best fallback', {
       bestSheetName: best.sheetName,
       bestCount: best.count,
       headers: best.headers,
       rowCount: best.rows.length,
-      firstRowKeys: firstRow ? Object.keys(firstRow) : [],
-      firstRowHasNameKey: firstRow ? ('name' in firstRow) : false,
-      firstRowNameLen: firstRow && firstRow.name != null ? String(firstRow.name).length : 0,
-      firstRowCol0Raw: firstRow && best.rows[0] ? (best.rows[0].name != null ? 'set' : 'missing') : 'n/a'
+      firstRowKeys: best.rows[0] ? Object.keys(best.rows[0]) : [],
+      firstRowHasNameKey: best.rows[0] ? ('name' in best.rows[0]) : false,
+      firstRowNameLen: best.rows[0] && best.rows[0].name != null ? String(best.rows[0].name).length : 0,
+      firstRowCol0Raw: best.rows[0] && best.rows[0].name != null ? 'set' : 'missing'
     }, 'B');
-    // #endregion
     return { headers: best.headers, rows: best.rows };
   }
 
-  const sheetName = sheetNames[0];
-  const sheet = workbook.Sheets[sheetName];
-  const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false });
+  const sheet = workbook.worksheets[0];
+  const raw = sheetToRaw(sheet);
   if (raw.length === 0) return { headers: [], rows: [] };
   const headers = raw[0].map((h) => cellStr(h));
   const rows = raw.slice(1)
@@ -125,9 +133,7 @@ function parseXlsxBuffer(buffer) {
       });
       return obj;
     });
-  // #region agent log
   debugLog('admin-maps.js:parseXlsxBuffer_return_fallback', 'parseXlsxBuffer returning first-sheet fallback', { headers, rowCount: rows.length, firstRowKeys: rows[0] ? Object.keys(rows[0]) : [] }, 'C');
-  // #endregion
   return { headers, rows };
 }
 
@@ -325,7 +331,7 @@ router.post('/restaurants/import', requireAdmin, upload.single('file'), async (r
     }
     const isXlsx = (req.file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
       (req.file.originalname && req.file.originalname.toLowerCase().endsWith('.xlsx')));
-    const { headers, rows } = isXlsx ? parseXlsxBuffer(req.file.buffer) : parseCsvBuffer(req.file.buffer);
+    const { headers, rows } = isXlsx ? await parseXlsxBuffer(req.file.buffer) : parseCsvBuffer(req.file.buffer);
     // #region agent log
     debugLog('admin-maps.js:import_after_parse', 'import after parse', {
       isXlsx,

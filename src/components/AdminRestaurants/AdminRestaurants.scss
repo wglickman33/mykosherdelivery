@@ -725,9 +725,12 @@
     }
   }
 
-  // Nursing Home Menu Tab Styles
+  // Nursing Home Menu Tab — slate theme (matches AdminNursingHomes / NH portal)
   &__nursing-home-menu-tab {
     padding: 2rem;
+    background: #f8fafc;
+    border-radius: 12px;
+    margin-top: 0;
   }
 
   &__nh-menu-header {
@@ -735,31 +738,147 @@
 
     h3 {
       font-size: 1.5rem;
-      color: #9333ea;
+      font-weight: 600;
+      color: #1e293b;
       margin: 0 0 0.5rem 0;
     }
 
     p {
-      color: #6b7280;
+      color: #64748b;
       margin: 0;
+      font-size: 0.95rem;
     }
   }
 
   &__nh-menu-filters {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 1.25rem;
     margin-bottom: 2rem;
     padding: 1.5rem;
-    background: #f9fafb;
+    background: #fff;
     border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+
+    .admin-restaurants__filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      min-width: 0;
+
+      label {
+        color: #334155;
+        font-weight: 600;
+        font-size: 0.875rem;
+      }
+
+      select,
+      input {
+        height: 40px;
+        padding: 0 12px;
+        background: #fff;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        color: #1e293b;
+        font-size: 0.9rem;
+        transition: border-color 0.15s, box-shadow 0.15s;
+
+        &:focus {
+          outline: none;
+          border-color: #475569;
+          box-shadow: 0 0 0 2px rgba(71, 85, 105, 0.15);
+        }
+
+        &:hover:not(:focus) {
+          border-color: #94a3b8;
+        }
+      }
+
+      input::placeholder {
+        color: #94a3b8;
+      }
+
+      select {
+        cursor: pointer;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='%2364748b'%3E%3Cpath d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        padding-right: 36px;
+      }
+    }
+
+    .admin-restaurants__filter-group:not(.admin-restaurants__filter-group--search):not(.admin-restaurants__filter-group--refresh) {
+      min-width: 140px;
+    }
+
+    .admin-restaurants__filter-group--search {
+      flex: 1;
+      min-width: 220px;
+    }
+
+    .admin-restaurants__filter-group--refresh {
+      align-self: stretch;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+  }
+
+  &__refresh-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: #475569;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, opacity 0.2s;
+    margin-top: 0.5rem;
+
+    &:hover:not(:disabled) {
+      background: #334155;
+    }
+
+    &:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    svg.spin {
+      animation: spin 0.8s linear infinite;
+    }
+
+    &--secondary {
+      background: #f8fafc;
+      color: #334155;
+      border: 1px solid #e2e8f0;
+
+      &:hover:not(:disabled) {
+        background: #f1f5f9;
+        border-color: #cbd5e1;
+        color: #1e293b;
+      }
+    }
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
   }
 
   &__nh-menu-content {
-    background: white;
+    background: #fff;
     border-radius: 12px;
     padding: 1.5rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   }
 
   &__nh-menu-stats {
@@ -770,16 +889,17 @@
   }
 
   &__stat-card {
-    background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
     padding: 1.5rem;
     border-radius: 12px;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    border: 1px solid #e2e8f0;
 
     .stat-label {
       font-size: 0.875rem;
-      color: #7e22ce;
+      color: #64748b;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
@@ -788,7 +908,7 @@
     .stat-value {
       font-size: 2rem;
       font-weight: 700;
-      color: #9333ea;
+      color: #334155;
     }
   }
 
@@ -801,25 +921,25 @@
       font-size: 0.9rem;
 
       thead {
-        background: #f9fafb;
-        border-bottom: 2px solid #e5e7eb;
+        background: #f8fafc;
+        border-bottom: 2px solid #e2e8f0;
 
         th {
           padding: 1rem;
           text-align: left;
           font-weight: 600;
-          color: #374151;
+          color: #334155;
           white-space: nowrap;
         }
       }
 
       tbody {
         tr {
-          border-bottom: 1px solid #e5e7eb;
+          border-bottom: 1px solid #e2e8f0;
           transition: background 0.2s;
 
           &:hover {
-            background: #f9fafb;
+            background: #f8fafc;
           }
 
           &.inactive {
@@ -832,7 +952,7 @@
 
             .item-description {
               font-size: 0.85rem;
-              color: #6b7280;
+              color: #64748b;
               margin-top: 0.25rem;
               font-style: italic;
             }
@@ -856,13 +976,13 @@
       }
 
       &--lunch {
-        background: #dbeafe;
-        color: #1e40af;
+        background: #e2e8f0;
+        color: #334155;
       }
 
       &--dinner {
-        background: #fce7f3;
-        color: #9f1239;
+        background: #cbd5e1;
+        color: #1e293b;
       }
     }
 
@@ -872,8 +992,8 @@
       border-radius: 12px;
       font-size: 0.75rem;
       font-weight: 600;
-      background: #f3f4f6;
-      color: #374151;
+      background: #f1f5f9;
+      color: #334155;
     }
 
     .status-badge {
@@ -908,11 +1028,11 @@
         border: none;
 
         &.btn-edit {
-          background: #dbeafe;
-          color: #1e40af;
+          background: #f1f5f9;
+          color: #334155;
 
           &:hover {
-            background: #bfdbfe;
+            background: #e2e8f0;
           }
         }
 
@@ -930,11 +1050,35 @@
 
   &__no-items {
     text-align: center;
-    padding: 3rem;
-    color: #6b7280;
+    padding: 3rem 2rem;
+    color: #64748b;
 
     p {
       margin: 0.5rem 0;
+      font-size: 0.95rem;
     }
+
+    p:first-child {
+      font-weight: 500;
+      color: #334155;
+    }
+  }
+}
+
+.admin-restaurants__nh-menu-table {
+  .admin-restaurants__no-items {
+    display: block;
+    border-top: 1px solid #e2e8f0;
+  }
+}
+
+// Slate-themed create button when Nursing Home Menu tab is active
+.admin-restaurants__header-actions .admin-restaurants__create-btn--nh {
+  background: #475569;
+  box-shadow: 0 2px 8px rgba(71, 85, 105, 0.2);
+
+  &:hover {
+    background: #334155;
+    box-shadow: 0 4px 12px rgba(51, 65, 85, 0.25);
   }
 } 

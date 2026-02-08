@@ -1,5 +1,6 @@
 import './AdminRestaurants.scss';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { fetchAllRestaurants, createRestaurant, updateRestaurant, deleteRestaurant, logAdminAction } from '../../services/adminServices';
 import { uploadRestaurantLogo, buildImageUrl } from '../../services/imageService';
 import { useAuth } from '../../hooks/useAuth';
@@ -25,6 +26,8 @@ const normalizeRestaurant = (r = {}) => {
 };
 
 const AdminRestaurants = () => {
+  const [searchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
   const [allRestaurants, setAllRestaurants] = useState([]);
   const [restaurants, setRestaurants] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -43,7 +46,7 @@ const AdminRestaurants = () => {
     limit: 20
   });
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 1 });
-  const [activeTab, setActiveTab] = useState('restaurants');
+  const [activeTab, setActiveTab] = useState(tabParam === 'nursing-home-menu' ? 'nursing-home-menu' : 'restaurants');
   const [showMenuItemModal, setShowMenuItemModal] = useState(false);
   const [selectedMenuItem, setSelectedMenuItem] = useState(null);
   const [selectedRestaurantForMenu, setSelectedRestaurantForMenu] = useState(null);
@@ -371,15 +374,22 @@ const AdminRestaurants = () => {
 
   const fetchNHMenu = useCallback(async () => {
     setNursingHomeMenuLoading(true);
-    const result = await fetchNursingHomeMenu(nhMenuFilters);
-    if (result.success) {
-      setNursingHomeMenuItems(Array.isArray(result.data?.items) ? result.data.items : []);
-    } else {
-      setNursingHomeMenuItems([]);
-      showNotification(result.error || 'Failed to fetch nursing home menu', 'error');
+    try {
+      const result = await fetchNursingHomeMenu({
+        mealType: nhMenuFilters.mealType,
+        category: nhMenuFilters.category
+      });
+      if (result.success) {
+        setNursingHomeMenuItems(Array.isArray(result.data?.items) ? result.data.items : []);
+      } else {
+        setNursingHomeMenuItems([]);
+        showNotification(result.error || 'Failed to fetch nursing home menu', 'error');
+      }
+    } finally {
+      setNursingHomeMenuLoading(false);
     }
-    setNursingHomeMenuLoading(false);
-  }, [nhMenuFilters, showNotification]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- showNotification changes every render and would cause infinite loop
+  }, [nhMenuFilters.mealType, nhMenuFilters.category]);
 
   useEffect(() => {
     if (activeTab === 'nursing-home-menu') {
@@ -480,7 +490,7 @@ const AdminRestaurants = () => {
           )}
           {activeTab === 'nursing-home-menu' && (
             <button
-              className="admin-restaurants__create-btn"
+              className="admin-restaurants__create-btn admin-restaurants__create-btn--nh"
               onClick={() => {
                 setSelectedNHMenuItem(null);
                 setShowNHMenuItemModal(true);
@@ -898,7 +908,7 @@ const AdminRestaurants = () => {
               <label>Meal Type</label>
               <select
                 value={nhMenuFilters.mealType}
-                onChange={(e) => setNHMenuFilters({ ...nhMenuFilters, mealType: e.target.value })}
+                onChange={(e) => setNHMenuFilters(prev => ({ ...prev, mealType: e.target.value }))}
               >
                 <option value="all">All Meals</option>
                 <option value="breakfast">Breakfast</option>
@@ -911,7 +921,7 @@ const AdminRestaurants = () => {
               <label>Category</label>
               <select
                 value={nhMenuFilters.category}
-                onChange={(e) => setNHMenuFilters({ ...nhMenuFilters, category: e.target.value })}
+                onChange={(e) => setNHMenuFilters(prev => ({ ...prev, category: e.target.value }))}
               >
                 <option value="all">All Categories</option>
                 <option value="main">Main</option>
@@ -922,14 +932,32 @@ const AdminRestaurants = () => {
               </select>
             </div>
 
-            <div className="admin-restaurants__filter-group">
+            <div className="admin-restaurants__filter-group admin-restaurants__filter-group--search">
               <label>Search</label>
               <input
                 type="text"
-                placeholder="Search menu items..."
+                placeholder="Name or description..."
                 value={nhMenuFilters.search}
-                onChange={(e) => setNHMenuFilters({ ...nhMenuFilters, search: e.target.value })}
+                onChange={(e) => setNHMenuFilters(prev => ({ ...prev, search: e.target.value }))}
+                aria-label="Search menu items"
               />
+            </div>
+
+            <div className="admin-restaurants__filter-group admin-restaurants__filter-group--refresh">
+              <label>&nbsp;</label>
+              <button
+                type="button"
+                className="admin-restaurants__refresh-btn"
+                onClick={fetchNHMenu}
+                disabled={nursingHomeMenuLoading}
+                aria-label="Refresh menu"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={nursingHomeMenuLoading ? 'spin' : ''}>
+                  <path d="M23 4v6h-6M1 20v-6h6" />
+                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                </svg>
+                <span>{nursingHomeMenuLoading ? 'Loading…' : 'Refresh'}</span>
+              </button>
             </div>
           </div>
 
@@ -960,6 +988,23 @@ const AdminRestaurants = () => {
               </div>
 
               <div className="admin-restaurants__nh-menu-table">
+                {filteredNHMenuItems.length === 0 ? (
+                  <div className="admin-restaurants__no-items">
+                    <p>No menu items found {nhMenuFilters.mealType !== 'all' || nhMenuFilters.category !== 'all' || nhMenuFilters.search ? 'matching your filters.' : '— add your first item to get started.'}</p>
+                    {!nhMenuFilters.search && (nhMenuFilters.mealType === 'all' && nhMenuFilters.category === 'all') && (
+                      <button
+                        type="button"
+                        className="admin-restaurants__refresh-btn admin-restaurants__refresh-btn--secondary"
+                        onClick={() => {
+                          setSelectedNHMenuItem(null);
+                          setShowNHMenuItemModal(true);
+                        }}
+                      >
+                        Add Menu Item
+                      </button>
+                    )}
+                  </div>
+                ) : (
                 <table>
                   <thead>
                     <tr>
@@ -1023,11 +1068,6 @@ const AdminRestaurants = () => {
                     ))}
                   </tbody>
                 </table>
-
-                {filteredNHMenuItems.length === 0 && (
-                  <div className="admin-restaurants__no-items">
-                    <p>No menu items found matching your filters.</p>
-                  </div>
                 )}
               </div>
             </div>

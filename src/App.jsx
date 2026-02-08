@@ -17,7 +17,6 @@ import BlogPage from "./components/BlogPage/BlogPage";
 import TermsAndConditionsPage from "./components/TermsAndConditionsPage/TermsAndConditionsPage";
 import PrivacyPage from "./components/PrivacyPage/PrivacyPage";
 import GiftCardPage from "./components/GiftCardPage/GiftCardPage";
-import SubscriptionsPage from "./components/SubscriptionsPage/SubscriptionsPage";
 import AccountPage from "./components/AccountPage/AccountPage";
 import CheckoutPage from "./components/CheckoutPage/CheckoutPage";
 import OrderConfirmationPage from "./components/OrderConfirmationPage/OrderConfirmationPage";
@@ -63,6 +62,7 @@ import NursingHomeOrderPayment from "./components/NursingHomeOrderPayment/OrderP
 import NursingHomeOrders from "./components/NursingHomeOrders/NursingHomeOrders";
 import NursingHomeOrderDetails from "./components/NursingHomeOrderDetails/OrderDetails";
 import NursingHomeOrderConfirmation from "./components/NursingHomeOrderConfirmation/OrderConfirmation";
+import NursingHomeMenu from "./components/NursingHomeMenu/NursingHomeMenu";
 import MapsGate from "./components/MapsGate/MapsGate";
 import MapsLayout from "./components/MapsLayout/MapsLayout";
 import MapsPage from "./components/MapsPage/MapsPage";
@@ -178,6 +178,7 @@ function AuthenticatedApp() {
           <Route path="/nursing-homes/admin" element={<NursingHomeAdminGate />} />
           <Route path="/nursing-homes" element={<NursingHomeLayout />}>
             <Route path="dashboard" element={<NursingHomeDashboard />} />
+            <Route path="menu" element={<NursingHomeMenu showInstructions={true} showEditLink={true} />} />
             <Route path="orders" element={<NursingHomeOrders />} />
             <Route path="orders/:orderId" element={<NursingHomeOrderDetails />} />
             <Route path="orders/:orderId/confirmation" element={<NursingHomeOrderConfirmation />} />
@@ -245,7 +246,6 @@ function AuthenticatedApp() {
             <Route path="/terms" element={<TermsAndConditionsPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/gift-card" element={<GiftCardPage />} />
-            <Route path="/subscriptions" element={<SubscriptionsPage />} />
             <Route path="/account" element={<AccountPage />} />
             <Route path="/signin" element={<AuthPage />} />
             <Route path="/signup" element={<AuthPage />} />

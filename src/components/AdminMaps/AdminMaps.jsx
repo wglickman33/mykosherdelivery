@@ -135,30 +135,32 @@ const AdminMaps = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.name.trim()) {
+    const nameTrimmed = (form.name != null && typeof form.name === 'string') ? form.name.trim() : '';
+    if (!nameTrimmed) {
       setError('Name is required');
       return;
     }
     setSubmitting(true);
     setError(null);
     try {
+      const str = (v) => (v == null || typeof v !== 'string' ? '' : v.trim()) || null;
       const payload = {
-        name: form.name.trim(),
-        address: form.address.trim() || null,
-        city: form.city.trim() || null,
-        state: form.state.trim() || null,
-        zip: form.zip.trim() || null,
+        name: nameTrimmed,
+        address: str(form.address),
+        city: str(form.city),
+        state: str(form.state),
+        zip: str(form.zip),
         latitude: form.latitude ? parseFloat(form.latitude) : null,
         longitude: form.longitude ? parseFloat(form.longitude) : null,
-        phone: form.phone.trim() || null,
-        website: form.website.trim() || null,
-        kosherCertification: form.kosherCertification.trim() || null,
+        phone: str(form.phone),
+        website: str(form.website),
+        kosherCertification: str(form.kosherCertification),
         googleRating: form.googleRating ? parseFloat(form.googleRating) : null,
-        dietTags: form.dietTags,
+        dietTags: Array.isArray(form.dietTags) ? form.dietTags : [],
         isActive: form.isActive,
         deactivationReason: form.deactivationReason || null,
-        hoursOfOperation: form.hoursOfOperation.trim() || null,
-        notes: form.notes.trim() || null
+        hoursOfOperation: str(form.hoursOfOperation),
+        notes: str(form.notes)
       };
       if (editing) {
         await updateAdminMapsRestaurant(editing.id, payload);
@@ -471,63 +473,74 @@ const AdminMaps = () => {
               </button>
             </div>
             <div className="admin-maps__view-content">
-              <dl className="admin-maps__view-grid">
-                <dt>Address</dt>
-                <dd>{[viewingRow.address, viewingRow.city, viewingRow.state, viewingRow.zip].filter(Boolean).join(', ') || '—'}</dd>
+              <section className="admin-maps__view-section">
+                <h3 className="admin-maps__view-section-title">Location</h3>
+                <dl className="admin-maps__view-grid">
+                  <dt>Address</dt>
+                  <dd className={![viewingRow.address, viewingRow.city, viewingRow.state, viewingRow.zip].filter(Boolean).length ? 'admin-maps__view-empty' : ''}>
+                    {[viewingRow.address, viewingRow.city, viewingRow.state, viewingRow.zip].filter(Boolean).join(', ') || '—'}
+                  </dd>
+                  <dt>Coordinates</dt>
+                  <dd className={viewingRow.latitude == null || viewingRow.longitude == null ? 'admin-maps__view-empty' : ''}>
+                    {viewingRow.latitude != null && viewingRow.longitude != null
+                      ? `${Number(viewingRow.latitude).toFixed(5)}, ${Number(viewingRow.longitude).toFixed(5)}`
+                      : '—'}
+                  </dd>
+                </dl>
+              </section>
 
-                <dt>Phone</dt>
-                <dd>{viewingRow.phone || '—'}</dd>
+              <section className="admin-maps__view-section">
+                <h3 className="admin-maps__view-section-title">Contact & details</h3>
+                <dl className="admin-maps__view-grid">
+                  <dt>Phone</dt>
+                  <dd className={!viewingRow.phone ? 'admin-maps__view-empty' : ''}>{viewingRow.phone || '—'}</dd>
+                  <dt>Website</dt>
+                  <dd className={!viewingRow.website ? 'admin-maps__view-empty' : ''}>
+                    {viewingRow.website ? (
+                      <a href={viewingRow.website.startsWith('http') ? viewingRow.website : `https://${viewingRow.website}`} target="_blank" rel="noopener noreferrer">{viewingRow.website}</a>
+                    ) : '—'}
+                  </dd>
+                  <dt>Kosher certification</dt>
+                  <dd className={!viewingRow.kosherCertification ? 'admin-maps__view-empty' : ''}>{viewingRow.kosherCertification || '—'}</dd>
+                  <dt>Google rating</dt>
+                  <dd className={viewingRow.googleRating == null ? 'admin-maps__view-empty' : ''}>{viewingRow.googleRating != null ? Number(viewingRow.googleRating).toFixed(1) : '—'}</dd>
+                  <dt>Diet</dt>
+                  <dd className={!(viewingRow.dietTags || []).length ? 'admin-maps__view-empty' : ''}>{(viewingRow.dietTags || []).join(', ') || '—'}</dd>
+                </dl>
+              </section>
 
-                <dt>Website</dt>
-                <dd>
-                  {viewingRow.website ? (
-                    <a href={viewingRow.website.startsWith('http') ? viewingRow.website : `https://${viewingRow.website}`} target="_blank" rel="noopener noreferrer">{viewingRow.website}</a>
-                  ) : '—'}
-                </dd>
-
-                <dt>Kosher certification</dt>
-                <dd>{viewingRow.kosherCertification || '—'}</dd>
-
-                <dt>Google rating</dt>
-                <dd>{viewingRow.googleRating != null ? Number(viewingRow.googleRating).toFixed(1) : '—'}</dd>
-
-                <dt>Diet</dt>
-                <dd>{(viewingRow.dietTags || []).join(', ') || '—'}</dd>
-
-                <dt>Hours of operation</dt>
-                <dd className="admin-maps__view-hours">{viewingRow.hoursOfOperation || '—'}</dd>
-
-                <dt>Status</dt>
-                <dd>
-                  <span className={`maps-pill maps-pill--${viewingRow.isActive !== false ? 'success' : 'error'}`}>
-                    {viewingRow.isActive !== false ? 'Active' : 'Inactive'}
-                  </span>
-                  {viewingRow.isActive === false && viewingRow.deactivationReason && (
-                    <span className="admin-maps__view-reason"> ({viewingRow.deactivationReason.replace(/_/g, ' ')})</span>
+              <section className="admin-maps__view-section">
+                <h3 className="admin-maps__view-section-title">Hours & status</h3>
+                <dl className="admin-maps__view-grid">
+                  <dt>Hours of operation</dt>
+                  <dd className={`admin-maps__view-hours ${!viewingRow.hoursOfOperation ? 'admin-maps__view-empty' : ''}`}>{viewingRow.hoursOfOperation || '—'}</dd>
+                  <dt>Status</dt>
+                  <dd>
+                    <span className={`maps-pill maps-pill--${viewingRow.isActive !== false ? 'success' : 'error'}`}>
+                      {viewingRow.isActive !== false ? 'Active' : 'Inactive'}
+                    </span>
+                    {viewingRow.isActive === false && viewingRow.deactivationReason && (
+                      <span className="admin-maps__view-reason"> ({viewingRow.deactivationReason.replace(/_/g, ' ')})</span>
+                    )}
+                  </dd>
+                  {viewingRow.notes && (
+                    <>
+                      <dt>Notes</dt>
+                      <dd>{viewingRow.notes}</dd>
+                    </>
                   )}
-                </dd>
+                </dl>
+              </section>
 
-                {viewingRow.notes && (
-                  <>
-                    <dt>Notes</dt>
-                    <dd>{viewingRow.notes}</dd>
-                  </>
-                )}
-
-                <dt>Coordinates</dt>
-                <dd>
-                  {viewingRow.latitude != null && viewingRow.longitude != null
-                    ? `${Number(viewingRow.latitude).toFixed(5)}, ${Number(viewingRow.longitude).toFixed(5)}`
-                    : '—'}
-                </dd>
-
-                {viewingRow.googlePlaceId && (
-                  <>
+              {(viewingRow.googlePlaceId) && (
+                <section className="admin-maps__view-section">
+                  <h3 className="admin-maps__view-section-title">Technical</h3>
+                  <dl className="admin-maps__view-grid">
                     <dt>Google Place ID</dt>
                     <dd className="admin-maps__view-place-id">{viewingRow.googlePlaceId}</dd>
-                  </>
-                )}
-              </dl>
+                  </dl>
+                </section>
+              )}
             </div>
             <div className="admin-maps__view-actions">
               <button type="button" className="maps-btn-secondary" onClick={() => setViewingRow(null)}>Close</button>

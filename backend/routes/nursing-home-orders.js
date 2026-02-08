@@ -14,7 +14,7 @@ const { body, query, validationResult } = require('express-validator');
 const { generateOrderNumber: generateBaseOrderNumber } = require('../services/orderService');
 const { NH_CONFIG, API_CONFIG, ORDER_CONFIG } = require('../config/constants');
 const logger = require('../utils/logger');
-const XLSX = require('xlsx');
+const ExcelJS = require('exceljs');
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? require('stripe')(process.env.STRIPE_SECRET_KEY)
@@ -773,24 +773,23 @@ router.get('/resident-orders/:id/export', requireNursingHomeUser, async (req, re
       }
     }
 
-    const workbook = XLSX.utils.book_new();
-    const worksheetData = [];
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Meal Order');
 
-    worksheetData.push(['Weekly Meal Order']);
-    worksheetData.push(['Resident:', order.residentName]);
-    worksheetData.push(['Room:', order.roomNumber || 'N/A']);
-    worksheetData.push(['Order Number:', order.orderNumber]);
-    worksheetData.push(['Week:', `${order.weekStartDate} to ${order.weekEndDate}`]);
-    worksheetData.push(['Total:', `$${order.total}`]);
-    worksheetData.push(['Payment Status:', order.paymentStatus]);
-    worksheetData.push([]);
-    worksheetData.push(['Day', 'Meal Type', 'Items', 'Bagel Type', 'Price']);
+    worksheet.addRow(['Weekly Meal Order']);
+    worksheet.addRow(['Resident:', order.residentName]);
+    worksheet.addRow(['Room:', order.roomNumber || 'N/A']);
+    worksheet.addRow(['Order Number:', order.orderNumber]);
+    worksheet.addRow(['Week:', `${order.weekStartDate} to ${order.weekEndDate}`]);
+    worksheet.addRow(['Total:', `$${order.total}`]);
+    worksheet.addRow(['Payment Status:', order.paymentStatus]);
+    worksheet.addRow([]);
+    worksheet.addRow(['Day', 'Meal Type', 'Items', 'Bagel Type', 'Price']);
 
     order.meals.forEach(meal => {
       const itemNames = meal.items.map(i => i.name).join(', ');
       const mealPrice = meal.items.reduce((sum, i) => sum + (parseFloat(i.price) || 0), 0);
-      
-      worksheetData.push([
+      worksheet.addRow([
         meal.day,
         meal.mealType,
         itemNames,
@@ -799,14 +798,11 @@ router.get('/resident-orders/:id/export', requireNursingHomeUser, async (req, re
       ]);
     });
 
-    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Meal Order');
-
-    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    const buffer = await workbook.xlsx.writeBuffer();
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="meal-order-${order.orderNumber}.xlsx"`);
-    res.send(buffer);
+    res.send(Buffer.from(buffer));
 
     logger.info('Resident order exported', {
       orderId: order.id,
@@ -1270,7 +1266,7 @@ router.get('/orders/:id/export', requireNursingHomeUser, async (req, res) => {
       mealsToExport = order.residentMeals.filter(rm => rm.residentId === residentId);
     }
 
-    const workbook = XLSX.utils.book_new();
+    const workbook = new ExcelJS.Workbook();
     const worksheetData = [];
 
     worksheetData.push(['Nursing Home Meal Order']);
@@ -1300,14 +1296,14 @@ router.get('/orders/:id/export', requireNursingHomeUser, async (req, res) => {
       });
     });
 
-    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Meal Orders');
+    const worksheet = workbook.addWorksheet('Meal Orders');
+    worksheetData.forEach(row => worksheet.addRow(row));
 
-    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    const buffer = await workbook.xlsx.writeBuffer();
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="nursing-home-order-${order.orderNumber}.xlsx"`);
-    res.send(buffer);
+    res.send(Buffer.from(buffer));
 
     logger.info('Nursing home order exported', {
       orderId: order.id,

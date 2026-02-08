@@ -1,0 +1,202 @@
+@use '../../styles/design-system' as *;
+
+.nursing-home-menu {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.nh-menu-loading,
+.nh-menu-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+  gap: 1rem;
+
+  p { margin: 0; color: $slate-600; }
+}
+
+.nh-menu-retry {
+  padding: 0.5rem 1rem;
+  background: $nh-primary;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+
+  &:hover {
+    background: $nh-primary-hover;
+  }
+}
+
+.nh-menu-instructions {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: $white;
+  border: 1px solid $slate-200;
+  border-radius: 12px;
+  border-left: 4px solid $slate-600;
+
+  h2 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: $slate-800;
+    margin: 0 0 1rem 0;
+  }
+
+  ul {
+    margin: 0 0 1rem 0;
+    padding-left: 1.5rem;
+    color: $slate-700;
+    font-size: 0.9375rem;
+    line-height: 1.7;
+
+    li { margin-bottom: 0.5rem; }
+  }
+
+  .nh-menu-edit-link {
+    margin: 1rem 0 0;
+    padding-top: 1rem;
+    border-top: 1px solid $slate-200;
+    font-size: 0.875rem;
+    color: $slate-600;
+
+    button {
+      background: none;
+      border: none;
+      color: $slate-600;
+      text-decoration: underline;
+      cursor: pointer;
+      font-weight: 600;
+
+      &:hover {
+        color: $slate-800;
+      }
+    }
+  }
+}
+
+.nh-menu-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.nh-menu-filter-btn {
+  padding: 0.5rem 1rem;
+  background: $white;
+  border: 1px solid $slate-300;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: $slate-700;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: $slate-50;
+    border-color: $slate-400;
+    color: $slate-800;
+  }
+
+  &.active {
+    background: $nh-primary;
+    border-color: $nh-primary;
+    color: white;
+
+    &:hover {
+      background: $nh-primary-hover;
+      border-color: $nh-primary-hover;
+    }
+  }
+}
+
+.nh-menu-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.nh-menu-section {
+  background: $white;
+  border: 1px solid $slate-200;
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.nh-menu-section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: $slate-800;
+  margin: 0 0 1.25rem 0;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid $slate-200;
+}
+
+.nh-menu-category {
+  margin-bottom: 1.25rem;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  h4 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: $slate-600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 0 0 0.5rem 0;
+  }
+
+  ul {
+    margin: 0;
+    padding-left: 1.25rem;
+    list-style: disc;
+  }
+
+  li {
+    margin-bottom: 0.35rem;
+    font-size: 0.9375rem;
+    color: $slate-800;
+    line-height: 1.5;
+  }
+}
+
+.nh-menu-item-name {
+  font-weight: 500;
+}
+
+.nh-menu-item-desc {
+  color: $slate-600;
+  font-size: 0.875rem;
+}
+
+.nh-menu-item-price {
+  font-weight: 600;
+  color: $slate-700;
+  margin-left: 0.5rem;
+}
+
+.nh-menu-item-tag {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.15rem 0.5rem;
+  background: $slate-100;
+  color: $slate-600;
+  font-size: 0.75rem;
+  border-radius: 6px;
+}
+
+.nh-menu-empty {
+  text-align: center;
+  padding: 3rem 2rem;
+  background: $slate-50;
+  border: 1px dashed $slate-300;
+  border-radius: 12px;
+  color: $slate-600;
+}

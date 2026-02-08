@@ -4,8 +4,8 @@
   "description": "MyKosherDelivery - Kosher Food Delivery Platform",
   "type": "module",
   "engines": {
-    "node": "18.x",
-    "npm": "9.x"
+    "node": ">=18",
+    "npm": ">=9"
   },
   "scripts": {
     "dev": "vite",
@@ -28,8 +28,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.5.0",
-    "recharts": "^3.6.0",
-    "xlsx": "^0.18.5"
+    "recharts": "^3.6.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",

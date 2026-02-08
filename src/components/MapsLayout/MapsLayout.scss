@@ -1,9 +1,10 @@
 @use './MapsThemeVars.scss' as *;
 
 .maps-layout {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   background: var(--maps-bg);
 
   &__header {
@@ -94,5 +95,6 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
+    overflow: hidden;
   }
 }

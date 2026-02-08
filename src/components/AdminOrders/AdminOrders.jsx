@@ -2,10 +2,10 @@ import './AdminOrders.scss';
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchAllOrders, updateOrderStatus, fetchAllRestaurants, deleteOrder } from '../../services/adminServices';
+import apiClient from '../../lib/api';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import NotificationToast from '../NotificationToast/NotificationToast';
 import { useNotification } from '../../hooks/useNotification';
-import * as XLSX from 'xlsx';
 
 const getOrderDateValue = (order) => {
   const v = order.createdAt || order.created_at || order.created_at_utc || order.created || order.updatedAt || order.updated_at;
@@ -252,128 +252,42 @@ const AdminOrders = () => {
     return 'Unknown Restaurant';
   };
 
-  const exportIndividualOrders = () => {
-    const weekOrders = getWeekOrders();
-    
-    const exportData = [];
-    
-    weekOrders.forEach(order => {
-      const lastName = order.user?.lastName || order.guestInfo?.lastName || 'Unknown';
-      
-      let allItems = [];
-      
-      if (order.restaurantGroups) {
-        Object.entries(order.restaurantGroups).forEach(([, group]) => {
-          const groupItems = Array.isArray(group.items) ? group.items : Object.values(group.items || {});
-          groupItems.forEach(item => {
-            const restaurantName = getRestaurantNameForItem(order, item);
-            allItems.push({
-              ...item,
-              restaurantName
-            });
-          });
-        });
-      } else if (Array.isArray(order.items)) {
-        order.items.forEach(item => {
-          const restaurantName = getRestaurantNameForItem(order, item);
-          allItems.push({
-            ...item,
-            restaurantName
-          });
-        });
-      }
-      
-      const formattedAddress = formatAddress(order.deliveryAddress || order.delivery_address);
-      allItems.forEach((item, index) => {
-        const itemDetails = formatItemDetails(item);
-        exportData.push({
-          'Last Name': index === 0 ? lastName : '',
-          'Qty/Item': `${item.quantity}x ${itemDetails} (${item.restaurantName})`,
-          'Address': index === 0 ? formattedAddress : ''
-        });
-      });
-    });
-    
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Orders');
-    
+  const exportIndividualOrders = async () => {
     const { start, end } = getMKDWeekWindow(filters.timeMode === 'week' ? filters.weekOffset : 0);
     const filename = `orders_individual_${start.toISOString().split('T')[0]}_to_${end.toISOString().split('T')[0]}.xlsx`;
-    
-    XLSX.writeFile(wb, filename);
+    try {
+      const blob = await apiClient.getBlob('/admin/orders/export/individual', {
+        startDate: start.toISOString(),
+        endDate: end.toISOString()
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      showNotification(err.message || 'Export failed', 'error');
+    }
   };
 
-  const exportTotalledItems = () => {
-    const weekOrders = getWeekOrders();
-    
-    const restaurantTotals = {};
-    
-    weekOrders.forEach(order => {
-      let allItems = [];
-      
-      if (order.restaurantGroups) {
-        Object.entries(order.restaurantGroups).forEach(([, group]) => {
-          const groupItems = Array.isArray(group.items) ? group.items : Object.values(group.items || {});
-          groupItems.forEach(item => {
-            const restaurantName = getRestaurantNameForItem(order, item);
-            allItems.push({
-              ...item,
-              restaurantName
-            });
-          });
-        });
-      } else if (Array.isArray(order.items)) {
-        order.items.forEach(item => {
-          const restaurantName = getRestaurantNameForItem(order, item);
-          allItems.push({
-            ...item,
-            restaurantName
-          });
-        });
-      }
-      
-      allItems.forEach(item => {
-        const restaurantName = item.restaurantName || 'Unknown Restaurant';
-        const itemDetails = formatItemDetails(item);
-        const itemKey = `${restaurantName}|||${itemDetails}`;
-        
-        if (!restaurantTotals[itemKey]) {
-          restaurantTotals[itemKey] = {
-            restaurant: restaurantName,
-            item: itemDetails,
-            quantity: 0
-          };
-        }
-        
-        restaurantTotals[itemKey].quantity += item.quantity || 1;
-      });
-    });
-    
-    const restaurantGroups = {};
-    Object.values(restaurantTotals).forEach(entry => {
-      if (!restaurantGroups[entry.restaurant]) {
-        restaurantGroups[entry.restaurant] = [];
-      }
-      restaurantGroups[entry.restaurant].push(`${entry.quantity}x ${entry.item}`);
-    });
-    
-    const exportData = [];
-    Object.entries(restaurantGroups).forEach(([restaurant, items]) => {
-      exportData.push({
-        'Restaurant': restaurant,
-        'Items': items.join('\n')
-      });
-    });
-    
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Totals');
-    
+  const exportTotalledItems = async () => {
     const { start, end } = getMKDWeekWindow(filters.timeMode === 'week' ? filters.weekOffset : 0);
     const filename = `orders_totalled_${start.toISOString().split('T')[0]}_to_${end.toISOString().split('T')[0]}.xlsx`;
-    
-    XLSX.writeFile(wb, filename);
+    try {
+      const blob = await apiClient.getBlob('/admin/orders/export/totalled', {
+        startDate: start.toISOString(),
+        endDate: end.toISOString()
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      showNotification(err.message || 'Export failed', 'error');
+    }
   };
 
   const applyFiltersAndPaginate = useCallback(() => {

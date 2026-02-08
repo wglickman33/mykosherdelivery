@@ -164,6 +164,11 @@ class ApiClient {
         throw new Error(errorMessage);
       }
 
+      // 204 No Content has no body — don't parse JSON
+      if (response.status === 204) {
+        return null;
+      }
+
       const data = await response.json();
       logger.debug(`API Success [${requestId}]`, {
         status: response.status,
@@ -198,6 +203,28 @@ class ApiClient {
     const queryString = new URLSearchParams(params).toString();
     const url = queryString ? `${endpoint}?${queryString}` : endpoint;
     return this.request(url, { method: "GET" });
+  }
+
+  /** GET request that returns a Blob (e.g. file download). Uses same auth as request(). */
+  async getBlob(endpoint, params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    const path = queryString ? `${endpoint}?${queryString}` : endpoint;
+    const url = `${this.baseURL}${path}`;
+    if (!this.validateConfig()) {
+      throw new Error("API client not properly configured. Please check environment variables.");
+    }
+    const token = this.getToken();
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || errorData.error || `HTTP ${response.status}`);
+    }
+    return response.blob();
   }
 
   async post(endpoint, data = {}) {
