@@ -5,6 +5,14 @@ const { v4: uuidv4 } = require('uuid');
 
 module.exports = {
   async up (queryInterface) {
+    let existingZips = new Set();
+    try {
+      const [rows] = await queryInterface.sequelize.query('SELECT zip_code FROM delivery_zones');
+      if (Array.isArray(rows)) existingZips = new Set(rows.map((r) => r.zip_code));
+    } catch (_) {
+      // table may not exist yet
+    }
+
     const deliveryZones = [];
     
     const westchesterZips = [
@@ -20,6 +28,7 @@ module.exports = {
     ];
     
     westchesterZips.forEach(zip => {
+      if (existingZips.has(zip)) return;
       deliveryZones.push({
         id: uuidv4(),
         zip_code: zip,
@@ -49,6 +58,7 @@ module.exports = {
     ];
     
     manhattanZips.forEach(zip => {
+      if (existingZips.has(zip)) return;
       deliveryZones.push({
         id: uuidv4(),
         zip_code: zip,
@@ -73,18 +83,21 @@ module.exports = {
     ];
     
     nassauZips.forEach(zip => {
+      if (existingZips.has(zip)) return;
       deliveryZones.push({
         id: uuidv4(),
         zip_code: zip,
         city: 'Nassau County',
-        state: 'NY', 
+        state: 'NY',
         delivery_fee: 0.00,
         available: true,
         created_at: new Date()
       });
     });
 
-    await queryInterface.bulkInsert('delivery_zones', deliveryZones, {});
+    if (deliveryZones.length > 0) {
+      await queryInterface.bulkInsert('delivery_zones', deliveryZones, {});
+    }
   },
 
   async down (queryInterface) {

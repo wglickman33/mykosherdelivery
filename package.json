@@ -12,7 +12,10 @@
     "build": "vite build",
     "preview": "vite preview",
     "start": "cd backend && npm start",
-    "heroku-postbuild": "cd backend && npm install"
+    "heroku-postbuild": "cd backend && npm install",
+    "migrate": "cd backend && npm run migrate",
+    "seed": "cd backend && npm run seed",
+    "seed:nh-menu": "cd backend && npm run seed:nh-menu"
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
