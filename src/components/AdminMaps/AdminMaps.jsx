@@ -82,6 +82,7 @@ const AdminMaps = () => {
     website: '',
     kosherCertification: '',
     googleRating: '',
+    googlePlaceId: '',
     dietTags: [],
     isActive: true,
     deactivationReason: '',
@@ -132,6 +133,7 @@ const AdminMaps = () => {
       website: '',
       kosherCertification: '',
       googleRating: '',
+      googlePlaceId: '',
       dietTags: [],
       isActive: true,
       deactivationReason: '',
@@ -157,6 +159,7 @@ const AdminMaps = () => {
       website: row.website || '',
       kosherCertification: row.kosherCertification || '',
       googleRating: row.googleRating != null ? String(row.googleRating) : '',
+      googlePlaceId: row.googlePlaceId || '',
       dietTags: Array.isArray(row.dietTags) ? [...row.dietTags] : [],
       isActive: row.isActive !== false,
       deactivationReason: row.deactivationReason || '',
@@ -191,6 +194,7 @@ const AdminMaps = () => {
         website: str(form.website),
         kosherCertification: str(form.kosherCertification),
         googleRating: form.googleRating ? parseFloat(form.googleRating) : null,
+        googlePlaceId: str(form.googlePlaceId) || null,
         dietTags: Array.isArray(form.dietTags) ? form.dietTags : [],
         isActive: form.isActive,
         deactivationReason: form.deactivationReason || null,
@@ -477,14 +481,18 @@ const AdminMaps = () => {
                     <th>Name</th>
                     <th>Open</th>
                     <th>Address</th>
+                    <th>Lat</th>
+                    <th>Lng</th>
                     <th>Diet</th>
                     <th>Certification</th>
                     <th>Phone</th>
+                    <th>Website</th>
                     <th>Rating</th>
                     <th>Hours</th>
                     <th>Timezone</th>
                     <th>Active</th>
                     <th>Reason</th>
+                    <th>Notes</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -506,9 +514,18 @@ const AdminMaps = () => {
                         ) : '—'}
                       </td>
                       <td className="maps-address">{[row.address, row.city, row.state, row.zip].filter(Boolean).join(', ') || '—'}</td>
+                      <td className="maps-lat">{row.latitude != null ? Number(row.latitude).toFixed(5) : '—'}</td>
+                      <td className="maps-lng">{row.longitude != null ? Number(row.longitude).toFixed(5) : '—'}</td>
                       <td className="maps-diet">{(row.dietTags || []).join(', ') || '—'}</td>
                       <td className="maps-cert">{row.kosherCertification || '—'}</td>
                       <td className="maps-phone">{row.phone || '—'}</td>
+                      <td className="maps-website" title={row.website || ''}>
+                        {row.website ? (
+                          <a href={row.website.startsWith('http') ? row.website : `https://${row.website}`} target="_blank" rel="noopener noreferrer">
+                            {row.website.length > 35 ? `${row.website.slice(0, 35)}…` : row.website}
+                          </a>
+                        ) : '—'}
+                      </td>
                       <td className="maps-rating">{row.googleRating != null ? Number(row.googleRating).toFixed(1) : '—'}</td>
                       <td className="maps-hours">
                         {(row.hoursOfOperation || row.hours_of_operation) ? (
@@ -566,6 +583,9 @@ const AdminMaps = () => {
                         </span>
                       </td>
                       <td className="maps-reason">{row.deactivationReason ? row.deactivationReason.replace(/_/g, ' ') : '—'}</td>
+                      <td className="maps-notes" title={row.notes || ''}>
+                        {row.notes ? `${String(row.notes).slice(0, 20)}${row.notes.length > 20 ? '…' : ''}` : '—'}
+                      </td>
                       <td className="maps-actions">
                         <button type="button" className="maps-action maps-action--view" onClick={() => handleView(row)}>View</button>
                         <button type="button" className="maps-action maps-action--edit" onClick={() => handleOpenEdit(row)}>Edit</button>
@@ -840,10 +860,10 @@ const AdminMaps = () => {
                   <div className="admin-maps__form-group admin-maps__form-group--full">
                     <label>Website</label>
                     <input
-                      type="url"
+                      type="text"
                       value={form.website}
                       onChange={(e) => setForm((p) => ({ ...p, website: e.target.value }))}
-                      placeholder="https://"
+                      placeholder="https:// (optional)"
                     />
                   </div>
                   <div className="admin-maps__form-group">
@@ -862,6 +882,16 @@ const AdminMaps = () => {
                       onChange={(e) => setForm((p) => ({ ...p, googleRating: e.target.value }))}
                       placeholder="e.g. 4.5"
                     />
+                  </div>
+                  <div className="admin-maps__form-group admin-maps__form-group--full">
+                    <label>Google Place ID</label>
+                    <input
+                      type="text"
+                      value={form.googlePlaceId}
+                      onChange={(e) => setForm((p) => ({ ...p, googlePlaceId: e.target.value }))}
+                      placeholder="e.g. ChIJN1t_tDeuEmsRUsoyG83frY4"
+                    />
+                    <span className="admin-maps__form-hint">Optional. From Google Maps / Places API.</span>
                   </div>
                   <div className="admin-maps__form-group admin-maps__form-group--full">
                     <label>Diet tags</label>

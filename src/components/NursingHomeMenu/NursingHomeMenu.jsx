@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { fetchNursingHomeMenu } from '../../services/nursingHomeMenuService';
@@ -187,6 +188,11 @@ const NursingHomeMenu = ({ showInstructions = true, showEditLink = false }) => {
       )}
     </div>
   );
+};
+
+NursingHomeMenu.propTypes = {
+  showInstructions: PropTypes.bool,
+  showEditLink: PropTypes.bool
 };
 
 export default NursingHomeMenu;

@@ -77,6 +77,11 @@
       outline: 2px solid var(--maps-accent);
       outline-offset: 2px;
     }
+
+    &:disabled {
+      opacity: 0.85;
+      cursor: wait;
+    }
   }
 
   &__location-icon {
@@ -192,10 +197,19 @@
     color: var(--maps-text-muted);
   }
 
+  &__no-coords-hint {
+    padding: 8px 14px;
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+    color: var(--maps-text-muted);
+    background: var(--maps-bg-subtle, #f5f5f5);
+    border-radius: 6px;
+  }
+
   &__list {
     list-style: none;
     margin: 0;
-    padding: 0;
+    padding: 6px 0;
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
@@ -207,6 +221,8 @@
     border-radius: 14px;
     cursor: pointer;
     transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+    position: relative;
+    z-index: 0;
 
     &:hover {
       border-color: var(--maps-accent);
@@ -218,6 +234,7 @@
       border-color: var(--maps-accent);
       background: var(--maps-accent-soft);
       box-shadow: 0 0 0 3px var(--maps-input-focus-ring);
+      z-index: 1;
     }
 
     &--open {

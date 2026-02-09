@@ -284,7 +284,7 @@ $maps-error: #dc2626;
 .maps-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 1100px;
+  min-width: 1400px;
 
   thead {
     position: sticky;
@@ -397,6 +397,29 @@ $maps-error: #dc2626;
 
   .maps-address {
     min-width: 280px;
+  }
+
+  .maps-lat,
+  .maps-lng {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    min-width: 72px;
+  }
+
+  .maps-website {
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    a { display: block; overflow: hidden; text-overflow: ellipsis; }
+  }
+
+  .maps-notes {
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.8125rem;
+    color: #64748b;
   }
 
   .maps-phone {

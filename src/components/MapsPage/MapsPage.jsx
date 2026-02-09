@@ -10,9 +10,21 @@ import './MapsPage.scss';
 const DEFAULT_CENTER = { lat: 40.7128, lng: -74.006 };
 const DIET_OPTIONS = ['meat', 'dairy', 'parve', 'sushi', 'fish', 'vegan', 'vegetarian', 'bakery', 'pizza', 'deli'];
 
+/** Returns { lat, lng } from place (accepts latitude/longitude or lat/lng), or null if missing/invalid. */
+function getPlaceCoords(place) {
+  if (!place) return null;
+  const lat = place.latitude ?? place.lat;
+  const lng = place.longitude ?? place.lng;
+  if (lat != null && lng != null && Number.isFinite(Number(lat)) && Number.isFinite(Number(lng))) {
+    return { lat: Number(lat), lng: Number(lng) };
+  }
+  return null;
+}
+
 function getDirectionsUrl(place) {
-  if (place.latitude != null && place.longitude != null) {
-    return `https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}`;
+  const coords = getPlaceCoords(place);
+  if (coords) {
+    return `https://www.google.com/maps/dir/?api=1&destination=${coords.lat},${coords.lng}`;
   }
   const addr = [place.address, place.city, place.state, place.zip].filter(Boolean).join(', ');
   if (addr) return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr)}`;
@@ -38,6 +50,7 @@ const MapsPage = () => {
   const [dietFilter, setDietFilter] = useState('');
   const [sortBy, setSortBy] = useState('name');
   const [userLocation, setUserLocation] = useState(null);
+  const [locating, setLocating] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [mapReady, setMapReady] = useState(false);
   const [mapInstanceReady, setMapInstanceReady] = useState(false);
@@ -46,6 +59,21 @@ const MapsPage = () => {
   const mapInstanceRef = useRef(null);
   const userMarkerRef = useRef(null);
   const selectedCardRef = useRef(null);
+  const pendingPanRef = useRef(null);
+  const useAdvancedMarkersRef = useRef(true);
+
+  const panMapToPlace = useCallback((place) => {
+    const coords = getPlaceCoords(place);
+    if (!coords) return;
+    const { lat, lng } = coords;
+    pendingPanRef.current = { lat, lng };
+    const map = mapInstanceRef.current;
+    if (map && typeof map.panTo === 'function') {
+      map.panTo({ lat, lng });
+      map.setZoom(15);
+      pendingPanRef.current = null;
+    }
+  }, []);
 
   const loadRestaurants = useCallback(async () => {
     setLoading(true);
@@ -99,12 +127,25 @@ const MapsPage = () => {
       setError('Geolocation is not supported by your browser.');
       return;
     }
+    setError(null);
+    setLocating(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setUserLocation(loc);
         setSortBy('distance');
+        setLocating(false);
+        const map = mapInstanceRef.current;
+        if (map && typeof map.setCenter === 'function') {
+          map.setCenter(loc);
+          map.setZoom(14);
+        }
       },
-      () => setError('Could not get your location.')
+      () => {
+        setLocating(false);
+        setError('Could not get your location. Check browser permissions or try again.');
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   };
 
@@ -169,76 +210,195 @@ const MapsPage = () => {
     };
 
     (async () => {
-      try {
-        const { AdvancedMarkerElement } = await window.google.maps.importLibrary('marker');
-        if (cancelled) return;
+      const runPendingPan = () => {
+        const pending = pendingPanRef.current;
+        const map = mapInstanceRef.current;
+        if (pending && map && typeof map.panTo === 'function') {
+          map.panTo({ lat: pending.lat, lng: pending.lng });
+          map.setZoom(15);
+          pendingPanRef.current = null;
+        }
+      };
 
+      try {
         let map = mapInstanceRef.current;
         if (!map) {
-          map = new window.google.maps.Map(mapRef.current, {
-            mapId: 'DEMO_MAP_ID',
-            center: { lat: center.lat, lng: center.lng },
-            zoom: 12,
-            mapTypeControl: true,
-            fullscreenControl: true,
-            zoomControl: true
-          });
-          mapInstanceRef.current = map;
-          logger.debug('MapsPage: using AdvancedMarkerElement', null);
+          try {
+            const { AdvancedMarkerElement } = await window.google.maps.importLibrary('marker');
+            if (cancelled) return;
+            map = new window.google.maps.Map(mapRef.current, {
+              mapId: 'DEMO_MAP_ID',
+              center: { lat: center.lat, lng: center.lng },
+              zoom: 12,
+              mapTypeControl: true,
+              fullscreenControl: true,
+              zoomControl: true
+            });
+            mapInstanceRef.current = map;
+            useAdvancedMarkersRef.current = true;
+
+            if (cancelled) return;
+            clearMarkers();
+            if (userLocation) {
+              const userPin = document.createElement('div');
+              userPin.className = 'maps-page__user-pin';
+              userPin.title = 'Your location';
+              userPin.setAttribute('aria-label', 'Your location');
+              userMarkerRef.current = new AdvancedMarkerElement({
+                position: { lat: userLocation.lat, lng: userLocation.lng },
+                map,
+                title: 'Your location',
+                content: userPin
+              });
+            }
+            const bounds = new window.google.maps.LatLngBounds();
+            if (userLocation) bounds.extend({ lat: userLocation.lat, lng: userLocation.lng });
+            list.forEach((place) => {
+              if (place.latitude == null || place.longitude == null) return;
+              const pos = { lat: Number(place.latitude), lng: Number(place.longitude) };
+              bounds.extend(pos);
+              const isOpen = isOpenNow(
+                place.hoursOfOperation ?? place.hours_of_operation ?? '',
+                place.latitude,
+                place.longitude,
+                place.timezone ?? null
+              );
+              const pinEl = document.createElement('div');
+              pinEl.className = 'maps-page__marker-pin'
+                + (isOpen === true ? ' maps-page__marker-pin--open' : isOpen === false ? ' maps-page__marker-pin--closed' : '');
+              pinEl.title = place.name;
+              pinEl.setAttribute('aria-label', place.name);
+              const marker = new AdvancedMarkerElement({
+                position: pos,
+                map,
+                title: place.name,
+                gmpClickable: true,
+                content: pinEl
+              });
+              marker.addListener('click', () => setSelectedId(place.id));
+              markersRef.current.push(marker);
+            });
+          } catch (advErr) {
+            if (cancelled) return;
+            logger.debug('MapsPage: Advanced Map failed, using legacy map', { err: advErr?.message });
+            map = new window.google.maps.Map(mapRef.current, {
+              center: { lat: center.lat, lng: center.lng },
+              zoom: 12,
+              mapTypeControl: true,
+              fullscreenControl: true,
+              zoomControl: true
+            });
+            mapInstanceRef.current = map;
+            useAdvancedMarkersRef.current = false;
+            if (cancelled) return;
+            clearMarkers();
+            const { Marker } = await window.google.maps.importLibrary('marker');
+            if (userLocation) {
+              userMarkerRef.current = new Marker({
+                position: { lat: userLocation.lat, lng: userLocation.lng },
+                map,
+                title: 'Your location'
+              });
+            }
+            const bounds = new window.google.maps.LatLngBounds();
+            if (userLocation) bounds.extend({ lat: userLocation.lat, lng: userLocation.lng });
+            list.forEach((place) => {
+              if (place.latitude == null || place.longitude == null) return;
+              const pos = { lat: Number(place.latitude), lng: Number(place.longitude) };
+              bounds.extend(pos);
+              const marker = new Marker({
+                position: pos,
+                map,
+                title: place.name
+              });
+              marker.addListener('click', () => setSelectedId(place.id));
+              markersRef.current.push(marker);
+            });
+          }
+        } else {
+          if (cancelled) return;
+          clearMarkers();
+          map = mapInstanceRef.current;
+          if (map) {
+            if (useAdvancedMarkersRef.current) {
+              try {
+                const { AdvancedMarkerElement } = await window.google.maps.importLibrary('marker');
+                if (userLocation) {
+                  const userPin = document.createElement('div');
+                  userPin.className = 'maps-page__user-pin';
+                  userPin.title = 'Your location';
+                  userPin.setAttribute('aria-label', 'Your location');
+                  userMarkerRef.current = new AdvancedMarkerElement({
+                    position: { lat: userLocation.lat, lng: userLocation.lng },
+                    map,
+                    title: 'Your location',
+                    content: userPin
+                  });
+                }
+                list.forEach((place) => {
+                  if (place.latitude == null || place.longitude == null) return;
+                  const pos = { lat: Number(place.latitude), lng: Number(place.longitude) };
+                  const isOpen = isOpenNow(
+                    place.hoursOfOperation ?? place.hours_of_operation ?? '',
+                    place.latitude,
+                    place.longitude,
+                    place.timezone ?? null
+                  );
+                  const pinEl = document.createElement('div');
+                  pinEl.className = 'maps-page__marker-pin'
+                    + (isOpen === true ? ' maps-page__marker-pin--open' : isOpen === false ? ' maps-page__marker-pin--closed' : '');
+                  pinEl.title = place.name;
+                  pinEl.setAttribute('aria-label', place.name);
+                  const marker = new AdvancedMarkerElement({
+                    position: pos,
+                    map,
+                    title: place.name,
+                    gmpClickable: true,
+                    content: pinEl
+                  });
+                  marker.addListener('click', () => setSelectedId(place.id));
+                  markersRef.current.push(marker);
+                });
+              } catch {
+                useAdvancedMarkersRef.current = false;
+              }
+            }
+            if (!useAdvancedMarkersRef.current) {
+              const { Marker } = await window.google.maps.importLibrary('marker');
+              if (userLocation) {
+                userMarkerRef.current = new Marker({
+                  position: { lat: userLocation.lat, lng: userLocation.lng },
+                  map,
+                  title: 'Your location'
+                });
+              }
+              list.forEach((place) => {
+                if (place.latitude == null || place.longitude == null) return;
+                const pos = { lat: Number(place.latitude), lng: Number(place.longitude) };
+                const marker = new Marker({ position: pos, map, title: place.name });
+                marker.addListener('click', () => setSelectedId(place.id));
+                markersRef.current.push(marker);
+              });
+            }
+          }
         }
 
         if (cancelled) return;
-        clearMarkers();
-
-        if (userLocation) {
-          const userPin = document.createElement('div');
-          userPin.className = 'maps-page__user-pin';
-          userPin.title = 'Your location';
-          userPin.setAttribute('aria-label', 'Your location');
-          userMarkerRef.current = new AdvancedMarkerElement({
-            position: { lat: userLocation.lat, lng: userLocation.lng },
-            map,
-            title: 'Your location',
-            content: userPin
-          });
-        }
-
-        const bounds = new window.google.maps.LatLngBounds();
-        if (userLocation) bounds.extend({ lat: userLocation.lat, lng: userLocation.lng });
-
-        list.forEach((place) => {
-          if (place.latitude == null || place.longitude == null) return;
-          const pos = { lat: Number(place.latitude), lng: Number(place.longitude) };
-          bounds.extend(pos);
-          const isOpen = isOpenNow(
-            place.hoursOfOperation ?? place.hours_of_operation ?? '',
-            place.latitude,
-            place.longitude,
-            place.timezone ?? null
-          );
-          const pinEl = document.createElement('div');
-          pinEl.className = 'maps-page__marker-pin'
-            + (isOpen === true ? ' maps-page__marker-pin--open' : isOpen === false ? ' maps-page__marker-pin--closed' : '');
-          pinEl.title = place.name;
-          pinEl.setAttribute('aria-label', place.name);
-          const marker = new AdvancedMarkerElement({
-            position: pos,
-            map,
-            title: place.name,
-            gmpClickable: true,
-            content: pinEl
-          });
-          marker.addListener('click', () => setSelectedId(place.id));
-          markersRef.current.push(marker);
-        });
-
-        if (cancelled) return;
-        if (list.length > 0 && list.some((p) => p.latitude != null)) {
-          if (list.length === 1 && !userLocation) map.setZoom(14);
-          else map.fitBounds(bounds, 40);
-        }
-        if (userLocation && list.length === 0) {
-          map.setCenter({ lat: userLocation.lat, lng: userLocation.lng });
+        map = mapInstanceRef.current;
+        if (map) {
+          if (list.length > 0 && list.some((p) => p.latitude != null)) {
+            const bounds = new window.google.maps.LatLngBounds();
+            if (userLocation) bounds.extend({ lat: userLocation.lat, lng: userLocation.lng });
+            list.forEach((p) => {
+              if (p.latitude != null && p.longitude != null) bounds.extend({ lat: Number(p.latitude), lng: Number(p.longitude) });
+            });
+            if (list.length === 1 && !userLocation) map.setZoom(14);
+            else map.fitBounds(bounds, 40);
+          }
+          if (userLocation && list.length === 0) {
+            map.setCenter({ lat: userLocation.lat, lng: userLocation.lng });
+          }
+          runPendingPan();
         }
         if (!cancelled) setMapInstanceReady(true);
       } catch (err) {
@@ -273,9 +433,9 @@ const MapsPage = () => {
   useEffect(() => {
     if (!selectedId) return;
     const place = list.find((p) => p.id == selectedId);
-    if (!place || place.latitude == null || place.longitude == null) return;
-    const lat = Number(place.latitude);
-    const lng = Number(place.longitude);
+    const coords = getPlaceCoords(place);
+    if (!place || !coords) return;
+    const { lat, lng } = coords;
 
     const panToPlace = (map) => {
       if (map && typeof map.panTo === 'function') {
@@ -300,6 +460,9 @@ const MapsPage = () => {
       clearTimeout(t3);
     };
   }, [selectedId, list, mapInstanceReady]);
+
+  const selectedPlace = selectedId ? list.find((p) => p.id == selectedId) : null;
+  const selectedPlaceNoCoords = selectedPlace && !getPlaceCoords(selectedPlace);
 
   return (
     <div className="maps-page">
@@ -330,9 +493,15 @@ const MapsPage = () => {
           <option value="distance">Sort by distance</option>
           <option value="rating">Sort by rating</option>
         </select>
-        <button type="button" className="maps-page__location-btn" onClick={requestLocation} title="Center map on your location and sort by distance">
+        <button
+          type="button"
+          className="maps-page__location-btn"
+          onClick={requestLocation}
+          disabled={locating}
+          title="Center map on your location and sort by distance"
+        >
           <MapPin size={18} className="maps-page__location-icon" aria-hidden />
-          Use my location
+          {locating ? 'Locating…' : 'Use my location'}
         </button>
       </div>
 
@@ -354,6 +523,11 @@ const MapsPage = () => {
             <strong>AS = After Shabbat</strong>
             <span> (~1 hour after sunset at the restaurant’s location)</span>
           </div>
+          {selectedPlaceNoCoords && (
+            <p className="maps-page__no-coords-hint" role="status">
+              This place has no map coordinates yet. Add latitude/longitude in Admin → Maps so &quot;Locate on map&quot; works.
+            </p>
+          )}
           {loading ? (
             <LoadingSpinner size="large" />
           ) : list.length === 0 ? (
@@ -370,7 +544,19 @@ const MapsPage = () => {
                   ref={selectedId === place.id ? selectedCardRef : null}
                   key={place.id}
                   className={`maps-page__card ${selectedId === place.id ? 'maps-page__card--selected' : ''} ${openClass}`}
-                  onClick={() => setSelectedId(place.id)}
+                  onClick={() => {
+                    setSelectedId(place.id);
+                    panMapToPlace(place);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSelectedId(place.id);
+                      panMapToPlace(place);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
                 >
                   <div className="maps-page__card-header">
                     <h3 className="maps-page__card-name">{place.name}</h3>
