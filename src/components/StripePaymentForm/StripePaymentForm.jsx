@@ -52,6 +52,14 @@ const StripePaymentForm = ({
         activeMeta = paymentIntentData;
         setClientSecret(paymentIntentData.clientSecret);
         setPaymentMeta(paymentIntentData);
+        // Server may have already confirmed (e.g. saved payment method) — do not confirm again
+        if (paymentIntentData.status === 'succeeded') {
+          onSuccess(
+            { id: paymentIntentData.paymentIntentId, status: 'succeeded' },
+            paymentIntentData
+          );
+          return;
+        }
       }
 
       const cardElement = elements.getElement(CardElement);
@@ -62,6 +70,14 @@ const StripePaymentForm = ({
       });
 
       if (error) {
+        // PaymentIntent already succeeded (e.g. double submit or race) — treat as success
+        if (
+          error.code === 'payment_intent_unexpected_state' &&
+          error.payment_intent?.status === 'succeeded'
+        ) {
+          onSuccess(error.payment_intent, activeMeta || {});
+          return;
+        }
         setError(error.message);
         onError(error.message);
       } else if (paymentIntent.status === 'succeeded') {

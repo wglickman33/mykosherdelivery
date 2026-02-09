@@ -348,6 +348,200 @@
       color: var(--color-text-secondary, #666);
     }
 
+    .link-btn {
+      background: none;
+      border: none;
+      color: #475569;
+      text-decoration: underline;
+      cursor: pointer;
+      font-size: inherit;
+      padding: 0;
+
+      &:hover {
+        color: #0f172a;
+      }
+    }
+
+    .orders-tab__modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 1rem;
+    }
+
+    .orders-tab__modal {
+      background: white;
+      border-radius: 12px;
+      max-width: 520px;
+      width: 100%;
+      max-height: 90vh;
+      overflow: auto;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    }
+
+    .orders-tab__modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid #e2e8f0;
+
+      h2 {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+      }
+    }
+
+    .orders-tab__modal-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      line-height: 1;
+      cursor: pointer;
+      color: #64748b;
+      padding: 0.25rem;
+
+      &:hover {
+        color: #1e293b;
+      }
+    }
+
+    .orders-tab__modal-body {
+      padding: 1.25rem;
+    }
+
+    .orders-tab__detail-section,
+    .orders-tab__refunds-section {
+      margin-bottom: 1.5rem;
+
+      h3 {
+        margin: 0 0 0.75rem 0;
+        font-size: 1rem;
+        font-weight: 600;
+      }
+    }
+
+    .orders-tab__detail-list {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0.25rem 1rem;
+      margin: 0;
+
+      dt {
+        color: #64748b;
+        font-weight: 500;
+      }
+      dd {
+        margin: 0;
+      }
+    }
+
+    .orders-tab__refund-summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 0.75rem;
+      font-size: 0.875rem;
+      color: #475569;
+    }
+
+    .orders-tab__refunds-list {
+      list-style: none;
+      margin: 0 0 1rem 0;
+      padding: 0;
+    }
+
+    .orders-tab__refund-item {
+      padding: 0.5rem 0;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 0.875rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1rem;
+      align-items: baseline;
+    }
+
+    .orders-tab__refund-amount {
+      font-weight: 600;
+    }
+
+    .orders-tab__refund-status--processed {
+      color: #059669;
+    }
+    .orders-tab__refund-status--pending {
+      color: #d97706;
+    }
+    .orders-tab__refund-status--failed {
+      color: #dc2626;
+    }
+
+    .orders-tab__refund-reason {
+      flex: 1 1 100%;
+      color: #64748b;
+    }
+
+    .orders-tab__refund-date {
+      font-size: 0.8125rem;
+      color: #94a3b8;
+    }
+
+    .orders-tab__refund-actions {
+      margin-top: 0.5rem;
+    }
+
+    .orders-tab__refund-note {
+      margin: 0.5rem 0 0;
+      font-size: 0.875rem;
+      color: #64748b;
+    }
+
+    .orders-tab__refund-form-row {
+      margin-bottom: 1rem;
+
+      label {
+        display: block;
+        margin-bottom: 0.25rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+      }
+      input[type="number"],
+      textarea {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 1rem;
+      }
+      textarea {
+        resize: vertical;
+        min-height: 80px;
+      }
+    }
+
+    .orders-tab__refund-form-hint {
+      font-size: 0.8125rem;
+      color: #64748b;
+      margin-left: 0.5rem;
+    }
+
+    .orders-tab__refund-form-actions {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: flex-end;
+      margin-top: 1.25rem;
+      padding-top: 1rem;
+      border-top: 1px solid #e2e8f0;
+    }
+
+    .orders-tab__refund-modal .orders-tab__modal-body {
+      padding: 1.25rem;
+    }
+
     textarea {
       width: 100%;
       padding: 8px 12px;

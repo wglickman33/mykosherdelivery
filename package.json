@@ -14,6 +14,7 @@
     "start": "cd backend && npm start",
     "heroku-postbuild": "cd backend && npm install",
     "migrate": "cd backend && npm run migrate",
+    "migrate:prod": "cd backend && NODE_ENV=production npm run migrate",
     "seed": "cd backend && npm run seed",
     "seed:nh-menu": "cd backend && npm run seed:nh-menu"
   },

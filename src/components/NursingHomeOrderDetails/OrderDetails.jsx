@@ -94,13 +94,22 @@ const OrderDetails = () => {
               {exporting ? 'Exporting…' : 'Export'}
             </button>
             {isDraft && (
-              <button
-                type="button"
-                className="btn-primary"
-                onClick={() => navigate(`/nursing-homes/order/${order.id}/payment`)}
-              >
-                Pay Now
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => navigate(`/nursing-homes/orders/${order.id}/edit`)}
+                >
+                  Edit Order
+                </button>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={() => navigate(`/nursing-homes/order/${order.id}/payment`)}
+                >
+                  Pay Now
+                </button>
+              </>
             )}
           </div>
         </div>

@@ -111,6 +111,26 @@ export const exportResidentOrder = async (id) => {
   }
 };
 
+export const fetchResidentOrderRefunds = async (residentOrderId) => {
+  try {
+    const response = await api.get(`/nursing-homes/resident-orders/${residentOrderId}/refunds`);
+    return response.data;
+  } catch (error) {
+    logger.error(`Error fetching refunds for resident order ${residentOrderId}:`, error);
+    throw error;
+  }
+};
+
+export const processResidentOrderRefund = async (residentOrderId, refundData) => {
+  try {
+    const response = await api.post(`/nursing-homes/resident-orders/${residentOrderId}/refund`, refundData);
+    return response.data;
+  } catch (error) {
+    logger.error(`Error processing refund for resident order ${residentOrderId}:`, error);
+    throw error;
+  }
+};
+
 export const fetchFacility = async (id) => {
   try {
     const response = await api.get(`/nursing-homes/facilities/${id}`);

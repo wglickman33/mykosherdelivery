@@ -3,6 +3,7 @@ const rateLimit = require('express-rate-limit');
 const { 
   NursingHomeOrder, 
   NursingHomeResidentOrder, 
+  NursingHomeRefund,
   NursingHomeResident, 
   NursingHomeFacility, 
   NursingHomeMenuItem,
@@ -811,6 +812,180 @@ router.get('/resident-orders/:id/export', requireNursingHomeUser, async (req, re
     res.status(500).json({
       success: false,
       error: 'Failed to export order',
+      message: error.message
+    });
+  }
+});
+
+router.get('/resident-orders/:id/refunds', requireNursingHomeAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const order = await NursingHomeResidentOrder.findByPk(id, {
+      include: [{ model: NursingHomeFacility, as: 'facility', attributes: ['id', 'name'] }]
+    });
+    if (!order) {
+      return res.status(404).json({ success: false, error: 'Order not found' });
+    }
+    if (req.user.role === 'nursing_home_admin' && order.facilityId !== req.user.nursingHomeFacilityId) {
+      return res.status(403).json({ success: false, error: 'Access denied' });
+    }
+
+    const refunds = await NursingHomeRefund.findAll({
+      where: { residentOrderId: id },
+      include: [
+        { model: Profile, as: 'processor', attributes: ['id', 'firstName', 'lastName', 'email'] }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+
+    res.json({ success: true, data: refunds });
+  } catch (error) {
+    logger.error('Error fetching resident order refunds:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch refunds',
+      message: error.message
+    });
+  }
+});
+
+router.post('/resident-orders/:id/refund', requireNursingHomeAdmin, [
+  body('amount').isFloat({ min: 0.01 }).withMessage('Refund amount must be greater than 0'),
+  body('reason').notEmpty().trim().withMessage('Refund reason is required'),
+  body('refundType').isIn(['full', 'partial']).withMessage('Refund type must be full or partial')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    const { id } = req.params;
+    const { amount, reason, refundType } = req.body;
+    const adminId = req.user.id;
+
+    const order = await NursingHomeResidentOrder.findByPk(id, {
+      include: [{ model: NursingHomeResident, as: 'resident' }]
+    });
+
+    if (!order) {
+      return res.status(404).json({ success: false, error: 'Order not found' });
+    }
+    if (req.user.role === 'nursing_home_admin' && order.facilityId !== req.user.nursingHomeFacilityId) {
+      return res.status(403).json({ success: false, error: 'Access denied' });
+    }
+
+    if (order.paymentStatus !== 'paid') {
+      return res.status(400).json({
+        success: false,
+        error: 'Order not paid',
+        message: 'Only paid orders can be refunded'
+      });
+    }
+
+    const orderTotal = parseFloat(order.total || 0);
+    const refundAmount = parseFloat(amount);
+
+    const existingRefunds = await NursingHomeRefund.findAll({
+      where: { residentOrderId: id, status: 'processed' }
+    });
+    const totalRefunded = existingRefunds.reduce((sum, r) => sum + parseFloat(r.amount), 0);
+    const remainingRefundable = orderTotal - totalRefunded;
+
+    if (refundType === 'full') {
+      if (Math.abs(refundAmount - remainingRefundable) > 0.01) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid refund amount',
+          message: `Full refund must match remaining refundable amount ($${remainingRefundable.toFixed(2)})`
+        });
+      }
+    }
+    if (refundAmount > remainingRefundable) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid refund amount',
+        message: `Refund cannot exceed remaining refundable amount ($${remainingRefundable.toFixed(2)})`
+      });
+    }
+
+    const paymentIntentId = order.paymentIntentId;
+    if (!paymentIntentId || !stripe) {
+      return res.status(400).json({
+        success: false,
+        error: 'Cannot refund',
+        message: paymentIntentId ? 'Stripe is not configured' : 'No Stripe payment found for this order'
+      });
+    }
+
+    const refundRecord = await NursingHomeRefund.create({
+      residentOrderId: id,
+      amount: refundAmount,
+      reason: reason.trim(),
+      processedBy: adminId,
+      status: 'pending'
+    });
+
+    try {
+      const stripeRefund = await stripe.refunds.create({
+        payment_intent: paymentIntentId,
+        amount: Math.round(refundAmount * 100),
+        reason: 'requested_by_customer',
+        metadata: {
+          residentOrderId: id,
+          orderNumber: order.orderNumber,
+          refundId: refundRecord.id
+        }
+      });
+
+      await refundRecord.update({
+        stripeRefundId: stripeRefund.id,
+        status: 'processed'
+      });
+
+      const isFullRefund = refundType === 'full' || Math.abs(refundAmount - remainingRefundable) < 0.01;
+      if (isFullRefund) {
+        await order.update({ paymentStatus: 'refunded' });
+      }
+
+      logger.info('Nursing home resident order refund processed', {
+        refundId: refundRecord.id,
+        residentOrderId: id,
+        orderNumber: order.orderNumber,
+        amount: refundAmount,
+        adminId
+      });
+
+      res.json({
+        success: true,
+        data: {
+          refund: refundRecord.toJSON(),
+          stripeRefundId: stripeRefund.id
+        },
+        message: 'Refund processed successfully'
+      });
+    } catch (stripeError) {
+      await refundRecord.update({ status: 'failed' });
+      logger.error('Stripe refund failed for resident order:', stripeError, {
+        residentOrderId: id,
+        refundId: refundRecord.id
+      });
+      res.status(500).json({
+        success: false,
+        error: 'Refund failed',
+        message: stripeError.message || 'Failed to process refund through Stripe'
+      });
+    }
+  } catch (error) {
+    logger.error('Error processing resident order refund:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to process refund',
       message: error.message
     });
   }

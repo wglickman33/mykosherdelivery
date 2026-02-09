@@ -136,6 +136,15 @@ const NursingHomeOrders = () => {
                     >
                       View
                     </button>
+                    {order.status === 'draft' && (
+                      <button
+                        type="button"
+                        className="link-btn"
+                        onClick={() => navigate(`/nursing-homes/orders/${order.id}/edit`)}
+                      >
+                        Edit
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

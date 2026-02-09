@@ -1,3 +1,4 @@
+// Order matters for getDeliveryZoneInfo: more specific zones (e.g. 5Towns $5) must appear before broader ones (Queens, Nassau) so overlapping zips get the correct fee.
 export const DELIVERY_ZONES = {
   WESTCHESTER: {
     name: 'Westchester County',
@@ -62,6 +63,14 @@ export const DELIVERY_ZONES = {
     ]
   },
   
+  FIVE_TOWNS: {
+    name: '5Towns',
+    deliveryFee: 5.00,
+    zipCodes: [
+      '11096', '11422', '11516', '11557', '11559', '11563', '11581', '11598'
+    ]
+  },
+  
   QUEENS: {
     name: 'Queens County',
     deliveryFee: 20.00,
@@ -75,14 +84,6 @@ export const DELIVERY_ZONES = {
       '11426', '11427', '11428', '11429', '11430', '11431', '11432', '11433', '11434', '11435', 
       '11436', '11437', '11439', '11451', '11499', '11690', '11691', '11692', '11693', '11694', 
       '11695', '11697'
-    ]
-  },
-  
-  FIVE_TOWNS: {
-    name: '5Towns',
-    deliveryFee: 5.00,
-    zipCodes: [
-      '11096', '11422', '11516', '11557', '11559', '11563', '11581', '11598'
     ]
   },
   

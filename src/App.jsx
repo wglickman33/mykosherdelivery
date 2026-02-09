@@ -58,6 +58,7 @@ import NursingHomeAdminGate from "./components/NursingHomeAdminGate/NursingHomeA
 import NursingHomeLayout from "./components/NursingHomeLayout/NursingHomeLayout";
 import NursingHomeDashboard from "./components/NursingHomeDashboard/NursingHomeDashboard";
 import NursingHomeOrderCreation from "./components/NursingHomeOrderCreation/OrderCreation";
+import NursingHomeOrderEdit from "./components/NursingHomeOrderCreation/OrderEdit";
 import NursingHomeOrderPayment from "./components/NursingHomeOrderPayment/OrderPayment";
 import NursingHomeOrders from "./components/NursingHomeOrders/NursingHomeOrders";
 import NursingHomeOrderDetails from "./components/NursingHomeOrderDetails/OrderDetails";
@@ -182,6 +183,7 @@ function AuthenticatedApp() {
             <Route path="orders" element={<NursingHomeOrders />} />
             <Route path="orders/:orderId" element={<NursingHomeOrderDetails />} />
             <Route path="orders/:orderId/confirmation" element={<NursingHomeOrderConfirmation />} />
+            <Route path="orders/:orderId/edit" element={<NursingHomeOrderEdit />} />
             <Route path="order/new/:residentId" element={<NursingHomeOrderCreation />} />
             <Route path="order/:orderId/payment" element={<NursingHomeOrderPayment />} />
             <Route index element={<NhRedirectToDashboard />} />

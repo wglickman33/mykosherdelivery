@@ -38,6 +38,7 @@ function PaymentFormInner({ order, billingInfo, onSuccess, onError }) {
         return;
       }
 
+      // submitAndPayOrder returns API body { success, data?, error?, message? }; backend confirms payment server-side
       const result = await submitAndPayOrder(order.id, {
         paymentMethodId: paymentMethod.id,
         billingEmail: billingInfo?.email || order.billingEmail,
@@ -51,7 +52,8 @@ function PaymentFormInner({ order, billingInfo, onSuccess, onError }) {
         onError(result?.error || result?.message || 'Payment failed');
       }
     } catch (err) {
-      onError(err.response?.data?.error || err.message || 'Payment failed');
+      const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'Payment failed';
+      onError(msg);
     } finally {
       setIsProcessing(false);
     }
