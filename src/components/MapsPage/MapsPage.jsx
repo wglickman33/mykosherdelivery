@@ -10,6 +10,19 @@ import './MapsPage.scss';
 const DEFAULT_CENTER = { lat: 40.7128, lng: -74.006 };
 const DIET_OPTIONS = ['meat', 'dairy', 'parve', 'sushi', 'fish', 'vegan', 'vegetarian', 'bakery', 'pizza', 'deli'];
 
+/** Haversine distance in miles between two points. */
+function distanceMiles(lat1, lng1, lat2, lng2) {
+  const R = 3959;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 /** Returns { lat, lng } from place (accepts latitude/longitude or lat/lng), or null if missing/invalid. */
 function getPlaceCoords(place) {
   if (!place) return null;
@@ -121,6 +134,24 @@ const MapsPage = () => {
     });
     return out;
   }, [list]);
+
+  /** Distance in miles from user to each place (when userLocation is set). Uses API distance if present, else computes. */
+  const distanceByPlaceId = useMemo(() => {
+    const out = {};
+    if (!userLocation) return out;
+    const uLat = userLocation.lat;
+    const uLng = userLocation.lng;
+    list.forEach((place) => {
+      const coords = getPlaceCoords(place);
+      if (coords) {
+        const mi = place.distance != null && Number.isFinite(Number(place.distance))
+          ? Number(place.distance)
+          : Math.round(distanceMiles(uLat, uLng, coords.lat, coords.lng) * 10) / 10;
+        out[place.id] = mi;
+      }
+    });
+    return out;
+  }, [list, userLocation]);
 
   const requestLocation = () => {
     if (!navigator.geolocation) {
@@ -594,7 +625,9 @@ const MapsPage = () => {
                     </div>
                   )}
                   <div className="maps-page__card-meta">
-                    {place.distance != null && <span>{place.distance} mi away</span>}
+                    {distanceByPlaceId[place.id] != null && (
+                      <span className="maps-page__card-distance">{distanceByPlaceId[place.id]} mi from you</span>
+                    )}
                     {isOpen !== undefined && isOpen !== null && (
                       <span className={`maps-page__card-status maps-page__card-status--${isOpen ? 'open' : 'closed'}`}>
                         {isOpen ? 'Open' : 'Closed'}

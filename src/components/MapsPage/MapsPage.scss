@@ -359,6 +359,12 @@
     color: var(--maps-text-muted);
   }
 
+  &__card-distance {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--maps-accent);
+  }
+
   &__card-directions {
     color: var(--maps-accent);
     font-weight: 700;
