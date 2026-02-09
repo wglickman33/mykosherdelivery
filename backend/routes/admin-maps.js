@@ -7,6 +7,7 @@ const { KosherMapsRestaurant } = require('../models');
 const { requireAdmin } = require('../middleware/auth');
 const logger = require('../utils/logger');
 const { createAdminNotification } = require('../utils/adminNotifications');
+const { logAdminAction } = require('../utils/auditLog');
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
@@ -310,6 +311,7 @@ router.post('/restaurants', requireAdmin, async (req, res) => {
       message: `"${record.name}" was added to Kosher Maps`,
       ref: { kind: 'maps_restaurant', id: record.id, name: record.name }
     });
+    await logAdminAction(req.user.id, 'CREATE', 'maps_restaurants', record.id, null, record.toJSON(), req);
     res.status(201).json(record);
   } catch (err) {
     logger.error('Admin maps create failed', { err: err.message });
@@ -329,6 +331,7 @@ router.put('/restaurants/:id', requireAdmin, async (req, res) => {
       return res.status(400).json({ error: normalized.error });
     }
     if (!normalized.name) normalized.name = record.name;
+    const oldValues = record.toJSON();
     await record.update(normalized);
     await createAdminNotification({
       type: 'maps.restaurant.updated',
@@ -336,6 +339,7 @@ router.put('/restaurants/:id', requireAdmin, async (req, res) => {
       message: `"${record.name}" was updated`,
       ref: { kind: 'maps_restaurant', id: record.id, name: record.name }
     });
+    await logAdminAction(req.user.id, 'UPDATE', 'maps_restaurants', record.id, oldValues, record.toJSON(), req);
     res.json(record);
   } catch (err) {
     logger.error('Admin maps update failed', { err: err.message });
@@ -349,6 +353,7 @@ router.delete('/restaurants/:id', requireAdmin, async (req, res) => {
     const record = await KosherMapsRestaurant.findByPk(id);
     if (!record) return res.status(404).json({ error: 'Restaurant not found' });
     const name = record.name;
+    const oldValues = record.toJSON();
     await record.destroy();
     await createAdminNotification({
       type: 'maps.restaurant.deleted',
@@ -356,6 +361,7 @@ router.delete('/restaurants/:id', requireAdmin, async (req, res) => {
       message: `"${name}" was removed from Kosher Maps`,
       ref: { kind: 'maps_restaurant', id }
     });
+    await logAdminAction(req.user.id, 'DELETE', 'maps_restaurants', id, oldValues, null, req);
     res.status(204).send();
   } catch (err) {
     logger.error('Admin maps delete failed', { err: err.message });
@@ -506,6 +512,7 @@ router.post('/restaurants/import', requireAdmin, upload.single('file'), async (r
         message: `${created} created, ${updated} updated${errors.length ? `, ${errors.length} errors` : ''}`,
         ref: { kind: 'maps_import', created, updated, errors: errors.length }
       });
+      await logAdminAction(req.user.id, 'CREATE', 'maps_import', null, null, { created, updated, errors: errors.length, totalRows: rows.length }, req);
     }
     res.json({ created, updated, errors, totalRows: rows.length });
   } catch (err) {

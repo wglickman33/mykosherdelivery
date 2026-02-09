@@ -6,6 +6,7 @@ import { useAuth } from '../../hooks/useAuth';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import NotificationToast from '../NotificationToast/NotificationToast';
 import { useNotification } from '../../hooks/useNotification';
+import Pagination from '../Pagination/Pagination';
 import { formatPhoneNumber, formatPhoneForInput } from '../../utils/phoneFormatter';
 import { USER_ROLES, ROLE_LABELS } from '../../config/constants';
 
@@ -346,17 +347,6 @@ const AdminUsers = () => {
           />
         </div>
 
-        <div className="filter-group">
-          <label>Per Page</label>
-          <select 
-            value={filters.limit}
-            onChange={(e) => setFilters({ ...filters, limit: parseInt(e.target.value), page: 1 })}
-          >
-            <option value={20}>20</option>
-            <option value={50}>50</option>
-            <option value={100}>100</option>
-          </select>
-        </div>
       </div>
 
       {}
@@ -453,30 +443,16 @@ const AdminUsers = () => {
               </table>
             </div>
 
-            {}
-            <div className="pagination">
-              <div className="pagination-info">
-                Showing {((pagination.page - 1) * pagination.limit) + 1} to{' '}
-                {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
-                {pagination.total} users
-              </div>
-              <div className="pagination-controls">
-                <button
-                  disabled={pagination.page <= 1}
-                  onClick={() => setFilters({ ...filters, page: pagination.page - 1 })}
-                >
-                  Previous
-                </button>
-                <span className="page-info">
-                  Page {pagination.page} of {pagination.totalPages}
-                </span>
-                <button
-                  disabled={pagination.page >= pagination.totalPages}
-                  onClick={() => setFilters({ ...filters, page: pagination.page + 1 })}
-                >
-                  Next
-                </button>
-              </div>
+            <div className="users-table-container__pagination pagination-footer">
+              <Pagination
+                page={pagination.page || 1}
+                totalPages={pagination.totalPages || 1}
+                rowsPerPage={pagination.limit || filters.limit}
+                total={pagination.total}
+                onPageChange={(p) => setFilters({ ...filters, page: p })}
+                onRowsPerPageChange={(n) => setFilters({ ...filters, limit: n, page: 1 })}
+                rowsPerPageOptions={[10, 20, 30, 40, 50]}
+              />
             </div>
           </>
         )}

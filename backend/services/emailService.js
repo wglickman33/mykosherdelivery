@@ -8,6 +8,15 @@ const sendOrderConfirmationEmail = async (orderData) => {
     });
     
     
+    const giftCardCodesList = [];
+    if (orderData.giftCardCodesByOrder && typeof orderData.giftCardCodesByOrder === 'object') {
+      Object.values(orderData.giftCardCodesByOrder).forEach((cards) => {
+        (cards || []).forEach((c) => {
+          giftCardCodesList.push({ code: c.code, balance: c.balance, initialBalance: c.initialBalance });
+        });
+      });
+    }
+
     const emailData = {
       to: orderData.customerInfo?.email || 'customer@example.com',
       subject: 'Order Confirmation - My Kosher Delivery',
@@ -21,7 +30,9 @@ const sendOrderConfirmationEmail = async (orderData) => {
       deliveryAddress: orderData.deliveryAddress || 'Address not provided',
       deliveryFee: `${(orderData.deliveryFee || 5.99).toFixed(2)}`,
       tax: orderData.tax ? `${orderData.tax.toFixed(2)}` : 'Included',
-      totalAmount: `${(orderData.total || 0).toFixed(2)}`
+      totalAmount: `${(orderData.total || 0).toFixed(2)}`,
+      giftCardCodes: giftCardCodesList,
+      hasGiftCards: giftCardCodesList.length > 0
     };
     
     logger.info('📧 Email would be sent with data:', emailData);

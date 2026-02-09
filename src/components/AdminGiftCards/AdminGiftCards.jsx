@@ -9,6 +9,7 @@ import {
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import NotificationToast from '../NotificationToast/NotificationToast';
 import { useNotification } from '../../hooks/useNotification';
+import Pagination from '../Pagination/Pagination';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All statuses' },
@@ -186,6 +187,7 @@ const AdminGiftCards = () => {
                   <th>Code</th>
                   <th>Initial</th>
                   <th>Balance</th>
+                  <th>Spent</th>
                   <th>Status</th>
                   <th>Purchased by</th>
                   <th>Order</th>
@@ -197,7 +199,7 @@ const AdminGiftCards = () => {
               <tbody>
                 {list.length === 0 ? (
                   <tr>
-                    <td colSpan={9}>No gift cards found.</td>
+                    <td colSpan={10}>No gift cards found.</td>
                   </tr>
                 ) : (
                   list.map((gc) => (
@@ -205,6 +207,7 @@ const AdminGiftCards = () => {
                       <td><code>{gc.code}</code></td>
                       <td>${Number(gc.initialBalance).toFixed(2)}</td>
                       <td>${Number(gc.balance).toFixed(2)}</td>
+                      <td>${(Math.max(0, Number(gc.initialBalance) - Number(gc.balance))).toFixed(2)}</td>
                       <td><span className={`admin-gift-cards__status admin-gift-cards__status--${gc.status}`}>{gc.status}</span></td>
                       <td>{purchasedByLabel(gc)}</td>
                       <td>{gc.orderNumber || (gc.orderId ? `Order ${gc.orderId}` : '—')}</td>
@@ -241,23 +244,17 @@ const AdminGiftCards = () => {
               </tbody>
             </table>
           </div>
-          {pagination.totalPages > 1 && (
-            <div className="admin-gift-cards__pagination">
-              <button
-                type="button"
-                disabled={filters.page <= 1}
-                onClick={() => setFilters((f) => ({ ...f, page: f.page - 1 }))}
-              >
-                Previous
-              </button>
-              <span>Page {filters.page} of {pagination.totalPages} ({pagination.total} total)</span>
-              <button
-                type="button"
-                disabled={filters.page >= (pagination.totalPages || 1)}
-                onClick={() => setFilters((f) => ({ ...f, page: f.page + 1 }))}
-              >
-                Next
-              </button>
+          {(pagination.totalPages > 0 || list.length > 0) && (
+            <div className="pagination-footer">
+              <Pagination
+                page={filters.page}
+                totalPages={Math.max(1, pagination.totalPages || 1)}
+                rowsPerPage={filters.limit}
+                total={pagination.total}
+                onPageChange={(p) => setFilters((f) => ({ ...f, page: p }))}
+                onRowsPerPageChange={(n) => setFilters((f) => ({ ...f, limit: n, page: 1 }))}
+                rowsPerPageOptions={[10, 20, 25, 30, 40, 50]}
+              />
             </div>
           )}
         </>

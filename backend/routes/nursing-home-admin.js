@@ -6,6 +6,7 @@ const { requireAdmin, requireNursingHomeAdmin, requireNursingHomeUser } = requir
 const { body, validationResult } = require('express-validator');
 const logger = require('../utils/logger');
 const { createAdminNotification } = require('../utils/adminNotifications');
+const { logAdminAction } = require('../utils/auditLog');
 
 const router = express.Router();
 
@@ -219,6 +220,7 @@ router.post('/facilities', requireAdmin, [
       message: `"${facility.name}" was created`,
       ref: { kind: 'nh_facility', id: facility.id, name: facility.name }
     });
+    await logAdminAction(req.user.id, 'CREATE', 'nh_facilities', facility.id, null, facility.toJSON(), req);
     logger.info('Nursing home facility created', {
       facilityId: facility.id,
       name: facility.name,
@@ -270,6 +272,7 @@ router.put('/facilities/:id', requireAdmin, [
       });
     }
 
+    const facilityOldValues = facility.toJSON();
     await facility.update(updateData);
     await createAdminNotification({
       type: 'nh.facility.updated',
@@ -277,6 +280,7 @@ router.put('/facilities/:id', requireAdmin, [
       message: `"${facility.name}" was updated`,
       ref: { kind: 'nh_facility', id: facility.id, name: facility.name }
     });
+    await logAdminAction(req.user.id, 'UPDATE', 'nh_facilities', facility.id, facilityOldValues, facility.toJSON(), req);
     logger.info('Nursing home facility updated', {
       facilityId: facility.id,
       updatedBy: req.user.id
@@ -309,6 +313,7 @@ router.delete('/facilities/:id', requireAdmin, async (req, res) => {
     }
 
     const facilityName = facility.name;
+    const facilityOldValues = facility.toJSON();
     await facility.update({ isActive: false });
     await createAdminNotification({
       type: 'nh.facility.deactivated',
@@ -316,6 +321,7 @@ router.delete('/facilities/:id', requireAdmin, async (req, res) => {
       message: `"${facilityName}" was deactivated`,
       ref: { kind: 'nh_facility', id: facility.id, name: facilityName }
     });
+    await logAdminAction(req.user.id, 'UPDATE', 'nh_facilities', facility.id, facilityOldValues, facility.toJSON(), req);
     logger.info('Nursing home facility deactivated', {
       facilityId: facility.id,
       deactivatedBy: req.user.id
@@ -390,10 +396,11 @@ router.post('/facilities/:facilityId/staff', requireAdminOrNursingHomeAdmin, req
       message: `"${firstName} ${lastName}" (${email}) added to facility`,
       ref: { kind: 'nh_staff', id: user.id, facilityId, name: `${firstName} ${lastName}` }
     });
-    logger.info('Nursing home staff created', { userId: user.id, facilityId, createdBy: req.user.id });
-
     const out = user.toJSON();
     delete out.password;
+    await logAdminAction(req.user.id, 'CREATE', 'nh_staff', user.id, null, out, req);
+    logger.info('Nursing home staff created', { userId: user.id, facilityId, createdBy: req.user.id });
+
     res.status(201).json({ success: true, data: out });
   } catch (error) {
     logger.error('Error creating nursing home staff:', error);
@@ -420,6 +427,8 @@ router.put('/facilities/:facilityId/staff/:userId', requireAdminOrNursingHomeAdm
       return res.status(404).json({ success: false, error: 'Staff member not found' });
     }
 
+    const userOldValues = user.toJSON();
+    delete userOldValues.password;
     await user.update(updateData);
     await createAdminNotification({
       type: 'nh.staff.updated',
@@ -427,6 +436,9 @@ router.put('/facilities/:facilityId/staff/:userId', requireAdminOrNursingHomeAdm
       message: `Staff member at facility was updated`,
       ref: { kind: 'nh_staff', id: userId, facilityId }
     });
+    const userNewOut = user.toJSON();
+    delete userNewOut.password;
+    await logAdminAction(req.user.id, 'UPDATE', 'nh_staff', userId, userOldValues, userNewOut, req);
     logger.info('Nursing home staff updated', { userId, facilityId, updatedBy: req.user.id });
     const out = user.toJSON();
     delete out.password;
@@ -448,6 +460,8 @@ router.delete('/facilities/:facilityId/staff/:userId', requireAdminOrNursingHome
       return res.status(400).json({ success: false, error: 'Cannot remove an admin from facility this way' });
     }
     const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email;
+    const userOldValues = user.toJSON();
+    delete userOldValues.password;
     await user.update({ nursingHomeFacilityId: null, role: 'user' });
     await createAdminNotification({
       type: 'nh.staff.removed',
@@ -455,6 +469,9 @@ router.delete('/facilities/:facilityId/staff/:userId', requireAdminOrNursingHome
       message: `"${userName}" removed from facility`,
       ref: { kind: 'nh_staff', id: userId, facilityId }
     });
+    const userNewOut = user.toJSON();
+    delete userNewOut.password;
+    await logAdminAction(req.user.id, 'UPDATE', 'nh_staff', userId, userOldValues, userNewOut, req);
     logger.info('Staff removed from facility', { userId, facilityId, removedBy: req.user.id });
     res.json({ success: true, message: 'Staff removed from facility' });
   } catch (error) {
@@ -520,6 +537,7 @@ router.post('/facilities/:facilityId/staff/bulk', requireAdminOrNursingHomeAdmin
         message: `${results.created.length} staff added to facility`,
         ref: { kind: 'nh_staff', facilityId, count: results.created.length }
       });
+      await logAdminAction(req.user.id, 'CREATE', 'nh_staff_bulk', facilityId, null, { created: results.created.length, skipped: results.skipped.length, errors: results.errors.length }, req);
     }
     res.status(201).json({ success: true, data: results });
   } catch (error) {
@@ -721,6 +739,7 @@ router.post('/residents', requireNursingHomeAdmin, [
       message: `"${name}" (${roomNumber}) added`,
       ref: { kind: 'nh_resident', id: resident.id, facilityId, name }
     });
+    await logAdminAction(req.user.id, 'CREATE', 'nh_residents', resident.id, null, resident.toJSON(), req);
     logger.info('Resident created', {
       residentId: resident.id,
       facilityId,
@@ -788,6 +807,7 @@ router.put('/residents/:id', requireNursingHomeAdmin, [
       }
     }
 
+    const residentOldValues = resident.toJSON();
     await resident.update(updateData);
     await createAdminNotification({
       type: 'nh.resident.updated',
@@ -795,6 +815,7 @@ router.put('/residents/:id', requireNursingHomeAdmin, [
       message: `Resident "${resident.name}" was updated`,
       ref: { kind: 'nh_resident', id: resident.id, facilityId: resident.facilityId }
     });
+    await logAdminAction(req.user.id, 'UPDATE', 'nh_residents', resident.id, residentOldValues, resident.toJSON(), req);
     logger.info('Resident updated', {
       residentId: resident.id,
       updatedBy: req.user.id
@@ -853,7 +874,9 @@ router.post('/residents/:id/assign', requireNursingHomeAdmin, [
       });
     }
 
+    const residentOldValues = resident.toJSON();
     await resident.update({ assignedUserId });
+    await logAdminAction(req.user.id, 'UPDATE', 'nh_residents', resident.id, residentOldValues, resident.toJSON(), req);
 
     logger.info('Resident assigned', {
       residentId: resident.id,
@@ -895,6 +918,7 @@ router.delete('/residents/:id', requireNursingHomeAdmin, async (req, res) => {
     }
 
     const residentName = resident.name;
+    const residentOldValues = resident.toJSON();
     await resident.update({ isActive: false });
     await createAdminNotification({
       type: 'nh.resident.deactivated',
@@ -902,6 +926,7 @@ router.delete('/residents/:id', requireNursingHomeAdmin, async (req, res) => {
       message: `"${residentName}" was deactivated`,
       ref: { kind: 'nh_resident', id: resident.id, facilityId: resident.facilityId }
     });
+    await logAdminAction(req.user.id, 'UPDATE', 'nh_residents', resident.id, residentOldValues, resident.toJSON(), req);
     logger.info('Resident deactivated', {
       residentId: resident.id,
       deactivatedBy: req.user.id
@@ -1040,6 +1065,7 @@ router.post('/menu', requireAdmin, [
       message: `"${menuItem.name}" (${menuItem.mealType}) added`,
       ref: { kind: 'nh_menu_item', id: menuItem.id, name: menuItem.name }
     });
+    await logAdminAction(req.user.id, 'CREATE', 'nh_menu', menuItem.id, null, menuItem.toJSON(), req);
     logger.info('Menu item created', {
       menuItemId: menuItem.id,
       name: menuItem.name,
@@ -1091,6 +1117,7 @@ router.put('/menu/:id', requireAdmin, [
       });
     }
 
+    const menuOldValues = menuItem.toJSON();
     await menuItem.update(req.body);
     await createAdminNotification({
       type: 'nh.menu.updated',
@@ -1098,6 +1125,7 @@ router.put('/menu/:id', requireAdmin, [
       message: `"${menuItem.name}" was updated`,
       ref: { kind: 'nh_menu_item', id: menuItem.id, name: menuItem.name }
     });
+    await logAdminAction(req.user.id, 'UPDATE', 'nh_menu', menuItem.id, menuOldValues, menuItem.toJSON(), req);
     logger.info('Menu item updated', {
       menuItemId: menuItem.id,
       updatedBy: req.user.id
@@ -1130,6 +1158,7 @@ router.delete('/menu/:id', requireAdmin, async (req, res) => {
     }
 
     const itemName = menuItem.name;
+    const menuOldValues = menuItem.toJSON();
     await menuItem.update({ isActive: false });
     await createAdminNotification({
       type: 'nh.menu.deactivated',
@@ -1137,6 +1166,7 @@ router.delete('/menu/:id', requireAdmin, async (req, res) => {
       message: `"${itemName}" was deactivated`,
       ref: { kind: 'nh_menu_item', id: menuItem.id }
     });
+    await logAdminAction(req.user.id, 'UPDATE', 'nh_menu', menuItem.id, menuOldValues, menuItem.toJSON(), req);
     logger.info('Menu item deactivated', {
       menuItemId: menuItem.id,
       deactivatedBy: req.user.id
@@ -1352,6 +1382,7 @@ router.post('/invoices/generate', requireAdmin, [
       message: `Invoice ${invoice.invoiceNumber} for ${facility.name} (${orders.length} orders)`,
       ref: { kind: 'nh_invoice', id: invoice.id, facilityId, invoiceNumber: invoice.invoiceNumber }
     });
+    await logAdminAction(req.user.id, 'CREATE', 'nh_invoices', invoice.id, null, invoice.toJSON(), req);
     logger.info('Invoice generated', {
       invoiceId: invoice.id,
       invoiceNumber: invoice.invoiceNumber,
@@ -1399,6 +1430,7 @@ router.put('/invoices/:id', requireAdmin, [
       });
     }
 
+    const invoiceOldValues = invoice.toJSON();
     await invoice.update(updateData);
     await createAdminNotification({
       type: 'nh.invoice.updated',
@@ -1406,6 +1438,7 @@ router.put('/invoices/:id', requireAdmin, [
       message: `Invoice ${invoice.invoiceNumber} was updated`,
       ref: { kind: 'nh_invoice', id: invoice.id, invoiceNumber: invoice.invoiceNumber }
     });
+    await logAdminAction(req.user.id, 'UPDATE', 'nh_invoices', invoice.id, invoiceOldValues, invoice.toJSON(), req);
     logger.info('Invoice updated', {
       invoiceId: invoice.id,
       updatedBy: req.user.id
@@ -1452,6 +1485,7 @@ router.post('/invoices/:id/send', requireAdmin, async (req, res) => {
       });
     }
 
+    const invoiceOldValues = invoice.toJSON();
     await invoice.update({ status: 'sent' });
     await createAdminNotification({
       type: 'nh.invoice.sent',
@@ -1459,6 +1493,7 @@ router.post('/invoices/:id/send', requireAdmin, async (req, res) => {
       message: `Invoice ${invoice.invoiceNumber} was sent to facility`,
       ref: { kind: 'nh_invoice', id: invoice.id, invoiceNumber: invoice.invoiceNumber }
     });
+    await logAdminAction(req.user.id, 'UPDATE', 'nh_invoices', invoice.id, invoiceOldValues, invoice.toJSON(), req);
     logger.info('Invoice sent', {
       invoiceId: invoice.id,
       invoiceNumber: invoice.invoiceNumber,
@@ -1500,6 +1535,7 @@ router.post('/invoices/:id/mark-paid', requireAdmin, async (req, res) => {
       });
     }
 
+    const invoiceOldValues = invoice.toJSON();
     await invoice.update({
       status: 'paid',
       paidAt: new Date()
@@ -1510,6 +1546,7 @@ router.post('/invoices/:id/mark-paid', requireAdmin, async (req, res) => {
       message: `Invoice ${invoice.invoiceNumber} marked as paid`,
       ref: { kind: 'nh_invoice', id: invoice.id, invoiceNumber: invoice.invoiceNumber }
     });
+    await logAdminAction(req.user.id, 'UPDATE', 'nh_invoices', invoice.id, invoiceOldValues, invoice.toJSON(), req);
     logger.info('Invoice marked as paid', {
       invoiceId: invoice.id,
       invoiceNumber: invoice.invoiceNumber,

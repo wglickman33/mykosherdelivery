@@ -16,6 +16,7 @@ const { generateOrderNumber: generateBaseOrderNumber } = require('../services/or
 const { NH_CONFIG, API_CONFIG, ORDER_CONFIG } = require('../config/constants');
 const logger = require('../utils/logger');
 const { createAdminNotification } = require('../utils/adminNotifications');
+const { logAdminAction } = require('../utils/auditLog');
 const ExcelJS = require('exceljs');
 
 const stripe = process.env.STRIPE_SECRET_KEY
@@ -696,6 +697,7 @@ router.post('/resident-orders/:id/submit-and-pay', paymentLimiter, requireNursin
         statement_descriptor: 'MKD MEALS'
       });
 
+      const oldValues = order.toJSON();
       await order.update({
         status: 'paid',
         paymentStatus: 'paid',
@@ -710,6 +712,7 @@ router.post('/resident-orders/:id/submit-and-pay', paymentLimiter, requireNursin
         message: `Order ${order.orderNumber} (${order.residentName}) paid`,
         ref: { kind: 'nh_resident_order', id: order.id, orderNumber: order.orderNumber, facilityId: order.facilityId }
       });
+      await logAdminAction(req.user.id, 'UPDATE', 'nh_resident_orders', order.id, oldValues, order.toJSON(), req);
       logger.info('Resident order paid', {
         orderId: order.id,
         orderNumber: order.orderNumber,
@@ -885,6 +888,7 @@ router.post('/resident-orders/:id/refund', requireNursingHomeAdmin, [
     if (req.user.role === 'nursing_home_admin' && order.facilityId !== req.user.nursingHomeFacilityId) {
       return res.status(403).json({ success: false, error: 'Access denied' });
     }
+    const orderOldValues = order.toJSON();
 
     if (order.paymentStatus !== 'paid') {
       return res.status(400).json({
@@ -965,6 +969,7 @@ router.post('/resident-orders/:id/refund', requireNursingHomeAdmin, [
         message: `Order ${order.orderNumber} refunded $${refundAmount.toFixed(2)} (${refundType})`,
         ref: { kind: 'nh_resident_order', id: order.id, orderNumber: order.orderNumber, refundId: refundRecord.id }
       });
+      await logAdminAction(adminId, 'UPDATE', 'nh_resident_orders', order.id, orderOldValues, order.toJSON(), req);
       logger.info('Nursing home resident order refund processed', {
         refundId: refundRecord.id,
         residentOrderId: id,
@@ -1337,6 +1342,7 @@ router.post('/orders/:id/submit', requireNursingHomeUser, async (req, res) => {
       });
     }
 
+    const oldValues = order.toJSON();
     await order.update({
       status: 'submitted',
       submittedAt: new Date()
@@ -1347,6 +1353,7 @@ router.post('/orders/:id/submit', requireNursingHomeUser, async (req, res) => {
       message: `Order ${order.orderNumber} submitted for facility`,
       ref: { kind: 'nh_order', id: order.id, orderNumber: order.orderNumber, facilityId: order.facilityId }
     });
+    await logAdminAction(req.user.id, 'UPDATE', 'nh_orders', order.id, oldValues, order.toJSON(), req);
     logger.info('Nursing home order submitted', {
       orderId: order.id,
       orderNumber: order.orderNumber,
@@ -1387,7 +1394,9 @@ router.delete('/orders/:id', requireNursingHomeAdmin, async (req, res) => {
       });
     }
 
+    const oldValues = order.toJSON();
     await order.update({ status: 'cancelled' });
+    await logAdminAction(req.user.id, 'UPDATE', 'nh_orders', order.id, oldValues, order.toJSON(), req);
 
     logger.info('Nursing home order cancelled', {
       orderId: order.id,

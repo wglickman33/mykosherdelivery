@@ -232,6 +232,18 @@
     }
   }
 
+  .orders-table-wrap__pagination {
+    padding: 16px 18px;
+    border-top: 1px solid $slate-200;
+    background: $slate-100;
+  }
+
+  .orders-table-empty {
+    text-align: center;
+    padding: 2rem;
+    color: $gray-600;
+  }
+
   .orders-pagination {
     display: flex;
     align-items: center;

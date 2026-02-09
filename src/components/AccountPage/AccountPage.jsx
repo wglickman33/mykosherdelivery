@@ -776,17 +776,27 @@ export default function AccountPage() {
                 <p>You have no gift cards yet. <a href="/gift-card">Purchase a gift card</a> or use one at checkout.</p>
               ) : (
                 <ul className="gift-cards-list" style={{ listStyle: 'none', padding: 0 }}>
-                  {giftCards.map((gc) => (
+                  {giftCards.map((gc) => {
+                    const initial = Number(gc.initialBalance);
+                    const balance = Number(gc.balance);
+                    const spent = Math.max(0, initial - balance);
+                    return (
                     <li key={gc.id} style={{ padding: '12px 0', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                       <div>
                         <strong style={{ fontFamily: 'monospace' }}>{gc.code}</strong>
                         <span style={{ marginLeft: '8px', color: '#6b7280' }}>
-                          ${Number(gc.balance).toFixed(2)} of ${Number(gc.initialBalance).toFixed(2)} left
+                          ${balance.toFixed(2)} of ${initial.toFixed(2)} left
                         </span>
+                        {spent > 0 && (
+                          <span style={{ marginLeft: '8px', color: '#6b7280', fontSize: '0.9em' }}>
+                            · ${spent.toFixed(2)} used
+                          </span>
+                        )}
                         {gc.status !== 'active' && <span style={{ marginLeft: '8px', color: '#9ca3af' }}>({gc.status})</span>}
                       </div>
                     </li>
-                  ))}
+                    );
+                  })}
                 </ul>
               )}
             </div>

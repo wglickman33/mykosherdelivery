@@ -665,11 +665,27 @@ router.post('/send-confirmation', authenticateToken, [
       });
     }
 
+    const giftCardCodesByOrder = {};
+    for (const order of orders) {
+      const cards = await GiftCard.findAll({
+        where: { orderId: order.id },
+        attributes: ['code', 'balance', 'initialBalance']
+      });
+      if (cards.length > 0) {
+        giftCardCodesByOrder[order.id] = cards.map(c => ({
+          code: c.code,
+          balance: parseFloat(c.balance),
+          initialBalance: parseFloat(c.initialBalance)
+        }));
+      }
+    }
+
     const emailResult = await sendOrderConfirmationEmail({
       orderIds: orderIds,
       customerInfo: customerInfo,
       total: total,
-      orders: orders
+      orders: orders,
+      giftCardCodesByOrder
     });
 
     if (emailResult.success) {

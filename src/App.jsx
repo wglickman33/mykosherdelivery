@@ -34,6 +34,7 @@ import AdminAnalyticsRevenue from "./components/AdminAnalytics/AdminAnalyticsRev
 import AdminAnalyticsOrders from "./components/AdminAnalytics/AdminAnalyticsOrders";
 import AdminAnalyticsUsers from "./components/AdminAnalytics/AdminAnalyticsUsers";
 import AdminAnalyticsRestaurants from "./components/AdminAnalytics/AdminAnalyticsRestaurants";
+import AdminAnalyticsGiftCards from "./components/AdminAnalytics/AdminAnalyticsGiftCards";
 import AdminSettings from "./components/AdminSettings/AdminSettings";
 import AdminRequests from "./components/AdminRequests/AdminRequests";
 import AdminCampaigns from "./components/AdminCampaigns/AdminCampaigns";
@@ -216,6 +217,7 @@ function AuthenticatedApp() {
             <Route path="analytics/orders" element={<AdminAnalyticsOrders />} />
             <Route path="analytics/users" element={<AdminAnalyticsUsers />} />
             <Route path="analytics/restaurants" element={<AdminAnalyticsRestaurants />} />
+            <Route path="analytics/gift-cards" element={<AdminAnalyticsGiftCards />} />
             <Route path="requests" element={<AdminRequests />} />
             <Route path="campaigns" element={<AdminCampaigns />} />
             <Route path="nursing-homes" element={<AdminNursingHomes />} />

@@ -1,15 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
-import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { stripePromise, createPaymentMethod } from '../../services/paymentServices';
 import { fetchResidentOrder, submitAndPayOrder } from '../../services/nursingHomeService';
 import { NH_CONFIG } from '../../config/constants';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import './OrderPayment.scss';
-
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
 const cardElementOptions = {
   style: {
@@ -32,15 +30,19 @@ function PaymentFormInner({ order, billingInfo, onSuccess, onError }) {
 
     try {
       const cardEl = elements.getElement(CardElement);
-      const { error, paymentMethod } = await stripe.createPaymentMethod({ type: 'card', card: cardEl });
-      if (error) {
-        onError(error.message);
+      const pmResult = await createPaymentMethod(cardEl, {
+        name: billingInfo?.name || order.billingName,
+        email: billingInfo?.email || order.billingEmail,
+        phone: billingInfo?.phone || order.billingPhone
+      });
+      if (!pmResult?.success || !pmResult?.paymentMethod) {
+        onError(pmResult?.error || 'Could not create payment method');
         return;
       }
 
       // submitAndPayOrder returns API body { success, data?, error?, message? }; backend confirms payment server-side
       const result = await submitAndPayOrder(order.id, {
-        paymentMethodId: paymentMethod.id,
+        paymentMethodId: pmResult.paymentMethod.id,
         billingEmail: billingInfo?.email || order.billingEmail,
         billingName: billingInfo?.name || order.billingName,
         billingPhone: billingInfo?.phone || order.billingPhone

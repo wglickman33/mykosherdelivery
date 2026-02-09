@@ -21,10 +21,10 @@ const OrderConfirmationPage = () => {
   const appliedPromo = orderData?.appliedPromo || null;
   const total = orderData?.orderTotal || 0;
 
-  const sendConfirmationEmail = useCallback(async (orderData) => {
+  const sendConfirmationEmail = useCallback(async (orderData, giftCards = []) => {
     try {
-      console.log('📧 Sending confirmation email with data:', orderData);
-      
+      console.log('📧 Sending confirmation email with data:', orderData, 'giftCards:', giftCards?.length);
+
       const emailjsConfig = {
         publicKey: import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
         serviceId: import.meta.env.VITE_EMAILJS_SERVICE_ID,
@@ -36,7 +36,7 @@ const OrderConfirmationPage = () => {
         return;
       }
 
-      let orderNumber = orderData.paymentMethod?.orderNumber || 
+      let orderNumber = orderData.paymentMethod?.orderNumber ||
                        orderData.paymentMethod?.order_number ||
                        orderData.orderNumber ||
                        orderData.order_number ||
@@ -61,32 +61,19 @@ const OrderConfirmationPage = () => {
         const orderIds = orderData.paymentMethod?.orderIds || orderData.orderIds;
         orderNumber = (orderIds && orderIds.length > 0) ? orderIds[0] : 'N/A';
       }
-      
 
       const getUserName = () => {
-        if (orderData.userProfile?.firstName) {
-          return orderData.userProfile.firstName;
-        }
-        
-        if (orderData.contactInfo?.firstName) {
-          return orderData.contactInfo.firstName;
-        }
-        if (orderData.contactInfo?.first_name) {
-          return orderData.contactInfo.first_name;
-        }
-        
+        if (orderData.userProfile?.firstName) return orderData.userProfile.firstName;
+        if (orderData.contactInfo?.firstName) return orderData.contactInfo.firstName;
+        if (orderData.contactInfo?.first_name) return orderData.contactInfo.first_name;
         if (orderData.userProfile?.email) {
           const emailName = orderData.userProfile.email.split('@')[0];
-          const capitalizedEmailName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
-          return capitalizedEmailName;
+          return emailName.charAt(0).toUpperCase() + emailName.slice(1);
         }
-        
         if (orderData.contactInfo?.email) {
           const emailName = orderData.contactInfo.email.split('@')[0];
-          const capitalizedEmailName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
-          return capitalizedEmailName;
+          return emailName.charAt(0).toUpperCase() + emailName.slice(1);
         }
-        
         return 'Customer';
       };
 
@@ -96,18 +83,22 @@ const OrderConfirmationPage = () => {
       const sTax = Number(orderData?.tax ?? 0);
       const sDiscount = Number(orderData?.discountAmount ?? 0);
       const sTotal = Number(orderData?.orderTotal ?? (sSubtotal - sDiscount + sDelivery + sTip + sTax));
-
       const fullName = `${orderData.userProfile?.firstName || ''} ${orderData.userProfile?.lastName || ''}`.trim() || getUserName();
+
+      const hasGiftCards = Array.isArray(giftCards) && giftCards.length > 0;
+      const orderItemsContent = hasGiftCards
+        ? `Gift Card Purchase\n\nYour gift card code(s) — keep this private (only you and our team can see it):\n${giftCards.map((c) => `${c.code} — $${Number(c.balance ?? c.initialBalance).toFixed(2)}`).join('\n')}`
+        : buildOrderItemsHtml(orderData.orderItems);
 
       const templateParams = {
         to_email: orderData.contactInfo?.email || orderData.userProfile?.email || 'customer@example.com',
         to_name: getUserName(),
         customer_full_name: fullName,
-        order_ids: orderNumber,
-        order_date: new Date().toLocaleDateString('en-US', { 
-          year: 'numeric', 
-          month: 'long', 
-          day: 'numeric' 
+        order_ids: hasGiftCards ? 'Gift Card Purchase' : orderNumber,
+        order_date: new Date().toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
         }),
         subtotal: `${sSubtotal.toFixed(2)}`,
         discount: sDiscount > 0 ? `-${sDiscount.toFixed(2)}${orderData?.appliedPromo?.code ? ` (${orderData.appliedPromo.code})` : ''}` : '$0.00',
@@ -115,11 +106,13 @@ const OrderConfirmationPage = () => {
         tip: `${sTip.toFixed(2)}`,
         tax: `${sTax.toFixed(2)}`,
         total_amount: `${sTotal.toFixed(2)}`,
-        delivery_address: formatAddress(orderData.deliveryAddress),
-        order_items_html: buildOrderItemsHtml(orderData.orderItems)
+        delivery_address: hasGiftCards ? 'N/A — Gift card delivered via email' : formatAddress(orderData.deliveryAddress),
+        order_items_html: orderItemsContent,
+        is_gift_card_purchase: hasGiftCards ? 'true' : 'false',
+        gift_card_codes_display: hasGiftCards ? giftCards.map((c) => `${c.code} ($${Number(c.balance ?? c.initialBalance).toFixed(2)})`).join(', ') : ''
       };
 
-      console.log('📧 Email template params:', templateParams);
+      console.log('📧 Email template params (is_gift_card_purchase):', templateParams.is_gift_card_purchase);
 
       const response = await emailjs.send(
         emailjsConfig.serviceId,
@@ -135,44 +128,42 @@ const OrderConfirmationPage = () => {
   }, []);
 
   useEffect(() => {
-    if (location.state) {
-      setOrderData(location.state);
-      
-      const orderKey = location.state.paymentMethod?.orderNumber || 
-                      location.state.paymentMethod?.order_number ||
-                      location.state.orderNumber ||
-                      location.state.order_number ||
-                      (location.state.paymentMethod?.orderIds && location.state.paymentMethod.orderIds[0]) ||
-                      (location.state.orderIds && location.state.orderIds[0]) ||
-                      `order_${Date.now()}`;
-      const emailSentKey = `email_sent_${orderKey}`;
-      
-      const emailAlreadySent = sessionStorage.getItem(emailSentKey) || emailSentRef.current;
-      
-      if (!emailAlreadySent) {
-        sendConfirmationEmail(location.state);
-        emailSentRef.current = true;
-        sessionStorage.setItem(emailSentKey, 'true');
-      }
-    } else {
+    if (!location.state) {
       navigate('/');
+      return;
     }
-  }, [location.state, navigate, sendConfirmationEmail]);
 
-  useEffect(() => {
-    const orderIds = orderData?.paymentMethod?.orderIds || orderData?.orderIds;
-    if (!orderIds || !orderIds.length) return;
-    const fetchGiftCards = async () => {
-      try {
-        const res = await apiClient.get(`/orders/${orderIds[0]}`);
-        const cards = res?.giftCards || res?.gift_cards || [];
-        setGiftCardsFromOrder(Array.isArray(cards) ? cards : []);
-      } catch {
-        setGiftCardsFromOrder([]);
+    const state = location.state;
+    setOrderData(state);
+
+    const orderIds = state.paymentMethod?.orderIds || state.orderIds;
+    const orderKey = state.paymentMethod?.orderNumber ||
+                    state.paymentMethod?.order_number ||
+                    state.orderNumber ||
+                    state.order_number ||
+                    (orderIds && orderIds[0]) ||
+                    `order_${Date.now()}`;
+    const emailSentKey = `email_sent_${orderKey}`;
+    if (sessionStorage.getItem(emailSentKey) || emailSentRef.current) return;
+
+    const run = async () => {
+      let giftCards = [];
+      if (orderIds && orderIds.length > 0) {
+        try {
+          const res = await apiClient.get(`/orders/${orderIds[0]}`);
+          const cards = res?.giftCards || res?.gift_cards || [];
+          giftCards = Array.isArray(cards) ? cards : [];
+          setGiftCardsFromOrder(giftCards);
+        } catch {
+          setGiftCardsFromOrder([]);
+        }
       }
+      sendConfirmationEmail(state, giftCards);
+      emailSentRef.current = true;
+      sessionStorage.setItem(emailSentKey, 'true');
     };
-    fetchGiftCards();
-  }, [orderData?.paymentMethod?.orderIds, orderData?.orderIds]);
+    run();
+  }, [location.state, navigate, sendConfirmationEmail]);
 
   const formatAddress = (address) => {
     if (!address) return '';

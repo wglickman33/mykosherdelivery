@@ -9,7 +9,8 @@ import AnalyticsNavigation from './AnalyticsNavigation';
 import { 
   fetchComprehensiveAnalytics, 
   fetchRevenueTrends,
-  fetchOrderVolumeTrends
+  fetchOrderVolumeTrends,
+  fetchPlatformAnalytics
 } from '../../services/adminServices';
 
 const AdminAnalyticsOverview = () => {
@@ -19,6 +20,7 @@ const AdminAnalyticsOverview = () => {
   const [orderVolumePeriod, setOrderVolumePeriod] = useState('quarterly');
   const [revenueTrends, setRevenueTrends] = useState([]);
   const [orderVolumeTrends, setOrderVolumeTrends] = useState([]);
+  const [platformAnalytics, setPlatformAnalytics] = useState(null);
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
@@ -44,6 +46,11 @@ const AdminAnalyticsOverview = () => {
       const orderVolumeResult = await fetchOrderVolumeTrends(orderVolumePeriod);
       if (orderVolumeResult.success) {
         setOrderVolumeTrends(orderVolumeResult.data);
+      }
+
+      const platformResult = await fetchPlatformAnalytics();
+      if (platformResult.success && platformResult.data) {
+        setPlatformAnalytics(platformResult.data);
       }
     } catch (error) {
       console.error('Error fetching overview analytics:', error);
@@ -130,6 +137,59 @@ const AdminAnalyticsOverview = () => {
             </div>
           </div>
         </div>
+
+        {platformAnalytics && (
+          <div className="metrics-grid">
+            <div className="metric-card gift-cards">
+              <div className="metric-icon">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                  <path d="M20 6H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm0 12H4v-6h16v6zm0-8H4V8h16v2z"/>
+                </svg>
+              </div>
+              <div className="metric-content">
+                <h3>Gift Cards</h3>
+                <p className="metric-value">{formatCurrency(platformAnalytics.giftCards?.totalOutstandingBalance ?? 0)}</p>
+                <span className="metric-change neutral">Outstanding · {platformAnalytics.giftCards?.count ?? 0} cards · {formatCurrency(platformAnalytics.giftCards?.totalRedeemed ?? 0)} redeemed</span>
+              </div>
+            </div>
+            <div className="metric-card support">
+              <div className="metric-icon">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                  <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
+                </svg>
+              </div>
+              <div className="metric-content">
+                <h3>Support Tickets</h3>
+                <p className="metric-value">{platformAnalytics.supportTickets?.open ?? 0}</p>
+                <span className="metric-change neutral">Open · {platformAnalytics.supportTickets?.closed ?? 0} closed</span>
+              </div>
+            </div>
+            <div className="metric-card refunds">
+              <div className="metric-icon">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+              </div>
+              <div className="metric-content">
+                <h3>Refunds</h3>
+                <p className="metric-value">{formatCurrency(platformAnalytics.refunds?.totalAmount ?? 0)}</p>
+                <span className="metric-change neutral">{platformAnalytics.refunds?.count ?? 0} processed</span>
+              </div>
+            </div>
+            <div className="metric-card promos">
+              <div className="metric-icon">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                  <path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42z"/>
+                </svg>
+              </div>
+              <div className="metric-content">
+                <h3>Promo Codes</h3>
+                <p className="metric-value">{platformAnalytics.promos?.totalRedemptions ?? 0}</p>
+                <span className="metric-change neutral">{platformAnalytics.promos?.totalCodes ?? 0} codes · redemptions</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {}
         <div className="metrics-grid">

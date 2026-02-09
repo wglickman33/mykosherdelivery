@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { fetchFacilitiesList, createFacility, updateFacility, deleteFacility } from '../../services/nursingHomeService';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
+import Pagination from '../Pagination/Pagination';
 import './AdminNursingHomes.scss';
 
 const defaultAddress = {
@@ -18,8 +19,6 @@ const formatPhone = (raw) => {
   if (digits.length < 10) return digits.length ? digits : '—';
   return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
 };
-
-const PAGE_LIMIT_OPTIONS = [10, 20, 50, 100];
 
 const FacilitiesTab = () => {
   const navigate = useNavigate();
@@ -266,45 +265,16 @@ const FacilitiesTab = () => {
               </tbody>
             </table>
           </div>
-          <div className="facilities-pagination">
-            <div className="pagination-info">
-              Showing {total > 0 ? startIdx + 1 : 0} to{' '}
-              {Math.min(startIdx + limit, total)} of {total} facilities
-            </div>
-            <div className="pagination-controls">
-              <label className="per-page-label">
-                Per page
-                <select
-                  value={limit}
-                  onChange={(e) => {
-                    setLimit(Number(e.target.value));
-                    setPage(1);
-                  }}
-                  className="per-page-select"
-                >
-                  {PAGE_LIMIT_OPTIONS.map((n) => (
-                    <option key={n} value={n}>{n}</option>
-                  ))}
-                </select>
-              </label>
-              <button
-                type="button"
-                disabled={safePage <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-              >
-                Previous
-              </button>
-              <span className="page-info">
-                Page {safePage} of {totalPages}
-              </span>
-              <button
-                type="button"
-                disabled={safePage >= totalPages}
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              >
-                Next
-              </button>
-            </div>
+          <div className="pagination-footer">
+            <Pagination
+              page={safePage}
+              totalPages={totalPages}
+              rowsPerPage={limit}
+              total={total}
+              onPageChange={setPage}
+              onRowsPerPageChange={(n) => { setLimit(n); setPage(1); }}
+              rowsPerPageOptions={[10, 20, 50, 100]}
+            />
           </div>
         </div>
       )}

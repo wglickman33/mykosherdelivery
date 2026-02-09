@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { fetchResidentOrders, fetchResidents } from '../../services/nursingHomeService';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
+import Pagination from '../Pagination/Pagination';
 import './NursingHomeOrders.scss';
 
 const NursingHomeOrders = () => {
@@ -98,29 +99,28 @@ const NursingHomeOrders = () => {
         <button type="button" className="btn-primary" onClick={handleFilter}>Apply</button>
       </div>
 
-      {orders.length === 0 ? (
-        <section className="empty-state">
-          <p>No orders found.</p>
-          <button type="button" className="btn-primary" onClick={() => navigate(dashboardPath)}>
-            Back to Dashboard
-          </button>
-        </section>
-      ) : (
-        <section className="orders-table-wrap">
-          <table className="orders-table" role="grid">
-            <thead>
+      <section className="orders-table-wrap">
+        <table className="orders-table" role="grid">
+          <thead>
+            <tr>
+              <th>Order #</th>
+              <th>Resident</th>
+              <th>Week</th>
+              <th>Status</th>
+              <th>Payment</th>
+              <th>Total</th>
+              <th aria-label="Actions" />
+            </tr>
+          </thead>
+          <tbody>
+            {orders.length === 0 ? (
               <tr>
-                <th>Order #</th>
-                <th>Resident</th>
-                <th>Week</th>
-                <th>Status</th>
-                <th>Payment</th>
-                <th>Total</th>
-                <th aria-label="Actions" />
+                <td colSpan={7} className="orders-table-empty">
+                  No orders found. <button type="button" className="link-btn" onClick={() => navigate(dashboardPath)}>Back to Dashboard</button>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {orders.map(order => (
+            ) : (
+              orders.map(order => (
                 <tr key={order.id}>
                   <td>{order.orderNumber}</td>
                   <td>{order.resident?.name ?? order.residentName ?? '—'}</td>
@@ -147,30 +147,22 @@ const NursingHomeOrders = () => {
                     )}
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          {pagination.totalPages > 1 && (
-            <div className="orders-pagination">
-              <button
-                type="button"
-                disabled={pagination.page <= 1}
-                onClick={() => setPagination(p => ({ ...p, page: p.page - 1 }))}
-              >
-                Previous
-              </button>
-              <span>Page {pagination.page} of {pagination.totalPages}</span>
-              <button
-                type="button"
-                disabled={pagination.page >= pagination.totalPages}
-                onClick={() => setPagination(p => ({ ...p, page: p.page + 1 }))}
-              >
-                Next
-              </button>
-            </div>
-          )}
-        </section>
-      )}
+              ))
+            )}
+          </tbody>
+        </table>
+        <div className="orders-table-wrap__pagination pagination-footer">
+          <Pagination
+            page={pagination.page}
+            totalPages={Math.max(1, pagination.totalPages)}
+            rowsPerPage={pagination.limit}
+            total={pagination.total}
+            onPageChange={(p) => setPagination(prev => ({ ...prev, page: p }))}
+            onRowsPerPageChange={(n) => setPagination(prev => ({ ...prev, limit: n, page: 1 }))}
+            rowsPerPageOptions={[10, 20, 30, 40, 50]}
+          />
+        </div>
+      </section>
     </div>
   );
 };

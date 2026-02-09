@@ -257,6 +257,20 @@
       background: white;
     }
 
+    .orders-tab__pagination {
+      padding: 16px 20px;
+      border-top: 1px solid var(--color-neutral-200, #e5e7eb);
+      background: #f8fafc;
+      margin-top: 0;
+      border-radius: 0 0 8px 8px;
+    }
+
+    .orders-tab-empty-cell {
+      text-align: center;
+      padding: 2rem;
+      color: var(--color-text-secondary, #666);
+    }
+
     .data-table {
       width: 100%;
       border-collapse: collapse;

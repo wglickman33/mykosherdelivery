@@ -411,6 +411,13 @@
       }
     }
 
+    .orders-table-container__pagination {
+      padding: 20px 24px;
+      border-top: 1px solid #f1f5f9;
+      background: #f8fafc;
+      flex-shrink: 0;
+    }
+
     .pagination {
       display: flex;
       justify-content: center;

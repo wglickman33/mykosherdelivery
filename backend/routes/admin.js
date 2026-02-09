@@ -1,7 +1,7 @@
 const express = require('express');
 const { Op, QueryTypes } = require('sequelize');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const { Profile, Order, Restaurant, DeliveryZone, SupportTicket, TicketResponse, AdminNotification, Notification, AdminAuditLog, sequelize, MenuItem, MenuItemOption, UserRestaurantFavorite, MenuChangeRequest, UserLoginActivity, UserPreference, UserAnalytic, PaymentMethod, RestaurantOwner, Refund, PromoCode } = require('../models');
+const { Profile, Order, Restaurant, DeliveryZone, SupportTicket, TicketResponse, AdminNotification, Notification, AdminAuditLog, sequelize, MenuItem, MenuItemOption, UserRestaurantFavorite, MenuChangeRequest, UserLoginActivity, UserPreference, UserAnalytic, PaymentMethod, RestaurantOwner, Refund, PromoCode, GiftCard } = require('../models');
 const { requireAdmin } = require('../middleware/auth');
 const { body, param, validationResult } = require('express-validator');
 const { VALID_PROFILE_ROLES } = require('../config/constants');
@@ -9,40 +9,11 @@ const logger = require('../utils/logger');
 const { isMissingColumnError, getProfileById, getProfilesForAdminList, countProfilesRaw, updateProfileSafe, profileExistsWithEmail } = require('../utils/profileFallback');
 const jwt = require('jsonwebtoken');
 const { appEvents } = require('../utils/events');
+const { logAdminAction } = require('../utils/auditLog');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const ExcelJS = require('exceljs');
-
-const logAdminAction = async (adminId, action, tableName, recordId, oldValues, newValues, req = null) => {
-  try {
-    const ipAddress = req ? req.ip || req.connection.remoteAddress : null;
-    const userAgent = req ? req.get('User-Agent') : null;
-    
-    await AdminAuditLog.create({
-      adminId,
-      action,
-      tableName,
-      recordId,
-      oldValues: oldValues ? JSON.stringify(oldValues) : null,
-      newValues: newValues ? JSON.stringify(newValues) : null,
-      ipAddress,
-      userAgent
-    });
-    
-    logger.info('Admin action logged', {
-      adminId,
-      action,
-      tableName,
-      recordId,
-      oldValues,
-      newValues
-    });
-  } catch (error) {
-    logger.error('Error logging admin action:', error);
-    throw error;
-  }
-};
 
 async function createGlobalAdminNotification(payload) {
   try {
@@ -1024,6 +995,57 @@ router.get('/analytics', requireAdmin, async (req, res) => {
       }
     });
 
+    const [giftCardCounts, giftCardTotalCount, totalInitial, totalBalance] = await Promise.all([
+      GiftCard.findAll({
+        attributes: [
+          'status',
+          [sequelize.fn('COUNT', sequelize.col('id')), 'count'],
+          [sequelize.fn('SUM', sequelize.col('initial_balance')), 'totalInitial'],
+          [sequelize.fn('SUM', sequelize.col('balance')), 'totalBalance']
+        ],
+        group: ['status'],
+        raw: true
+      }),
+      GiftCard.count(),
+      GiftCard.sum('initialBalance'),
+      GiftCard.sum('balance')
+    ]);
+    const totalInitialVal = parseFloat(totalInitial || 0);
+    const totalBalanceVal = parseFloat(totalBalance || 0);
+    const giftCardByStatus = giftCardCounts.reduce((acc, row) => {
+      acc[row.status] = { count: parseInt(row.count), totalInitial: parseFloat(row.totalInitial || 0), totalBalance: parseFloat(row.totalBalance || 0) };
+      return acc;
+    }, {});
+
+    const supportTicketCounts = await SupportTicket.findAll({
+      attributes: ['status', [sequelize.fn('COUNT', sequelize.col('id')), 'count']],
+      group: ['status'],
+      raw: true
+    });
+    const openStatuses = ['open', 'in_progress', 'waiting'];
+    const closedStatuses = ['resolved', 'closed'];
+    const supportOpen = supportTicketCounts.filter(r => openStatuses.includes(r.status)).reduce((s, r) => s + parseInt(r.count), 0);
+    const supportClosed = supportTicketCounts.filter(r => closedStatuses.includes(r.status)).reduce((s, r) => s + parseInt(r.count), 0);
+
+    const refundRows = await Refund.findAll({
+      attributes: [
+        [sequelize.fn('COUNT', sequelize.col('id')), 'count'],
+        [sequelize.fn('SUM', sequelize.col('amount')), 'totalAmount']
+      ],
+      where: { status: 'processed' },
+      raw: true
+    });
+    const refundStats = refundRows[0] || { count: 0, totalAmount: 0 };
+
+    const promoRows = await PromoCode.findAll({
+      attributes: [
+        [sequelize.fn('COUNT', sequelize.col('id')), 'count'],
+        [sequelize.fn('SUM', sequelize.col('usage_count')), 'totalRedemptions']
+      ],
+      raw: true
+    });
+    const promoStats = promoRows[0] || { count: 0, totalRedemptions: 0 };
+
     res.json({
       users: {
         total: totalUsers,
@@ -1046,6 +1068,29 @@ router.get('/analytics', requireAdmin, async (req, res) => {
       restaurants: {
         total: totalRestaurants,
         featured: featuredRestaurants
+      },
+      giftCards: {
+        totalIssuedValue: totalInitialVal,
+        totalRedeemed: totalInitialVal - totalBalanceVal,
+        totalOutstandingBalance: totalBalanceVal,
+        count: giftCardTotalCount,
+        byStatus: giftCardByStatus,
+        countActive: giftCardByStatus.active?.count ?? 0,
+        countUsed: giftCardByStatus.used?.count ?? 0,
+        countVoid: giftCardByStatus.void?.count ?? 0
+      },
+      supportTickets: {
+        total: supportOpen + supportClosed,
+        open: supportOpen,
+        closed: supportClosed
+      },
+      refunds: {
+        count: parseInt(refundStats.count || 0),
+        totalAmount: parseFloat(refundStats.totalAmount || 0)
+      },
+      promos: {
+        totalCodes: parseInt(promoStats.count || 0),
+        totalRedemptions: parseInt(promoStats.totalRedemptions || 0)
       }
     });
 
@@ -1055,6 +1100,85 @@ router.get('/analytics', requireAdmin, async (req, res) => {
       error: 'Internal server error',
       message: 'Failed to fetch analytics'
     });
+  }
+});
+
+router.get('/analytics/gift-cards', requireAdmin, async (req, res) => {
+  try {
+    const period = (req.query.period || 'monthly').toLowerCase();
+    const now = new Date();
+    const periods = [];
+
+    if (period === 'weekly') {
+      for (let i = 11; i >= 0; i--) {
+        const weekStart = new Date(now);
+        const dayOfWeek = weekStart.getDay();
+        const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        weekStart.setDate(weekStart.getDate() + mondayOffset - (i * 7));
+        weekStart.setHours(0, 0, 0, 0);
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+        weekEnd.setHours(23, 59, 59, 999);
+        const result = await GiftCard.findAll({
+          attributes: [
+            [sequelize.fn('COUNT', sequelize.col('id')), 'count'],
+            [sequelize.fn('SUM', sequelize.col('initial_balance')), 'valueIssued']
+          ],
+          where: { createdAt: { [Op.gte]: weekStart, [Op.lte]: weekEnd } },
+          raw: true
+        });
+        const row = result[0] || { count: 0, valueIssued: 0 };
+        periods.push({
+          period: `Week ${12 - i}`,
+          label: `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
+          countIssued: parseInt(row.count, 10),
+          valueIssued: parseFloat(row.valueIssued || 0)
+        });
+      }
+    } else {
+      for (let i = 11; i >= 0; i--) {
+        const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        monthStart.setHours(0, 0, 0, 0);
+        const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
+        monthEnd.setHours(23, 59, 59, 999);
+        const result = await GiftCard.findAll({
+          attributes: [
+            [sequelize.fn('COUNT', sequelize.col('id')), 'count'],
+            [sequelize.fn('SUM', sequelize.col('initial_balance')), 'valueIssued']
+          ],
+          where: { createdAt: { [Op.gte]: monthStart, [Op.lte]: monthEnd } },
+          raw: true
+        });
+        const row = result[0] || { count: 0, valueIssued: 0 };
+        periods.push({
+          period: monthStart.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+          label: monthStart.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+          countIssued: parseInt(row.count, 10),
+          valueIssued: parseFloat(row.valueIssued || 0)
+        });
+      }
+    }
+
+    const summary = await (async () => {
+      const [totalCount, totalInitial, totalBalance] = await Promise.all([
+        GiftCard.count(),
+        GiftCard.sum('initialBalance'),
+        GiftCard.sum('balance')
+      ]);
+      const ti = parseFloat(totalInitial || 0);
+      const tb = parseFloat(totalBalance || 0);
+      return {
+        totalIssuedValue: ti,
+        totalOutstandingBalance: tb,
+        totalRedeemed: ti - tb,
+        count: totalCount
+      };
+    })();
+
+    res.json({ success: true, data: { byPeriod: periods, summary } });
+  } catch (error) {
+    console.error('Error fetching gift card analytics:', error);
+    res.status(500).json({ error: 'Internal server error', message: 'Failed to fetch gift card analytics' });
   }
 });
 
@@ -2361,6 +2485,12 @@ router.get('/orders', requireAdmin, async (req, res) => {
         model: Restaurant,
         as: 'restaurant',
         attributes: ['name']
+      },
+      {
+        model: GiftCard,
+        as: 'giftCards',
+        attributes: ['id', 'code', 'initialBalance', 'balance', 'status'],
+        required: false
       }
     ];
 
@@ -2419,23 +2549,25 @@ router.get('/orders', requireAdmin, async (req, res) => {
       offset
     });
 
-    const enhancedOrders = await Promise.all(rows.map(async (order) => {
+const enhancedOrders = await Promise.all(rows.map(async (order) => {
       const orderData = order.toJSON();
-      
+
       if (orderData.restaurantGroups && Object.keys(orderData.restaurantGroups).length > 0) {
         const restaurantIds = Object.keys(orderData.restaurantGroups);
         const restaurants = await Restaurant.findAll({
           where: { id: restaurantIds },
           attributes: ['id', 'name', 'address', 'phone']
         });
-        
         orderData.restaurants = restaurants;
+        if (restaurantIds.includes('mkd-gift-cards') && !restaurants.some(r => r.id === 'mkd-gift-cards')) {
+          orderData.restaurants.push({ id: 'mkd-gift-cards', name: 'Gift card purchase', address: null, phone: null });
+        }
         orderData.isMultiRestaurant = restaurants.length > 1;
       } else if (orderData.restaurant) {
         orderData.restaurants = [orderData.restaurant];
         orderData.isMultiRestaurant = false;
       }
-      
+
       return orderData;
     }));
 
@@ -2682,6 +2814,12 @@ router.get('/orders/:orderId', requireAdmin, async (req, res) => {
           model: Restaurant,
           as: 'restaurant',
           attributes: ['id', 'name', 'address', 'phone', 'logoUrl']
+        },
+        {
+          model: GiftCard,
+          as: 'giftCards',
+          attributes: ['id', 'code', 'initialBalance', 'balance', 'status'],
+          required: false
         }
       ]
     });
@@ -2701,9 +2839,11 @@ router.get('/orders/:orderId', requireAdmin, async (req, res) => {
         where: { id: restaurantIds },
         attributes: ['id', 'name', 'address', 'phone', 'logoUrl']
       });
-      
       orderData.restaurants = restaurants;
-      orderData.isMultiRestaurant = restaurants.length > 1;
+      if (restaurantIds.includes('mkd-gift-cards') && !restaurants.some(r => r.id === 'mkd-gift-cards')) {
+        orderData.restaurants.push({ id: 'mkd-gift-cards', name: 'Gift card purchase', address: null, phone: null, logoUrl: null });
+      }
+      orderData.isMultiRestaurant = orderData.restaurants.length > 1;
     } else if (orderData.restaurant) {
       orderData.restaurants = [orderData.restaurant];
       orderData.isMultiRestaurant = false;

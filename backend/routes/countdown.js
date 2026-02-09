@@ -1,27 +1,7 @@
 const express = require('express');
 const { requireAdmin } = require('../middleware/auth');
 const logger = require('../utils/logger');
-const { AdminAuditLog } = require('../models');
-
-const logAdminAction = async (adminId, action, tableName, recordId, oldValues, newValues, req = null) => {
-  try {
-    const ipAddress = req ? req.ip || req.connection.remoteAddress : null;
-    const userAgent = req ? req.get('User-Agent') : null;
-    
-    await AdminAuditLog.create({
-      adminId,
-      action,
-      tableName,
-      recordId,
-      oldValues: oldValues ? JSON.stringify(oldValues) : null,
-      newValues: newValues ? JSON.stringify(newValues) : null,
-      ipAddress,
-      userAgent
-    });
-  } catch (error) {
-    logger.error('Error logging admin action:', error);
-  }
-};
+const { logAdminAction } = require('../utils/auditLog');
 
 const router = express.Router();
 

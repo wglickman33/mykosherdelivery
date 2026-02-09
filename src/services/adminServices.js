@@ -717,6 +717,27 @@ export const fetchComprehensiveAnalytics = async (timeRange = '30d') => {
   }
 };
 
+export const fetchPlatformAnalytics = async () => {
+  try {
+    const response = await apiClient.get('/admin/analytics');
+    return { success: true, data: response };
+  } catch (error) {
+    logger.error('Error fetching platform analytics:', error);
+    return { success: false, error: error?.message, data: null };
+  }
+};
+
+export const fetchGiftCardAnalytics = async (period = 'monthly') => {
+  try {
+    const response = await apiClient.get('/admin/analytics/gift-cards', { period });
+    const payload = response?.data ?? response;
+    return { success: true, data: payload };
+  } catch (error) {
+    logger.error('Error fetching gift card analytics:', error);
+    return { success: false, error: error?.message, data: null };
+  }
+};
+
 export const fetchRevenueTrends = async (period = 'quarterly') => {
   try {
     const now = new Date();

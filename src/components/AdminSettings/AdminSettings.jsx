@@ -2,6 +2,7 @@ import './AdminSettings.scss';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
+import Pagination from '../Pagination/Pagination';
 import { fetchAuditLogs } from '../../services/adminServices';
 import { 
   getCountdownSettings, 
@@ -542,25 +543,16 @@ const AdminSettings = () => {
                   </div>
                 </div>
 
-                <div className="pagination">
-                  <div className="pagination-info">
-                    Showing {((filters.page - 1) * filters.limit) + 1}-{Math.min(filters.page * filters.limit, totalCount || 0)} of {totalCount || 0} logs
-                  </div>
-                  <div className="pagination-controls">
-                    <button 
-                      onClick={() => setFilters({ ...filters, page: filters.page - 1 })}
-                      disabled={filters.page === 1}
-                    >
-                      Previous
-                    </button>
-                    <span className="page-info">Page {filters.page} of {totalPages || 1}</span>
-                    <button 
-                      onClick={() => setFilters({ ...filters, page: filters.page + 1 })}
-                      disabled={filters.page === (totalPages || 1)}
-                    >
-                      Next
-                    </button>
-                  </div>
+                <div className="pagination-footer">
+                  <Pagination
+                    page={filters.page}
+                    totalPages={totalPages || 1}
+                    rowsPerPage={filters.limit}
+                    total={totalCount || 0}
+                    onPageChange={(p) => setFilters({ ...filters, page: p })}
+                    onRowsPerPageChange={(n) => setFilters({ ...filters, limit: n, page: 1 })}
+                    rowsPerPageOptions={[10, 20, 30, 40, 50]}
+                  />
                 </div>
               </>
             )}

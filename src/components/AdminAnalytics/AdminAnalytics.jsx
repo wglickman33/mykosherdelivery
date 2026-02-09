@@ -10,7 +10,8 @@ const AdminAnalytics = () => {
     { id: 'revenue', label: 'Revenue', path: '/admin/analytics/revenue' },
     { id: 'orders', label: 'Orders', path: '/admin/analytics/orders' },
     { id: 'users', label: 'Users', path: '/admin/analytics/users' },
-    { id: 'restaurants', label: 'Restaurants', path: '/admin/analytics/restaurants' }
+    { id: 'restaurants', label: 'Restaurants', path: '/admin/analytics/restaurants' },
+    { id: 'gift-cards', label: 'Gift Cards', path: '/admin/analytics/gift-cards' }
   ];
 
   const getCurrentTab = () => {
@@ -116,6 +117,7 @@ const AdminAnalytics = () => {
                   {tab.id === 'orders' && 'Order volume and distribution'}
                   {tab.id === 'users' && 'User behavior and demographics'}
                   {tab.id === 'restaurants' && 'Restaurant performance metrics'}
+                  {tab.id === 'gift-cards' && 'Gift card issuance, redemption, and balance'}
                 </p>
               </button>
             ))}

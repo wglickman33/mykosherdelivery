@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { MapPin } from 'lucide-react';
+import { MapPin, Download } from 'lucide-react';
 import { useMapsDeviceLocation } from '../../context/MapsDeviceLocationContext';
 import { getMapsRestaurants } from '../../services/mapsService';
 import { isOpenNow } from '../../utils/mapsHoursUtils';
+import { exportMapsRestaurantsCsv, exportMapsRestaurantsXlsx, exportMapsRestaurantsPdf } from '../../utils/mapsExportUtils';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
+import Pagination from '../Pagination/Pagination';
 import logger from '../../utils/logger';
 import './MapsPage.scss';
 
@@ -45,14 +47,17 @@ function getDirectionsUrl(place) {
 }
 
 function formatHoursLine(line) {
-  const parts = line.split(/\b(Closed)\b/i);
-  return parts.map((part, i) =>
-    part.toLowerCase() === 'closed' ? (
-      <strong key={i} className="maps-page__hours-closed">Closed</strong>
-    ) : (
-      part
-    )
-  );
+  const parts = line.split(/\b(Closed|AS)\b/i);
+  return parts.map((part, i) => {
+    const lower = part.toLowerCase();
+    if (lower === 'closed') {
+      return <strong key={i} className="maps-page__hours-closed">Closed</strong>;
+    }
+    if (lower === 'as') {
+      return <strong key={i} className="maps-page__hours-as">AS</strong>;
+    }
+    return part;
+  });
 }
 
 const MapsPage = () => {
@@ -71,6 +76,14 @@ const MapsPage = () => {
   const [mapReady, setMapReady] = useState(false);
   const [mapInstanceReady, setMapInstanceReady] = useState(false);
   const [mapType, setMapType] = useState('roadmap');
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportFormat, setExportFormat] = useState('csv');
+  const [exportStates, setExportStates] = useState([]);
+  const [exportCities, setExportCities] = useState([]);
+  const [exportZips, setExportZips] = useState([]);
+  const [exporting, setExporting] = useState(false);
+  const [pageSize, setPageSize] = useState(20);
+  const [currentPage, setCurrentPage] = useState(1);
   const mapRef = useRef(null);
   const markersRef = useRef([]);
   const mapInstanceRef = useRef(null);
@@ -100,7 +113,7 @@ const MapsPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const params = { active: 'true' };
+      const params = { active: 'true', limit: 500 };
       if (search.trim()) params.search = search.trim();
       if (dietFilter.trim()) params.diet = dietFilter.trim();
       if (referenceLocation) {
@@ -128,6 +141,17 @@ const MapsPage = () => {
   useEffect(() => {
     loadRestaurants();
   }, [loadRestaurants]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [pageSize, search, dietFilter, sortBy]);
+
+  const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50];
+  const totalPages = Math.max(1, Math.ceil(list.length / pageSize));
+  const displayedList = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return list.slice(start, start + pageSize);
+  }, [list, currentPage, pageSize]);
 
   const openStatusById = useMemo(() => {
     const out = {};
@@ -159,6 +183,42 @@ const MapsPage = () => {
     });
     return out;
   }, [list, referenceLocation]);
+
+  const uniqueExportOptions = useMemo(() => {
+    const states = new Set();
+    const cities = new Set();
+    const zips = new Set();
+    (list || []).forEach((p) => {
+      if (p.state && String(p.state).trim()) states.add(String(p.state).trim());
+      if (p.city && String(p.city).trim()) cities.add(String(p.city).trim());
+      if (p.zip && String(p.zip).trim()) zips.add(String(p.zip).trim());
+    });
+    return {
+      states: [...states].sort(),
+      cities: [...cities].sort((a, b) => a.localeCompare(b)),
+      zips: [...zips].sort()
+    };
+  }, [list]);
+
+  const handleExport = useCallback(async () => {
+    setExporting(true);
+    const opts = { states: exportStates, cities: exportCities, zips: exportZips };
+    try {
+      if (exportFormat === 'csv') {
+        exportMapsRestaurantsCsv(list, opts);
+      } else if (exportFormat === 'xlsx') {
+        await exportMapsRestaurantsXlsx(list, opts);
+      } else if (exportFormat === 'pdf') {
+        await exportMapsRestaurantsPdf(list, opts);
+      }
+      setShowExportModal(false);
+    } catch (err) {
+      logger.error('Export failed', err);
+      setError(err?.message || 'Export failed');
+    } finally {
+      setExporting(false);
+    }
+  }, [list, exportFormat, exportStates, exportCities, exportZips]);
 
   const geocodeAddress = () => {
     const query = (addressInput || '').trim();
@@ -695,6 +755,15 @@ const MapsPage = () => {
           <MapPin size={18} className="maps-page__location-icon" aria-hidden />
           {locating ? 'Locating…' : 'Use My Location'}
         </button>
+        <button
+          type="button"
+          className="maps-page__location-btn maps-page__export-btn"
+          onClick={() => setShowExportModal(true)}
+          title="Export restaurants as CSV, XLSX, or PDF"
+        >
+          <Download size={18} aria-hidden />
+          Export
+        </button>
       </div>
 
       <div className="maps-page__error-wrap">
@@ -729,8 +798,9 @@ const MapsPage = () => {
               <p>No restaurants match your filters.</p>
             </div>
           ) : (
-            <ul className="maps-page__list">
-              {list.map((place) => {
+            <>
+              <ul className="maps-page__list">
+              {displayedList.map((place) => {
                 const isOpen = openStatusById[place.id];
                 const openClass = isOpen === true ? 'maps-page__card--open' : isOpen === false ? 'maps-page__card--closed' : '';
                 return (
@@ -810,10 +880,115 @@ const MapsPage = () => {
                   </div>
                 </li>
               ); })}
-            </ul>
+              </ul>
+              <div className="maps-page__pagination-wrap pagination-footer">
+                <Pagination
+                  page={currentPage}
+                  totalPages={totalPages}
+                  rowsPerPage={pageSize}
+                  total={list.length}
+                  onPageChange={setCurrentPage}
+                  onRowsPerPageChange={(n) => { setPageSize(n); setCurrentPage(1); }}
+                  rowsPerPageOptions={PAGE_SIZE_OPTIONS}
+                />
+              </div>
+            </>
           )}
         </div>
       </div>
+
+      {showExportModal && (
+        <div
+          className="maps-page__export-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="export-modal-title"
+          onClick={() => !exporting && setShowExportModal(false)}
+        >
+          <div className="maps-page__export-modal" onClick={(e) => e.stopPropagation()}>
+            <h2 id="export-modal-title" className="maps-page__export-title">Export restaurants</h2>
+            <p className="maps-page__export-hint">Build your own export: choose format and optionally filter by state, city, or zip. Leave filters empty to export all visible restaurants.</p>
+            <div className="maps-page__export-format">
+              <label htmlFor="export-format">Format</label>
+              <select
+                id="export-format"
+                value={exportFormat}
+                onChange={(e) => setExportFormat(e.target.value)}
+                className="maps-page__select"
+              >
+                <option value="csv">CSV</option>
+                <option value="xlsx">XLSX (Excel)</option>
+                <option value="pdf">PDF</option>
+              </select>
+            </div>
+            <div className="maps-page__export-filters">
+              <div className="maps-page__export-filter">
+                <label htmlFor="export-states">State(s)</label>
+                <select
+                  id="export-states"
+                  multiple
+                  value={exportStates}
+                  onChange={(e) => setExportStates([...e.target.selectedOptions].map((o) => o.value))}
+                  className="maps-page__select maps-page__select-multi"
+                >
+                  {uniqueExportOptions.states.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+                <span className="maps-page__export-filter-hint">Hold Ctrl/Cmd to select multiple</span>
+              </div>
+              <div className="maps-page__export-filter">
+                <label htmlFor="export-cities">City / Cities</label>
+                <select
+                  id="export-cities"
+                  multiple
+                  value={exportCities}
+                  onChange={(e) => setExportCities([...e.target.selectedOptions].map((o) => o.value))}
+                  className="maps-page__select maps-page__select-multi"
+                >
+                  {uniqueExportOptions.cities.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                <span className="maps-page__export-filter-hint">Hold Ctrl/Cmd to select multiple</span>
+              </div>
+              <div className="maps-page__export-filter">
+                <label htmlFor="export-zips">Zip(s)</label>
+                <select
+                  id="export-zips"
+                  multiple
+                  value={exportZips}
+                  onChange={(e) => setExportZips([...e.target.selectedOptions].map((o) => o.value))}
+                  className="maps-page__select maps-page__select-multi"
+                >
+                  {uniqueExportOptions.zips.map((z) => (
+                    <option key={z} value={z}>{z}</option>
+                  ))}
+                </select>
+                <span className="maps-page__export-filter-hint">Hold Ctrl/Cmd to select multiple</span>
+              </div>
+            </div>
+            <div className="maps-page__export-actions">
+              <button
+                type="button"
+                className="maps-page__location-btn"
+                onClick={handleExport}
+                disabled={exporting || list.length === 0}
+              >
+                {exporting ? 'Exporting…' : `Export as ${exportFormat.toUpperCase()}`}
+              </button>
+              <button
+                type="button"
+                className="maps-page__export-cancel"
+                onClick={() => setShowExportModal(false)}
+                disabled={exporting}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

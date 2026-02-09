@@ -1,13 +1,14 @@
 import './AdminRestaurants.scss';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { fetchAllRestaurants, createRestaurant, updateRestaurant, deleteRestaurant, logAdminAction } from '../../services/adminServices';
 import { uploadRestaurantLogo, buildImageUrl } from '../../services/imageService';
 import { useAuth } from '../../hooks/useAuth';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import NotificationToast from '../NotificationToast/NotificationToast';
 import { useNotification } from '../../hooks/useNotification';
+import Pagination from '../Pagination/Pagination';
 import { restaurants as restaurantsData } from '../../data/restaurants';
 import { formatPhoneNumber, formatPhoneForInput } from '../../utils/phoneFormatter';
 import MenuItemModal from './MenuItemModal';
@@ -471,15 +472,6 @@ const AdminRestaurants = () => {
 
   const nhMenuTotalPages = Math.max(1, Math.ceil(filteredNHMenuItems.length / nhMenuPageSize));
 
-  const nhMenuPageNumbers = useMemo(() => {
-    const total = nhMenuTotalPages;
-    const current = nhMenuPage;
-    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-    if (current <= 4) return [1, 2, 3, 4, 5, '...', total];
-    if (current >= total - 3) return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
-    return [1, '...', current - 1, current, current + 1, '...', total];
-  }, [nhMenuTotalPages, nhMenuPage]);
-
   useEffect(() => {
     setNHMenuPage(1);
   }, [nhMenuFilters.mealType, nhMenuFilters.category, nhMenuFilters.search]);
@@ -699,30 +691,16 @@ const AdminRestaurants = () => {
               ))}
             </div>
 
-            {}
-            <div className="admin-restaurants__pagination">
-              <div className="admin-restaurants__pagination-info">
-                Showing {pagination.total > 0 ? ((pagination.page - 1) * pagination.limit) + 1 : 0} to{' '}
-                {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
-                {pagination.total} restaurants
-              </div>
-              <div className="admin-restaurants__pagination-controls">
-                <button
-                  disabled={pagination.page <= 1}
-                  onClick={() => setFilters({ ...filters, page: pagination.page - 1 })}
-                >
-                  Previous
-                </button>
-                <span className="admin-restaurants__page-info">
-                  Page {pagination.page} of {pagination.totalPages}
-                </span>
-                <button
-                  disabled={pagination.page >= pagination.totalPages}
-                  onClick={() => setFilters({ ...filters, page: pagination.page + 1 })}
-                >
-                  Next
-                </button>
-              </div>
+            <div className="pagination-footer">
+              <Pagination
+                page={pagination.page || 1}
+                totalPages={pagination.totalPages || 1}
+                rowsPerPage={pagination.limit || filters.limit}
+                total={pagination.total}
+                onPageChange={(p) => setFilters({ ...filters, page: p })}
+                onRowsPerPageChange={(n) => setFilters({ ...filters, limit: n, page: 1 })}
+                rowsPerPageOptions={[10, 20, 30, 40, 50]}
+              />
             </div>
           </>
         )}
@@ -883,41 +861,21 @@ const AdminRestaurants = () => {
                   </div>
                 )}
 
-                {}
-                {menuItemsPagination.totalPages > 1 && (
-                  <div className="admin-restaurants__pagination">
-                    <button
-                      className="admin-restaurants__pagination-btn"
-                      onClick={() => handleMenuItemsPageChange(menuItemsPagination.page - 1)}
-                      disabled={menuItemsPagination.page <= 1}
-                    >
-                      Previous
-                    </button>
-                    
-                    <div className="admin-restaurants__pagination-pages">
-                      {Array.from({ length: Math.min(5, menuItemsPagination.totalPages) }, (_, i) => {
-                        const pageNum = Math.max(1, menuItemsPagination.page - 2) + i;
-                        if (pageNum > menuItemsPagination.totalPages) return null;
-                        
-                        return (
-                          <button
-                            key={pageNum}
-                            className={`admin-restaurants__pagination-page ${pageNum === menuItemsPagination.page ? 'active' : ''}`}
-                            onClick={() => handleMenuItemsPageChange(pageNum)}
-                          >
-                            {pageNum}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    
-                    <button
-                      className="admin-restaurants__pagination-btn"
-                      onClick={() => handleMenuItemsPageChange(menuItemsPagination.page + 1)}
-                      disabled={menuItemsPagination.page >= menuItemsPagination.totalPages}
-                    >
-                      Next
-                    </button>
+                {(menuItemsPagination.totalPages > 1 || menuItemsPagination.total > 0) && (
+                  <div className="pagination-footer">
+                    <Pagination
+                      page={menuItemsPagination.page || 1}
+                      totalPages={menuItemsPagination.totalPages || 1}
+                      rowsPerPage={menuItemsPagination.limit || menuItemsFilters.limit}
+                      total={menuItemsPagination.total}
+                      onPageChange={handleMenuItemsPageChange}
+                      onRowsPerPageChange={(n) => {
+                        const newFilters = { ...menuItemsFilters, limit: n, page: 1 };
+                        setMenuItemsFilters(newFilters);
+                        if (selectedRestaurantForMenu) fetchMenuItems(selectedRestaurantForMenu.id, newFilters);
+                      }}
+                      rowsPerPageOptions={[10, 20, 30, 40, 50]}
+                    />
                   </div>
                 )}
               </div>
@@ -1127,73 +1085,16 @@ const AdminRestaurants = () => {
                   )}
                 </div>
                 {filteredNHMenuItems.length > 0 && (
-                <div className="admin-restaurants__pagination admin-restaurants__pagination--nh">
-                  <div className="admin-restaurants__pagination-info">
-                    Showing {filteredNHMenuItems.length === 0 ? 0 : (nhMenuPage - 1) * nhMenuPageSize + 1} to{' '}
-                    {Math.min(nhMenuPage * nhMenuPageSize, filteredNHMenuItems.length)} of{' '}
-                    {filteredNHMenuItems.length} items
+                  <div className="pagination-footer">
+                    <Pagination
+                      page={nhMenuPage}
+                      totalPages={nhMenuTotalPages}
+                      rowsPerPage={nhMenuPageSize}
+                      total={filteredNHMenuItems.length}
+                      onPageChange={setNHMenuPage}
+                      showRowsPerPage={false}
+                    />
                   </div>
-                  <div className="admin-restaurants__pagination-controls">
-                    <button
-                      type="button"
-                      className="admin-restaurants__pagination-btn admin-restaurants__pagination-btn--icon"
-                      disabled={nhMenuPage <= 1}
-                      onClick={() => setNHMenuPage(1)}
-                      title="First page"
-                      aria-label="First page"
-                    >
-                      <ChevronFirst size={18} aria-hidden="true" />
-                    </button>
-                    <button
-                      type="button"
-                      className="admin-restaurants__pagination-btn admin-restaurants__pagination-btn--icon"
-                      disabled={nhMenuPage <= 1}
-                      onClick={() => setNHMenuPage(p => Math.max(1, p - 1))}
-                      title="Previous page"
-                      aria-label="Previous page"
-                    >
-                      <ChevronLeft size={18} aria-hidden="true" />
-                    </button>
-                    <div className="admin-restaurants__pagination-pages">
-                      {nhMenuPageNumbers.map((p, i) =>
-                        p === '...' ? (
-                          <span key={`ellipsis-${i}`} className="admin-restaurants__pagination-ellipsis" aria-hidden="true">…</span>
-                        ) : (
-                          <button
-                            key={p}
-                            type="button"
-                            className={`admin-restaurants__pagination-page ${nhMenuPage === p ? 'active' : ''}`}
-                            onClick={() => setNHMenuPage(p)}
-                            aria-label={`Page ${p}`}
-                            aria-current={nhMenuPage === p ? 'page' : undefined}
-                          >
-                            {p}
-                          </button>
-                        )
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      className="admin-restaurants__pagination-btn admin-restaurants__pagination-btn--icon"
-                      disabled={nhMenuPage >= nhMenuTotalPages}
-                      onClick={() => setNHMenuPage(p => Math.min(nhMenuTotalPages, p + 1))}
-                      title="Next page"
-                      aria-label="Next page"
-                    >
-                      <ChevronRight size={18} aria-hidden="true" />
-                    </button>
-                    <button
-                      type="button"
-                      className="admin-restaurants__pagination-btn admin-restaurants__pagination-btn--icon"
-                      disabled={nhMenuPage >= nhMenuTotalPages}
-                      onClick={() => setNHMenuPage(nhMenuTotalPages)}
-                      title="Last page"
-                      aria-label="Last page"
-                    >
-                      <ChevronLast size={18} aria-hidden="true" />
-                    </button>
-                  </div>
-                </div>
                 )}
               </div>
             </div>

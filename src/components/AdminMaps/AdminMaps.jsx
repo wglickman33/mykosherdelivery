@@ -7,11 +7,13 @@ import {
   importAdminMapsRestaurantsCsv
 } from '../../services/mapsService';
 import { isOpenNow } from '../../utils/mapsHoursUtils';
-import { MapPin, Upload, ChevronDown } from 'lucide-react';
+import { exportMapsRestaurantsCsv, exportMapsRestaurantsXlsx, exportMapsRestaurantsPdf } from '../../utils/mapsExportUtils';
+import { MapPin, Upload, ChevronDown, Download } from 'lucide-react';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import NotificationToast from '../NotificationToast/NotificationToast';
 import { useNotification } from '../../hooks/useNotification';
+import Pagination from '../Pagination/Pagination';
 import './AdminMaps.scss';
 
 const DEACTIVATION_OPTIONS = [
@@ -24,14 +26,17 @@ const DEACTIVATION_OPTIONS = [
 const DIET_TAG_OPTIONS = ['meat', 'dairy', 'parve', 'sushi', 'fish', 'vegan', 'vegetarian', 'bakery', 'pizza', 'deli'];
 
 function formatHoursLine(line) {
-  const parts = line.split(/\b(Closed)\b/i);
-  return parts.map((part, i) =>
-    part.toLowerCase() === 'closed' ? (
-      <strong key={i} className="maps-hours-closed">Closed</strong>
-    ) : (
-      part
-    )
-  );
+  const parts = line.split(/\b(Closed|AS)\b/i);
+  return parts.map((part, i) => {
+    const lower = part.toLowerCase();
+    if (lower === 'closed') {
+      return <strong key={i} className="maps-hours-closed">Closed</strong>;
+    }
+    if (lower === 'as') {
+      return <strong key={i} className="maps-hours-as">AS</strong>;
+    }
+    return part;
+  });
 }
 
 const TIMEZONE_OPTIONS = [
@@ -60,9 +65,19 @@ const AdminMaps = () => {
   const [editing, setEditing] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importMode, setImportMode] = useState('upload'); // 'upload' | 'paste'
+  const [pastedCsv, setPastedCsv] = useState('');
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(50);
   const [pagination, setPagination] = useState({ page: 1, limit: 50, total: 0, totalPages: 1 });
   const [search, setSearch] = useState('');
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportFormat, setExportFormat] = useState('csv');
+  const [exportStates, setExportStates] = useState([]);
+  const [exportCities, setExportCities] = useState([]);
+  const [exportZips, setExportZips] = useState([]);
+  const [exporting, setExporting] = useState(false);
   const [filterActive, setFilterActive] = useState('');
   const [filterDiet, setFilterDiet] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -95,14 +110,14 @@ const AdminMaps = () => {
     setLoading(true);
     setError(null);
     try {
-      const params = { page, limit: 50 };
+      const params = { page, limit };
       if (search.trim()) params.search = search.trim();
       if (filterActive === 'true') params.active = 'true';
       if (filterActive === 'false') params.active = 'false';
       if (filterDiet.trim()) params.diet = filterDiet.trim();
       const res = await getAdminMapsRestaurants(params);
       setList(Array.isArray(res?.data) ? res.data : []);
-      setPagination(res?.pagination || { page: 1, limit: 50, total: 0, totalPages: 1 });
+      setPagination(res?.pagination || { page: 1, limit, total: 0, totalPages: 1 });
     } catch (err) {
       const msg = err?.message || 'Failed to load map restaurants';
       setList([]);
@@ -112,7 +127,42 @@ const AdminMaps = () => {
       setLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, search, filterActive, filterDiet]);
+  }, [page, limit, search, filterActive, filterDiet]);
+
+  const uniqueExportOptions = useMemo(() => {
+    const states = new Set();
+    const cities = new Set();
+    const zips = new Set();
+    list.forEach((p) => {
+      if (p.state && String(p.state).trim()) states.add(String(p.state).trim());
+      if (p.city && String(p.city).trim()) cities.add(String(p.city).trim());
+      if (p.zip && String(p.zip).trim()) zips.add(String(p.zip).trim());
+    });
+    return {
+      states: [...states].sort(),
+      cities: [...cities].sort((a, b) => a.localeCompare(b)),
+      zips: [...zips].sort()
+    };
+  }, [list]);
+
+  const handleExport = useCallback(async () => {
+    setExporting(true);
+    const opts = { states: exportStates, cities: exportCities, zips: exportZips };
+    try {
+      if (exportFormat === 'csv') {
+        exportMapsRestaurantsCsv(list, opts);
+      } else if (exportFormat === 'xlsx') {
+        await exportMapsRestaurantsXlsx(list, opts);
+      } else if (exportFormat === 'pdf') {
+        await exportMapsRestaurantsPdf(list, opts);
+      }
+      setShowExportModal(false);
+    } catch (err) {
+      showNotification(err?.message || 'Export failed', 'error');
+    } finally {
+      setExporting(false);
+    }
+  }, [list, exportFormat, exportStates, exportCities, exportZips, showNotification]);
 
   useEffect(() => {
     load();
@@ -266,13 +316,11 @@ const AdminMaps = () => {
     }
   };
 
-  const handleCsvImport = async (e) => {
-    const file = e?.target?.files?.[0];
+  const processImportFile = async (file) => {
     if (!file) return;
     setImporting(true);
     try {
       const result = await importAdminMapsRestaurantsCsv(file);
-      e.target.value = '';
       load();
       const created = result.created ?? 0;
       const updated = result.updated ?? 0;
@@ -291,6 +339,8 @@ const AdminMaps = () => {
       } else {
         console.log('[AdminMaps] Upload complete:', msg);
       }
+      setShowImportModal(false);
+      setPastedCsv('');
     } catch (err) {
       const msg = err?.message || 'Upload failed';
       showNotification(msg, 'error');
@@ -298,6 +348,23 @@ const AdminMaps = () => {
     } finally {
       setImporting(false);
     }
+  };
+
+  const handleCsvImport = async (e) => {
+    const file = e?.target?.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    await processImportFile(file);
+  };
+
+  const handlePasteImport = async () => {
+    const trimmed = pastedCsv?.trim();
+    if (!trimmed) {
+      showNotification('Paste some CSV data first', 'error');
+      return;
+    }
+    const file = new File([trimmed], 'pasted.csv', { type: 'text/csv' });
+    await processImportFile(file);
   };
 
   const toggleDietTag = (tag) => {
@@ -384,19 +451,24 @@ const AdminMaps = () => {
           <button type="button" className="maps-btn-primary" onClick={handleOpenAdd}>
             Add Restaurant
           </button>
-          <label className="maps-upload-label">
-            <span className="maps-btn-secondary">
-              <Upload size={18} className="maps-upload-icon" aria-hidden />
-              {importing ? 'Uploading…' : 'Upload CSV / Excel'}
-            </span>
-            <input
-              type="file"
-              accept=".csv,.xlsx"
-              onChange={handleCsvImport}
-              disabled={importing}
-              style={{ display: 'none' }}
-            />
-          </label>
+          <button
+            type="button"
+            className="maps-btn-secondary"
+            onClick={() => setShowImportModal(true)}
+            disabled={importing}
+          >
+            <Upload size={18} className="maps-upload-icon" aria-hidden />
+            {importing ? 'Uploading…' : 'Upload CSV / Excel'}
+          </button>
+          <button
+            type="button"
+            className="maps-btn-secondary"
+            onClick={() => setShowExportModal(true)}
+            title="Export restaurants as CSV, XLSX, or PDF"
+          >
+            <Download size={18} aria-hidden />
+            Export
+          </button>
         </div>
       </div>
 
@@ -444,6 +516,22 @@ const AdminMaps = () => {
             value={filterDiet}
             onChange={(e) => setFilterDiet(e.target.value)}
           />
+        </div>
+        <div className="filter-group">
+          <label>Per page</label>
+          <select
+            value={limit}
+            onChange={(e) => {
+              setLimit(Number(e.target.value));
+              setPage(1);
+            }}
+          >
+            <option value={10}>10</option>
+            <option value={20}>20</option>
+            <option value={30}>30</option>
+            <option value={40}>40</option>
+            <option value={50}>50</option>
+          </select>
         </div>
       </div>
 
@@ -602,34 +690,17 @@ const AdminMaps = () => {
                 </tbody>
               </table>
             </div>
-            {list.length > 0 && (
-              <div className="pagination">
-                <div className="pagination-info">
-                  Showing {pagination.total > 0 ? ((pagination.page - 1) * (pagination.limit || 50)) + 1 : 0} to{' '}
-                  {Math.min(pagination.page * (pagination.limit || 50), pagination.total)} of{' '}
-                  {pagination.total || 0} restaurants
-                </div>
-                <div className="pagination-controls">
-                  <button
-                    type="button"
-                    disabled={pagination.page <= 1}
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  >
-                    Previous
-                  </button>
-                  <span className="page-info">
-                    Page {pagination.page || 1} of {pagination.totalPages || 1}
-                  </span>
-                  <button
-                    type="button"
-                    disabled={pagination.page >= pagination.totalPages}
-                    onClick={() => setPage((p) => p + 1)}
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-            )}
+            <div className="maps-table-container__pagination pagination-footer">
+              <Pagination
+                page={pagination.page || 1}
+                totalPages={pagination.totalPages || 1}
+                rowsPerPage={pagination.limit || limit}
+                total={pagination.total}
+                onPageChange={setPage}
+                onRowsPerPageChange={(n) => { setLimit(n); setPage(1); }}
+                rowsPerPageOptions={[10, 20, 30, 40, 50]}
+              />
+            </div>
           </>
         )}
       </div>
@@ -642,6 +713,81 @@ const AdminMaps = () => {
             <div className="maps-delete-actions">
               <button type="button" className="maps-btn-secondary" onClick={() => setShowDeleteConfirm(false)}>Cancel</button>
               <button type="button" className="maps-btn-danger" onClick={handleDeleteConfirm}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showImportModal && (
+        <div className="maps-import-overlay" onClick={() => !importing && setShowImportModal(false)}>
+          <div className="maps-import-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="maps-import-modal__header">
+              <h3>Import restaurants</h3>
+              <button
+                type="button"
+                className="maps-import-modal__close"
+                onClick={() => !importing && setShowImportModal(false)}
+                disabled={importing}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <div className="maps-import-modal__tabs">
+              <button
+                type="button"
+                className={`maps-import-modal__tab ${importMode === 'upload' ? 'maps-import-modal__tab--active' : ''}`}
+                onClick={() => setImportMode('upload')}
+                disabled={importing}
+              >
+                Upload file
+              </button>
+              <button
+                type="button"
+                className={`maps-import-modal__tab ${importMode === 'paste' ? 'maps-import-modal__tab--active' : ''}`}
+                onClick={() => setImportMode('paste')}
+                disabled={importing}
+              >
+                Paste CSV
+              </button>
+            </div>
+            <div className="maps-import-modal__body">
+              {importMode === 'upload' && (
+                <label className="maps-import-upload-zone">
+                  <span className="maps-import-upload-text">
+                    <Upload size={32} aria-hidden />
+                    Choose a CSV or Excel file
+                  </span>
+                  <input
+                    type="file"
+                    accept=".csv,.xlsx"
+                    onChange={handleCsvImport}
+                    disabled={importing}
+                    className="maps-import-file-input"
+                  />
+                </label>
+              )}
+              {importMode === 'paste' && (
+                <div className="maps-import-paste">
+                  <textarea
+                    className="maps-import-paste__textarea"
+                    placeholder="Paste your CSV data here (e.g. from Excel or Google Sheets)..."
+                    value={pastedCsv}
+                    onChange={(e) => setPastedCsv(e.target.value)}
+                    disabled={importing}
+                    rows={12}
+                    spellCheck={false}
+                  />
+                  <button
+                    type="button"
+                    className="maps-btn-primary maps-import-paste__submit"
+                    onClick={handlePasteImport}
+                    disabled={importing || !pastedCsv.trim()}
+                  >
+                    {importing ? 'Importing…' : 'Import pasted CSV'}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1002,6 +1148,99 @@ const AdminMaps = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showExportModal && (
+        <div
+          className="admin-maps__export-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="admin-export-modal-title"
+          onClick={() => !exporting && setShowExportModal(false)}
+        >
+          <div className="admin-maps__export-modal" onClick={(e) => e.stopPropagation()}>
+            <h2 id="admin-export-modal-title" className="admin-maps__export-title">Export restaurants</h2>
+            <p className="admin-maps__export-hint">Choose format and optionally filter by state, city, or zip. Exports the current page of results.</p>
+            <div className="admin-maps__export-format">
+              <label htmlFor="admin-export-format">Format</label>
+              <select
+                id="admin-export-format"
+                value={exportFormat}
+                onChange={(e) => setExportFormat(e.target.value)}
+                className="admin-maps__export-select"
+              >
+                <option value="csv">CSV</option>
+                <option value="xlsx">XLSX (Excel)</option>
+                <option value="pdf">PDF</option>
+              </select>
+            </div>
+            <div className="admin-maps__export-filters">
+              <div className="admin-maps__export-filter">
+                <label htmlFor="admin-export-states">State(s)</label>
+                <select
+                  id="admin-export-states"
+                  multiple
+                  value={exportStates}
+                  onChange={(e) => setExportStates([...e.target.selectedOptions].map((o) => o.value))}
+                  className="admin-maps__export-select admin-maps__export-select-multi"
+                >
+                  {uniqueExportOptions.states.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+                <span className="admin-maps__export-filter-hint">Hold Ctrl/Cmd to select multiple</span>
+              </div>
+              <div className="admin-maps__export-filter">
+                <label htmlFor="admin-export-cities">City / Cities</label>
+                <select
+                  id="admin-export-cities"
+                  multiple
+                  value={exportCities}
+                  onChange={(e) => setExportCities([...e.target.selectedOptions].map((o) => o.value))}
+                  className="admin-maps__export-select admin-maps__export-select-multi"
+                >
+                  {uniqueExportOptions.cities.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                <span className="admin-maps__export-filter-hint">Hold Ctrl/Cmd to select multiple</span>
+              </div>
+              <div className="admin-maps__export-filter">
+                <label htmlFor="admin-export-zips">Zip(s)</label>
+                <select
+                  id="admin-export-zips"
+                  multiple
+                  value={exportZips}
+                  onChange={(e) => setExportZips([...e.target.selectedOptions].map((o) => o.value))}
+                  className="admin-maps__export-select admin-maps__export-select-multi"
+                >
+                  {uniqueExportOptions.zips.map((z) => (
+                    <option key={z} value={z}>{z}</option>
+                  ))}
+                </select>
+                <span className="admin-maps__export-filter-hint">Hold Ctrl/Cmd to select multiple</span>
+              </div>
+            </div>
+            <div className="admin-maps__export-actions">
+              <button
+                type="button"
+                className="maps-btn-primary"
+                onClick={handleExport}
+                disabled={exporting || list.length === 0}
+              >
+                {exporting ? 'Exporting…' : `Export as ${exportFormat.toUpperCase()}`}
+              </button>
+              <button
+                type="button"
+                className="maps-btn-secondary"
+                onClick={() => setShowExportModal(false)}
+                disabled={exporting}
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>

@@ -6,6 +6,7 @@ import apiClient from '../../lib/api';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import NotificationToast from '../NotificationToast/NotificationToast';
 import { useNotification } from '../../hooks/useNotification';
+import Pagination from '../Pagination/Pagination';
 
 const getOrderDateValue = (order) => {
   const v = order.createdAt || order.created_at || order.created_at_utc || order.created || order.updatedAt || order.updated_at;
@@ -629,17 +630,6 @@ const AdminOrders = () => {
           />
         </div>
 
-        <div className="filter-group">
-          <label>Per Page</label>
-          <select 
-            value={filters.limit}
-            onChange={(e) => setFilters({ ...filters, limit: parseInt(e.target.value), page: 1 })}
-          >
-            <option value={20}>20</option>
-            <option value={50}>50</option>
-            <option value={100}>100</option>
-          </select>
-        </div>
       </div>
 
       {}
@@ -782,30 +772,16 @@ const AdminOrders = () => {
               </table>
             </div>
 
-            {}
-            <div className="pagination">
-              <div className="pagination-info">
-                Showing {pagination.total > 0 ? ((pagination.page - 1) * pagination.limit) + 1 : 0} to{' '}
-                {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
-                {pagination.total || 0} orders
-              </div>
-              <div className="pagination-controls">
-                <button
-                  disabled={pagination.page <= 1}
-                  onClick={() => setFilters({ ...filters, page: pagination.page - 1 })}
-                >
-                  Previous
-                </button>
-                <span className="page-info">
-                  Page {pagination.page || 1} of {pagination.totalPages || 1}
-                </span>
-                <button
-                  disabled={pagination.page >= pagination.totalPages}
-                  onClick={() => setFilters({ ...filters, page: pagination.page + 1 })}
-                >
-                  Next
-                </button>
-              </div>
+            <div className="orders-table-container__pagination pagination-footer">
+              <Pagination
+                page={pagination.page || 1}
+                totalPages={pagination.totalPages || 1}
+                rowsPerPage={pagination.limit || filters.limit}
+                total={pagination.total}
+                onPageChange={(p) => setFilters({ ...filters, page: p })}
+                onRowsPerPageChange={(n) => setFilters({ ...filters, limit: n, page: 1 })}
+                rowsPerPageOptions={[10, 20, 30, 40, 50, 100]}
+              />
             </div>
           </>
         )}
@@ -1252,13 +1228,19 @@ const AdminOrders = () => {
                   <span>{formatCurrency(parseFloat(selectedOrder.subtotal || 0))}</span>
                 </div>
                 
-                {selectedOrder.discountAmount && parseFloat(selectedOrder.discountAmount) > 0 && (
+{selectedOrder.discountAmount && parseFloat(selectedOrder.discountAmount) > 0 && (
                   <div className="breakdown-line discount-line">
                     <span>Promo Discount{selectedOrder.appliedPromo?.code ? ` (${selectedOrder.appliedPromo.code})` : ''}:</span>
                     <span className="discount-value">-{formatCurrency(parseFloat(selectedOrder.discountAmount))}</span>
                   </div>
                 )}
-                
+                {selectedOrder.appliedGiftCard && selectedOrder.appliedGiftCard.amountApplied > 0 && (
+                  <div className="breakdown-line discount-line">
+                    <span>Gift card ({selectedOrder.appliedGiftCard.code}):</span>
+                    <span className="discount-value">-{formatCurrency(parseFloat(selectedOrder.appliedGiftCard.amountApplied))}</span>
+                  </div>
+                )}
+
                 <div className="breakdown-line">
                   <span>Delivery Fee:</span>
                   <span>{formatCurrency(parseFloat(selectedOrder.deliveryFee || selectedOrder.delivery_fee || 5.99))}</span>
@@ -1276,6 +1258,20 @@ const AdminOrders = () => {
                   <span><strong>{formatCurrency(parseFloat(selectedOrder.total || 0))}</strong></span>
                 </div>
               </div>
+              {selectedOrder.giftCards && selectedOrder.giftCards.length > 0 && (
+                <div className="order-detail-gift-cards" style={{ marginTop: '16px', padding: '12px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                  <h4 style={{ margin: '0 0 8px', fontSize: '0.95rem' }}>Gift cards from this order</h4>
+                  <p style={{ margin: '0 0 8px', fontSize: '0.85rem', color: '#166534' }}>Codes issued with this purchase. Balance can be viewed in Gift Cards admin.</p>
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                    {selectedOrder.giftCards.map((gc) => (
+                      <li key={gc.id} style={{ marginBottom: '6px', fontFamily: 'monospace', fontWeight: 600 }}>
+                        {gc.code} — {formatCurrency(parseFloat(gc.balance || gc.initialBalance))} balance
+                        {gc.status !== 'active' && <span style={{ marginLeft: '6px', color: '#6b7280', fontWeight: 'normal' }}>({gc.status})</span>}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           </div>
         </div>

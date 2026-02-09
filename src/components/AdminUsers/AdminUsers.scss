@@ -307,6 +307,12 @@
       }
     }
 
+    .users-table-container__pagination {
+      padding: 16px 20px;
+      border-top: 1px solid #e2e8f0;
+      background: #f8fafc;
+    }
+
     .pagination {
       display: flex;
       justify-content: center;
