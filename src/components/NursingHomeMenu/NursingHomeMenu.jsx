@@ -6,6 +6,7 @@ import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import './NursingHomeMenu.scss';
 
 const MEAL_LABELS = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner' };
+const MEAL_PRICES = { breakfast: 15, lunch: 21, dinner: 23 };
 const CATEGORY_LABELS = { main: 'Mains', side: 'Sides', entree: 'Entrees', soup: 'Soups', dessert: 'Desserts' };
 
 const NursingHomeMenu = ({ showInstructions = true, showEditLink = false }) => {
@@ -19,7 +20,17 @@ const NursingHomeMenu = ({ showInstructions = true, showEditLink = false }) => {
   const loadMenu = useCallback(async () => {
     setLoading(true);
     setError(null);
+    // #region agent log
+    if (import.meta.env.DEV) console.debug('[DEBUG] NursingHomeMenu loadMenu called');
+    fetch('http://127.0.0.1:7242/ingest/4dc3c80e-cf40-46c2-9570-f0bcad5c8b59',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'NursingHomeMenu.jsx:loadMenu',message:'loadMenu called',data:{},timestamp:Date.now(),hypothesisId:'D'})}).catch(()=>{});
+    // #endregion
     const result = await fetchNursingHomeMenu({ isActive: true });
+    // #region agent log
+    const _itemsLen = Array.isArray(result?.data?.items) ? result.data.items.length : 0;
+    const _nhResultPayload = {location:'NursingHomeMenu.jsx:loadMenu',message:'result received',data:{success:result?.success,hasData:!!result?.data,dataKeys:result?.data?Object.keys(result.data):[],itemsLength:_itemsLen},timestamp:Date.now(),hypothesisId:'B,C,D'};
+    if (import.meta.env.DEV) console.debug('[DEBUG] NursingHomeMenu result', _nhResultPayload);
+    fetch('http://127.0.0.1:7242/ingest/4dc3c80e-cf40-46c2-9570-f0bcad5c8b59',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(_nhResultPayload)}).catch(()=>{});
+    // #endregion
     if (result.success && result.data) {
       setMenu({
         items: result.data.items || [],
@@ -75,7 +86,7 @@ const NursingHomeMenu = ({ showInstructions = true, showEditLink = false }) => {
           {showEditLink && user?.role === 'admin' && (
             <p className="nh-menu-edit-link">
               To add, edit, or deactivate items, go to{' '}
-              <button type="button" onClick={() => navigate('/admin/restaurants?tab=nursing-home-menu')}>
+              <button type="button" onClick={() => navigate('/admin/restaurants/nursing-home-menus')}>
                 Admin → Restaurants → Nursing Home Menu
               </button>
             </p>
@@ -112,7 +123,10 @@ const NursingHomeMenu = ({ showInstructions = true, showEditLink = false }) => {
             if (categories.length === 0) return null;
             return (
               <section key={mealType} className="nh-menu-section">
-                <h3 className="nh-menu-section-title">{MEAL_LABELS[mealType]}</h3>
+                <h3 className="nh-menu-section-title">
+                  <span>{MEAL_LABELS[mealType]}</span>
+                  <span className="nh-menu-section-price">${MEAL_PRICES[mealType] || 0}</span>
+                </h3>
                 {categories.map(cat => (
                   <div key={cat} className="nh-menu-category">
                     <h4>{CATEGORY_LABELS[cat] || cat}</h4>
@@ -121,7 +135,6 @@ const NursingHomeMenu = ({ showInstructions = true, showEditLink = false }) => {
                         <li key={item.id}>
                           <span className="nh-menu-item-name">{item.name}</span>
                           {item.description && <span className="nh-menu-item-desc"> — {item.description}</span>}
-                          {item.price > 0 && <span className="nh-menu-item-price">${parseFloat(item.price).toFixed(2)}</span>}
                           {item.requiresBagelType && <span className="nh-menu-item-tag">Bagel type required</span>}
                           {item.excludesSide && <span className="nh-menu-item-tag">No side</span>}
                         </li>
@@ -136,7 +149,10 @@ const NursingHomeMenu = ({ showInstructions = true, showEditLink = false }) => {
       ) : (
         <div className="nh-menu-sections">
           <section className="nh-menu-section">
-            <h3 className="nh-menu-section-title">{MEAL_LABELS[activeMeal]}</h3>
+            <h3 className="nh-menu-section-title">
+              <span>{MEAL_LABELS[activeMeal]}</span>
+              <span className="nh-menu-section-price">${MEAL_PRICES[activeMeal] || 0}</span>
+            </h3>
             {Object.entries(grouped[activeMeal] || {}).map(([cat, catItems]) => {
               const list = Array.isArray(catItems) ? catItems.filter(i => i.isActive !== false) : [];
               if (list.length === 0) return null;
@@ -148,7 +164,6 @@ const NursingHomeMenu = ({ showInstructions = true, showEditLink = false }) => {
                       <li key={item.id}>
                         <span className="nh-menu-item-name">{item.name}</span>
                         {item.description && <span className="nh-menu-item-desc"> — {item.description}</span>}
-                        {item.price > 0 && <span className="nh-menu-item-price">${parseFloat(item.price).toFixed(2)}</span>}
                         {item.requiresBagelType && <span className="nh-menu-item-tag">Bagel type required</span>}
                         {item.excludesSide && <span className="nh-menu-item-tag">No side</span>}
                       </li>
@@ -161,9 +176,13 @@ const NursingHomeMenu = ({ showInstructions = true, showEditLink = false }) => {
         </div>
       )}
 
-      {filteredItems.length === 0 && (
+      {filteredItems.length === 0 && !loading && (
         <div className="nh-menu-empty">
-          <p>No menu items found. Contact your administrator to add items.</p>
+          <p>No menu items in the database.</p>
+          <p className="nh-menu-empty__hint">
+            From the project root run <code>npm run seed:nh-menu</code> (or <code>npm run seed</code>) to load the default breakfast, lunch, and dinner menu. After deploying, run the same command against your production database.
+          </p>
+          <p>Contact your administrator if you need help.</p>
         </div>
       )}
     </div>

@@ -1,6 +1,7 @@
 import './AdminRestaurants.scss';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 import { fetchAllRestaurants, createRestaurant, updateRestaurant, deleteRestaurant, logAdminAction } from '../../services/adminServices';
 import { uploadRestaurantLogo, buildImageUrl } from '../../services/imageService';
 import { useAuth } from '../../hooks/useAuth';
@@ -26,8 +27,14 @@ const normalizeRestaurant = (r = {}) => {
 };
 
 const AdminRestaurants = () => {
-  const [searchParams] = useSearchParams();
-  const tabParam = searchParams.get('tab');
+  const location = useLocation();
+  const navigate = useNavigate();
+  const pathname = location.pathname || '';
+  const activeTab = pathname.endsWith('/nursing-home-menus')
+    ? 'nursing-home-menu'
+    : pathname.endsWith('/menus')
+      ? 'menus'
+      : 'restaurants';
   const [allRestaurants, setAllRestaurants] = useState([]);
   const [restaurants, setRestaurants] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -46,7 +53,6 @@ const AdminRestaurants = () => {
     limit: 20
   });
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 1 });
-  const [activeTab, setActiveTab] = useState(tabParam === 'nursing-home-menu' ? 'nursing-home-menu' : 'restaurants');
   const [showMenuItemModal, setShowMenuItemModal] = useState(false);
   const [selectedMenuItem, setSelectedMenuItem] = useState(null);
   const [selectedRestaurantForMenu, setSelectedRestaurantForMenu] = useState(null);
@@ -77,6 +83,9 @@ const AdminRestaurants = () => {
     category: 'all',
     search: ''
   });
+  const [nhMenuPage, setNHMenuPage] = useState(1);
+  const [nhMenuPageSize] = useState(20);
+  const [nhDescriptionTooltipId, setNHDescriptionTooltipId] = useState(null);
 
   const assetsLogoByName = useMemo(() => {
     const map = {};
@@ -375,12 +384,15 @@ const AdminRestaurants = () => {
   const fetchNHMenu = useCallback(async () => {
     setNursingHomeMenuLoading(true);
     try {
+      fetch('http://127.0.0.1:7242/ingest/4dc3c80e-cf40-46c2-9570-f0bcad5c8b59',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminRestaurants.jsx:fetchNHMenu',message:'fetchNHMenu called',data:{mealType:nhMenuFilters.mealType,category:nhMenuFilters.category},timestamp:Date.now(),hypothesisId:'D'})}).catch(()=>{});
       const result = await fetchNursingHomeMenu({
         mealType: nhMenuFilters.mealType,
         category: nhMenuFilters.category
       });
+      const arr = Array.isArray(result.data?.items) ? result.data.items : [];
+      fetch('http://127.0.0.1:7242/ingest/4dc3c80e-cf40-46c2-9570-f0bcad5c8b59',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminRestaurants.jsx:fetchNHMenu',message:'setNursingHomeMenuItems',data:{success:result?.success,itemsLength:arr.length},timestamp:Date.now(),hypothesisId:'A,C'})}).catch(()=>{});
       if (result.success) {
-        setNursingHomeMenuItems(Array.isArray(result.data?.items) ? result.data.items : []);
+        setNursingHomeMenuItems(arr);
       } else {
         setNursingHomeMenuItems([]);
         showNotification(result.error || 'Failed to fetch nursing home menu', 'error');
@@ -454,6 +466,26 @@ const AdminRestaurants = () => {
     });
   }, [nursingHomeMenuItems, nhMenuFilters]);
 
+  const nhMenuPaginatedItems = useMemo(() => {
+    const start = (nhMenuPage - 1) * nhMenuPageSize;
+    return filteredNHMenuItems.slice(start, start + nhMenuPageSize);
+  }, [filteredNHMenuItems, nhMenuPage, nhMenuPageSize]);
+
+  const nhMenuTotalPages = Math.max(1, Math.ceil(filteredNHMenuItems.length / nhMenuPageSize));
+
+  const nhMenuPageNumbers = useMemo(() => {
+    const total = nhMenuTotalPages;
+    const current = nhMenuPage;
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+    if (current <= 4) return [1, 2, 3, 4, 5, '...', total];
+    if (current >= total - 3) return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
+    return [1, '...', current - 1, current, current + 1, '...', total];
+  }, [nhMenuTotalPages, nhMenuPage]);
+
+  useEffect(() => {
+    setNHMenuPage(1);
+  }, [nhMenuFilters.mealType, nhMenuFilters.category, nhMenuFilters.search]);
+
   return (
     <div className="admin-restaurants">
       <div className="admin-restaurants__header">
@@ -506,19 +538,19 @@ const AdminRestaurants = () => {
       <div className="admin-restaurants__tabs">
         <button 
           className={`admin-restaurants__tab ${activeTab === 'restaurants' ? 'active' : ''}`} 
-          onClick={() => setActiveTab('restaurants')}
+          onClick={() => navigate('/admin/restaurants')}
         >
           Restaurants
         </button>
         <button 
           className={`admin-restaurants__tab ${activeTab === 'menus' ? 'active' : ''}`} 
-          onClick={() => setActiveTab('menus')}
+          onClick={() => navigate('/admin/restaurants/menus')}
         >
           Menus
         </button>
         <button 
           className={`admin-restaurants__tab ${activeTab === 'nursing-home-menu' ? 'active' : ''}`} 
-          onClick={() => setActiveTab('nursing-home-menu')}
+          onClick={() => navigate('/admin/restaurants/nursing-home-menus')}
         >
           Nursing Home Menu
         </button>
@@ -952,10 +984,7 @@ const AdminRestaurants = () => {
                 disabled={nursingHomeMenuLoading}
                 aria-label="Refresh menu"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={nursingHomeMenuLoading ? 'spin' : ''}>
-                  <path d="M23 4v6h-6M1 20v-6h6" />
-                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-                </svg>
+                <RefreshCw size={16} className={nursingHomeMenuLoading ? 'spin' : ''} />
                 <span>{nursingHomeMenuLoading ? 'Loading…' : 'Refresh'}</span>
               </button>
             </div>
@@ -987,24 +1016,29 @@ const AdminRestaurants = () => {
                 </div>
               </div>
 
-              <div className="admin-restaurants__nh-menu-table">
-                {filteredNHMenuItems.length === 0 ? (
-                  <div className="admin-restaurants__no-items">
-                    <p>No menu items found {nhMenuFilters.mealType !== 'all' || nhMenuFilters.category !== 'all' || nhMenuFilters.search ? 'matching your filters.' : '— add your first item to get started.'}</p>
-                    {!nhMenuFilters.search && (nhMenuFilters.mealType === 'all' && nhMenuFilters.category === 'all') && (
-                      <button
-                        type="button"
-                        className="admin-restaurants__refresh-btn admin-restaurants__refresh-btn--secondary"
-                        onClick={() => {
-                          setSelectedNHMenuItem(null);
-                          setShowNHMenuItemModal(true);
-                        }}
-                      >
-                        Add Menu Item
-                      </button>
-                    )}
-                  </div>
-                ) : (
+              <div className="admin-restaurants__nh-menu-table-container">
+                <div className="admin-restaurants__nh-menu-table-scroll">
+                  {filteredNHMenuItems.length === 0 ? (
+                    <div className="admin-restaurants__no-items">
+                      <p>No menu items found {nhMenuFilters.mealType !== 'all' || nhMenuFilters.category !== 'all' || nhMenuFilters.search ? 'matching your filters.' : '— the database has no nursing home menu items.'}</p>
+                      {!nhMenuFilters.search && (nhMenuFilters.mealType === 'all' && nhMenuFilters.category === 'all') && (
+                        <>
+                          <p className="admin-restaurants__no-items-hint">From the project root run <code>npm run seed:nh-menu</code> or <code>npm run seed</code> to load the default menu. After deploying, run the same against your production DB.</p>
+                          <button
+                            type="button"
+                            className="admin-restaurants__refresh-btn admin-restaurants__refresh-btn--secondary"
+                            onClick={() => {
+                              setSelectedNHMenuItem(null);
+                              setShowNHMenuItemModal(true);
+                            }}
+                          >
+                            Add Menu Item
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  ) : (
+                  <div className="admin-restaurants__nh-menu-table">
                 <table>
                   <thead>
                     <tr>
@@ -1020,13 +1054,28 @@ const AdminRestaurants = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredNHMenuItems.map((item) => (
+                    {nhMenuPaginatedItems.map((item, idx) => (
                       <tr key={item.id} className={!item.isActive ? 'inactive' : ''}>
-                        <td>{item.displayOrder}</td>
-                        <td>
-                          <strong>{item.name}</strong>
+                        <td>{(nhMenuPage - 1) * nhMenuPageSize + idx + 1}</td>
+                        <td className="td-name-cell">
+                          <div className="item-name-box">
+                            <strong>{item.name}</strong>
+                          </div>
                           {item.description && (
-                            <div className="item-description">{item.description}</div>
+                            <div
+                              className="item-description-box-wrap"
+                              onMouseEnter={() => setNHDescriptionTooltipId(item.id)}
+                              onMouseLeave={() => setNHDescriptionTooltipId(null)}
+                            >
+                              <div className="item-description-box">
+                                {item.description}
+                              </div>
+                              {nhDescriptionTooltipId === item.id && (
+                                <div className="item-description-tooltip" role="tooltip">
+                                  {item.description}
+                                </div>
+                              )}
+                            </div>
                           )}
                         </td>
                         <td>
@@ -1038,8 +1087,16 @@ const AdminRestaurants = () => {
                           <span className="category-badge">{item.category}</span>
                         </td>
                         <td>${parseFloat(item.price).toFixed(2)}</td>
-                        <td>{item.requiresBagelType ? '✓' : '—'}</td>
-                        <td>{item.excludesSide ? '✓' : '—'}</td>
+                        <td>
+                          <span className={`nh-cell-indicator ${item.requiresBagelType ? 'nh-cell-indicator--yes' : 'nh-cell-indicator--no'}`} aria-label={item.requiresBagelType ? 'Yes' : 'No'}>
+                            {item.requiresBagelType ? '✓' : '—'}
+                          </span>
+                        </td>
+                        <td>
+                          <span className={`nh-cell-indicator ${item.excludesSide ? 'nh-cell-indicator--yes' : 'nh-cell-indicator--no'}`} aria-label={item.excludesSide ? 'Yes' : 'No'}>
+                            {item.excludesSide ? '✓' : '—'}
+                          </span>
+                        </td>
                         <td>
                           <span className={`status-badge ${item.isActive ? 'active' : 'inactive'}`}>
                             {item.isActive ? 'Active' : 'Inactive'}
@@ -1068,6 +1125,77 @@ const AdminRestaurants = () => {
                     ))}
                   </tbody>
                 </table>
+                  </div>
+                  )}
+                </div>
+                {filteredNHMenuItems.length > 0 && (
+                <div className="admin-restaurants__pagination admin-restaurants__pagination--nh">
+                  <div className="admin-restaurants__pagination-info">
+                    Showing {filteredNHMenuItems.length === 0 ? 0 : (nhMenuPage - 1) * nhMenuPageSize + 1} to{' '}
+                    {Math.min(nhMenuPage * nhMenuPageSize, filteredNHMenuItems.length)} of{' '}
+                    {filteredNHMenuItems.length} items
+                  </div>
+                  <div className="admin-restaurants__pagination-controls">
+                    <button
+                      type="button"
+                      className="admin-restaurants__pagination-btn admin-restaurants__pagination-btn--icon"
+                      disabled={nhMenuPage <= 1}
+                      onClick={() => setNHMenuPage(1)}
+                      title="First page"
+                      aria-label="First page"
+                    >
+                      <ChevronFirst size={18} aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      className="admin-restaurants__pagination-btn admin-restaurants__pagination-btn--icon"
+                      disabled={nhMenuPage <= 1}
+                      onClick={() => setNHMenuPage(p => Math.max(1, p - 1))}
+                      title="Previous page"
+                      aria-label="Previous page"
+                    >
+                      <ChevronLeft size={18} aria-hidden="true" />
+                    </button>
+                    <div className="admin-restaurants__pagination-pages">
+                      {nhMenuPageNumbers.map((p, i) =>
+                        p === '...' ? (
+                          <span key={`ellipsis-${i}`} className="admin-restaurants__pagination-ellipsis" aria-hidden="true">…</span>
+                        ) : (
+                          <button
+                            key={p}
+                            type="button"
+                            className={`admin-restaurants__pagination-page ${nhMenuPage === p ? 'active' : ''}`}
+                            onClick={() => setNHMenuPage(p)}
+                            aria-label={`Page ${p}`}
+                            aria-current={nhMenuPage === p ? 'page' : undefined}
+                          >
+                            {p}
+                          </button>
+                        )
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      className="admin-restaurants__pagination-btn admin-restaurants__pagination-btn--icon"
+                      disabled={nhMenuPage >= nhMenuTotalPages}
+                      onClick={() => setNHMenuPage(p => Math.min(nhMenuTotalPages, p + 1))}
+                      title="Next page"
+                      aria-label="Next page"
+                    >
+                      <ChevronRight size={18} aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      className="admin-restaurants__pagination-btn admin-restaurants__pagination-btn--icon"
+                      disabled={nhMenuPage >= nhMenuTotalPages}
+                      onClick={() => setNHMenuPage(nhMenuTotalPages)}
+                      title="Last page"
+                      aria-label="Last page"
+                    >
+                      <ChevronLast size={18} aria-hidden="true" />
+                    </button>
+                  </div>
+                </div>
                 )}
               </div>
             </div>

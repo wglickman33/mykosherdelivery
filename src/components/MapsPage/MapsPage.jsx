@@ -19,6 +19,17 @@ function getDirectionsUrl(place) {
   return '#';
 }
 
+function formatHoursLine(line) {
+  const parts = line.split(/\b(Closed)\b/i);
+  return parts.map((part, i) =>
+    part.toLowerCase() === 'closed' ? (
+      <strong key={i} className="maps-page__hours-closed">Closed</strong>
+    ) : (
+      part
+    )
+  );
+}
+
 const MapsPage = () => {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -34,6 +45,7 @@ const MapsPage = () => {
   const markersRef = useRef([]);
   const mapInstanceRef = useRef(null);
   const userMarkerRef = useRef(null);
+  const selectedCardRef = useRef(null);
 
   const loadRestaurants = useCallback(async () => {
     setLoading(true);
@@ -111,7 +123,7 @@ const MapsPage = () => {
     const existing = document.querySelector('script[src*="maps.googleapis.com"]');
     if (existing) {
       let attempts = 0;
-      const maxAttempts = 150; // ~2.5s at 60fps
+      const maxAttempts = 150;
       const check = () => {
         if (window.google?.maps) {
           setMapReady(true);
@@ -134,7 +146,6 @@ const MapsPage = () => {
       setError('Failed to load map.');
     };
     document.head.appendChild(script);
-    // Do not remove script on unmount — avoids loading the API multiple times
   }, []);
 
   useEffect(() => {
@@ -260,13 +271,34 @@ const MapsPage = () => {
   }, []);
 
   useEffect(() => {
-    if (!selectedId || !mapInstanceReady || !mapInstanceRef.current) return;
-    const place = list.find((p) => p.id === selectedId);
-    if (place?.latitude != null && place?.longitude != null) {
-      const map = mapInstanceRef.current;
-      map.panTo({ lat: Number(place.latitude), lng: Number(place.longitude) });
-      map.setZoom(15);
-    }
+    if (!selectedId) return;
+    const place = list.find((p) => p.id == selectedId);
+    if (!place || place.latitude == null || place.longitude == null) return;
+    const lat = Number(place.latitude);
+    const lng = Number(place.longitude);
+
+    const panToPlace = (map) => {
+      if (map && typeof map.panTo === 'function') {
+        map.panTo({ lat, lng });
+        map.setZoom(15);
+      }
+    };
+
+    const scrollId = requestAnimationFrame(() => {
+      selectedCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+    });
+
+    panToPlace(mapInstanceRef.current);
+    const t1 = setTimeout(() => panToPlace(mapInstanceRef.current), 300);
+    const t2 = setTimeout(() => panToPlace(mapInstanceRef.current), 700);
+    const t3 = setTimeout(() => panToPlace(mapInstanceRef.current), 1200);
+
+    return () => {
+      cancelAnimationFrame(scrollId);
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
   }, [selectedId, list, mapInstanceReady]);
 
   return (
@@ -318,6 +350,10 @@ const MapsPage = () => {
         </div>
 
         <div className="maps-page__list-wrap">
+          <div className="maps-page__as-callout" role="note">
+            <strong>AS = After Shabbat</strong>
+            <span> (~1 hour after sunset at the restaurant’s location)</span>
+          </div>
           {loading ? (
             <LoadingSpinner size="large" />
           ) : list.length === 0 ? (
@@ -331,6 +367,7 @@ const MapsPage = () => {
                 const openClass = isOpen === true ? 'maps-page__card--open' : isOpen === false ? 'maps-page__card--closed' : '';
                 return (
                 <li
+                  ref={selectedId === place.id ? selectedCardRef : null}
                   key={place.id}
                   className={`maps-page__card ${selectedId === place.id ? 'maps-page__card--selected' : ''} ${openClass}`}
                   onClick={() => setSelectedId(place.id)}
@@ -353,6 +390,22 @@ const MapsPage = () => {
                   )}
                   {place.kosherCertification && (
                     <p className="maps-page__card-cert">{place.kosherCertification}</p>
+                  )}
+                  {(place.hoursOfOperation || place.hours_of_operation) && (
+                    <div className="maps-page__card-hours">
+                      <span className="maps-page__card-hours-label">Hours</span>
+                      <div className="maps-page__card-hours-text">
+                        {(place.hoursOfOperation || place.hours_of_operation)
+                          .trim()
+                          .split(/\n/)
+                          .filter(Boolean)
+                          .map((line, i) => (
+                            <div key={i} className="maps-page__card-hours-line">
+                              {formatHoursLine(line.trim())}
+                            </div>
+                          ))}
+                      </div>
+                    </div>
                   )}
                   <div className="maps-page__card-meta">
                     {place.distance != null && <span>{place.distance} mi away</span>}

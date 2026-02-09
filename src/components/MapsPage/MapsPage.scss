@@ -167,6 +167,25 @@
     box-shadow: var(--maps-shadow);
   }
 
+  &__as-callout {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
+    border: 1px solid #7dd3fc;
+    border-left: 4px solid #0ea5e9;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    color: #0c4a6e;
+
+    strong {
+      font-weight: 700;
+    }
+  }
+
   &__empty {
     padding: 3rem;
     text-align: center;
@@ -277,6 +296,42 @@
     font-size: 0.85rem;
     color: var(--maps-text-muted);
     margin: 0 0 0.5rem 0;
+  }
+
+  &__card-hours {
+    margin: 0.5rem 0;
+    padding: 0.5rem 0.6rem;
+    background: rgba(0, 0, 0, 0.04);
+    border-radius: 8px;
+    border-left: 3px solid var(--maps-card-border, #e2e8f0);
+  }
+
+  &__card-hours-label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--maps-text-muted);
+    margin-bottom: 0.25rem;
+  }
+
+  &__card-hours-text {
+    font-family: inherit;
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: var(--maps-text);
+    margin: 0;
+    word-break: break-word;
+  }
+
+  &__card-hours-line {
+    padding: 1px 0;
+  }
+
+  &__hours-closed {
+    font-weight: 700;
+    color: #a03030;
   }
 
   &__card-meta {

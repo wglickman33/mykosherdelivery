@@ -1,8 +1,9 @@
 @use '../../styles/design-system' as *;
 
 .nursing-home-menu {
-  max-width: 900px;
+  max-width: 960px;
   margin: 0 auto;
+  padding: 0 1rem;
 }
 
 .nh-menu-loading,
@@ -34,11 +35,11 @@
 
 .nh-menu-instructions {
   margin-bottom: 2rem;
-  padding: 1.5rem;
-  background: $white;
+  padding: 1.5rem 1.75rem;
+  background: linear-gradient(135deg, $slate-50 0%, $white 100%);
   border: 1px solid $slate-200;
-  border-radius: 12px;
-  border-left: 4px solid $slate-600;
+  border-radius: 16px;
+  border-left: 4px solid $nh-primary;
 
   h2 {
     font-size: 1.125rem;
@@ -83,30 +84,33 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.75rem;
 }
 
 .nh-menu-filter-btn {
-  padding: 0.5rem 1rem;
+  padding: 0.6rem 1.25rem;
   background: $white;
   border: 1px solid $slate-300;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 0.9rem;
   font-weight: 500;
   color: $slate-700;
   cursor: pointer;
   transition: all 0.2s;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 
   &:hover {
     background: $slate-50;
     border-color: $slate-400;
     color: $slate-800;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
   }
 
   &.active {
     background: $nh-primary;
     border-color: $nh-primary;
     color: white;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 
     &:hover {
       background: $nh-primary-hover;
@@ -124,72 +128,109 @@
 .nh-menu-section {
   background: $white;
   border: 1px solid $slate-200;
-  border-radius: 12px;
-  padding: 1.5rem;
+  border-radius: 16px;
+  padding: 0;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .nh-menu-section-title {
   font-size: 1.25rem;
+  font-weight: 700;
+  color: $white;
+  margin: 0;
+  padding: 1.125rem 1.5rem;
+  background: linear-gradient(135deg, $nh-primary 0%, $nh-primary-hover 100%);
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.nh-menu-section-price {
+  font-size: 1rem;
   font-weight: 600;
-  color: $slate-800;
-  margin: 0 0 1.25rem 0;
-  padding-bottom: 0.75rem;
-  border-bottom: 2px solid $slate-200;
+  opacity: 0.95;
+  white-space: nowrap;
+}
+
+.nh-menu-section > .nh-menu-category {
+  padding: 1.5rem 1.5rem 1.5rem;
 }
 
 .nh-menu-category {
-  margin-bottom: 1.25rem;
+  padding-top: 1.25rem;
 
-  &:last-child {
-    margin-bottom: 0;
+  &:first-child {
+    padding-top: 0;
   }
 
   h4 {
-    font-size: 0.875rem;
-    font-weight: 600;
+    font-size: 0.9375rem;
+    font-weight: 700;
     color: $slate-600;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
-    margin: 0 0 0.5rem 0;
+    letter-spacing: 0.08em;
+    margin: 0 0 0.75rem 0;
+    padding-bottom: 0.35rem;
   }
 
   ul {
     margin: 0;
-    padding-left: 1.25rem;
-    list-style: disc;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 0.5rem;
   }
 
   li {
-    margin-bottom: 0.35rem;
+    margin: 0;
+    padding: 0.75rem 1rem;
     font-size: 0.9375rem;
     color: $slate-800;
     line-height: 1.5;
+    background: $slate-50;
+    border-radius: 10px;
+    border: 1px solid $slate-100;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.5rem 0.75rem;
   }
 }
 
 .nh-menu-item-name {
-  font-weight: 500;
+  font-weight: 600;
+  color: $slate-800;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .nh-menu-item-desc {
   color: $slate-600;
   font-size: 0.875rem;
+  font-weight: 400;
+  width: 100%;
+  margin-top: 0.15rem;
+  order: 1;
 }
 
-.nh-menu-item-price {
-  font-weight: 600;
-  color: $slate-700;
-  margin-left: 0.5rem;
+.nh-menu-item-tag {
+  order: 1;
 }
 
 .nh-menu-item-tag {
   display: inline-block;
-  margin-left: 0.5rem;
-  padding: 0.15rem 0.5rem;
-  background: $slate-100;
+  padding: 0.2rem 0.5rem;
+  background: $white;
   color: $slate-600;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 600;
   border-radius: 6px;
+  border: 1px solid $slate-200;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .nh-menu-empty {
@@ -197,6 +238,18 @@
   padding: 3rem 2rem;
   background: $slate-50;
   border: 1px dashed $slate-300;
-  border-radius: 12px;
+  border-radius: 16px;
   color: $slate-600;
+
+  code {
+    background: $slate-200;
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.85em;
+  }
+
+  .nh-menu-empty__hint {
+    margin: 0.75rem 0;
+    font-size: 0.9rem;
+  }
 }

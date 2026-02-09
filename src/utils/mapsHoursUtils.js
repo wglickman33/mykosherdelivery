@@ -3,11 +3,6 @@ import SunCalc from 'suncalc';
 const DAY_NAMES = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 const DAY_NAMES_FULL = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 
-/**
- * Get the current date string (YYYY-MM-DD) and minutes-from-midnight in a given IANA timezone.
- * @param {string} timezone - IANA timezone (e.g. America/New_York)
- * @returns {{ dateStr: string, minutesFromMidnight: number }}
- */
 export function getNowInTimezone(timezone) {
   if (!timezone || typeof timezone !== 'string') {
     const d = new Date();
@@ -32,12 +27,6 @@ export function getNowInTimezone(timezone) {
   return { dateStr, minutesFromMidnight };
 }
 
-/**
- * Get day-of-week (0=Sun, 6=Sat) for a date string in the given timezone.
- * @param {string} dateStr - YYYY-MM-DD
- * @param {string} timezone - IANA timezone
- * @returns {number} 0-6
- */
 export function getDayOfWeekInTimezone(dateStr, timezone) {
   if (!timezone) {
     const d = new Date(dateStr + 'T12:00:00.000Z');
@@ -50,16 +39,6 @@ export function getDayOfWeekInTimezone(dateStr, timezone) {
   return idx >= 0 ? idx : 0;
 }
 
-/**
- * Get "After Shabbat" (1 hour after sunset) for the given date at (lat, lng), expressed as
- * minutes from midnight in the restaurant's timezone for that calendar day.
- * If sunset+1hr falls on the next calendar day in TZ, we return minutes for the next day (caller can use for "close" that crosses midnight).
- * @param {string} dateStr - YYYY-MM-DD (day for which we want sunset, in restaurant TZ)
- * @param {number} lat
- * @param {number} lng
- * @param {string} timezone - IANA timezone
- * @returns {{ minutesFromMidnight: number, dateStr: string }} dateStr is the calendar date in TZ when AS occurs
- */
 export function getAfterShabbatMinutes(dateStr, lat, lng, timezone) {
   const date = new Date(dateStr + 'T12:00:00.000Z');
   const times = SunCalc.getTimes(date, lat, lng);
@@ -87,11 +66,6 @@ export function getAfterShabbatMinutes(dateStr, lat, lng, timezone) {
   return { minutesFromMidnight, dateStr: outDateStr };
 }
 
-/**
- * Parse a time string to minutes from midnight. Supports "9am", "9:30am", "5pm", "12pm", "12am", "AS" (caller resolves AS).
- * @param {string} s
- * @returns {number | 'AS' | null}
- */
 function parseTime(s) {
   if (!s || typeof s !== 'string') return null;
   const t = s.trim().toUpperCase();
@@ -107,21 +81,6 @@ function parseTime(s) {
   return h * 60 + m;
 }
 
-/**
- * Parse hours of operation text into a map: dayIndex (0-6) -> { open: number, close: number } | 'closed'.
- * Accepts one line per day. Separator between open and close can be hyphen (-) or en-dash (–).
- *
- * Supported formats (day name then tab or spaces, then time or Closed):
- *   Saturday    Closed
- *   Sunday      6 AM–3:30 PM
- *   Friday      6 AM–2:30 PM
- *   Saturday    AS–12 AM
- *   Saturday    AS–11 PM
- * Day names: full (Saturday, Sunday, …) or short (Sat, Sun, …). Times: 6 AM, 7:30 AM, 12 PM, 12 AM, or AS (after Shabbat).
- *
- * @param {string} hoursText
- * @returns {Record<number, { open: number, close: number } | 'closed'>}
- */
 export function parseHoursOfOperation(hoursText) {
   const byDay = {};
   if (!hoursText || typeof hoursText !== 'string') return byDay;
@@ -137,7 +96,6 @@ export function parseHoursOfOperation(hoursText) {
       for (const d of days) byDay[d] = 'closed';
       continue;
     }
-    // Allow hyphen (-) or en-dash (–) between times
     const dashMatch = line.match(/\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?|AS)\s*[-–]\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm)?|AS)\s*$/i);
     if (!dashMatch) continue;
     const dayPart = line.slice(0, line.indexOf(dashMatch[0])).trim();
@@ -183,14 +141,6 @@ function parseDayRange(dayPart) {
   return [];
 }
 
-/**
- * Determine if a restaurant is open right now based on hours of operation, location (for AS), and timezone.
- * @param {string} hoursOfOperation - Raw hours text
- * @param {number} lat - Latitude (for sunset/AS)
- * @param {number} lng - Longitude (for sunset/AS)
- * @param {string} timezone - IANA timezone (e.g. America/New_York). If missing, uses UTC for "now" and AS.
- * @returns {boolean | null} true = open, false = closed, null = unknown (no hours or missing data)
- */
 export function isOpenNow(hoursOfOperation, lat, lng, timezone) {
   if (!hoursOfOperation || typeof hoursOfOperation !== 'string' || hoursOfOperation.trim() === '') return null;
   const latNum = typeof lat === 'number' && !Number.isNaN(lat) ? lat : null;

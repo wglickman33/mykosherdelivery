@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   getAdminMapsRestaurants,
   createAdminMapsRestaurant,
@@ -6,7 +6,8 @@ import {
   deleteAdminMapsRestaurant,
   importAdminMapsRestaurantsCsv
 } from '../../services/mapsService';
-import { MapPin, Upload } from 'lucide-react';
+import { isOpenNow } from '../../utils/mapsHoursUtils';
+import { MapPin, Upload, ChevronDown } from 'lucide-react';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import NotificationToast from '../NotificationToast/NotificationToast';
@@ -21,6 +22,34 @@ const DEACTIVATION_OPTIONS = [
 ];
 
 const DIET_TAG_OPTIONS = ['meat', 'dairy', 'parve', 'sushi', 'fish', 'vegan', 'vegetarian', 'bakery', 'pizza', 'deli'];
+
+function formatHoursLine(line) {
+  const parts = line.split(/\b(Closed)\b/i);
+  return parts.map((part, i) =>
+    part.toLowerCase() === 'closed' ? (
+      <strong key={i} className="maps-hours-closed">Closed</strong>
+    ) : (
+      part
+    )
+  );
+}
+
+const TIMEZONE_OPTIONS = [
+  { value: '', label: '—' },
+  { value: 'America/New_York', label: 'Eastern (EST/EDT)' },
+  { value: 'America/Chicago', label: 'Central (CST/CDT)' },
+  { value: 'America/Denver', label: 'Mountain (MST/MDT)' },
+  { value: 'America/Los_Angeles', label: 'Pacific (PST/PDT)' },
+  { value: 'America/Phoenix', label: 'Arizona (MST)' },
+  { value: 'America/Anchorage', label: 'Alaska' },
+  { value: 'Pacific/Honolulu', label: 'Hawaii' },
+  { value: 'America/Toronto', label: 'Toronto' },
+  { value: 'America/Montreal', label: 'Montreal' },
+  { value: 'Europe/London', label: 'London (GMT/BST)' },
+  { value: 'Europe/Paris', label: 'Paris (CET)' },
+  { value: 'Asia/Jerusalem', label: 'Israel' },
+  { value: 'UTC', label: 'UTC' }
+];
 
 const AdminMaps = () => {
   const { notification, showNotification, hideNotification } = useNotification();
@@ -39,6 +68,8 @@ const AdminMaps = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [rowToDelete, setRowToDelete] = useState(null);
   const [viewingRow, setViewingRow] = useState(null);
+  const [timezoneDropOpen, setTimezoneDropOpen] = useState(null);
+  const timezoneDropRef = useRef(null);
   const [form, setForm] = useState({
     name: '',
     address: '',
@@ -55,6 +86,7 @@ const AdminMaps = () => {
     isActive: true,
     deactivationReason: '',
     hoursOfOperation: '',
+    timezone: '',
     notes: ''
   });
 
@@ -104,6 +136,7 @@ const AdminMaps = () => {
       isActive: true,
       deactivationReason: '',
       hoursOfOperation: '',
+      timezone: '',
       notes: ''
     });
     setError(null);
@@ -127,6 +160,8 @@ const AdminMaps = () => {
       dietTags: Array.isArray(row.dietTags) ? [...row.dietTags] : [],
       isActive: row.isActive !== false,
       deactivationReason: row.deactivationReason || '',
+      hoursOfOperation: row.hoursOfOperation || '',
+      timezone: row.timezone || '',
       notes: row.notes || ''
     });
     setError(null);
@@ -160,6 +195,7 @@ const AdminMaps = () => {
         isActive: form.isActive,
         deactivationReason: form.deactivationReason || null,
         hoursOfOperation: str(form.hoursOfOperation),
+        timezone: str(form.timezone) || null,
         notes: str(form.notes)
       };
       if (editing) {
@@ -197,6 +233,8 @@ const AdminMaps = () => {
       dietTags: Array.isArray(row.dietTags) ? [...row.dietTags] : [],
       isActive: nextActive,
       deactivationReason: nextActive ? '' : (row.deactivationReason || 'closed_temporarily'),
+      hoursOfOperation: row.hoursOfOperation || '',
+      timezone: row.timezone || '',
       notes: row.notes || ''
     });
     setError(null);
@@ -267,6 +305,67 @@ const AdminMaps = () => {
         : [...prev.dietTags, tag]
     }));
   };
+
+  useEffect(() => {
+    if (timezoneDropOpen == null) return;
+    const close = (e) => {
+      if (timezoneDropRef.current && !timezoneDropRef.current.contains(e.target)) {
+        setTimezoneDropOpen(null);
+      }
+    };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [timezoneDropOpen]);
+
+  const buildRowPayload = (row, overrides = {}) => ({
+    name: row.name || '',
+    address: row.address ?? null,
+    city: row.city ?? null,
+    state: row.state ?? null,
+    zip: row.zip ?? null,
+    latitude: row.latitude ?? null,
+    longitude: row.longitude ?? null,
+    phone: row.phone ?? null,
+    website: row.website ?? null,
+    kosherCertification: row.kosherCertification ?? null,
+    googleRating: row.googleRating ?? null,
+    googlePlaceId: row.googlePlaceId ?? null,
+    dietTags: Array.isArray(row.dietTags) ? row.dietTags : [],
+    isActive: row.isActive !== false,
+    deactivationReason: row.deactivationReason || null,
+    hoursOfOperation: row.hoursOfOperation ?? null,
+    timezone: row.timezone ?? null,
+    notes: row.notes ?? null,
+    ...overrides
+  });
+
+  const handleTimezoneChange = async (row, newTimezone) => {
+    setTimezoneDropOpen(null);
+    try {
+      const payload = buildRowPayload(row, { timezone: newTimezone || null });
+      await updateAdminMapsRestaurant(row.id, payload);
+      setList((prev) => prev.map((r) => (r.id === row.id ? { ...r, timezone: newTimezone || null } : r)));
+      showNotification('Timezone updated', 'success');
+    } catch (err) {
+      showNotification(err?.message || 'Update failed', 'error');
+    }
+  };
+
+  const getTimezoneLabel = (value) => TIMEZONE_OPTIONS.find((o) => o.value === value)?.label || value || '—';
+
+  const openStatusById = useMemo(() => {
+    const out = {};
+    list.forEach((row) => {
+      const status = isOpenNow(
+        row.hoursOfOperation ?? row.hours_of_operation ?? '',
+        row.latitude ?? null,
+        row.longitude ?? null,
+        row.timezone ?? null
+      );
+      out[row.id] = status;
+    });
+    return out;
+  }, [list]);
 
   const activeCount = list.filter((r) => r.isActive !== false).length;
   const inactiveCount = list.length - activeCount;
@@ -345,6 +444,11 @@ const AdminMaps = () => {
         </div>
       </div>
 
+      <div className="maps-as-callout" role="note">
+        <strong>AS = After Shabbat</strong>
+        <span> (~1 hour after sunset at the restaurant’s location)</span>
+      </div>
+
       <div className="maps-table-container">
         {loading ? (
           <div className="maps-loading">
@@ -371,25 +475,91 @@ const AdminMaps = () => {
                 <thead>
                   <tr>
                     <th>Name</th>
+                    <th>Open</th>
                     <th>Address</th>
                     <th>Diet</th>
                     <th>Certification</th>
                     <th>Phone</th>
                     <th>Rating</th>
+                    <th>Hours</th>
+                    <th>Timezone</th>
                     <th>Active</th>
                     <th>Reason</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {list.map((row) => (
-                    <tr key={row.id} className={row.isActive === false ? 'maps-row--inactive' : ''}>
+                  {list.map((row) => {
+                    const isOpen = openStatusById[row.id];
+                    const openRowClass = isOpen === true ? 'maps-row--open' : isOpen === false ? 'maps-row--closed' : '';
+                    return (
+                    <tr
+                      key={row.id}
+                      className={`${row.isActive === false ? 'maps-row--inactive' : ''} ${openRowClass}`}
+                    >
                       <td className="maps-name">{row.name}</td>
+                      <td className="maps-open-now">
+                        {isOpen !== undefined && isOpen !== null ? (
+                          <span className={`maps-pill maps-pill--${isOpen ? 'success' : 'error'}`}>
+                            {isOpen ? 'Open' : 'Closed'}
+                          </span>
+                        ) : '—'}
+                      </td>
                       <td className="maps-address">{[row.address, row.city, row.state, row.zip].filter(Boolean).join(', ') || '—'}</td>
                       <td className="maps-diet">{(row.dietTags || []).join(', ') || '—'}</td>
                       <td className="maps-cert">{row.kosherCertification || '—'}</td>
                       <td className="maps-phone">{row.phone || '—'}</td>
                       <td className="maps-rating">{row.googleRating != null ? Number(row.googleRating).toFixed(1) : '—'}</td>
+                      <td className="maps-hours">
+                        {(row.hoursOfOperation || row.hours_of_operation) ? (
+                          <div className="maps-hours-block">
+                            {(row.hoursOfOperation || row.hours_of_operation)
+                              .trim()
+                              .split(/\n/)
+                              .filter(Boolean)
+                              .map((line, i) => (
+                                <div key={i} className="maps-hours-line">{formatHoursLine(line.trim())}</div>
+                              ))}
+                          </div>
+                        ) : '—'}
+                      </td>
+                      <td className="maps-timezone">
+                        <div
+                          className={`admin-maps__pill-select-wrap ${timezoneDropOpen === row.id ? 'admin-maps__pill-select-wrap--open' : ''}`}
+                          ref={timezoneDropOpen === row.id ? timezoneDropRef : null}
+                        >
+                          <button
+                            type="button"
+                            className="admin-maps__pill-select-trigger"
+                            onClick={() => setTimezoneDropOpen((id) => (id === row.id ? null : row.id))}
+                            aria-haspopup="listbox"
+                            aria-expanded={timezoneDropOpen === row.id}
+                            aria-label={`Timezone: ${getTimezoneLabel(row.timezone)}`}
+                          >
+                            <span className="admin-maps__pill-select-label">{getTimezoneLabel(row.timezone)}</span>
+                            <ChevronDown size={14} className="admin-maps__pill-select-chevron" aria-hidden />
+                          </button>
+                          {timezoneDropOpen === row.id && (
+                            <ul
+                              className="admin-maps__pill-select-dropdown"
+                              role="listbox"
+                              aria-label="Select timezone"
+                            >
+                              {TIMEZONE_OPTIONS.map((opt) => (
+                                <li
+                                  key={opt.value || 'empty'}
+                                  role="option"
+                                  aria-selected={row.timezone === opt.value}
+                                  className={`admin-maps__pill-select-option ${row.timezone === opt.value ? 'admin-maps__pill-select-option--selected' : ''}`}
+                                  onClick={() => handleTimezoneChange(row, opt.value)}
+                                >
+                                  {opt.label}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      </td>
                       <td className="maps-active">
                         <span className={`maps-pill maps-pill--${row.isActive !== false ? 'success' : 'error'}`}>
                           {row.isActive !== false ? 'Yes' : 'No'}
@@ -409,7 +579,7 @@ const AdminMaps = () => {
                         <button type="button" className="maps-action maps-action--delete" onClick={() => handleDeleteClick(row)}>Delete</button>
                       </td>
                     </tr>
-                  ))}
+                  ); })}
                 </tbody>
               </table>
             </div>
@@ -458,11 +628,26 @@ const AdminMaps = () => {
         </div>
       )}
 
-      {viewingRow && (
+      {viewingRow && (() => {
+        const viewIsOpen = isOpenNow(
+          viewingRow.hoursOfOperation ?? viewingRow.hours_of_operation ?? '',
+          viewingRow.latitude ?? null,
+          viewingRow.longitude ?? null,
+          viewingRow.timezone ?? null
+        );
+        const viewOpenClass = viewIsOpen === true ? 'admin-maps__modal--view-open' : viewIsOpen === false ? 'admin-maps__modal--view-closed' : '';
+        return (
         <div className="admin-maps__overlay" onClick={() => setViewingRow(null)}>
-          <div className="admin-maps__modal admin-maps__modal--view" onClick={(e) => e.stopPropagation()}>
-            <div className="admin-maps__modal-header">
-              <h2>{viewingRow.name}</h2>
+          <div className={`admin-maps__modal admin-maps__modal--view ${viewOpenClass}`} onClick={(e) => e.stopPropagation()}>
+            <div className="admin-maps__modal-header admin-maps__modal-header--view">
+              <div className="admin-maps__modal-header-title-row">
+                <h2>{viewingRow.name}</h2>
+                {viewIsOpen !== undefined && viewIsOpen !== null && (
+                  <span className={`maps-pill maps-pill--${viewIsOpen ? 'success' : 'error'}`}>
+                    {viewIsOpen ? 'Open now' : 'Closed'}
+                  </span>
+                )}
+              </div>
               <button
                 type="button"
                 className="admin-maps__modal-close"
@@ -513,7 +698,21 @@ const AdminMaps = () => {
                 <h3 className="admin-maps__view-section-title">Hours & status</h3>
                 <dl className="admin-maps__view-grid">
                   <dt>Hours of operation</dt>
-                  <dd className={`admin-maps__view-hours ${!viewingRow.hoursOfOperation ? 'admin-maps__view-empty' : ''}`}>{viewingRow.hoursOfOperation || '—'}</dd>
+                  <dd className={!viewingRow.hoursOfOperation ? 'admin-maps__view-empty' : ''}>
+                    {(viewingRow.hoursOfOperation || viewingRow.hours_of_operation) ? (
+                      <div className="admin-maps__view-hours-block">
+                        {(viewingRow.hoursOfOperation || viewingRow.hours_of_operation)
+                          .trim()
+                          .split(/\n/)
+                          .filter(Boolean)
+                          .map((line, i) => (
+                            <div key={i} className="admin-maps__view-hours-line">{formatHoursLine(line.trim())}</div>
+                          ))}
+                      </div>
+                    ) : '—'}
+                  </dd>
+                  <dt>Timezone</dt>
+                  <dd className={!viewingRow.timezone ? 'admin-maps__view-empty' : ''}>{getTimezoneLabel(viewingRow.timezone)}</dd>
                   <dt>Status</dt>
                   <dd>
                     <span className={`maps-pill maps-pill--${viewingRow.isActive !== false ? 'success' : 'error'}`}>
@@ -548,7 +747,7 @@ const AdminMaps = () => {
             </div>
           </div>
         </div>
-      )}
+      ); })()}
 
       {modalOpen && (
         <div className="admin-maps__overlay" onClick={() => !submitting && setModalOpen(false)}>
@@ -713,6 +912,48 @@ const AdminMaps = () => {
                       rows={2}
                     />
                     <span className="admin-maps__form-hint">AS = After Shabbat (understood in community)</span>
+                  </div>
+                  <div className="admin-maps__form-group">
+                    <label>Timezone</label>
+                    <div
+                      className={`admin-maps__pill-select-wrap ${timezoneDropOpen === 'form' ? 'admin-maps__pill-select-wrap--open' : ''}`}
+                      ref={timezoneDropOpen === 'form' ? timezoneDropRef : null}
+                    >
+                      <button
+                        type="button"
+                        className="admin-maps__pill-select-trigger"
+                        onClick={() => setTimezoneDropOpen((id) => (id === 'form' ? null : 'form'))}
+                        aria-haspopup="listbox"
+                        aria-expanded={timezoneDropOpen === 'form'}
+                        aria-label={`Timezone: ${getTimezoneLabel(form.timezone)}`}
+                      >
+                        <span className="admin-maps__pill-select-label">{getTimezoneLabel(form.timezone)}</span>
+                        <ChevronDown size={14} className="admin-maps__pill-select-chevron" aria-hidden />
+                      </button>
+                      {timezoneDropOpen === 'form' && (
+                        <ul
+                          className="admin-maps__pill-select-dropdown"
+                          role="listbox"
+                          aria-label="Select timezone"
+                        >
+                          {TIMEZONE_OPTIONS.map((opt) => (
+                            <li
+                              key={opt.value || 'empty'}
+                              role="option"
+                              aria-selected={form.timezone === opt.value}
+                              className={`admin-maps__pill-select-option ${form.timezone === opt.value ? 'admin-maps__pill-select-option--selected' : ''}`}
+                              onClick={() => {
+                                setForm((p) => ({ ...p, timezone: opt.value }));
+                                setTimezoneDropOpen(null);
+                              }}
+                            >
+                              {opt.label}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                    <span className="admin-maps__form-hint">For open/closed and AS (after Shabbat)</span>
                   </div>
                   <div className="admin-maps__form-group admin-maps__form-group--full">
                     <label>Notes</label>

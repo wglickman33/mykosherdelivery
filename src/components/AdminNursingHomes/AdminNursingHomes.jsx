@@ -23,7 +23,7 @@ const AdminNursingHomes = () => {
     { id: 'staff', label: 'Staff', roles: ['admin', 'nursing_home_admin'] },
     { id: 'staff-assignment', label: 'Staff Assignment', roles: ['admin', 'nursing_home_admin'] },
     { id: 'orders', label: 'Orders', roles: ['admin', 'nursing_home_admin'] },
-    { id: 'menu', label: 'Menu', roles: ['admin', 'nursing_home_admin'] },
+    { id: 'menu', label: 'Menu', roles: ['admin', 'nursing_home_admin', 'nursing_home_user'] },
     { id: 'facilities', label: 'Facilities', roles: ['admin'] },
   ].filter(tab => tab.roles.includes(user?.role));
 

@@ -360,7 +360,7 @@ const AdminLayout = () => {
           {navItems.map((item) => (
             <button
               key={item.id}
-              className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
+              className={`nav-item ${(item.path === '/admin/restaurants' ? (location.pathname === '/admin/restaurants' || location.pathname.startsWith('/admin/restaurants/')) : location.pathname === item.path) ? 'active' : ''}`}
               onClick={() => navigate(item.path)}
             >
               <span className="nav-icon">{item.icon}</span>

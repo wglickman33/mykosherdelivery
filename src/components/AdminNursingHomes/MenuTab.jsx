@@ -16,7 +16,7 @@ const MenuTab = () => {
           <button
             type="button"
             className="admin-nursing-homes__edit-menu-btn"
-            onClick={() => navigate('/admin/restaurants?tab=nursing-home-menu')}
+            onClick={() => navigate('/admin/restaurants/nursing-home-menus')}
           >
             Edit Menu (Restaurants)
           </button>

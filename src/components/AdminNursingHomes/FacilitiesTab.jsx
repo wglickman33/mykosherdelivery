@@ -245,6 +245,14 @@ const FacilitiesTab = () => {
                       >
                         Enter
                       </button>
+                      <button
+                        type="button"
+                        className="facility-btn facility-btn-menu btn-sm"
+                        onClick={() => navigate(`/nursing-homes/menu?facilityId=${f.id}`)}
+                        title="View menu"
+                      >
+                        Menu
+                      </button>
                       <button type="button" className="facility-btn facility-btn-edit btn-sm" onClick={() => handleOpenEdit(f)}>
                         Edit
                       </button>

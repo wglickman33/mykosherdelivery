@@ -203,6 +203,8 @@ function AuthenticatedApp() {
             <Route path="orders/:orderId" element={<AdminOrderEdit />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="restaurants" element={<AdminRestaurants />} />
+            <Route path="restaurants/menus" element={<AdminRestaurants />} />
+            <Route path="restaurants/nursing-home-menus" element={<AdminRestaurants />} />
             <Route path="maps" element={<AdminMaps />} />
             <Route path="analytics" element={<AdminAnalytics />} />
             <Route path="analytics/overview" element={<AdminAnalyticsOverview />} />
