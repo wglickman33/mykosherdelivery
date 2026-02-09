@@ -4,11 +4,6 @@ const { QueryTypes } = require('sequelize');
 const logger = require('../utils/logger');
 const { appEvents } = require('../utils/events');
 
-/**
- * GET /api/admin/orders/stream — SSE endpoint.
- * Auth via query ?token= (JWT from POST /api/admin/orders/stream-token).
- * Mounted at app level so it is never matched by GET /api/admin/orders/:orderId.
- */
 function handleOrdersStream(req, res) {
   const token = req.query.token;
   logger.info('SSE stream: handler hit', { hasToken: !!token, path: req.path });
@@ -46,7 +41,6 @@ function handleOrdersStream(req, res) {
         return res.status(401).json({ error: 'Invalid token: missing userId' });
       }
 
-      // Raw query only — avoids Profile model/schema (e.g. missing nursing_home_facility_id in prod)
       const rows = await sequelize.query(
         `SELECT id, role FROM profiles WHERE id = :userId`,
         { replacements: { userId: decoded.userId }, type: QueryTypes.SELECT }

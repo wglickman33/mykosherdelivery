@@ -1,7 +1,3 @@
-/**
- * Seed 3 placeholder nursing home communities (facilities) for UI/functionality development.
- * Run: node backend/scripts/seed-placeholder-communities.js
- */
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 const { NursingHomeFacility } = require('../models');

@@ -25,7 +25,6 @@ if (!stripe) {
 
 const router = express.Router();
 
-// --- Portal: residents (dashboard) and menu (order creation) ---
 router.get('/residents', requireNursingHomeUser, async (req, res) => {
   try {
     const { page = 1, limit = 50, search = '', facilityId, assignedUserId } = req.query;
@@ -160,7 +159,6 @@ router.get('/menu/:id', requireNursingHomeUser, async (req, res) => {
   }
 });
 
-// --- Resident orders (portal) ---
 const paymentLimiter = rateLimit({
   windowMs: API_CONFIG.RATE_LIMIT.WINDOW_MS,
   max: API_CONFIG.RATE_LIMIT.PAYMENT_MAX_REQUESTS,

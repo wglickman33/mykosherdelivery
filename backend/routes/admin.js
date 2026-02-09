@@ -89,7 +89,6 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// SSE stream routes: must be registered before any /orders/:orderId so GET /orders/stream is not matched as orderId
 router.post('/orders/stream-token', requireAdmin, async (req, res) => {
   try {
     const token = jwt.sign(
@@ -332,7 +331,6 @@ router.put('/users/:userId', requireAdmin, [
         });
       }
 
-      // Check if the enum value exists in the database (QueryTypes.SELECT returns array directly)
       try {
         const enumRows = await sequelize.query(`
           SELECT enumlabel FROM pg_enum 
@@ -2460,7 +2458,6 @@ router.get('/orders', requireAdmin, async (req, res) => {
   }
 });
 
-// Helpers for orders Excel export (must match frontend formatting)
 function formatAddressForExport(deliveryAddress) {
   if (!deliveryAddress) return '—';
   const parts = [];

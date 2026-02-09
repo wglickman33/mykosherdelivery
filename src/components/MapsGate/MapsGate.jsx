@@ -5,7 +5,6 @@ import { MapsThemeProvider, MapsThemeRoot } from '../../context/MapsThemeContext
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import './MapsGate.scss';
 
-// Maps is free — gate only requires auth
 const MapsGate = ({ children }) => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();

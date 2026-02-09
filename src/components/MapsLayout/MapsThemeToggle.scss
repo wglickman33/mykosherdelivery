@@ -41,7 +41,6 @@
   transition: opacity 0.3s ease;
 }
 
-// Light theme: show sun (click to go dark)
 .maps-theme--light .maps-theme-toggle__sun {
   opacity: 1;
 }
@@ -50,7 +49,6 @@
   opacity: 0;
 }
 
-// Dark theme: show moon (click to go light)
 .maps-theme--dark .maps-theme-toggle__sun {
   opacity: 0;
 }

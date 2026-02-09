@@ -111,7 +111,6 @@ const AdminMaps = () => {
     } finally {
       setLoading(false);
     }
-  // showNotification intentionally omitted to avoid request loop (it changes every render)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, search, filterActive, filterDiet]);
 

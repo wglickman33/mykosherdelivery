@@ -436,7 +436,6 @@
     margin-bottom: 1rem;
   }
 
-  // Accessibility
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -447,7 +446,6 @@
     }
   }
 
-  // High contrast mode
   @media (prefers-contrast: high) {
     .order-review,
     .payment-section {
@@ -455,7 +453,6 @@
     }
   }
 
-  // Print styles
   @media print {
     .payment-section {
       display: none;

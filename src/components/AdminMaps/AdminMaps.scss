@@ -1,4 +1,3 @@
-// Distinct, slightly more fun styling for Maps admin (teal/amber accent)
 $maps-accent: #0d9488;
 $maps-accent-dark: #0f766e;
 $maps-amber: #d97706;
@@ -641,7 +640,6 @@ $maps-error: #dc2626;
   gap: 12px;
 }
 
-// Add/Edit modal (scoped under admin-maps)
 .admin-maps {
   &__overlay {
     position: fixed;
@@ -705,7 +703,6 @@ $maps-error: #dc2626;
     overflow-y: auto;
   }
 
-  // View modal: shadcn-inspired — bigger, spacious, organized
   &__modal--view {
     width: 94vw;
     max-width: 780px;
@@ -897,7 +894,6 @@ $maps-error: #dc2626;
     margin-top: 4px;
   }
 
-  // Pill select (Google Sheets–style dropdown)
   &__pill-select-wrap {
     position: relative;
     display: inline-block;
@@ -1105,7 +1101,6 @@ $maps-error: #dc2626;
   }
 }
 
-// Responsive: 300px up to 2000px+
 @media (max-width: 480px) {
   .admin-maps {
     padding: 12px;

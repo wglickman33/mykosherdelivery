@@ -50,7 +50,6 @@ const USER_ROLES = {
   NURSING_HOME_USER: 'nursing_home_user'
 };
 
-/** All valid role values for DB enum and validation (underscores, no hyphens) */
 const VALID_PROFILE_ROLES = Object.values(USER_ROLES);
 
 const ORDER_CONFIG = {

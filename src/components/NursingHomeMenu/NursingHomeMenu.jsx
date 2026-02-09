@@ -21,17 +21,7 @@ const NursingHomeMenu = ({ showInstructions = true, showEditLink = false }) => {
   const loadMenu = useCallback(async () => {
     setLoading(true);
     setError(null);
-    // #region agent log
-    if (import.meta.env.DEV) console.debug('[DEBUG] NursingHomeMenu loadMenu called');
-    fetch('http://127.0.0.1:7242/ingest/4dc3c80e-cf40-46c2-9570-f0bcad5c8b59',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'NursingHomeMenu.jsx:loadMenu',message:'loadMenu called',data:{},timestamp:Date.now(),hypothesisId:'D'})}).catch(()=>{});
-    // #endregion
     const result = await fetchNursingHomeMenu({ isActive: true });
-    // #region agent log
-    const _itemsLen = Array.isArray(result?.data?.items) ? result.data.items.length : 0;
-    const _nhResultPayload = {location:'NursingHomeMenu.jsx:loadMenu',message:'result received',data:{success:result?.success,hasData:!!result?.data,dataKeys:result?.data?Object.keys(result.data):[],itemsLength:_itemsLen},timestamp:Date.now(),hypothesisId:'B,C,D'};
-    if (import.meta.env.DEV) console.debug('[DEBUG] NursingHomeMenu result', _nhResultPayload);
-    fetch('http://127.0.0.1:7242/ingest/4dc3c80e-cf40-46c2-9570-f0bcad5c8b59',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(_nhResultPayload)}).catch(()=>{});
-    // #endregion
     if (result.success && result.data) {
       setMenu({
         items: result.data.items || [],

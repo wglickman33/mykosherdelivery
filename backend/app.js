@@ -108,7 +108,6 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/favorites', favoriteRoutes);
 app.use('/api/admin/maps', requireAdmin, adminMapsRoutes);
-// SSE stream: app-level route so GET /orders/stream is never matched by admin router's /orders/:orderId
 app.get('/api/admin/orders/stream', adminOrdersStreamHandler);
 app.use('/api/admin', adminRoutes);
 app.use('/api/promo-codes', promoCodeRoutes);
@@ -144,11 +143,9 @@ app.use((err, req, res, next) => {
   const status = err.status || 500;
   const name = err.name || 'Error';
   const safeMessage = err.message || 'Unknown error';
-  // Always log full error to terminal so you see it when running the server
   console.error('[GLOBAL ERROR HANDLER]', name, safeMessage);
   console.error('[GLOBAL ERROR HANDLER] Stack:', err.stack || '(no stack)');
   logger.error('Unhandled error:', { message: safeMessage, status, name, path: req.path });
-  // Always send error name so client/debugging can see what broke (e.g. TypeError, SequelizeDatabaseError)
   const body = {
     error: process.env.NODE_ENV === 'production' ? 'Internal server error' : safeMessage,
     message: process.env.NODE_ENV === 'production' ? `Internal server error (${name})` : safeMessage,

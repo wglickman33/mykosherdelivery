@@ -10,11 +10,9 @@ const logger = require('../utils/logger');
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
-// #region agent log
 function debugLog(location, message, data, hypothesisId) {
   console.log('[AdminMaps import]', location, message, hypothesisId, JSON.stringify(data || {}));
 }
-// #endregion
 
 function sheetToRaw(worksheet) {
   const raw = [];
@@ -157,7 +155,6 @@ function parseCsvLine(line) {
   return result;
 }
 
-/** Split CSV text into logical lines (newlines inside quoted fields are kept). */
 function splitCsvLines(text) {
   const lines = [];
   let current = '';
@@ -355,7 +352,6 @@ router.post('/restaurants/import', requireAdmin, upload.single('file'), async (r
     const isXlsx = (req.file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
       (req.file.originalname && req.file.originalname.toLowerCase().endsWith('.xlsx')));
     const { headers, rows } = isXlsx ? await parseXlsxBuffer(req.file.buffer) : parseCsvBuffer(req.file.buffer);
-    // #region agent log
     debugLog('admin-maps.js:import_after_parse', 'import after parse', {
       isXlsx,
       headers,
@@ -364,7 +360,6 @@ router.post('/restaurants/import', requireAdmin, upload.single('file'), async (r
       firstHeader: headers[0],
       firstRowFirstHeaderVal: rows[0] && headers[0] !== undefined ? (rows[0][headers[0]] != null ? String(rows[0][headers[0]]).length : 'undefined') : 'n/a'
     }, 'D');
-    // #endregion
     const norm = (h) => (h || '').toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
     const col = (row, ...names) => {
       for (const n of names) {
@@ -385,7 +380,6 @@ router.post('/restaurants/import', requireAdmin, upload.single('file'), async (r
         const first = (row[headers[0]] || '').trim();
         if (first) name = first;
       }
-      // #region agent log
       if (i < 2) {
         const nameFromCol = col(row, 'name', 'restaurant name', 'restaurant', 'business name', 'establishment');
         const firstColVal = headers[0] !== undefined ? (row[headers[0]] || '').trim() : '';
@@ -398,11 +392,8 @@ router.post('/restaurants/import', requireAdmin, upload.single('file'), async (r
           rowKeys: Object.keys(row)
         }, 'E');
       }
-      // #endregion
       if (!name) {
-        // #region agent log
         debugLog('admin-maps.js:import_missing_name', 'Missing name pushed', { rowIndex: i, rowDisplay: i + 2, rowKeys: Object.keys(row), headers0: headers[0], rowFirstCol: headers[0] !== undefined ? (row[headers[0]] != null ? 'set' : 'missing') : 'n/a' }, 'F');
-        // #endregion
         errors.push({ row: i + 2, message: 'Missing name' });
         continue;
       }
@@ -459,7 +450,6 @@ router.post('/restaurants/import', requireAdmin, upload.single('file'), async (r
         if (payload.address) where.address = payload.address;
         const existing = await KosherMapsRestaurant.findOne({ where });
         if (existing) {
-          // Partial update: only set fields that were provided in the CSV so partial rows don't wipe existing data
           const updatePayload = { name: payload.name };
           if (has(address)) updatePayload.address = payload.address;
           if (has(city)) updatePayload.city = payload.city;

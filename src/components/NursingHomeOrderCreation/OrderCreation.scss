@@ -651,7 +651,6 @@
     margin-bottom: 1rem;
   }
 
-  // Accessibility
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -662,7 +661,6 @@
     }
   }
 
-  // High contrast mode
   @media (prefers-contrast: high) {
     .menu-item,
     .day-btn,
@@ -671,7 +669,6 @@
     }
   }
 
-  // Print styles
   @media print {
     .order-summary {
       page-break-inside: avoid;

@@ -9,8 +9,8 @@ module.exports = {
     try {
       const [rows] = await queryInterface.sequelize.query('SELECT zip_code FROM delivery_zones');
       if (Array.isArray(rows)) existingZips = new Set(rows.map((r) => r.zip_code));
-    } catch (_) {
-      // table may not exist yet
+    // eslint-disable-next-line no-empty -- table may not exist yet
+    } catch {
     }
 
     const deliveryZones = [];

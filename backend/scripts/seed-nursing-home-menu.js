@@ -1,11 +1,8 @@
 const path = require('path');
-// Load .env from project root so DATABASE_URL is set (same as when app runs)
 require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 const { NursingHomeMenuItem } = require('../models');
 const logger = require('../utils/logger');
 
-// Run from backend: npm run seed:nh-menu  (or: node scripts/seed-nursing-home-menu.js)
-// On Heroku: heroku run "cd backend && node scripts/seed-nursing-home-menu.js" -a YOUR_APP_NAME
 const menuItemsRaw = [
   { mealType: 'breakfast', category: 'main', name: 'Scrambled Eggs', description: '', price: 15.00, requiresBagelType: false, excludesSide: false, displayOrder: 1 },
   { mealType: 'breakfast', category: 'main', name: 'Omelet', description: '', price: 15.00, requiresBagelType: false, excludesSide: false, displayOrder: 2 },

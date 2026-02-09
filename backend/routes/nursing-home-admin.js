@@ -21,8 +21,6 @@ router.get('/facilities', requireAdmin, async (req, res) => {
       where.isActive = isActive === 'true';
     }
 
-    // Do not include Profile (staff): profiles.nursing_home_facility_id may not exist in DB yet.
-    // Facilities list works without staff; staff can be loaded separately per facility if needed.
     const result = await NursingHomeFacility.findAndCountAll({
       where,
       limit: limitNum,
@@ -97,7 +95,6 @@ router.get('/facilities/current', requireNursingHomeUser, async (req, res) => {
   }
 });
 
-// GET /facilities/:id/staff — must be before /facilities/:id so Express matches the more specific path
 router.get('/facilities/:id/staff', requireNursingHomeAdmin, async (req, res) => {
   try {
     const { id: facilityId } = req.params;
@@ -137,7 +134,6 @@ router.get('/facilities/:id', requireNursingHomeAdmin, async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Raw SQL only: avoid Sequelize and any staff association (profiles.nursing_home_facility_id may not exist).
     const rows = await sequelize.query(
       `SELECT id, name, address, contact_email AS "contactEmail", contact_phone AS "contactPhone",
               logo_url AS "logoUrl", billing_frequency AS "billingFrequency", is_active AS "isActive",

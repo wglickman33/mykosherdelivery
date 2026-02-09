@@ -10,7 +10,6 @@ import './MapsPage.scss';
 const DEFAULT_CENTER = { lat: 40.7128, lng: -74.006 };
 const DIET_OPTIONS = ['meat', 'dairy', 'parve', 'sushi', 'fish', 'vegan', 'vegetarian', 'bakery', 'pizza', 'deli'];
 
-/** Haversine distance in miles between two points. */
 function distanceMiles(lat1, lng1, lat2, lng2) {
   const R = 3959;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -23,7 +22,6 @@ function distanceMiles(lat1, lng1, lat2, lng2) {
   return R * c;
 }
 
-/** Returns { lat, lng } from place (accepts latitude/longitude or lat/lng), or null if missing/invalid. */
 function getPlaceCoords(place) {
   if (!place) return null;
   const lat = place.latitude ?? place.lat;
@@ -135,7 +133,6 @@ const MapsPage = () => {
     return out;
   }, [list]);
 
-  /** Distance in miles from user to each place (when userLocation is set). Uses API distance if present, else computes. */
   const distanceByPlaceId = useMemo(() => {
     const out = {};
     if (!userLocation) return out;

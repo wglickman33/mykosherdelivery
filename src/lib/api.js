@@ -164,7 +164,6 @@ class ApiClient {
         throw new Error(errorMessage);
       }
 
-      // 204 No Content has no body — don't parse JSON
       if (response.status === 204) {
         return null;
       }
@@ -205,7 +204,6 @@ class ApiClient {
     return this.request(url, { method: "GET" });
   }
 
-  /** GET request that returns a Blob (e.g. file download). Uses same auth as request(). */
   async getBlob(endpoint, params = {}) {
     const queryString = new URLSearchParams(params).toString();
     const path = queryString ? `${endpoint}?${queryString}` : endpoint;

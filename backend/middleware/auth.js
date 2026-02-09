@@ -89,7 +89,6 @@ const authenticateToken = async (req, res, next) => {
     try {
       user = await Profile.findByPk(decoded.userId);
     } catch (dbError) {
-      // On any DB error (missing column, enum, etc.), try loading with a minimal raw query
       const isColumnOrSchema = dbError.message?.includes('nursing_home_facility_id') ||
         dbError.original?.message?.includes('nursing_home_facility_id') ||
         dbError.message?.includes('does not exist') ||

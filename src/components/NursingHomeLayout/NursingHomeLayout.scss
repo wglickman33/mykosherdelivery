@@ -1,6 +1,5 @@
 @use '../../styles/design-system' as *;
 
-// Nursing Home Portal — all slate (grey-blues)
 .nh-layout {
   display: flex;
   min-height: 100vh;
@@ -25,7 +24,6 @@
   }
 }
 
-// Sidebar — dark slate (calm, professional)
 .nh-sidebar {
   width: 280px;
   background: linear-gradient(180deg, $nh-slate-800 0%, $nh-slate-900 100%);
@@ -304,7 +302,6 @@
     }
   }
 
-  // Collapsed state: show only logo (small) + toggle; community and user compact
   &.collapsed {
     .nh-sidebar__header {
       flex-direction: column;
@@ -383,7 +380,6 @@
   }
 }
 
-// Overlay for mobile
 .nh-overlay {
   position: fixed;
   inset: 0;
@@ -391,7 +387,6 @@
   z-index: 900;
 }
 
-// Main content area
 .nh-main {
   flex: 1;
   display: flex;
@@ -456,7 +451,6 @@
   background: $slate-50;
 }
 
-// Mobile: sidebar becomes drawer
 @media (max-width: 1280px) {
   .nh-sidebar {
     position: fixed;

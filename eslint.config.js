@@ -35,7 +35,6 @@ export default [
       ],
     },
   },
-  // Backend (Node) override
   {
     files: ['backend/**/*.js'],
     languageOptions: {
