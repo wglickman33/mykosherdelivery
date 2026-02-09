@@ -13,7 +13,9 @@ import {
 } from '@stripe/react-stripe-js';
 
 const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
-console.log('Stripe key status:', stripeKey ? `Set (${stripeKey.substring(0, 7)}...)` : 'NOT SET');
+if (import.meta.env.DEV && !stripeKey) {
+  console.warn('[Payment] Stripe publishable key not set');
+}
 
 const stripePromise = stripeKey ? loadStripe(stripeKey) : null;
 
@@ -225,7 +227,8 @@ const PaymentStep = ({
         total: orderData.total,
         tip: orderData.tip || 0,
         discountAmount: orderData.discountAmount || 0,
-        appliedPromo: orderData.appliedPromo || null
+        appliedPromo: orderData.appliedPromo || null,
+        appliedGiftCard: orderData.appliedGiftCard || null
       };
 
       const orderResponse = await apiClient.post('/orders', orderPayload);
@@ -434,7 +437,8 @@ const PaymentStep = ({
         tax: tax,
         total: total,
         discountAmount: orderData.discountAmount || 0,
-        appliedPromo: orderData.appliedPromo || null
+        appliedPromo: orderData.appliedPromo || null,
+        appliedGiftCard: orderData.appliedGiftCard || null
       };
 
       const orderResponse = await apiClient.post('/orders', orderPayload);

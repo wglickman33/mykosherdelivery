@@ -31,6 +31,11 @@ const CheckoutPage = () => {
   const [isValidatingPromo, setIsValidatingPromo] = useState(false);
   const [promoErrorTimeout, setPromoErrorTimeout] = useState(null);
 
+  const [giftCardCode, setGiftCardCode] = useState("");
+  const [appliedGiftCard, setAppliedGiftCard] = useState(null);
+  const [giftCardError, setGiftCardError] = useState("");
+  const [isValidatingGiftCard, setIsValidatingGiftCard] = useState(false);
+
   const steps = ["Address", "Contact", "Payment"];
 
   useEffect(() => {
@@ -73,7 +78,7 @@ const CheckoutPage = () => {
       if (response.success) {
         setAppliedPromo(response.data);
         setPromoError("");
-        
+        setGiftCardError("");
         if (promoErrorTimeout) {
           clearTimeout(promoErrorTimeout);
           setPromoErrorTimeout(null);
@@ -119,6 +124,40 @@ const CheckoutPage = () => {
     setAppliedPromo(null);
     setPromoCode("");
     setPromoError("");
+  };
+
+  const handleApplyGiftCard = async () => {
+    if (!giftCardCode.trim()) {
+      setGiftCardError("Please enter a gift card code");
+      return;
+    }
+    setIsValidatingGiftCard(true);
+    setGiftCardError("");
+    try {
+      const response = await apiClient.validateGiftCard(giftCardCode.trim());
+      if (response.success && response.valid) {
+        setAppliedGiftCard({
+          giftCardId: response.giftCardId,
+          code: response.code,
+          balance: response.balance
+        });
+        setGiftCardError("");
+      } else {
+        setAppliedGiftCard(null);
+        setGiftCardError(response.error || "Invalid gift card");
+      }
+    } catch (error) {
+      setAppliedGiftCard(null);
+      setGiftCardError(error.response?.data?.error || "Invalid or inactive gift card");
+    } finally {
+      setIsValidatingGiftCard(false);
+    }
+  };
+
+  const handleRemoveGiftCard = () => {
+    setAppliedGiftCard(null);
+    setGiftCardCode("");
+    setGiftCardError("");
   };
 
   const subtotal = getCartTotal();
@@ -207,7 +246,7 @@ const CheckoutPage = () => {
     };
     
     calculateFees();
-  }, [selectedAddress, cartItems, appliedPromo, subtotal]);
+  }, [selectedAddress, cartItems, appliedPromo, appliedGiftCard, subtotal]);
   
   let discountAmount = 0;
   let discountedSubtotal = subtotal;
@@ -219,12 +258,16 @@ const CheckoutPage = () => {
     }
     discountedSubtotal = subtotal - discountAmount;
   }
-  
-  const tip = calculateTip(discountedSubtotal);
+  const giftCardAmount = appliedGiftCard
+    ? Math.min(parseFloat(appliedGiftCard.balance), discountedSubtotal)
+    : 0;
+  const subtotalAfterGiftCard = discountedSubtotal - giftCardAmount;
+
+  const tip = calculateTip(subtotalAfterGiftCard);
   const tax = taxAmount > 0 && selectedAddress?.zipCode
     ? taxAmount
-    : discountedSubtotal * taxRate;
-  const total = discountedSubtotal + deliveryFee + tip + tax;
+    : subtotalAfterGiftCard * taxRate;
+  const total = subtotalAfterGiftCard + deliveryFee + tip + tax;
 
   const orderItems = cartItems.map(item => ({
     id: item.cartItemId || item.id,
@@ -301,11 +344,14 @@ const CheckoutPage = () => {
         taxRate,
         discountAmount,
         appliedPromo,
+        giftCardAmount: appliedGiftCard ? Math.min(parseFloat(appliedGiftCard.balance), discountedSubtotal) : 0,
+        appliedGiftCard: appliedGiftCard ? { giftCardId: appliedGiftCard.giftCardId, code: appliedGiftCard.code, amountApplied: Math.min(parseFloat(appliedGiftCard.balance), discountedSubtotal) } : null,
         orderItems,
         deliveryAddress: selectedAddress,
         contactInfo,
         paymentMethod: payment,
-        userProfile: profile
+        userProfile: profile,
+        orderIds: payment?.orderIds || null
       }
     });
     
@@ -341,6 +387,11 @@ const CheckoutPage = () => {
               tip,
               appliedPromo,
               discountAmount,
+              appliedGiftCard: appliedGiftCard ? {
+                giftCardId: appliedGiftCard.giftCardId,
+                code: appliedGiftCard.code,
+                amountApplied: giftCardAmount
+              } : null,
               deliveryFee,
               tax,
               subtotal: discountedSubtotal
@@ -402,6 +453,14 @@ const CheckoutPage = () => {
                 promoError={promoError}
                 isValidatingPromo={isValidatingPromo}
                 discountAmount={discountAmount}
+                giftCardCode={giftCardCode}
+                onGiftCardCodeChange={setGiftCardCode}
+                onApplyGiftCard={handleApplyGiftCard}
+                appliedGiftCard={appliedGiftCard}
+                onRemoveGiftCard={handleRemoveGiftCard}
+                giftCardError={giftCardError}
+                isValidatingGiftCard={isValidatingGiftCard}
+                giftCardAmount={giftCardAmount}
               />
             </div>
           </div>

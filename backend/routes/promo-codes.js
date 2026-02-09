@@ -1,22 +1,30 @@
 const express = require('express');
+const { body, validationResult } = require('express-validator');
 const router = express.Router();
 const { sequelize } = require('../models');
 
-router.post('/validate', async (req, res) => {
-  try {
-    const { code } = req.body;
+const validateCodeBody = [
+  body('code').notEmpty().withMessage('Promo code is required').isString().trim().isLength({ min: 1, max: 50 }).withMessage('Code must be 1–50 characters')
+];
 
-    if (!code) {
+router.post('/validate', validateCodeBody, async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
       return res.status(400).json({
-        error: 'Promo code required',
-        message: 'Please enter a promo code'
+        error: 'Validation failed',
+        message: errors.array()[0]?.msg || 'Invalid input',
+        details: errors.array()
       });
     }
+    const { code } = req.body;
+
+    const codeTrimmed = typeof code === 'string' ? code.trim() : String(code);
 
     const [results] = await sequelize.query(
       'SELECT * FROM promo_codes WHERE code = :code LIMIT 1',
       {
-        replacements: { code: code },
+        replacements: { code: codeTrimmed },
         type: sequelize.QueryTypes.SELECT
       }
     );
@@ -35,14 +43,12 @@ router.post('/validate', async (req, res) => {
         message: 'This promo code has been deactivated'
       });
     }
-    
     if (results.expires_at && now > new Date(results.expires_at)) {
       return res.status(400).json({
         error: 'Invalid promo code',
         message: 'This promo code has expired'
       });
     }
-    
     if (results.usage_limit && results.usage_count >= results.usage_limit) {
       return res.status(400).json({
         error: 'Invalid promo code',
@@ -70,21 +76,28 @@ router.post('/validate', async (req, res) => {
   }
 });
 
-router.post('/calculate-discount', async (req, res) => {
-  try {
-    const { code, subtotal } = req.body;
+const calculateDiscountBody = [
+  body('code').notEmpty().withMessage('Promo code is required').isString().trim().isLength({ min: 1, max: 50 }).withMessage('Code must be 1–50 characters'),
+  body('subtotal').notEmpty().withMessage('Subtotal is required').isFloat({ min: 0 }).withMessage('Subtotal must be a non-negative number').toFloat()
+];
 
-    if (!code || !subtotal) {
+router.post('/calculate-discount', calculateDiscountBody, async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
       return res.status(400).json({
-        error: 'Missing required fields',
-        message: 'Promo code and subtotal are required'
+        error: 'Validation failed',
+        message: errors.array()[0]?.msg || 'Invalid input',
+        details: errors.array()
       });
     }
+    const { code, subtotal } = req.body;
+    const codeTrimmed = typeof code === 'string' ? code.trim() : String(code);
 
     const [results] = await sequelize.query(
       'SELECT * FROM promo_codes WHERE code = :code LIMIT 1',
       {
-        replacements: { code: code },
+        replacements: { code: codeTrimmed },
         type: sequelize.QueryTypes.SELECT
       }
     );
@@ -95,9 +108,8 @@ router.post('/calculate-discount', async (req, res) => {
         message: 'This promo code is not valid'
       });
     }
-
     const now = new Date();
-    if (!results.active || 
+    if (!results.active ||
         (results.expires_at && now > new Date(results.expires_at)) ||
         (results.usage_limit && results.usage_count >= results.usage_limit)) {
       return res.status(400).json({
@@ -107,7 +119,7 @@ router.post('/calculate-discount', async (req, res) => {
     }
 
     let discountAmount = 0;
-    const subtotalValue = parseFloat(subtotal);
+    const subtotalValue = typeof subtotal === 'number' ? subtotal : parseFloat(subtotal);
     
     if (results.discount_type === 'percentage') {
       discountAmount = (subtotalValue * parseFloat(results.discount_value)) / 100;

@@ -2069,6 +2069,45 @@ export const fetchOrdersStreamToken = async () => {
   }
 };
 
+export const fetchAdminGiftCards = async (params = {}) => {
+  try {
+    const response = await apiClient.get('/admin/gift-cards', params);
+    return { success: true, data: response.data, pagination: response.pagination };
+  } catch (error) {
+    logger.error('Error fetching admin gift cards:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const createAdminGiftCard = async (payload) => {
+  try {
+    const response = await apiClient.post('/admin/gift-cards', payload);
+    return { success: true, data: response.data };
+  } catch (error) {
+    logger.error('Error creating gift card:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const updateAdminGiftCard = async (id, payload) => {
+  try {
+    const response = await apiClient.patch(`/admin/gift-cards/${id}`, payload);
+    return { success: true, data: response.data };
+  } catch (error) {
+    logger.error('Error updating gift card:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const voidAdminGiftCard = async (id) => {
+  try {
+    await apiClient.delete(`/admin/gift-cards/${id}`);
+    return { success: true };
+  } catch (error) {
+    logger.error('Error voiding gift card:', error);
+    return { success: false, error: error.message };
+  }
+};
 
 export const fetchSystemSettings = async () => {
   try {

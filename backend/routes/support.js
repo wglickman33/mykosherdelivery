@@ -7,9 +7,10 @@ const { appEvents } = require('../utils/events');
 const router = express.Router();
 
 router.post('/tickets', [
-  body('requester_email').isEmail(),
-  body('subject').isString().isLength({ min: 1 }),
-  body('message').isString().isLength({ min: 1 })
+  body('requester_email').isEmail().normalizeEmail(),
+  body('requester_name').optional().isString().trim().isLength({ max: 200 }),
+  body('subject').isString().trim().isLength({ min: 1, max: 500 }).withMessage('Subject must be 1–500 characters'),
+  body('message').isString().trim().isLength({ min: 1, max: 5000 }).withMessage('Message must be 1–5000 characters')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);

@@ -7,6 +7,7 @@ import { useCart } from '../../context/CartContext';
 import { useNavigate } from 'react-router-dom';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import { formatPhoneNumber, formatPhoneForInput } from '../../utils/phoneFormatter';
+import apiClient from '../../lib/api';
 import {
   fetchUserProfile,
   updateUserProfile,
@@ -441,6 +442,8 @@ export default function AccountPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteAccountError, setDeleteAccountError] = useState(null);
   const [showAddressModal, setShowAddressModal] = useState(false);
+  const [giftCards, setGiftCards] = useState([]);
+  const [giftCardsLoading, setGiftCardsLoading] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -489,6 +492,18 @@ export default function AccountPage() {
       }
     };
   }, [user, orderFilters]);
+
+  useEffect(() => {
+    if (activeTab !== 'gift-cards' || !user) return;
+    setGiftCardsLoading(true);
+    apiClient.getMyGiftCards()
+      .then((res) => {
+        if (res && res.data) setGiftCards(Array.isArray(res.data) ? res.data : []);
+        else setGiftCards([]);
+      })
+      .catch(() => setGiftCards([]))
+      .finally(() => setGiftCardsLoading(false));
+  }, [activeTab, user]);
 
   if (!user) {
     return <Navigate to="/signin" replace />;
@@ -671,6 +686,15 @@ export default function AccountPage() {
             Preferences
           </button>
           <button 
+            className={`nav-tab ${activeTab === 'gift-cards' ? 'active' : ''}`}
+            onClick={() => setActiveTab('gift-cards')}
+          >
+            <svg viewBox="0 0 24 24" width="20" height="20">
+              <path fill="currentColor" d="M20 6H4C2.9 6 2 6.9 2 8v8c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 2v2H4V8h16zm-2 10H4v-4h14v4zm2-6h2v4h-2v-4z"/>
+            </svg>
+            Gift Cards
+          </button>
+          <button 
             className={`nav-tab ${activeTab === 'security' ? 'active' : ''}`}
             onClick={() => setActiveTab('security')}
           >
@@ -738,6 +762,33 @@ export default function AccountPage() {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {activeTab === 'gift-cards' && (
+            <div className="gift-cards-section">
+              <div className="section-header">
+                <h2>My Gift Cards</h2>
+              </div>
+              {giftCardsLoading ? (
+                <p>Loading...</p>
+              ) : giftCards.length === 0 ? (
+                <p>You have no gift cards yet. <a href="/gift-card">Purchase a gift card</a> or use one at checkout.</p>
+              ) : (
+                <ul className="gift-cards-list" style={{ listStyle: 'none', padding: 0 }}>
+                  {giftCards.map((gc) => (
+                    <li key={gc.id} style={{ padding: '12px 0', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                      <div>
+                        <strong style={{ fontFamily: 'monospace' }}>{gc.code}</strong>
+                        <span style={{ marginLeft: '8px', color: '#6b7280' }}>
+                          ${Number(gc.balance).toFixed(2)} of ${Number(gc.initialBalance).toFixed(2)} left
+                        </span>
+                        {gc.status !== 'active' && <span style={{ marginLeft: '8px', color: '#9ca3af' }}>({gc.status})</span>}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           )}
 

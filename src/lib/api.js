@@ -282,6 +282,16 @@ class ApiClient {
       throw error;
     }
   }
+
+  async validateGiftCard(code) {
+    const response = await this.post('/gift-cards/validate', { code: code.trim() });
+    return response;
+  }
+
+  async getMyGiftCards() {
+    const response = await this.get('/gift-cards/mine');
+    return response;
+  }
 }
 
 const apiClient = new ApiClient();

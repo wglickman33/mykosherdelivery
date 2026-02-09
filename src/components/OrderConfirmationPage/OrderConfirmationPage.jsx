@@ -10,6 +10,7 @@ const OrderConfirmationPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [orderData, setOrderData] = useState(null);
+  const [giftCardsFromOrder, setGiftCardsFromOrder] = useState([]);
   const emailSentRef = useRef(false);
 
   const subtotal = orderData?.subtotal || 0;
@@ -157,6 +158,21 @@ const OrderConfirmationPage = () => {
       navigate('/');
     }
   }, [location.state, navigate, sendConfirmationEmail]);
+
+  useEffect(() => {
+    const orderIds = orderData?.paymentMethod?.orderIds || orderData?.orderIds;
+    if (!orderIds || !orderIds.length) return;
+    const fetchGiftCards = async () => {
+      try {
+        const res = await apiClient.get(`/orders/${orderIds[0]}`);
+        const cards = res?.giftCards || res?.gift_cards || [];
+        setGiftCardsFromOrder(Array.isArray(cards) ? cards : []);
+      } catch {
+        setGiftCardsFromOrder([]);
+      }
+    };
+    fetchGiftCards();
+  }, [orderData?.paymentMethod?.orderIds, orderData?.orderIds]);
 
   const formatAddress = (address) => {
     if (!address) return '';
@@ -326,6 +342,12 @@ const OrderConfirmationPage = () => {
                 <span className="discount-value">-${discountAmount.toFixed(2)}</span>
               </div>
             )}
+            {orderData?.giftCardAmount > 0 && (
+              <div className="breakdown-line discount-line">
+                <span>Gift Card</span>
+                <span className="discount-value">-${Number(orderData.giftCardAmount).toFixed(2)}</span>
+              </div>
+            )}
             
             <div className="breakdown-line">
               <span>Delivery Fee</span>
@@ -345,6 +367,20 @@ const OrderConfirmationPage = () => {
             </div>
           </div>
         </div>
+
+        {giftCardsFromOrder.length > 0 && (
+          <div className="gift-cards-confirmation" style={{ marginTop: '24px', padding: '16px', background: '#f0fdf4', borderRadius: '12px', border: '1px solid #bbf7d0' }}>
+            <h3 style={{ margin: '0 0 12px', fontSize: '1rem' }}>Your gift card code(s)</h3>
+            <p style={{ margin: '0 0 8px', fontSize: '0.9rem', color: '#166534' }}>Use these codes at checkout. Balance can be checked on your account page.</p>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+              {giftCardsFromOrder.map((gc) => (
+                <li key={gc.id} style={{ marginBottom: '8px', fontFamily: 'monospace', fontWeight: 600 }}>
+                  {gc.code} — ${Number(gc.balance || gc.initialBalance).toFixed(2)} balance
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {}
         <div className="action-buttons">

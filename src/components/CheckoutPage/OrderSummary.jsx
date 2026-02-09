@@ -16,7 +16,15 @@ const OrderSummary = ({
   onRemovePromo = () => {},
   promoError = "",
   isValidatingPromo = false,
-  discountAmount = 0
+  discountAmount = 0,
+  giftCardCode = "",
+  onGiftCardCodeChange = () => {},
+  onApplyGiftCard = () => {},
+  appliedGiftCard = null,
+  onRemoveGiftCard = () => {},
+  giftCardError = "",
+  isValidatingGiftCard = false,
+  giftCardAmount = 0
 }) => {
   return (
     <div className={`order-summary ${className}`}>
@@ -109,6 +117,39 @@ const OrderSummary = ({
           )}
         </div>
 
+        <div className="promo-section" style={{ marginTop: '12px' }}>
+          {!appliedGiftCard ? (
+            <div className="promo-input-group">
+              <input
+                className="promo-input"
+                placeholder="Gift card code"
+                value={giftCardCode}
+                onChange={(e) => onGiftCardCodeChange(e.target.value)}
+              />
+              <button
+                className="promo-button"
+                onClick={onApplyGiftCard}
+                disabled={isValidatingGiftCard || !giftCardCode.trim()}
+              >
+                {isValidatingGiftCard ? "Checking..." : "Apply"}
+              </button>
+            </div>
+          ) : (
+            <div className="promo-applied">
+              <div className="promo-applied-info">
+                <span className="promo-code-text">Gift card: {appliedGiftCard.code}</span>
+                <span className="promo-discount-text">Balance: ${Number(appliedGiftCard.balance).toFixed(2)}</span>
+              </div>
+              <button className="promo-remove-button" onClick={onRemoveGiftCard}>
+                Remove
+              </button>
+            </div>
+          )}
+          {giftCardError && (
+            <div className="promo-error">{giftCardError}</div>
+          )}
+        </div>
+
         <div className="summary-divider" />
 
         {}
@@ -122,6 +163,12 @@ const OrderSummary = ({
             <div className="pricing-line discount-line">
               <span className="pricing-label">Promo Discount</span>
               <span className="pricing-value discount-value">-${discountAmount.toFixed(2)}</span>
+            </div>
+          )}
+          {giftCardAmount > 0 && (
+            <div className="pricing-line discount-line">
+              <span className="pricing-label">Gift Card</span>
+              <span className="pricing-value discount-value">-${giftCardAmount.toFixed(2)}</span>
             </div>
           )}
           
@@ -178,6 +225,14 @@ OrderSummary.propTypes = {
   promoError: PropTypes.string,
   isValidatingPromo: PropTypes.bool,
   discountAmount: PropTypes.number,
+  giftCardCode: PropTypes.string,
+  onGiftCardCodeChange: PropTypes.func,
+  onApplyGiftCard: PropTypes.func,
+  appliedGiftCard: PropTypes.object,
+  onRemoveGiftCard: PropTypes.func,
+  giftCardError: PropTypes.string,
+  isValidatingGiftCard: PropTypes.bool,
+  giftCardAmount: PropTypes.number,
 };
 
 export default OrderSummary; 

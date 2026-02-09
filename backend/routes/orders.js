@@ -1,5 +1,5 @@
 const express = require('express');
-const { Order, Restaurant, Profile, AdminNotification } = require('../models');
+const { Order, Restaurant, Profile, AdminNotification, GiftCard } = require('../models');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const { body, validationResult } = require('express-validator');
 const { sendOrderConfirmationEmail } = require('../services/emailService');
@@ -152,6 +152,9 @@ router.post('/', authenticateToken, [
   body('discountAmount').isNumeric().optional(),
   body('appliedPromo').optional().custom(value => {
     return value === null || typeof value === 'object';
+  }),
+  body('appliedGiftCard').optional().custom(value => {
+    return value === null || (typeof value === 'object' && value.giftCardId && value.code && typeof value.amountApplied === 'number');
   })
 ], async (req, res) => {
   try {
@@ -178,7 +181,8 @@ router.post('/', authenticateToken, [
       subtotal = 0,
       total = 0,
       discountAmount = 0,
-      appliedPromo = null
+      appliedPromo = null,
+      appliedGiftCard = null
     } = req.body;
 
     const sanitizedAddress = {
@@ -234,6 +238,7 @@ router.post('/', authenticateToken, [
       total: total,
       discountAmount: discountAmount,
       appliedPromo: appliedPromo,
+      appliedGiftCard: appliedGiftCard,
       deliveryAddress: sanitizedAddress,
       deliveryInstructions: sanitizedInstructions
     });
@@ -323,6 +328,11 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
           model: Restaurant,
           as: 'restaurant',
           attributes: ['id', 'name', 'address', 'phone', 'logoUrl']
+        },
+        {
+          model: GiftCard,
+          as: 'giftCards',
+          attributes: ['id', 'code', 'initialBalance', 'balance', 'status']
         }
       ]
     });
@@ -372,6 +382,11 @@ router.get('/:orderId', authenticateToken, async (req, res) => {
           model: Profile,
           as: 'user',
           attributes: ['id', 'firstName', 'lastName', 'email', 'phone']
+        },
+        {
+          model: GiftCard,
+          as: 'giftCards',
+          attributes: ['id', 'code', 'initialBalance', 'balance', 'status']
         }
       ]
     });
@@ -612,45 +627,21 @@ router.get('/', requireAdmin, async (req, res) => {
 });
 
 router.post('/send-confirmation', authenticateToken, [
-  body('orderIds').exists(),
-  body('customerInfo').exists(),
-  body('total').exists()
+  body('orderIds').isArray({ min: 1, max: 50 }).withMessage('orderIds must be an array of 1–50 IDs'),
+  body('orderIds.*').isUUID().withMessage('Each order ID must be a valid UUID'),
+  body('customerInfo').isObject().withMessage('customerInfo is required'),
+  body('total').isFloat({ min: 0 }).withMessage('total must be a non-negative number').toFloat()
 ], async (req, res) => {
   try {
-
-    
     const errors = validationResult(req);
-          if (!errors.isEmpty()) {
-        return res.status(400).json({
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
         error: 'Validation failed',
         details: errors.array()
       });
     }
 
-    let { orderIds, customerInfo, total } = req.body;
-    
-    if (!Array.isArray(orderIds)) {
-      if (typeof orderIds === 'string') {
-        orderIds = [orderIds];
-      } else if (typeof orderIds === 'object' && orderIds !== null) {
-        orderIds = Object.values(orderIds);
-      } else {
-        return res.status(400).json({
-          error: 'Invalid orderIds format',
-          message: 'orderIds must be an array'
-        });
-      }
-    }
-    
-    if (typeof total === 'string') {
-      total = parseFloat(total);
-    }
-    if (isNaN(total)) {
-      return res.status(400).json({
-        error: 'Invalid total format',
-        message: 'total must be a number'
-      });
-    }
+    const { orderIds, customerInfo, total } = req.body;
     const userId = req.userId;
 
     const orders = await Order.findAll({

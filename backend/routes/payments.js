@@ -5,6 +5,8 @@ const { Order, Profile, PaymentMethod, Restaurant } = require("../models");
 const { body, validationResult } = require("express-validator");
 const logger = require("../utils/logger");
 const { sendOrderToShipday } = require("../services/shipdayService");
+const { processGiftCardsForPaidOrders } = require("../services/giftCardService");
+const { isGiftCardItem } = require("../services/giftCardService");
 
 const router = express.Router();
 
@@ -28,8 +30,9 @@ router.post(
         return true;
       }),
     body("currency").isIn(["usd"]),
-    body("orderIds").isArray({ min: 1 }),
-    body("paymentMethodId").optional().isString(),
+    body("orderIds").isArray({ min: 1, max: 50 }).withMessage("orderIds must contain 1–50 order IDs"),
+    body("orderIds.*").isUUID().withMessage("Each order ID must be a valid UUID"),
+    body("paymentMethodId").optional().isString().trim().isLength({ max: 200 }),
   ],
   async (req, res) => {
     try {
@@ -154,7 +157,22 @@ router.post(
             orderNumbers: orders.map(o => o.orderNumber)
           });
 
+          try {
+            await processGiftCardsForPaidOrders(orders);
+          } catch (gcErr) {
+            logger.error("Gift card processing failed (saved payment method)", { err: gcErr.message });
+          }
+
           for (const order of orders) {
+            const groups = order.restaurantGroups || {};
+            const onlyGiftCards = Object.values(groups).every((group) => {
+              const items = Array.isArray(group.items) ? group.items : (group.items ? Object.values(group.items) : []);
+              return items.length > 0 && items.every((item) => isGiftCardItem(item));
+            });
+            if (onlyGiftCards) {
+              logger.info("Skipping Shipday for gift-card-only order", { orderId: order.id, orderNumber: order.orderNumber });
+              continue;
+            }
             try {
               logger.info("Sending order to Shipday (saved payment method)", {
                 orderId: order.id,
@@ -459,7 +477,21 @@ router.post(
                   orderNumbers: orders.map(o => o.orderNumber)
                 });
 
+                try {
+                  await processGiftCardsForPaidOrders(orders);
+                } catch (gcErr) {
+                  logger.error("Gift card processing failed via webhook", { err: gcErr.message });
+                }
+
                 for (const order of orders) {
+                  const groups = order.restaurantGroups || {};
+                  const onlyGiftCards = Object.values(groups).every((group) => {
+                    const items = Array.isArray(group.items) ? group.items : (group.items ? Object.values(group.items) : []);
+                    return items.length > 0 && items.every((item) => isGiftCardItem(item));
+                  });
+                  if (onlyGiftCards) {
+                    logger.info("Skipping Shipday for gift-card-only order (webhook)", { orderId: order.id, orderNumber: order.orderNumber });
+                  } else {
                   try {
                     logger.info("Sending order to Shipday via webhook", {
                       orderId: order.id,
@@ -493,6 +525,7 @@ router.post(
                       errorMessage: shipdayError.message,
                       stack: shipdayError.stack
                     });
+                  }
                   }
                 }
               } catch (error) {

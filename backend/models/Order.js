@@ -76,6 +76,12 @@ module.exports = (sequelize, DataTypes) => {
       field: 'applied_promo',
       comment: 'Stores promo code information including code, type, and value'
     },
+    appliedGiftCard: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+      field: 'applied_gift_card',
+      comment: 'Applied gift card: { giftCardId, code, amountApplied }'
+    },
     deliveryAddress: {
       type: DataTypes.JSONB,
       allowNull: false,
@@ -152,6 +158,10 @@ module.exports = (sequelize, DataTypes) => {
     Order.hasMany(models.Refund, {
       foreignKey: 'orderId',
       as: 'refunds'
+    });
+    Order.hasMany(models.GiftCard, {
+      foreignKey: 'orderId',
+      as: 'giftCards'
     });
   };
 

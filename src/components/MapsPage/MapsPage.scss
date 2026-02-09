@@ -14,49 +14,49 @@
     align-items: center;
   }
 
-  &__search {
-    flex: 1;
-    min-width: 200px;
-    padding: 0.65rem 1rem;
+  &__search,
+  &__select {
+    box-sizing: border-box;
+    height: 2.75rem;
+    padding: 0 1rem;
     border: 2px solid var(--maps-input-border);
     border-radius: 12px;
-    font-size: 1rem;
+    font-size: 0.95rem;
+    line-height: 1.25;
     background: var(--maps-card);
     color: var(--maps-text);
     transition: border-color 0.2s, box-shadow 0.2s;
+
+    &:focus {
+      outline: none;
+      border-color: var(--maps-accent);
+    }
+  }
+
+  &__search {
+    flex: 1;
+    min-width: 200px;
 
     &::placeholder {
       color: var(--maps-text-muted);
     }
 
     &:focus {
-      outline: none;
-      border-color: var(--maps-accent);
       box-shadow: 0 0 0 4px var(--maps-input-focus-ring);
     }
   }
 
   &__select {
-    padding: 0.65rem 1rem;
-    border: 2px solid var(--maps-input-border);
-    border-radius: 12px;
-    font-size: 0.95rem;
-    background: var(--maps-card);
     min-width: 140px;
-    color: var(--maps-text);
     font-weight: 500;
-
-    &:focus {
-      outline: none;
-      border-color: var(--maps-accent);
-    }
+    cursor: pointer;
   }
 
   &__location-btn {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.65rem 1.35rem;
+    gap: 0.25rem;
+    padding: 0.65rem 1.20rem;
     background: var(--maps-accent);
     color: #fff;
     border: none;
@@ -86,6 +86,45 @@
 
   &__location-icon {
     flex-shrink: 0;
+  }
+
+  &__address-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  &__address-input {
+    width: 180px;
+    min-width: 140px;
+  }
+
+  &__address-btn {
+    flex-shrink: 0;
+  }
+
+  &__clear-address-btn {
+    background: var(--maps-card);
+    color: var(--maps-text);
+    border: 2px solid var(--maps-input-border);
+
+    &:hover {
+      background: var(--maps-input-border);
+    }
+  }
+
+  &__error-wrap {
+    display: flex;
+    width: 100%;
+    flex-shrink: 0;
+    margin-bottom: 0.25rem;
+
+    .error-message {
+      display: flex;
+      flex: 1;
+      min-width: 0;
+    }
   }
 
   &__split {
@@ -122,6 +161,16 @@
     height: 24px;
     border-radius: 50%;
     background-color: #4285f4;
+    border: 3px solid #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    pointer-events: none;
+  }
+
+  &__address-pin {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: #ea4335;
     border: 3px solid #fff;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
     pointer-events: none;
@@ -309,6 +358,18 @@
     border-radius: 8px;
   }
 
+  &__card--open &__tag {
+    background: #1e3a5f;
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  &__card--closed &__tag {
+    background: #0f766e;
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
   &__card-cert {
     font-size: 0.85rem;
     color: var(--maps-text-muted);
@@ -316,11 +377,10 @@
   }
 
   &__card-hours {
-    margin: 0.5rem 0;
-    padding: 0.5rem 0.6rem;
-    background: rgba(0, 0, 0, 0.04);
-    border-radius: 8px;
-    border-left: 3px solid var(--maps-card-border, #e2e8f0);
+    margin: 0.6rem 0 0.85rem 0;
+    padding: 0;
+    background: none;
+    border: none;
   }
 
   &__card-hours-label {
@@ -328,22 +388,22 @@
     font-size: 0.7rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.06em;
     color: var(--maps-text-muted);
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.4rem;
   }
 
   &__card-hours-text {
     font-family: inherit;
-    font-size: 0.8rem;
-    line-height: 1.45;
+    font-size: 0.85rem;
+    line-height: 1.6;
     color: var(--maps-text);
     margin: 0;
     word-break: break-word;
   }
 
   &__card-hours-line {
-    padding: 1px 0;
+    padding: 0.2em 0;
   }
 
   &__hours-closed {

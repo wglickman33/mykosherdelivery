@@ -39,6 +39,7 @@ import AdminRequests from "./components/AdminRequests/AdminRequests";
 import AdminCampaigns from "./components/AdminCampaigns/AdminCampaigns";
 import AdminNursingHomes from "./components/AdminNursingHomes/AdminNursingHomes";
 import AdminMaps from "./components/AdminMaps/AdminMaps";
+import AdminGiftCards from "./components/AdminGiftCards/AdminGiftCards";
 import AdminNotFoundPage from "./components/AdminNotFoundPage/AdminNotFoundPage";
 import NotFoundPage from "./components/NotFoundPage/NotFoundPage";
 import ErrorBoundary from "./components/ErrorBoundary/ErrorBoundary";
@@ -208,6 +209,7 @@ function AuthenticatedApp() {
             <Route path="restaurants/menus" element={<AdminRestaurants />} />
             <Route path="restaurants/nursing-home-menus" element={<AdminRestaurants />} />
             <Route path="maps" element={<AdminMaps />} />
+            <Route path="gift-cards" element={<AdminGiftCards />} />
             <Route path="analytics" element={<AdminAnalytics />} />
             <Route path="analytics/overview" element={<AdminAnalyticsOverview />} />
             <Route path="analytics/revenue" element={<AdminAnalyticsRevenue />} />

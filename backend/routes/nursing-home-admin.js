@@ -1,11 +1,19 @@
 const express = require('express');
+const { query } = require('express-validator');
 const { sequelize, NursingHomeFacility, NursingHomeResident, NursingHomeMenuItem, NursingHomeInvoice, NursingHomeOrder, Profile } = require('../models');
 const { QueryTypes } = require('sequelize');
 const { requireAdmin, requireNursingHomeAdmin, requireNursingHomeUser } = require('../middleware/auth');
 const { body, validationResult } = require('express-validator');
 const logger = require('../utils/logger');
+const { createAdminNotification } = require('../utils/adminNotifications');
 
 const router = express.Router();
+
+const menuQueryValidation = [
+  query('mealType').optional().isIn(['breakfast', 'lunch', 'dinner']),
+  query('category').optional().isIn(['main', 'side', 'entree', 'dessert', 'soup']),
+  query('isActive').optional().isIn(['true', 'false'])
+];
 
 router.get('/facilities', requireAdmin, async (req, res) => {
   try {
@@ -205,7 +213,12 @@ router.post('/facilities', requireAdmin, [
       logoUrl: logoUrl || null,
       isActive: true
     });
-
+    await createAdminNotification({
+      type: 'nh.facility.created',
+      title: 'Nursing home: Facility added',
+      message: `"${facility.name}" was created`,
+      ref: { kind: 'nh_facility', id: facility.id, name: facility.name }
+    });
     logger.info('Nursing home facility created', {
       facilityId: facility.id,
       name: facility.name,
@@ -258,7 +271,12 @@ router.put('/facilities/:id', requireAdmin, [
     }
 
     await facility.update(updateData);
-
+    await createAdminNotification({
+      type: 'nh.facility.updated',
+      title: 'Nursing home: Facility updated',
+      message: `"${facility.name}" was updated`,
+      ref: { kind: 'nh_facility', id: facility.id, name: facility.name }
+    });
     logger.info('Nursing home facility updated', {
       facilityId: facility.id,
       updatedBy: req.user.id
@@ -290,8 +308,14 @@ router.delete('/facilities/:id', requireAdmin, async (req, res) => {
       });
     }
 
+    const facilityName = facility.name;
     await facility.update({ isActive: false });
-
+    await createAdminNotification({
+      type: 'nh.facility.deactivated',
+      title: 'Nursing home: Facility deactivated',
+      message: `"${facilityName}" was deactivated`,
+      ref: { kind: 'nh_facility', id: facility.id, name: facilityName }
+    });
     logger.info('Nursing home facility deactivated', {
       facilityId: facility.id,
       deactivatedBy: req.user.id
@@ -360,7 +384,12 @@ router.post('/facilities/:facilityId/staff', requireAdminOrNursingHomeAdmin, req
       role,
       nursingHomeFacilityId: facilityId
     });
-
+    await createAdminNotification({
+      type: 'nh.staff.created',
+      title: 'Nursing home: Staff added',
+      message: `"${firstName} ${lastName}" (${email}) added to facility`,
+      ref: { kind: 'nh_staff', id: user.id, facilityId, name: `${firstName} ${lastName}` }
+    });
     logger.info('Nursing home staff created', { userId: user.id, facilityId, createdBy: req.user.id });
 
     const out = user.toJSON();
@@ -392,6 +421,12 @@ router.put('/facilities/:facilityId/staff/:userId', requireAdminOrNursingHomeAdm
     }
 
     await user.update(updateData);
+    await createAdminNotification({
+      type: 'nh.staff.updated',
+      title: 'Nursing home: Staff updated',
+      message: `Staff member at facility was updated`,
+      ref: { kind: 'nh_staff', id: userId, facilityId }
+    });
     logger.info('Nursing home staff updated', { userId, facilityId, updatedBy: req.user.id });
     const out = user.toJSON();
     delete out.password;
@@ -412,7 +447,14 @@ router.delete('/facilities/:facilityId/staff/:userId', requireAdminOrNursingHome
     if (user.role === 'admin') {
       return res.status(400).json({ success: false, error: 'Cannot remove an admin from facility this way' });
     }
+    const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email;
     await user.update({ nursingHomeFacilityId: null, role: 'user' });
+    await createAdminNotification({
+      type: 'nh.staff.removed',
+      title: 'Nursing home: Staff removed',
+      message: `"${userName}" removed from facility`,
+      ref: { kind: 'nh_staff', id: userId, facilityId }
+    });
     logger.info('Staff removed from facility', { userId, facilityId, removedBy: req.user.id });
     res.json({ success: true, message: 'Staff removed from facility' });
   } catch (error) {
@@ -471,7 +513,14 @@ router.post('/facilities/:facilityId/staff/bulk', requireAdminOrNursingHomeAdmin
         results.errors.push({ email: row.email, message: err.message });
       }
     }
-
+    if (results.created.length > 0) {
+      await createAdminNotification({
+        type: 'nh.staff.bulk',
+        title: 'Nursing home: Staff bulk add',
+        message: `${results.created.length} staff added to facility`,
+        ref: { kind: 'nh_staff', facilityId, count: results.created.length }
+      });
+    }
     res.status(201).json({ success: true, data: results });
   } catch (error) {
     logger.error('Error bulk creating staff:', error);
@@ -666,7 +715,12 @@ router.post('/residents', requireNursingHomeAdmin, [
       assignedUserId,
       isActive: true
     });
-
+    await createAdminNotification({
+      type: 'nh.resident.created',
+      title: 'Nursing home: Resident added',
+      message: `"${name}" (${roomNumber}) added`,
+      ref: { kind: 'nh_resident', id: resident.id, facilityId, name }
+    });
     logger.info('Resident created', {
       residentId: resident.id,
       facilityId,
@@ -735,7 +789,12 @@ router.put('/residents/:id', requireNursingHomeAdmin, [
     }
 
     await resident.update(updateData);
-
+    await createAdminNotification({
+      type: 'nh.resident.updated',
+      title: 'Nursing home: Resident updated',
+      message: `Resident "${resident.name}" was updated`,
+      ref: { kind: 'nh_resident', id: resident.id, facilityId: resident.facilityId }
+    });
     logger.info('Resident updated', {
       residentId: resident.id,
       updatedBy: req.user.id
@@ -835,8 +894,14 @@ router.delete('/residents/:id', requireNursingHomeAdmin, async (req, res) => {
       });
     }
 
+    const residentName = resident.name;
     await resident.update({ isActive: false });
-
+    await createAdminNotification({
+      type: 'nh.resident.deactivated',
+      title: 'Nursing home: Resident deactivated',
+      message: `"${residentName}" was deactivated`,
+      ref: { kind: 'nh_resident', id: resident.id, facilityId: resident.facilityId }
+    });
     logger.info('Resident deactivated', {
       residentId: resident.id,
       deactivatedBy: req.user.id
@@ -856,8 +921,17 @@ router.delete('/residents/:id', requireNursingHomeAdmin, async (req, res) => {
   }
 });
 
-router.get('/menu', requireNursingHomeUser, async (req, res) => {
+router.get('/menu', requireNursingHomeUser, menuQueryValidation, async (req, res) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        message: 'Invalid query parameters',
+        details: errors.array()
+      });
+    }
     const { mealType, category, isActive = 'true' } = req.query;
 
     const where = { isActive: isActive === 'true' };
@@ -960,7 +1034,12 @@ router.post('/menu', requireAdmin, [
     }
 
     const menuItem = await NursingHomeMenuItem.create(req.body);
-
+    await createAdminNotification({
+      type: 'nh.menu.created',
+      title: 'Nursing home: Menu item added',
+      message: `"${menuItem.name}" (${menuItem.mealType}) added`,
+      ref: { kind: 'nh_menu_item', id: menuItem.id, name: menuItem.name }
+    });
     logger.info('Menu item created', {
       menuItemId: menuItem.id,
       name: menuItem.name,
@@ -1013,7 +1092,12 @@ router.put('/menu/:id', requireAdmin, [
     }
 
     await menuItem.update(req.body);
-
+    await createAdminNotification({
+      type: 'nh.menu.updated',
+      title: 'Nursing home: Menu item updated',
+      message: `"${menuItem.name}" was updated`,
+      ref: { kind: 'nh_menu_item', id: menuItem.id, name: menuItem.name }
+    });
     logger.info('Menu item updated', {
       menuItemId: menuItem.id,
       updatedBy: req.user.id
@@ -1045,8 +1129,14 @@ router.delete('/menu/:id', requireAdmin, async (req, res) => {
       });
     }
 
+    const itemName = menuItem.name;
     await menuItem.update({ isActive: false });
-
+    await createAdminNotification({
+      type: 'nh.menu.deactivated',
+      title: 'Nursing home: Menu item deactivated',
+      message: `"${itemName}" was deactivated`,
+      ref: { kind: 'nh_menu_item', id: menuItem.id }
+    });
     logger.info('Menu item deactivated', {
       menuItemId: menuItem.id,
       deactivatedBy: req.user.id
@@ -1256,7 +1346,12 @@ router.post('/invoices/generate', requireAdmin, [
       status: 'draft',
       dueDate: calculatedDueDate
     });
-
+    await createAdminNotification({
+      type: 'nh.invoice.generated',
+      title: 'Nursing home: Invoice generated',
+      message: `Invoice ${invoice.invoiceNumber} for ${facility.name} (${orders.length} orders)`,
+      ref: { kind: 'nh_invoice', id: invoice.id, facilityId, invoiceNumber: invoice.invoiceNumber }
+    });
     logger.info('Invoice generated', {
       invoiceId: invoice.id,
       invoiceNumber: invoice.invoiceNumber,
@@ -1305,7 +1400,12 @@ router.put('/invoices/:id', requireAdmin, [
     }
 
     await invoice.update(updateData);
-
+    await createAdminNotification({
+      type: 'nh.invoice.updated',
+      title: 'Nursing home: Invoice updated',
+      message: `Invoice ${invoice.invoiceNumber} was updated`,
+      ref: { kind: 'nh_invoice', id: invoice.id, invoiceNumber: invoice.invoiceNumber }
+    });
     logger.info('Invoice updated', {
       invoiceId: invoice.id,
       updatedBy: req.user.id
@@ -1353,7 +1453,12 @@ router.post('/invoices/:id/send', requireAdmin, async (req, res) => {
     }
 
     await invoice.update({ status: 'sent' });
-
+    await createAdminNotification({
+      type: 'nh.invoice.sent',
+      title: 'Nursing home: Invoice sent',
+      message: `Invoice ${invoice.invoiceNumber} was sent to facility`,
+      ref: { kind: 'nh_invoice', id: invoice.id, invoiceNumber: invoice.invoiceNumber }
+    });
     logger.info('Invoice sent', {
       invoiceId: invoice.id,
       invoiceNumber: invoice.invoiceNumber,
@@ -1399,7 +1504,12 @@ router.post('/invoices/:id/mark-paid', requireAdmin, async (req, res) => {
       status: 'paid',
       paidAt: new Date()
     });
-
+    await createAdminNotification({
+      type: 'nh.invoice.paid',
+      title: 'Nursing home: Invoice paid',
+      message: `Invoice ${invoice.invoiceNumber} marked as paid`,
+      ref: { kind: 'nh_invoice', id: invoice.id, invoiceNumber: invoice.invoiceNumber }
+    });
     logger.info('Invoice marked as paid', {
       invoiceId: invoice.id,
       invoiceNumber: invoice.invoiceNumber,

@@ -1,0 +1,173 @@
+.admin-gift-cards {
+  padding: 1.5rem;
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+
+    h1 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+  }
+
+  &__create-btn {
+    padding: 0.5rem 1rem;
+    background: var(--color-primary, #2563eb);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+
+    &:hover {
+      opacity: 0.9;
+    }
+  }
+
+  &__create-form {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+
+    h2 {
+      margin: 0 0 1rem;
+      font-size: 1.1rem;
+    }
+  }
+
+  &__field {
+    margin-bottom: 0.75rem;
+
+    label {
+      display: block;
+      margin-bottom: 0.25rem;
+      font-weight: 500;
+      font-size: 0.9rem;
+    }
+
+    input {
+      width: 100%;
+      max-width: 320px;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+    }
+  }
+
+  &__form-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+
+    button {
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+
+      &[type="submit"] {
+        background: var(--color-primary, #2563eb);
+        color: white;
+        border: none;
+      }
+
+      &[type="button"] {
+        background: #e2e8f0;
+        border: 1px solid #cbd5e1;
+      }
+    }
+  }
+
+  &__filters {
+    margin-bottom: 1rem;
+
+    select {
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+    }
+  }
+
+  &__table-wrap {
+    overflow-x: auto;
+  }
+
+  &__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+
+    th,
+    td {
+      padding: 0.5rem 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    th {
+      font-weight: 600;
+      background: #f1f5f9;
+    }
+
+    code {
+      font-family: ui-monospace, monospace;
+      background: #f1f5f9;
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+    }
+  }
+
+  &__status {
+    text-transform: capitalize;
+
+    &--active {
+      color: #059669;
+    }
+
+    &--used {
+      color: #6b7280;
+    }
+
+    &--void {
+      color: #dc2626;
+    }
+  }
+
+  &__void-btn,
+  &__adj-btn {
+    padding: 0.25rem 0.5rem;
+    margin-right: 0.25rem;
+    font-size: 0.8rem;
+    border-radius: 4px;
+    cursor: pointer;
+
+    &.admin-gift-cards__void-btn {
+      background: #fef2f2;
+      color: #dc2626;
+      border: 1px solid #fecaca;
+    }
+
+    &.admin-gift-cards__adj-btn {
+      background: #f0fdf4;
+      color: #059669;
+      border: 1px solid #bbf7d0;
+    }
+  }
+
+  &__pagination {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1rem;
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+}

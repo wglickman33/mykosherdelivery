@@ -1,10 +1,24 @@
 const express = require('express');
+const { query, validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const { KosherMapsRestaurant } = require('../models');
 const { authenticateToken } = require('../middleware/auth');
 const logger = require('../utils/logger');
 
 const router = express.Router();
+
+const mapsRestaurantsQueryValidation = [
+  query('search').optional().isString().trim().isLength({ max: 200 }),
+  query('diet').optional().isString().trim().isLength({ max: 50 }),
+  query('active').optional().isIn(['true', 'false']),
+  query('lat').optional().isFloat({ min: -90, max: 90 }).toFloat(),
+  query('lng').optional().isFloat({ min: -180, max: 180 }).toFloat(),
+  query('swLat').optional().isFloat({ min: -90, max: 90 }).toFloat(),
+  query('swLng').optional().isFloat({ min: -180, max: 180 }).toFloat(),
+  query('neLat').optional().isFloat({ min: -90, max: 90 }).toFloat(),
+  query('neLng').optional().isFloat({ min: -180, max: 180 }).toFloat(),
+  query('limit').optional().isInt({ min: 1, max: 500 }).toInt()
+];
 
 function haversineDistance(lat1, lon1, lat2, lon2) {
   const R = 3959;
@@ -31,9 +45,20 @@ router.get('/access', authenticateToken, async (req, res) => {
   }
 });
 
-router.get('/restaurants', authenticateToken, async (req, res) => {
+const MAX_LIMIT = 500;
+const DEFAULT_LIMIT = 500;
+
+router.get('/restaurants', authenticateToken, mapsRestaurantsQueryValidation, async (req, res) => {
   try {
-    const { search, diet, active = 'true', lat, lng } = req.query;
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        message: 'Invalid query parameters',
+        details: errors.array()
+      });
+    }
+    const { search, diet, active = 'true', lat, lng, swLat, swLng, neLat, neLng, limit } = req.query;
     const where = {};
 
     if (active === 'true') {
@@ -43,7 +68,7 @@ router.get('/restaurants', authenticateToken, async (req, res) => {
     }
 
     if (search && search.trim()) {
-      const term = `%${search.trim()}%`;
+      const term = `%${search.trim().substring(0, 200)}%`;
       where[Op.or] = [
         { name: { [Op.iLike]: term } },
         { address: { [Op.iLike]: term } },
@@ -54,9 +79,23 @@ router.get('/restaurants', authenticateToken, async (req, res) => {
     }
 
     if (diet && diet.trim()) {
-      const tag = diet.trim().toLowerCase();
+      const tag = diet.trim().toLowerCase().substring(0, 50);
       where.dietTags = { [Op.contains]: [tag] };
     }
+
+    const swLatNum = parseFloat(swLat);
+    const swLngNum = parseFloat(swLng);
+    const neLatNum = parseFloat(neLat);
+    const neLngNum = parseFloat(neLng);
+    const hasBounds = Number.isFinite(swLatNum) && Number.isFinite(swLngNum) && Number.isFinite(neLatNum) && Number.isFinite(neLngNum);
+    if (hasBounds) {
+      const [minLat, maxLat] = swLatNum <= neLatNum ? [swLatNum, neLatNum] : [neLatNum, swLatNum];
+      const [minLng, maxLng] = swLngNum <= neLngNum ? [swLngNum, neLngNum] : [neLngNum, swLngNum];
+      where.latitude = { [Op.between]: [minLat, maxLat] };
+      where.longitude = { [Op.between]: [minLng, maxLng] };
+    }
+
+    const limitNum = Math.min(Math.max(parseInt(limit, 10) || DEFAULT_LIMIT, 1), MAX_LIMIT);
 
     const attributes = [
       'id', 'name', 'address', 'city', 'state', 'zip',
@@ -74,6 +113,7 @@ router.get('/restaurants', authenticateToken, async (req, res) => {
       where,
       attributes,
       order,
+      limit: limitNum,
       raw: true
     });
 

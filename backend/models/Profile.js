@@ -140,6 +140,10 @@ module.exports = (sequelize, DataTypes) => {
       foreignKey: 'createdByUserId',
       as: 'nursingHomeOrders'
     });
+    Profile.hasMany(models.GiftCard, {
+      foreignKey: 'purchasedByUserId',
+      as: 'giftCards'
+    });
   };
 
   return Profile;

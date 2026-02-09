@@ -38,11 +38,50 @@
   }
 
   &__logo-img {
-    height: 36px;
+    height: 44px;
     width: auto;
-    max-width: 200px;
+    max-width: 240px;
     object-fit: contain;
     display: block;
+  }
+
+  &__address {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.85rem;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: var(--maps-header-text);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    max-width: 280px;
+    min-width: 0;
+    transition: background 0.2s, border-color 0.2s;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.35);
+      color: var(--maps-header-text);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--maps-header-text);
+      outline-offset: 2px;
+    }
+  }
+
+  &__address-icon {
+    flex-shrink: 0;
+    opacity: 0.95;
+  }
+
+  &__address-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   &__nav {

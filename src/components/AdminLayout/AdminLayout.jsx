@@ -273,6 +273,10 @@ const AdminLayout = () => {
       navigate(`/admin/restaurants`);
     } else if (n.data?.kind === 'user' && n.data?.id) {
       navigate(`/admin/users`);
+    } else if (n.data?.kind === 'maps_restaurant' || n.data?.kind === 'maps_import') {
+      navigate(`/admin/maps`);
+    } else if (n.data?.kind?.startsWith('nh_')) {
+      navigate(`/admin/nursing-homes`);
     }
   };
 
@@ -318,6 +322,9 @@ const AdminLayout = () => {
     { id: 'maps', label: 'Maps', icon: (
         <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
       ), path: '/admin/maps', roles: ['admin'] },
+    { id: 'gift-cards', label: 'Gift Cards', icon: (
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
+      ), path: '/admin/gift-cards', roles: ['admin'] },
     { id: 'nursing-homes', label: 'Nursing Homes', icon: (
         <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 3L4 9v12h16V9l-8-6zm6 16h-3v-3h-2v3H10v-5H8v5H5V10l7-5 7 5v9z"/></svg>
       ), path: '/admin/nursing-homes', roles: ['admin', 'nursing_home_admin'] },

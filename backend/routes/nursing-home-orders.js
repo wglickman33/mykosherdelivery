@@ -15,6 +15,7 @@ const { body, query, validationResult } = require('express-validator');
 const { generateOrderNumber: generateBaseOrderNumber } = require('../services/orderService');
 const { NH_CONFIG, API_CONFIG, ORDER_CONFIG } = require('../config/constants');
 const logger = require('../utils/logger');
+const { createAdminNotification } = require('../utils/adminNotifications');
 const ExcelJS = require('exceljs');
 
 const stripe = process.env.STRIPE_SECRET_KEY
@@ -703,7 +704,12 @@ router.post('/resident-orders/:id/submit-and-pay', paymentLimiter, requireNursin
         paidAt: new Date(),
         submittedAt: new Date()
       });
-
+      await createAdminNotification({
+        type: 'nh.order.paid',
+        title: 'Nursing home: Order paid',
+        message: `Order ${order.orderNumber} (${order.residentName}) paid`,
+        ref: { kind: 'nh_resident_order', id: order.id, orderNumber: order.orderNumber, facilityId: order.facilityId }
+      });
       logger.info('Resident order paid', {
         orderId: order.id,
         orderNumber: order.orderNumber,
@@ -953,6 +959,12 @@ router.post('/resident-orders/:id/refund', requireNursingHomeAdmin, [
         await order.update({ paymentStatus: 'refunded' });
       }
 
+      await createAdminNotification({
+        type: 'nh.order.refunded',
+        title: 'Nursing home: Order refunded',
+        message: `Order ${order.orderNumber} refunded $${refundAmount.toFixed(2)} (${refundType})`,
+        ref: { kind: 'nh_resident_order', id: order.id, orderNumber: order.orderNumber, refundId: refundRecord.id }
+      });
       logger.info('Nursing home resident order refund processed', {
         refundId: refundRecord.id,
         residentOrderId: id,
@@ -1329,7 +1341,12 @@ router.post('/orders/:id/submit', requireNursingHomeUser, async (req, res) => {
       status: 'submitted',
       submittedAt: new Date()
     });
-
+    await createAdminNotification({
+      type: 'nh.order.submitted',
+      title: 'Nursing home: Weekly order submitted',
+      message: `Order ${order.orderNumber} submitted for facility`,
+      ref: { kind: 'nh_order', id: order.id, orderNumber: order.orderNumber, facilityId: order.facilityId }
+    });
     logger.info('Nursing home order submitted', {
       orderId: order.id,
       orderNumber: order.orderNumber,

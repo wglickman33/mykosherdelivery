@@ -384,13 +384,11 @@ const AdminRestaurants = () => {
   const fetchNHMenu = useCallback(async () => {
     setNursingHomeMenuLoading(true);
     try {
-      fetch('http://127.0.0.1:7242/ingest/4dc3c80e-cf40-46c2-9570-f0bcad5c8b59',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminRestaurants.jsx:fetchNHMenu',message:'fetchNHMenu called',data:{mealType:nhMenuFilters.mealType,category:nhMenuFilters.category},timestamp:Date.now(),hypothesisId:'D'})}).catch(()=>{});
       const result = await fetchNursingHomeMenu({
         mealType: nhMenuFilters.mealType,
         category: nhMenuFilters.category
       });
       const arr = Array.isArray(result.data?.items) ? result.data.items : [];
-      fetch('http://127.0.0.1:7242/ingest/4dc3c80e-cf40-46c2-9570-f0bcad5c8b59',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminRestaurants.jsx:fetchNHMenu',message:'setNursingHomeMenuItems',data:{success:result?.success,itemsLength:arr.length},timestamp:Date.now(),hypothesisId:'A,C'})}).catch(()=>{});
       if (result.success) {
         setNursingHomeMenuItems(arr);
       } else {

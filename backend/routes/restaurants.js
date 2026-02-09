@@ -1,10 +1,17 @@
-
 const express = require('express');
+const { query, validationResult } = require('express-validator');
 const { Op, sequelize } = require('sequelize');
 const { Restaurant, MenuItem, UserRestaurantFavorite } = require('../models');
 const { optionalAuth } = require('../middleware/auth');
 
 const router = express.Router();
+
+const listRestaurantsQueryValidation = [
+  query('featured').optional().isIn(['true', 'false']),
+  query('search').optional().isString().trim().isLength({ max: 200 }),
+  query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
+  query('offset').optional().isInt({ min: 0 }).toInt()
+];
 
 const buildLogoUrl = (req, logoFileName) => {
   if (!logoFileName) return null;
@@ -54,17 +61,27 @@ const resolveRestaurantId = (rawId) => {
   return RESTAURANT_ID_ALIASES[lowered] || lowered;
 };
 
-router.get('/', optionalAuth, async (req, res) => {
+router.get('/', optionalAuth, listRestaurantsQueryValidation, async (req, res) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        message: 'Invalid query parameters',
+        details: errors.array()
+      });
+    }
     const { featured, search, limit = 50, offset = 0 } = req.query;
-    
+    const limitNum = typeof limit === 'number' ? limit : Math.min(Math.max(parseInt(limit, 10) || 50, 1), 100);
+    const offsetNum = typeof offset === 'number' ? offset : Math.max(parseInt(offset, 10) || 0, 0);
+
     const whereClause = {};
     if (featured !== undefined) {
       whereClause.featured = featured === 'true';
     }
-    
-    if (search) {
-      whereClause.name = { [Op.iLike]: `%${search}%` };
+    if (search && typeof search === 'string' && search.trim()) {
+      const term = `%${search.trim().substring(0, 200)}%`;
+      whereClause.name = { [Op.iLike]: term };
     }
 
     if (!req.userId || !req.userRole || req.userRole !== 'admin') {
@@ -74,8 +91,8 @@ router.get('/', optionalAuth, async (req, res) => {
     const restaurants = await Restaurant.findAll({
       where: whereClause,
       order: [['featured', 'DESC'], ['name', 'ASC']],
-      limit: parseInt(limit),
-      offset: parseInt(offset),
+      limit: limitNum,
+      offset: offsetNum,
       include: [
         {
           model: MenuItem,

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { MapPin } from 'lucide-react';
+import { useMapsDeviceLocation } from '../../context/MapsDeviceLocationContext';
 import { getMapsRestaurants } from '../../services/mapsService';
 import { isOpenNow } from '../../utils/mapsHoursUtils';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
@@ -33,6 +34,7 @@ function getPlaceCoords(place) {
 }
 
 function getDirectionsUrl(place) {
+  if (!place) return '#';
   const coords = getPlaceCoords(place);
   if (coords) {
     return `https://www.google.com/maps/dir/?api=1&destination=${coords.lat},${coords.lng}`;
@@ -62,16 +64,24 @@ const MapsPage = () => {
   const [sortBy, setSortBy] = useState('name');
   const [userLocation, setUserLocation] = useState(null);
   const [locating, setLocating] = useState(false);
+  const [addressInput, setAddressInput] = useState('');
+  const [addressLocation, setAddressLocation] = useState(null);
+  const [geocoding, setGeocoding] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [mapReady, setMapReady] = useState(false);
   const [mapInstanceReady, setMapInstanceReady] = useState(false);
+  const [mapType, setMapType] = useState('roadmap');
   const mapRef = useRef(null);
   const markersRef = useRef([]);
   const mapInstanceRef = useRef(null);
   const userMarkerRef = useRef(null);
+  const addressMarkerRef = useRef(null);
   const selectedCardRef = useRef(null);
   const pendingPanRef = useRef(null);
   const useAdvancedMarkersRef = useRef(true);
+
+  const referenceLocation = addressLocation || userLocation;
+  const { setDeviceLocation } = useMapsDeviceLocation();
 
   const panMapToPlace = useCallback((place) => {
     const coords = getPlaceCoords(place);
@@ -93,15 +103,15 @@ const MapsPage = () => {
       const params = { active: 'true' };
       if (search.trim()) params.search = search.trim();
       if (dietFilter.trim()) params.diet = dietFilter.trim();
-      if (userLocation) {
-        params.lat = userLocation.lat;
-        params.lng = userLocation.lng;
+      if (referenceLocation) {
+        params.lat = referenceLocation.lat;
+        params.lng = referenceLocation.lng;
       }
       const res = await getMapsRestaurants(params);
       let data = Array.isArray(res?.data) ? res.data : [];
       if (sortBy === 'name') {
         data = [...data].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-      } else if (sortBy === 'distance' && userLocation) {
+      } else if (sortBy === 'distance' && referenceLocation) {
         data = [...data].sort((a, b) => (a.distance ?? 999) - (b.distance ?? 999));
       } else if (sortBy === 'rating') {
         data = [...data].sort((a, b) => (b.googleRating ?? 0) - (a.googleRating ?? 0));
@@ -113,7 +123,7 @@ const MapsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [search, dietFilter, sortBy, userLocation]);
+  }, [search, dietFilter, sortBy, referenceLocation]);
 
   useEffect(() => {
     loadRestaurants();
@@ -135,9 +145,9 @@ const MapsPage = () => {
 
   const distanceByPlaceId = useMemo(() => {
     const out = {};
-    if (!userLocation) return out;
-    const uLat = userLocation.lat;
-    const uLng = userLocation.lng;
+    if (!referenceLocation) return out;
+    const uLat = referenceLocation.lat;
+    const uLng = referenceLocation.lng;
     list.forEach((place) => {
       const coords = getPlaceCoords(place);
       if (coords) {
@@ -148,7 +158,45 @@ const MapsPage = () => {
       }
     });
     return out;
-  }, [list, userLocation]);
+  }, [list, referenceLocation]);
+
+  const geocodeAddress = () => {
+    const query = (addressInput || '').trim();
+    if (!query) {
+      setError('Enter an address to find restaurants nearby.');
+      return;
+    }
+    if (!window.google?.maps?.Geocoder) {
+      setError('Map geocoding is not available. Check that the map has loaded.');
+      return;
+    }
+    setError(null);
+    setGeocoding(true);
+    const geocoder = new window.google.maps.Geocoder();
+    geocoder.geocode({ address: query }, (results, status) => {
+      setGeocoding(false);
+      if (status !== window.google.maps.GeocoderStatus.OK || !results?.[0]) {
+        setError('Address not found. Try a full street address or city.');
+        return;
+      }
+      const loc = results[0].geometry.location;
+      const lat = typeof loc.lat === 'function' ? loc.lat() : loc.lat;
+      const lng = typeof loc.lng === 'function' ? loc.lng() : loc.lng;
+      const label = results[0].formatted_address || query;
+      setAddressLocation({ lat, lng, label });
+      setSortBy('distance');
+      const map = mapInstanceRef.current;
+      if (map && typeof map.setCenter === 'function') {
+        map.setCenter({ lat, lng });
+        map.setZoom(14);
+      }
+    });
+  };
+
+  const clearAddressLocation = () => {
+    setAddressLocation(null);
+    setAddressInput('');
+  };
 
   const requestLocation = () => {
     if (!navigator.geolocation) {
@@ -161,12 +209,23 @@ const MapsPage = () => {
       (pos) => {
         const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setUserLocation(loc);
+        setDeviceLocation({ ...loc, label: 'Your location' });
         setSortBy('distance');
         setLocating(false);
         const map = mapInstanceRef.current;
         if (map && typeof map.setCenter === 'function') {
           map.setCenter(loc);
           map.setZoom(14);
+        }
+        if (window.google?.maps?.Geocoder) {
+          const geocoder = new window.google.maps.Geocoder();
+          geocoder.geocode({ location: { lat: loc.lat, lng: loc.lng } }, (results, status) => {
+            if (status === window.google.maps.GeocoderStatus.OK && results?.[0]?.formatted_address) {
+              const label = results[0].formatted_address;
+              setUserLocation((prev) => (prev ? { ...prev, label } : prev));
+              setDeviceLocation({ ...loc, label });
+            }
+          });
         }
       },
       () => {
@@ -218,13 +277,24 @@ const MapsPage = () => {
   }, []);
 
   useEffect(() => {
+    return () => setDeviceLocation(null);
+  }, [setDeviceLocation]);
+
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (map && typeof map.setMapTypeId === 'function') {
+      map.setMapTypeId(mapType);
+    }
+  }, [mapType, mapInstanceReady]);
+
+  useEffect(() => {
     if (!mapReady || !window.google?.maps || !mapRef.current) {
       if (mapReady && !window.google?.maps) logger.debug('MapsPage: mapReady but no window.google.maps', null);
       return;
     }
-    logger.debug('MapsPage: initializing map', { listLength: list.length, hasUserLocation: !!userLocation });
+    logger.debug('MapsPage: initializing map', { listLength: list.length, hasReference: !!referenceLocation });
     let cancelled = false;
-    const center = userLocation || DEFAULT_CENTER;
+    const center = referenceLocation || DEFAULT_CENTER;
 
     const clearMarkers = () => {
       markersRef.current.forEach((m) => {
@@ -234,6 +304,10 @@ const MapsPage = () => {
       if (userMarkerRef.current) {
         userMarkerRef.current.map = null;
         userMarkerRef.current = null;
+      }
+      if (addressMarkerRef.current) {
+        addressMarkerRef.current.map = null;
+        addressMarkerRef.current = null;
       }
     };
 
@@ -258,6 +332,7 @@ const MapsPage = () => {
               mapId: 'DEMO_MAP_ID',
               center: { lat: center.lat, lng: center.lng },
               zoom: 12,
+              mapTypeId: mapType,
               mapTypeControl: true,
               fullscreenControl: true,
               zoomControl: true
@@ -270,17 +345,30 @@ const MapsPage = () => {
             if (userLocation) {
               const userPin = document.createElement('div');
               userPin.className = 'maps-page__user-pin';
-              userPin.title = 'Your location';
-              userPin.setAttribute('aria-label', 'Your location');
+              userPin.title = userLocation.label || 'Your location';
+              userPin.setAttribute('aria-label', userLocation.label || 'Your location');
               userMarkerRef.current = new AdvancedMarkerElement({
                 position: { lat: userLocation.lat, lng: userLocation.lng },
                 map,
-                title: 'Your location',
+                title: userLocation.label || 'Your location',
                 content: userPin
+              });
+            }
+            if (addressLocation) {
+              const addrPin = document.createElement('div');
+              addrPin.className = 'maps-page__address-pin';
+              addrPin.title = addressLocation.label || 'Search address';
+              addrPin.setAttribute('aria-label', addressLocation.label || 'Search address');
+              addressMarkerRef.current = new AdvancedMarkerElement({
+                position: { lat: addressLocation.lat, lng: addressLocation.lng },
+                map,
+                title: addressLocation.label || 'Search address',
+                content: addrPin
               });
             }
             const bounds = new window.google.maps.LatLngBounds();
             if (userLocation) bounds.extend({ lat: userLocation.lat, lng: userLocation.lng });
+            if (addressLocation) bounds.extend({ lat: addressLocation.lat, lng: addressLocation.lng });
             list.forEach((place) => {
               if (place.latitude == null || place.longitude == null) return;
               const pos = { lat: Number(place.latitude), lng: Number(place.longitude) };
@@ -312,6 +400,7 @@ const MapsPage = () => {
             map = new window.google.maps.Map(mapRef.current, {
               center: { lat: center.lat, lng: center.lng },
               zoom: 12,
+              mapTypeId: mapType,
               mapTypeControl: true,
               fullscreenControl: true,
               zoomControl: true
@@ -325,11 +414,19 @@ const MapsPage = () => {
               userMarkerRef.current = new Marker({
                 position: { lat: userLocation.lat, lng: userLocation.lng },
                 map,
-                title: 'Your location'
+                title: userLocation.label || 'Your location'
+              });
+            }
+            if (addressLocation) {
+              addressMarkerRef.current = new Marker({
+                position: { lat: addressLocation.lat, lng: addressLocation.lng },
+                map,
+                title: addressLocation.label || 'Search address'
               });
             }
             const bounds = new window.google.maps.LatLngBounds();
             if (userLocation) bounds.extend({ lat: userLocation.lat, lng: userLocation.lng });
+            if (addressLocation) bounds.extend({ lat: addressLocation.lat, lng: addressLocation.lng });
             list.forEach((place) => {
               if (place.latitude == null || place.longitude == null) return;
               const pos = { lat: Number(place.latitude), lng: Number(place.longitude) };
@@ -354,13 +451,25 @@ const MapsPage = () => {
                 if (userLocation) {
                   const userPin = document.createElement('div');
                   userPin.className = 'maps-page__user-pin';
-                  userPin.title = 'Your location';
-                  userPin.setAttribute('aria-label', 'Your location');
+                  userPin.title = userLocation.label || 'Your location';
+                  userPin.setAttribute('aria-label', userLocation.label || 'Your location');
                   userMarkerRef.current = new AdvancedMarkerElement({
                     position: { lat: userLocation.lat, lng: userLocation.lng },
                     map,
-                    title: 'Your location',
+                    title: userLocation.label || 'Your location',
                     content: userPin
+                  });
+                }
+                if (addressLocation) {
+                  const addrPin = document.createElement('div');
+                  addrPin.className = 'maps-page__address-pin';
+                  addrPin.title = addressLocation.label || 'Search address';
+                  addrPin.setAttribute('aria-label', addressLocation.label || 'Search address');
+                  addressMarkerRef.current = new AdvancedMarkerElement({
+                    position: { lat: addressLocation.lat, lng: addressLocation.lng },
+                    map,
+                    title: addressLocation.label || 'Search address',
+                    content: addrPin
                   });
                 }
                 list.forEach((place) => {
@@ -397,7 +506,14 @@ const MapsPage = () => {
                 userMarkerRef.current = new Marker({
                   position: { lat: userLocation.lat, lng: userLocation.lng },
                   map,
-                  title: 'Your location'
+                  title: userLocation.label || 'Your location'
+                });
+              }
+              if (addressLocation) {
+                addressMarkerRef.current = new Marker({
+                  position: { lat: addressLocation.lat, lng: addressLocation.lng },
+                  map,
+                  title: addressLocation.label || 'Search address'
                 });
               }
               list.forEach((place) => {
@@ -417,14 +533,15 @@ const MapsPage = () => {
           if (list.length > 0 && list.some((p) => p.latitude != null)) {
             const bounds = new window.google.maps.LatLngBounds();
             if (userLocation) bounds.extend({ lat: userLocation.lat, lng: userLocation.lng });
+            if (addressLocation) bounds.extend({ lat: addressLocation.lat, lng: addressLocation.lng });
             list.forEach((p) => {
               if (p.latitude != null && p.longitude != null) bounds.extend({ lat: Number(p.latitude), lng: Number(p.longitude) });
             });
-            if (list.length === 1 && !userLocation) map.setZoom(14);
+            if (list.length === 1 && !referenceLocation) map.setZoom(14);
             else map.fitBounds(bounds, 40);
           }
-          if (userLocation && list.length === 0) {
-            map.setCenter({ lat: userLocation.lat, lng: userLocation.lng });
+          if (referenceLocation && list.length === 0) {
+            map.setCenter({ lat: referenceLocation.lat, lng: referenceLocation.lng });
           }
           runPendingPan();
         }
@@ -440,7 +557,8 @@ const MapsPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [mapReady, list, userLocation]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- mapType applied in separate effect
+  }, [mapReady, list, userLocation, addressLocation, referenceLocation]);
 
   useEffect(() => {
     return () => {
@@ -451,6 +569,10 @@ const MapsPage = () => {
       if (userMarkerRef.current) {
         userMarkerRef.current.map = null;
         userMarkerRef.current = null;
+      }
+      if (addressMarkerRef.current) {
+        addressMarkerRef.current.map = null;
+        addressMarkerRef.current = null;
       }
       if (mapInstanceRef.current) {
         mapInstanceRef.current = null;
@@ -517,10 +639,52 @@ const MapsPage = () => {
           onChange={(e) => setSortBy(e.target.value)}
           className="maps-page__select"
         >
-          <option value="name">Sort by name</option>
-          <option value="distance">Sort by distance</option>
-          <option value="rating">Sort by rating</option>
+          <option value="name">Sort by Name</option>
+          <option value="distance">Sort by Distance</option>
+          <option value="rating">Sort by Rating</option>
         </select>
+        <select
+          value={mapType}
+          onChange={(e) => setMapType(e.target.value)}
+          className="maps-page__select"
+          title="Map view"
+          aria-label="Map type"
+        >
+          <option value="roadmap">Map</option>
+          <option value="satellite">Satellite</option>
+          <option value="hybrid">Hybrid</option>
+          <option value="terrain">Terrain</option>
+        </select>
+        <div className="maps-page__address-row">
+          <input
+            type="text"
+            placeholder="Address or City"
+            value={addressInput}
+            onChange={(e) => setAddressInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && geocodeAddress()}
+            className="maps-page__search maps-page__address-input"
+            aria-label="Address to find restaurants near"
+          />
+          <button
+            type="button"
+            className="maps-page__location-btn maps-page__address-btn"
+            onClick={geocodeAddress}
+            disabled={geocoding}
+            title="Find restaurants near this address"
+          >
+            {geocoding ? 'Finding…' : 'Find Nearby'}
+          </button>
+          {addressLocation && (
+            <button
+              type="button"
+              className="maps-page__location-btn maps-page__clear-address-btn"
+              onClick={clearAddressLocation}
+              title="Clear search address"
+            >
+              Clear address
+            </button>
+          )}
+        </div>
         <button
           type="button"
           className="maps-page__location-btn"
@@ -529,11 +693,13 @@ const MapsPage = () => {
           title="Center map on your location and sort by distance"
         >
           <MapPin size={18} className="maps-page__location-icon" aria-hidden />
-          {locating ? 'Locating…' : 'Use my location'}
+          {locating ? 'Locating…' : 'Use My Location'}
         </button>
       </div>
 
-      {error && <ErrorMessage message={error} type="error" onDismiss={() => setError(null)} />}
+      <div className="maps-page__error-wrap">
+        {error && <ErrorMessage message={error} type="error" onDismiss={() => setError(null)} />}
+      </div>
 
       <div className="maps-page__split">
         <div className="maps-page__map-wrap">
@@ -623,7 +789,9 @@ const MapsPage = () => {
                   )}
                   <div className="maps-page__card-meta">
                     {distanceByPlaceId[place.id] != null && (
-                      <span className="maps-page__card-distance">{distanceByPlaceId[place.id]} mi from you</span>
+                      <span className="maps-page__card-distance">
+                        {distanceByPlaceId[place.id]} mi from {addressLocation ? 'this address' : 'you'}
+                      </span>
                     )}
                     {isOpen !== undefined && isOpen !== null && (
                       <span className={`maps-page__card-status maps-page__card-status--${isOpen ? 'open' : 'closed'}`}>

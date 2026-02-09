@@ -509,12 +509,12 @@ router.post(
   "/:id/addresses",
   authenticateToken,
   [
-    body("street").notEmpty().trim(),
-    body("city").notEmpty().trim(),
-    body("state").notEmpty().trim(),
-    body("zip_code").notEmpty().trim(),
-    body("apartment").optional().trim(),
-    body("delivery_instructions").optional().trim(),
+    body("street").notEmpty().trim().isLength({ max: 200 }).withMessage('Street must be at most 200 characters'),
+    body("city").notEmpty().trim().isLength({ max: 100 }).withMessage('City must be at most 100 characters'),
+    body("state").notEmpty().trim().isLength({ min: 2, max: 2 }).withMessage('State must be a 2-letter code'),
+    body("zip_code").notEmpty().trim().matches(/^\d{5}(-\d{4})?$/).withMessage('Zip code must be 12345 or 12345-6789'),
+    body("apartment").optional().trim().isLength({ max: 20 }),
+    body("delivery_instructions").optional().trim().isLength({ max: 500 }),
   ],
   async (req, res) => {
     try {
@@ -591,12 +591,12 @@ router.put(
   "/:id/addresses/:addressId",
   authenticateToken,
   [
-    body("street").optional().trim(),
-    body("city").optional().trim(),
-    body("state").optional().trim(),
-    body("zip_code").optional().trim(),
-    body("apartment").optional().trim(),
-    body("delivery_instructions").optional().trim(),
+    body("street").optional().trim().isLength({ max: 200 }),
+    body("city").optional().trim().isLength({ max: 100 }),
+    body("state").optional().trim().isLength({ min: 2, max: 2 }),
+    body("zip_code").optional().trim().matches(/^\d{5}(-\d{4})?$/),
+    body("apartment").optional().trim().isLength({ max: 20 }),
+    body("delivery_instructions").optional().trim().isLength({ max: 500 }),
   ],
   async (req, res) => {
     try {

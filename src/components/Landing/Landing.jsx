@@ -48,16 +48,9 @@ const Landing = () => {
       }
 
       const apiKey = import.meta.env.VITE_GOOGLE_PLACES_API_KEY;
-      
-      console.log('[Google Places] API Key check:', {
-        hasKey: !!apiKey,
-        keyLength: apiKey?.length || 0,
-        keyPrefix: apiKey?.substring(0, 10) || 'none',
-        isPlaceholder: apiKey === 'your_api_key_here'
-      });
-      
+
       if (!apiKey || apiKey === 'your_api_key_here') {
-        console.error('[Google Places] API key not configured or is placeholder');
+        console.warn('[Google Places] API key not configured or is placeholder');
         setAddressError("Address autocomplete is temporarily unavailable. Please enter your full address manually.");
         return;
       }
@@ -76,7 +69,6 @@ const Landing = () => {
       };
 
       const scriptUrl = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geocoding&loading=async&callback=initGoogleMaps`;
-      console.log('[Google Places] Loading script:', scriptUrl.replace(apiKey, 'API_KEY_HIDDEN'));
 
       const script = document.createElement("script");
       script.src = scriptUrl;

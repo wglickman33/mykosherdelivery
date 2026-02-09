@@ -6,6 +6,7 @@ const ExcelJS = require('exceljs');
 const { KosherMapsRestaurant } = require('../models');
 const { requireAdmin } = require('../middleware/auth');
 const logger = require('../utils/logger');
+const { createAdminNotification } = require('../utils/adminNotifications');
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
@@ -303,6 +304,12 @@ router.post('/restaurants', requireAdmin, async (req, res) => {
       return res.status(400).json({ error: normalized.error });
     }
     const record = await KosherMapsRestaurant.create(normalized);
+    await createAdminNotification({
+      type: 'maps.restaurant.created',
+      title: 'Maps: Restaurant added',
+      message: `"${record.name}" was added to Kosher Maps`,
+      ref: { kind: 'maps_restaurant', id: record.id, name: record.name }
+    });
     res.status(201).json(record);
   } catch (err) {
     logger.error('Admin maps create failed', { err: err.message });
@@ -323,6 +330,12 @@ router.put('/restaurants/:id', requireAdmin, async (req, res) => {
     }
     if (!normalized.name) normalized.name = record.name;
     await record.update(normalized);
+    await createAdminNotification({
+      type: 'maps.restaurant.updated',
+      title: 'Maps: Restaurant updated',
+      message: `"${record.name}" was updated`,
+      ref: { kind: 'maps_restaurant', id: record.id, name: record.name }
+    });
     res.json(record);
   } catch (err) {
     logger.error('Admin maps update failed', { err: err.message });
@@ -335,7 +348,14 @@ router.delete('/restaurants/:id', requireAdmin, async (req, res) => {
     const { id } = req.params;
     const record = await KosherMapsRestaurant.findByPk(id);
     if (!record) return res.status(404).json({ error: 'Restaurant not found' });
+    const name = record.name;
     await record.destroy();
+    await createAdminNotification({
+      type: 'maps.restaurant.deleted',
+      title: 'Maps: Restaurant removed',
+      message: `"${name}" was removed from Kosher Maps`,
+      ref: { kind: 'maps_restaurant', id }
+    });
     res.status(204).send();
   } catch (err) {
     logger.error('Admin maps delete failed', { err: err.message });
@@ -479,6 +499,14 @@ router.post('/restaurants/import', requireAdmin, upload.single('file'), async (r
       }
     }
 
+    if (created > 0 || updated > 0) {
+      await createAdminNotification({
+        type: 'maps.import',
+        title: 'Maps: Import completed',
+        message: `${created} created, ${updated} updated${errors.length ? `, ${errors.length} errors` : ''}`,
+        ref: { kind: 'maps_import', created, updated, errors: errors.length }
+      });
+    }
     res.json({ created, updated, errors, totalRows: rows.length });
   } catch (err) {
     logger.error('Admin maps import failed', { err: err.message });
