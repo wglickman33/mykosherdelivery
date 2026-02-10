@@ -1,9 +1,15 @@
 const express = require('express');
 const { Op, QueryTypes } = require('sequelize');
-const stripeSecret = process.env.STRIPE_SECRET_KEY;
-const stripe = (stripeSecret && typeof stripeSecret === 'string' && !stripeSecret.includes('placeholder'))
-  ? require('stripe')(stripeSecret)
-  : null;
+function getStripe() {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key || typeof key !== 'string' || key.includes('placeholder')) return null;
+  return require('stripe')(key);
+}
+let stripeClient = null;
+function stripe() {
+  if (stripeClient === null) stripeClient = getStripe();
+  return stripeClient;
+}
 const { Profile, Order, Restaurant, DeliveryZone, SupportTicket, TicketResponse, AdminNotification, Notification, AdminAuditLog, sequelize, MenuItem, MenuItemOption, UserRestaurantFavorite, MenuChangeRequest, UserLoginActivity, UserPreference, UserAnalytic, PaymentMethod, RestaurantOwner, Refund, PromoCode, GiftCard } = require('../models');
 const { requireAdmin } = require('../middleware/auth');
 const { body, param, validationResult } = require('express-validator');
@@ -3198,7 +3204,8 @@ router.post('/orders/:orderId/refund', requireAdmin, [
       });
     }
 
-    if (!stripe) {
+    const stripeClient = stripe();
+    if (!stripeClient) {
       return res.status(503).json({
         error: 'Payment provider not configured',
         message: 'Stripe is not configured. Set STRIPE_SECRET_KEY in environment.'
@@ -3214,7 +3221,7 @@ router.post('/orders/:orderId/refund', requireAdmin, [
         let matchingIntent = null;
         
         try {
-          const paymentIntents = await stripe.paymentIntents.search({
+          const paymentIntents = await stripeClient.paymentIntents.search({
             query: `metadata['orderIds']:'${orderId}'`,
             limit: 10
           });
@@ -3237,7 +3244,7 @@ router.post('/orders/:orderId/refund', requireAdmin, [
           
           const amountInCents = Math.round(orderTotal * 100);
           
-          const paymentIntentsList = await stripe.paymentIntents.list({
+          const paymentIntentsList = await stripeClient.paymentIntents.list({
             created: {
               gte: Math.floor(startDate.getTime() / 1000),
               lte: Math.floor(endDate.getTime() / 1000)
@@ -3307,7 +3314,7 @@ router.post('/orders/:orderId/refund', requireAdmin, [
     });
 
     try {
-      const stripeRefund = await stripe.refunds.create({
+      const stripeRefund = await stripeClient.refunds.create({
         payment_intent: paymentIntentId,
         amount: Math.round(refundAmount * 100),
         reason: 'requested_by_customer',

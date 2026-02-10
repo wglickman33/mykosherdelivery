@@ -19,10 +19,17 @@ const { createAdminNotification } = require('../utils/adminNotifications');
 const { logAdminAction } = require('../utils/auditLog');
 const ExcelJS = require('exceljs');
 
-const stripe = process.env.STRIPE_SECRET_KEY
-  ? require('stripe')(process.env.STRIPE_SECRET_KEY)
-  : null;
-if (!stripe) {
+function getStripe() {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key || typeof key !== 'string' || key.includes('placeholder')) return null;
+  return require('stripe')(key);
+}
+let stripeClient = null;
+function stripe() {
+  if (stripeClient === null) stripeClient = getStripe();
+  return stripeClient;
+}
+if (!stripe()) {
   logger.warn('STRIPE_SECRET_KEY not set; nursing home payment routes will fail');
 }
 
@@ -667,7 +674,8 @@ router.post('/resident-orders/:id/submit-and-pay', paymentLimiter, requireNursin
     const receiptEmail = billingEmail || order.billingEmail;
     const billingNameVal = billingName || order.billingName || '';
 
-    if (!stripe) {
+    const stripeClient = stripe();
+    if (!stripeClient) {
       return res.status(503).json({
         success: false,
         error: 'Payment not configured',
@@ -677,7 +685,7 @@ router.post('/resident-orders/:id/submit-and-pay', paymentLimiter, requireNursin
 
     let paymentIntent;
     try {
-      paymentIntent = await stripe.paymentIntents.create({
+      paymentIntent = await stripeClient.paymentIntents.create({
         amount: Math.round(order.total * 100),
         currency: 'usd',
         payment_method: paymentMethodId || order.resident.paymentMethodId,
@@ -941,8 +949,16 @@ router.post('/resident-orders/:id/refund', requireNursingHomeAdmin, [
       status: 'pending'
     });
 
+    const stripeClientRefund = stripe();
+    if (!stripeClientRefund) {
+      return res.status(503).json({
+        success: false,
+        error: 'Payment not configured',
+        message: 'STRIPE_SECRET_KEY is not set on the server.'
+      });
+    }
     try {
-      const stripeRefund = await stripe.refunds.create({
+      const stripeRefund = await stripeClientRefund.refunds.create({
         payment_intent: paymentIntentId,
         amount: Math.round(refundAmount * 100),
         reason: 'requested_by_customer',

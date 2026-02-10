@@ -1,5 +1,4 @@
 const express = require("express");
-const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const { authenticateToken } = require("../middleware/auth");
 const { Order, Profile, PaymentMethod, Restaurant } = require("../models");
 const { body, validationResult } = require("express-validator");
@@ -9,6 +8,18 @@ const { processGiftCardsForPaidOrders } = require("../services/giftCardService")
 const { isGiftCardItem } = require("../services/giftCardService");
 
 const router = express.Router();
+
+function getStripe() {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key || typeof key !== "string" || key.includes("placeholder")) return null;
+  return require("stripe")(key);
+}
+
+let stripeClient = null;
+function stripe() {
+  if (stripeClient === null) stripeClient = getStripe();
+  return stripeClient;
+}
 
 if (
   !process.env.STRIPE_SECRET_KEY ||
@@ -113,7 +124,14 @@ router.post(
         paymentIntentData.confirm = true;
       }
 
-      const paymentIntent = await stripe.paymentIntents.create(
+      const client = stripe();
+      if (!client) {
+        return res.status(503).json({
+          error: "Payment provider not configured",
+          message: "Stripe is not configured. Set STRIPE_SECRET_KEY in environment.",
+        });
+      }
+      const paymentIntent = await client.paymentIntents.create(
         paymentIntentData
       );
 
@@ -272,7 +290,14 @@ router.post(
       const { paymentIntentId } = req.body;
       const userId = req.userId;
 
-      const paymentIntent = await stripe.paymentIntents.retrieve(
+      const client = stripe();
+      if (!client) {
+        return res.status(503).json({
+          error: "Payment provider not configured",
+          message: "Stripe is not configured. Set STRIPE_SECRET_KEY in environment.",
+        });
+      }
+      const paymentIntent = await client.paymentIntents.retrieve(
         paymentIntentId
       );
 
@@ -408,8 +433,13 @@ router.post(
     const sig = req.headers["stripe-signature"];
     let event;
 
+    const client = stripe();
+    if (!client) {
+      logger.error("Stripe webhook received but Stripe is not configured");
+      return res.status(503).send("Payment provider not configured");
+    }
     try {
-      event = stripe.webhooks.constructEvent(
+      event = client.webhooks.constructEvent(
         req.body,
         sig,
         process.env.STRIPE_WEBHOOK_SECRET
@@ -621,9 +651,17 @@ router.post(
       const { paymentMethodId, isDefault = false } = req.body;
       const userId = req.userId;
 
+      const client = stripe();
+      if (!client) {
+        return res.status(503).json({
+          error: "Payment provider not configured",
+          message: "Stripe is not configured. Set STRIPE_SECRET_KEY in environment.",
+        });
+      }
+
       const user = await Profile.findByPk(userId);
 
-      const stripePaymentMethod = await stripe.paymentMethods.retrieve(
+      const stripePaymentMethod = await client.paymentMethods.retrieve(
         paymentMethodId
       );
 
@@ -631,9 +669,9 @@ router.post(
         let customer;
 
         if (user.stripeCustomerId) {
-          customer = await stripe.customers.retrieve(user.stripeCustomerId);
+          customer = await client.customers.retrieve(user.stripeCustomerId);
         } else {
-          customer = await stripe.customers.create({
+          customer = await client.customers.create({
             email: user.email,
             name: `${user.firstName} ${user.lastName}`,
             metadata: { userId: userId },
@@ -642,7 +680,7 @@ router.post(
           await user.update({ stripeCustomerId: customer.id });
         }
 
-        await stripe.paymentMethods.attach(paymentMethodId, {
+        await client.paymentMethods.attach(paymentMethodId, {
           customer: customer.id,
         });
       }
@@ -747,6 +785,14 @@ router.patch("/methods/:id/default", authenticateToken, async (req, res) => {
 
 router.delete("/methods/:id", authenticateToken, async (req, res) => {
   try {
+    const client = stripe();
+    if (!client) {
+      return res.status(503).json({
+        error: "Payment provider not configured",
+        message: "Stripe is not configured. Set STRIPE_SECRET_KEY in environment.",
+      });
+    }
+
     const paymentMethodId = req.params.id;
     const userId = req.userId;
 
@@ -765,7 +811,7 @@ router.delete("/methods/:id", authenticateToken, async (req, res) => {
     }
 
     try {
-      await stripe.paymentMethods.detach(paymentMethod.stripePaymentMethodId);
+      await client.paymentMethods.detach(paymentMethod.stripePaymentMethodId);
     } catch (stripeError) {
       logger.warn("Failed to detach payment method from Stripe:", stripeError);
     }
