@@ -69,13 +69,17 @@ import NursingHomeMenu from "./components/NursingHomeMenu/NursingHomeMenu";
 import MapsGate from "./components/MapsGate/MapsGate";
 import MapsLayout from "./components/MapsLayout/MapsLayout";
 import MapsPage from "./components/MapsPage/MapsPage";
+import OwnerLayout from "./components/OwnerLayout/OwnerLayout";
+import OwnerDashboard from "./components/OwnerDashboard/OwnerDashboard";
+import OwnerMenu from "./components/OwnerMenu/OwnerMenu";
+import OwnerOrders from "./components/OwnerOrders/OwnerOrders";
 
 function NhRedirectToDashboard() {
   const location = useLocation();
   return <Navigate to={`/nursing-homes/dashboard${location.search}`} replace />;
 }
 
-const PUBLIC_ROUTES = ["/landing", "/signin", "/signup", "/blog", "/faq", "/contact", "/partner", "/advertise", "/help", "/terms", "/privacy", "/admin", "/nursing-homes/login", "/nursing-homes/admin", "/nursing-homes/admin/login"];
+const PUBLIC_ROUTES = ["/landing", "/signin", "/signup", "/blog", "/faq", "/contact", "/partner", "/advertise", "/help", "/terms", "/privacy", "/admin", "/owner", "/nursing-homes/login", "/nursing-homes/admin", "/nursing-homes/admin/login"];
 const APP_ROUTES = ["/home", "/restaurants", "/restaurant", "/cart", "/checkout", "/order-confirmation", "/gift-card", "/subscriptions", "/account"];
 
 function AuthenticatedApp() {
@@ -120,6 +124,10 @@ function AuthenticatedApp() {
 
   if (pathname === "/") {
     if (user) {
+      if (user.role === 'restaurant_owner') {
+        logger.debug('App.jsx - Restaurant owner, redirecting to /owner');
+        return <Navigate to="/owner" replace />;
+      }
       logger.debug('App.jsx - Authenticated user, redirecting to /home');
       return <Navigate to="/home" replace />;
     } else if (tempAddress) {
@@ -133,6 +141,10 @@ function AuthenticatedApp() {
 
   if (user) {
     if (pathname === "/landing" || pathname === "/signin" || pathname === "/signup") {
+      if (user.role === 'restaurant_owner') {
+        logger.debug('App.jsx - Restaurant owner on landing/auth, redirecting to /owner');
+        return <Navigate to="/owner" replace />;
+      }
       logger.debug('App.jsx - Authenticated user on landing/auth, redirecting to /home');
       return <Navigate to="/home" replace />;
     }
@@ -161,8 +173,23 @@ function AuthenticatedApp() {
     const isAuthRoute = ["/signin", "/signup"].includes(pathname);
     const isLandingRoute = pathname === "/landing";
     const isAdminRoute = pathname.startsWith("/admin");
+    const isOwnerRoute = pathname.startsWith("/owner");
     const isNursingHomeRoute = pathname.startsWith("/nursing-homes");
     const isMapsRoute = pathname === "/maps" || pathname.startsWith("/maps/");
+
+    if (isOwnerRoute) {
+      return (
+        <Routes>
+          <Route path="/owner" element={<OwnerLayout />}>
+            <Route index element={<Navigate to="/owner/dashboard" replace />} />
+            <Route path="dashboard" element={<OwnerDashboard />} />
+            <Route path="restaurant/:restaurantId/menu" element={<OwnerMenu />} />
+            <Route path="restaurant/:restaurantId/orders" element={<OwnerOrders />} />
+            <Route path="*" element={<NotFoundPage />} />
+          </Route>
+        </Routes>
+      );
+    }
 
     if (isMapsRoute) {
       return (

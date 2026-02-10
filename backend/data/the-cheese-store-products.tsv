@@ -1,0 +1,115 @@
+Product ID [Non Editable]	Variant ID [Non Editable]	Product Type [Non Editable]	Product Page	Product URL	Title	Description	SKU	Option Name 1	Option Value 1	Option Name 2	Option Value 2	Option Name 3	Option Value 3	Option Name 4	Option Value 4	Option Name 5	Option Value 5	Option Name 6	Option Value 6	Price	Sale Price	On Sale	Stock	Categories	Tags	Weight	Length	Width	Height	Visible
+6314c2ff8fa7f80b1bd4c00f	84354b7c-41da-4b8d-9540-aed43b6fed2c	PHYSICAL	the-cheese-store	024rg7pldw7gyhumf9vb5d33cnschf-3lydr	Camembert	Camembert.	SQ0000407													10.99	0	No	Unlimited	/Prepacked brei cheese		0	0	0	0	Yes
+6314c2ff8fa7f80b1bd4c01a	879322c9-fb22-4f59-87c9-d596d40e4aa8	PHYSICAL	the-cheese-store	024rg7pldw7gyhumf9vb5d33cnschf-3yn8j-5khlr-s5drm	FRESH Smoked Mozzarella BALL	FRESH Smoked Mozzarella BALL.	SQ3648548													7.69	0	No	Unlimited	/Prepacked brei cheese		0	0	0	0	Yes
+6314c2ff8fa7f80b1bd4c024	1d2cefcc-8ecd-4719-9ca6-0357cfa3c700	PHYSICAL	the-cheese-store	024rg7pldw7gyhumf9vb5d33cnschf-3yn8j-5khlr-x43b3-jkngl-wchwl	FRESH Mozzarella BALL	FRESH Mozzarella BALL.	SQ6628738													6.59	0	No	Unlimited	/Prepacked brei cheese		0	0	0	0	Yes
+6314c2ff8fa7f80b1bd4c01f	efc31fc9-3940-4f9d-bfba-7cc6d58e114d	PHYSICAL	the-cheese-store	024rg7pldw7gyhumf9vb5d33cnschf-3yn8j-5khlr-x43b3-mg824	Smoked GOUDA	Smoked GOUDA.	SQ7158323													9.89	0	No	Unlimited	/Prepacked brei cheese		0	0	0	0	Yes
+6314c2ff8fa7f80b1bd4c015	7cde2d5d-ff90-4b35-ae68-b5aba3e8717c	PHYSICAL	the-cheese-store	024rg7pldw7gyhumf9vb5d33cnschf-3yn8j-yg9lk	BRIE	BRIE.	SQ6127507													10.99	0	No	Unlimited	/Prepacked brei cheese		0	0	0	0	Yes
+6314c2ff8fa7f80b1bd4c029	46c9b209-ae47-49ea-8aab-785f1e9fe2bf	PHYSICAL	the-cheese-store	024rg7pldw7gyhumf9vb5d33cnschf-he7nx-827jp	GOAT BRIE	GOAT BRIE.	SQ6548352													13.19	0	No	Unlimited	/Prepacked brei cheese		0	0	0	0	Yes
+6314c2ff8fa7f80b1bd4c0df	2ff1dde9-ddf5-4dff-90cc-65685792f25f	PHYSICAL	the-cheese-store	aged-havarti-966pe	AGED Havarti	1 LB	SQ6852046													17.6	0	No	Unlimited	/Spicy cheese		0	0	0	0	Yes
+6314c2ff8fa7f80b1bd4c0f4	a05cd5fe-d02b-4b00-9396-38fe85c14f68	PHYSICAL	the-cheese-store	assorted-cheese-and-crackers-platter-5awsz	Assorted Cheese and Crackers Platter	Fresh assorted cheese and cracker platter, with option to add dried fruit and nuts or olives for a small extra charge.	SQ6382783	Size	Small	Dried Fruit + Nuts or Olives addition	None									93.5	0	No	Unlimited	/Patters		0	0	0	0	Yes
+	358ffd46-e486-4295-a7c6-7865f5f4b9f5		the-cheese-store			Assorted Cheese and Crackers Platter.	SQ2527786	Size	Small	Dried Fruit + Nuts or Olives addition	Dried fruit + Nuts									103.5	0	No	Unlimited	/Patters		0	0	0	0	
+	ec379dab-97e7-409a-8f23-b406bf151541		the-cheese-store			Assorted Cheese and Crackers Platter.	SQ8541648	Size	Small	Dried Fruit + Nuts or Olives addition	Dried Fruit + Olives									103.5	0	No	Unlimited	/Patters		0	0	0	0	
+	220cf464-9a06-45d4-a420-b9a677c4beca		the-cheese-store			Assorted Cheese and Crackers Platter.	SQ5513110	Size	Large	Dried Fruit + Nuts or Olives addition	None									137.5	0	No	Unlimited	/Patters		0	0	0	0	
+	4bf70871-654b-478a-be81-9e6292706b21		the-cheese-store			Assorted Cheese and Crackers Platter.	SQ0810651	Size	Large	Dried Fruit + Nuts or Olives addition	Dried fruit + Nuts									147.5	0	No	Unlimited	/Patters		0	0	0	0	
+	170f20a6-7136-4494-bd9c-a3e31d6a0261		the-cheese-store			Assorted Cheese and Crackers Platter.	SQ4180173	Size	Large	Dried Fruit + Nuts or Olives addition	Dried Fruit + Olives									147.5	0	No	Unlimited	/Patters		0	0	0	0	
+6314c2fe8fa7f80b1bd4bfcb	0c38f3b5-3069-4bcb-832e-b0981a00e168	PHYSICAL	the-cheese-store	cheddar-b6w2a	Cheddar	1 LB	SQ0740210	Options	Sliced											17.55	0	No	Unlimited	/All cheeses		0	0	0	0	Yes
+	23bdddd3-242e-449d-a62f-a19ca7f491e3		the-cheese-store			Cheddar.	SQ4461868	Options	Cubed											17.55	0	No	Unlimited	/All cheeses		0	0	0	0	
+6314c2fe8fa7f80b1bd4bfd2	c0d105f4-b417-42d9-b0f2-20187fd14e3a	PHYSICAL	the-cheese-store	cheddar-mfptr-4a8xc	Provolone	1 LB	SQ0155239	Options	Sliced											17.55	0	No	Unlimited	/All cheeses		0	0	0	0	Yes
+	a087c93a-2dc5-4965-af38-6b94c98d6edc		the-cheese-store			Provolone.	SQ0629274	Options	Cubed											17.55	0	No	Unlimited	/All cheeses		0	0	0	0	
+6314c2fe8fa7f80b1bd4bfe6	689fd45e-1418-47e3-8661-787297f0537f	PHYSICAL	the-cheese-store	cheddar-mfptr-6gg39-h8nlm-nphbm-8s8am-2tp8g	Havarti	1 LB	SQ4464187													17.55	0	No	Unlimited	/All cheeses		0	0	0	0	Yes
+6314c2fe8fa7f80b1bd4bff0	fb29e1b9-aee6-475f-8096-8e3c9ceea184	PHYSICAL	the-cheese-store	cheddar-mfptr-6gg39-h8nlm-nphbm-8s8am-ymz34-3e9am-4wch5	Mozzarella	1 LB	SQ0718809	Options	Sliced											17.55	0	No	Unlimited	/All cheeses		0	0	0	0	Yes
+	49fb78dc-b7d8-45d1-a061-18f364d7a864		the-cheese-store			Mozzarella.	SQ9224885	Options	Cubed											17.55	0	No	Unlimited	/All cheeses		0	0	0	0	
+6314c2fe8fa7f80b1bd4bfeb	64723eb0-dae2-4aad-adde-07bc5d9c5040	PHYSICAL	the-cheese-store	cheddar-mfptr-6gg39-h8nlm-nphbm-8s8am-ymz34-7ns6w	GOUDA	1 LB	SQ8754145													17.55	0	No	Unlimited	/All cheeses		0	0	0	0	Yes
+6314c2fe8fa7f80b1bd4bfe1	10c9aa74-04c6-41c4-8f17-b4cb1927ec03	PHYSICAL	the-cheese-store	cheddar-mfptr-6gg39-h8nlm-nphbm-bnnfe	Muenster	1 LB	SQ9275537	Options	Sliced											17.55	0	No	Unlimited	/All cheeses		0	0	0	0	Yes
+	c8f82aa3-0232-401f-b5de-904052b00889		the-cheese-store			Muenster.	SQ7153259	Options	Cubed											17.55	0	No	Unlimited	/All cheeses		0	0	0	0	
+6314c2fe8fa7f80b1bd4bfdc	f0fcac9c-b291-425f-b7bb-1b1c213fd127	PHYSICAL	the-cheese-store	cheddar-mfptr-6gg39-h8nlm-t9ld4	SWISS	1 LB	SQ2676796	Options	Sliced											17.55	0	No	Unlimited	/All cheeses		0	0	0	0	Yes
+	fcd107cd-b1f3-470a-9565-1f0e0b2349c0		the-cheese-store			SWISS.	SQ9502300	Options	Cubed											17.55	0	No	Unlimited	/All cheeses		0	0	0	0	
+6314c2fe8fa7f80b1bd4bfd7	3c48ced7-f21f-420c-859c-c5b293b5f57d	PHYSICAL	the-cheese-store	cheddar-mfptr-6gg39-lax5p	American	1 LB	SQ6454499	Options	Sliced											17.55	0	No	Unlimited	/All cheeses		0	0	0	0	Yes
+	a817f307-e143-4ec7-8e96-b2d8381164ad		the-cheese-store			American.	SQ6775580	Options	Cubed											17.55	0	No	Unlimited	/All cheeses		0	0	0	0	
+646a3637ac719a5409057880	6f8e9753-b3a1-4f3f-8345-d3f72fc397a0	PHYSICAL	the-cheese-store	cheesecake-8-inches	Cheesecake	Cheesecake.	SQ1279903	Size	8 Inch	Flavor	Plain									55	0	No	Unlimited	/Cheesecakes		0	0	0	0	Yes
+	a7f2e7dd-9a73-46f3-b81a-0c56b0834115		the-cheese-store			Cheesecake.	SQ1780825	Size	8 Inch	Flavor	Oreo									55	0	No	Unlimited	/Cheesecakes		0	0	0	0	
+	0c65bfe6-8bb5-44bf-85c3-b1fe96360e17		the-cheese-store			Cheesecake.	SQ0172009	Size	8 Inch	Flavor	Strawberry									55	0	No	Unlimited	/Cheesecakes		0	0	0	0	
+	a37dbebc-71c6-4b7b-93ea-74adaa85cf95		the-cheese-store			Cheesecake.	SQ9246550	Size	8 Inch	Flavor	Chocolate									55	0	No	Unlimited	/Cheesecakes		0	0	0	0	
+	a76edc04-9003-4beb-bcad-3e3b8683ea8b		the-cheese-store			Cheesecake.	SQ6029722	Size	10 Inch	Flavor	Plain									70	0	No	Unlimited	/Cheesecakes		0	0	0	0	
+	03c7bf97-03f6-4bc9-b305-6b4c7692bfe1		the-cheese-store			Cheesecake.	SQ2548727	Size	10 Inch	Flavor	Oreo									70	0	No	Unlimited	/Cheesecakes		0	0	0	0	
+	ef28275d-bc26-447c-8dc0-6335805d88a9		the-cheese-store			Cheesecake.	SQ7941592	Size	10 Inch	Flavor	Strawberry									70	0	No	Unlimited	/Cheesecakes		0	0	0	0	
+	ad11bb70-6169-4a98-9a4f-f467801440f0		the-cheese-store			Cheesecake.	SQ0672340	Size	10 Inch	Flavor	Chocolate									70	0	No	Unlimited	/Cheesecakes		0	0	0	0	
+6314c2fe8fa7f80b1bd4bfb5	843afff5-cb87-477b-badb-afea77db689b	PHYSICAL	the-cheese-store	coffee-8gnpt	Coffee	Choose flavor and size (Bag 50.7 fl oz or Box 100 fl oz.)	SQ5236557	Size	Bag (50.7 fl oz)	Flavor	Vanilla Velvet	Type	Regular							17.6	0	No	Unlimited	/Coffee		0	0	0	0	Yes
+	d783f093-9417-4504-be02-a185f3ffc709		the-cheese-store			Coffee.	SQ1747304	Size	Bag (50.7 fl oz)	Flavor	Vanilla Velvet	Type	Decaf							17.6	0	No	Unlimited	/Coffee		0	0	0	0	
+	661a6807-f326-4331-9e0c-c04168b15ca3		the-cheese-store			Coffee.	SQ7629441	Size	Bag (50.7 fl oz)	Flavor	Hazelnut	Type	Regular							17.6	0	No	Unlimited	/Coffee		0	0	0	0	
+	d9a0be74-efeb-429d-b897-d9dcef76073a		the-cheese-store			Coffee.	SQ5395182	Size	Bag (50.7 fl oz)	Flavor	Hazelnut	Type	Decaf							17.6	0	No	Unlimited	/Coffee		0	0	0	0	
+	99540a1b-fdc5-4702-8170-3bd378b3436d		the-cheese-store			Coffee.	SQ5295647	Size	Bag (50.7 fl oz)	Flavor	Columbian	Type	Regular							17.6	0	No	Unlimited	/Coffee		0	0	0	0	
+	135ffac9-6b5d-435f-bec6-2ef95a7d2796		the-cheese-store			Coffee.	SQ0692834	Size	Bag (50.7 fl oz)	Flavor	Columbian	Type	Decaf							17.6	0	No	Unlimited	/Coffee		0	0	0	0	
+	d491c8d1-0295-4c29-835a-467a9acec35e		the-cheese-store			Coffee.	SQ3626462	Size	Bag (50.7 fl oz)	Flavor	Caramel	Type	Regular							17.6	0	No	Unlimited	/Coffee		0	0	0	0	
+	0aee5ec7-25f3-4a48-9145-2580ef2bacd7		the-cheese-store			Coffee.	SQ5431655	Size	Bag (50.7 fl oz)	Flavor	Caramel	Type	Decaf							17.6	0	No	Unlimited	/Coffee		0	0	0	0	
+	4c9abfbb-cdcf-4b5c-8516-4de2a2f5850e		the-cheese-store			Coffee.	SQ7703986	Size	Bag (50.7 fl oz)	Flavor	Plain	Type	Regular							17.6	0	No	Unlimited	/Coffee		0	0	0	0	
+	7ddff983-9163-4fcc-ba3d-fd03f4ff080f		the-cheese-store			Coffee.	SQ2618319	Size	Bag (50.7 fl oz)	Flavor	Plain	Type	Decaf							17.6	0	No	Unlimited	/Coffee		0	0	0	0	
+	27f154e9-4fe8-4210-aa23-0c5ab2c8a922		the-cheese-store			Coffee.	SQ9280266	Size	Bottle (60 fl oz)	Flavor	Vanilla Velvet	Type	Regular							22	0	No	Unlimited	/Coffee		0	0	0	0	
+	385a8f7f-0f9c-450e-adfb-7d6d1a295978		the-cheese-store			Coffee.	SQ4477681	Size	Bottle (60 fl oz)	Flavor	Vanilla Velvet	Type	Decaf							22	0	No	Unlimited	/Coffee		0	0	0	0	
+	69ec87c8-1991-4ea1-8c7f-d069a33186a7		the-cheese-store			Coffee.	SQ8998862	Size	Bottle (60 fl oz)	Flavor	Hazelnut	Type	Regular							22	0	No	Unlimited	/Coffee		0	0	0	0	
+	1dbc0f3b-b215-4d99-b46d-cf21706f10a1		the-cheese-store			Coffee.	SQ9975628	Size	Bottle (60 fl oz)	Flavor	Hazelnut	Type	Decaf							22	0	No	Unlimited	/Coffee		0	0	0	0	
+	21d2358d-5e3b-4c3f-993e-3772b862ed1a		the-cheese-store			Coffee.	SQ0144565	Size	Bottle (60 fl oz)	Flavor	Columbian	Type	Regular							22	0	No	Unlimited	/Coffee		0	0	0	0	
+	aadaf200-2190-4d0f-b7b5-324953a54953		the-cheese-store			Coffee.	SQ4905885	Size	Bottle (60 fl oz)	Flavor	Columbian	Type	Decaf							22	0	No	Unlimited	/Coffee		0	0	0	0	
+	f23dad00-548d-4e3b-80d1-83a69e8f76fb		the-cheese-store			Coffee.	SQ9960398	Size	Bottle (60 fl oz)	Flavor	Caramel	Type	Regular							22	0	No	Unlimited	/Coffee		0	0	0	0	
+	2adb53a5-6923-4bd3-9784-7df9fe283399		the-cheese-store			Coffee.	SQ7430620	Size	Bottle (60 fl oz)	Flavor	Caramel	Type	Decaf							22	0	No	Unlimited	/Coffee		0	0	0	0	
+	2dffa503-5070-4116-a677-c812ac134f57		the-cheese-store			Coffee.	SQ9110936	Size	Bottle (60 fl oz)	Flavor	Plain	Type	Regular							22	0	No	Unlimited	/Coffee		0	0	0	0	
+	eb808681-3bc9-43c4-9e43-5bdc993967aa		the-cheese-store			Coffee.	SQ2175326	Size	Bottle (60 fl oz)	Flavor	Plain	Type	Decaf							22	0	No	Unlimited	/Coffee		0	0	0	0	
+	201f35c6-211d-40ee-bfbb-4af5a0ac08cf		the-cheese-store			Coffee.	SQ8880261	Size	Box (100 fl oz.)	Flavor	Vanilla Velvet	Type	Regular							36	0	No	Unlimited	/Coffee		0	0	0	0	
+	e958b733-2391-4344-b012-1abf425064a3		the-cheese-store			Coffee.	SQ2985102	Size	Box (100 fl oz.)	Flavor	Vanilla Velvet	Type	Decaf							36	0	No	Unlimited	/Coffee		0	0	0	0	
+	b275ff63-e547-4d9c-a3b4-a8e097741699		the-cheese-store			Coffee.	SQ2425775	Size	Box (100 fl oz.)	Flavor	Hazelnut	Type	Regular							36	0	No	Unlimited	/Coffee		0	0	0	0	
+	e8ff700f-c67c-4be7-bd3b-ba9c53e2c8e7		the-cheese-store			Coffee.	SQ6917039	Size	Box (100 fl oz.)	Flavor	Hazelnut	Type	Decaf							36	0	No	Unlimited	/Coffee		0	0	0	0	
+	6ba9b040-0475-4ddb-a7b1-86ff35467897		the-cheese-store			Coffee.	SQ4872436	Size	Box (100 fl oz.)	Flavor	Columbian	Type	Regular							36	0	No	Unlimited	/Coffee		0	0	0	0	
+	95bf4f9d-2c22-45cd-ade4-c0672e6c131a		the-cheese-store			Coffee.	SQ6976844	Size	Box (100 fl oz.)	Flavor	Columbian	Type	Decaf							36	0	No	Unlimited	/Coffee		0	0	0	0	
+	1af25fcb-4a60-4970-9529-fc34bc7ebed0		the-cheese-store			Coffee.	SQ9328567	Size	Box (100 fl oz.)	Flavor	Caramel	Type	Regular							36	0	No	Unlimited	/Coffee		0	0	0	0	
+	0313877e-8c53-4ce4-9158-48a60df4218f		the-cheese-store			Coffee.	SQ8060531	Size	Box (100 fl oz.)	Flavor	Caramel	Type	Decaf							36	0	No	Unlimited	/Coffee		0	0	0	0	
+	6882104f-3da8-470f-83f5-417b1601a8db		the-cheese-store			Coffee.	SQ3012981	Size	Box (100 fl oz.)	Flavor	Plain	Type	Regular							36	0	No	Unlimited	/Coffee		0	0	0	0	
+	84c04265-6929-42fe-b52b-e15e631e8586		the-cheese-store			Coffee.	SQ6149734	Size	Box (100 fl oz.)	Flavor	Plain	Type	Decaf							36	0	No	Unlimited	/Coffee		0	0	0	0	
+6314c2ff8fa7f80b1bd4c0e4	ccbe8687-6136-436b-9df3-0f6ae7a812a2	PHYSICAL	the-cheese-store	craft-beer-cheddar-8fyaa	CRAFT BEER Cheddar	1 LB	SQ2023112													17.6	0	No	Unlimited	/Spicy cheese		0	0	0	0	Yes
+6314c2ff8fa7f80b1bd4c0d0	f9a0abb1-7682-4420-875f-6b65aebcfa69	PHYSICAL	the-cheese-store	cranberry-cheddar-5ej39	Cranberry Cheddar	1 LB	SQ3555432													17.6	0	No	Unlimited	/Flavored cheese		0	0	0	0	Yes
+6314c2ff8fa7f80b1bd4c0a6	07d66d53-00c9-495a-8cd3-58189864bda3	PHYSICAL	the-cheese-store	french-gruyere-nn8g4-merfh-55ecz-dsm6f	French Emmantal	1 LB	SQ8688146	Options	Sliced											27.45	0	No	Unlimited	/All cheeses		0	0	0	0	Yes
+	1b935e92-91da-470f-8e97-fe4da0cc96e7		the-cheese-store			French Emmantal.	SQ4778021	Options	Cubed											27.45	0	No	Unlimited	/All cheeses		0	0	0	0	
+6314c2ff8fa7f80b1bd4c088	1830e2ea-2450-4a3d-8ae5-9d1db0a5f6c3	PHYSICAL	the-cheese-store	french-gruyere-nn8g4-merfh-fgra7	Italian Parmesan Reggiano	Italian Parmesan Reggiano.	SQ2905907	Options	Sliced											27.45	0	No	Unlimited	/All cheeses		0	0	0	0	Yes
+	861724ce-052d-4834-bb28-6c3694fc6a81		the-cheese-store			Italian Parmesan Reggiano.	SQ9327825	Options	Cubed											27.45	0	No	Unlimited	/All cheeses		0	0	0	0	
+6314c2ff8fa7f80b1bd4bff5	48c00f4e-dd70-4f04-a803-3a5819bd72ea	PHYSICAL	the-cheese-store	garlic-basil-3fwg7	Garlic BASIL	1 LB	SQ4580241													24.15	0	No	Unlimited	/All cheeses		0	0	0	0	Yes
+6314c2ff8fa7f80b1bd4c000	712dabf5-4b39-481d-a1b8-235bd22552a6	PHYSICAL	the-cheese-store	garlic-basil-gapks-24xay-5tn6a-6hmn5-tjbtp	DILL Havarti	1 LB	SQ2346511													24.15	0	No	Unlimited	/All cheeses		0	0	0	0	Yes
+6314c2ff8fa7f80b1bd4c005	7d8e05cb-3715-426c-bba9-a93304452f84	PHYSICAL	the-cheese-store	garlic-basil-gapks-24xay-5tn6a-6hmn5-ztc3j-ct3k2	Parsley & CHIVE	1 LB	SQ3361683													24.15	0	No	Unlimited	/All cheeses		0	0	0	0	Yes
+6314c2ff8fa7f80b1bd4c00a	17a82224-cc52-4238-805c-ed3d8f240a76	PHYSICAL	the-cheese-store	garlic-basil-gapks-24xay-5tn6a-6hmn5-ztc3j-j335z-sb4kf	Tomato OLIVE	1 LB	SQ1685630													24.15	0	No	Unlimited	/All cheeses		0	0	0	0	Yes
+6314c2ff8fa7f80b1bd4bffb	9918531c-77e0-4314-a5d7-5fccf9bd8224	PHYSICAL	the-cheese-store	garlic-basil-gapks-24xay-xatgj	Cheddar BLUE	1 LB	SQ3575130													24.15	0	No	Unlimited	/All cheeses		0	0	0	0	Yes
+6314c2ff8fa7f80b1bd4c0da	be6abb6f-be60-40e8-9277-7ff2500441dd	PHYSICAL	the-cheese-store	halloumi-53t75	Halloumi	1 LB	SQ7633380													17.6	0	No	Unlimited	/Flavored cheese		0	0	0	0	Yes
+64b700818cc53c16015a5107	ca993802-c412-4f0d-98e4-8b5560fa435e	PHYSICAL	the-cheese-store	hoop-cheese	HOOP Cheese	1LB	SQ2302340													16.5	0	No	Unlimited	/All cheeses		0	0	0	0	Yes
+6314c2ff8fa7f80b1bd4c053	2449b65f-e3aa-426d-a4bb-42bae842ffad	PHYSICAL	the-cheese-store	lacy-swiss-gfah8	LACY SWISS	LACY SWISS.	SQ3655465	Options	Sliced											19.75	0	No	Unlimited	/Low fat cheese		0	0	0	0	Yes
+	7b6a852f-9e3b-4938-9c01-0f7baf5e3df0		the-cheese-store			LACY SWISS.	SQ0155882	Options	Cubed											19.75	0	No	Unlimited	/Low fat cheese		0	0	0	0	
+6314c2ff8fa7f80b1bd4c059	cd1bbf96-8494-4317-affb-3ba666261ffe	PHYSICAL	the-cheese-store	lacy-swiss-swg2a-2wrpy	Paneer	Paneer.	SQ5634465													19.75	0	No	Unlimited	/Low fat cheese		0	0	0	0	Yes
+6314c2ff8fa7f80b1bd4c063	af317478-9869-4c97-8f6a-67d1a7be5bdd	PHYSICAL	the-cheese-store	lacy-swiss-swg2a-bt5l2-brbe7-6xjsh	SKIM MILK Mozzarella	SKIM MILK Mozzarella.	SQ6299578	Options	Sliced											19.75	0	No	Unlimited	/Low fat cheese		0	0	0	0	Yes
+	628fe3c3-46c1-4c5d-8824-5b58cb415d96		the-cheese-store			SKIM MILK Mozzarella.	SQ4120217	Options	Cubed											19.75	0	No	Unlimited	/Low fat cheese		0	0	0	0	
+6314c2ff8fa7f80b1bd4c05e	3d3470de-77e0-4b5f-8cf8-bd5dee0a8c6b	PHYSICAL	the-cheese-store	lacy-swiss-swg2a-bt5l2-mkbj6	LOW FAT Muenster	LOW FAT Muenster.	SQ2397564	Options	Sliced											19.75	0	No	Unlimited	/Low fat cheese		0	0	0	0	Yes
+	628f1985-4bb0-4be4-af17-5b03ec7218aa		the-cheese-store			LOW FAT Muenster.	SQ1655210	Options	Cubed											19.75	0	No	Unlimited	/Low fat cheese		0	0	0	0	
+6314c2ff8fa7f80b1bd4c0cb	af1db284-8e1c-48a4-80a4-16720aeee49f	PHYSICAL	the-cheese-store	marble-cheese-clmbk	Marble Cheese	1 LB	SQ3476323													17.6	0	No	Unlimited	/Flavored cheese		0	0	0	0	Yes
+6314c2ff8fa7f80b1bd4c0c5	f363611b-0e6d-4b94-bfb4-adb07bae70f8	PHYSICAL	the-cheese-store	medium-cheddar-x7sh6	Medium Cheddar	1 LB	SQ1775802													17.6	0	No	Unlimited	/Flavored cheese		0	0	0	0	Yes
+6314c2ff8fa7f80b1bd4c0d5	e4f2662c-11c5-4361-849a-c39e8fba7e78	PHYSICAL	the-cheese-store	pecorino-romano-glgrk	Pecorino Romano	1 LB	SQ2824558													27.5	0	No	Unlimited	/Imported cheese		0	0	0	0	Yes
+6314c2ff8fa7f80b1bd4c02e	3b4f4920-d24b-4249-b16f-8c0f7aaf6080	PHYSICAL	the-cheese-store	pepper-jack-gwgmg	Pepper JACK	1 LB	SQ4519255	Options	Sliced											24.15	0	No	Unlimited	/All cheeses		0	0	0	0	Yes
+	43d2af19-eb67-461a-a34a-e9e3cabc1d88		the-cheese-store			Pepper JACK.	SQ2089935	Options	Cubed											24.15	0	No	Unlimited	/All cheeses		0	0	0	0	
+6314c2ff8fa7f80b1bd4c039	604e83fd-c325-4582-acb6-860868cfa19d	PHYSICAL	the-cheese-store	pepper-jack-z9rt2-bnc5y-l6tx6-d2xc5-lknmn-mjpz4	Chipotle	1 LB	SQ8274762													24.15	0	No	Unlimited	/All cheeses		0	0	0	0	Yes
+6314c2ff8fa7f80b1bd4c034	40590e02-8c4d-4912-b260-6ef9e5a001e5	PHYSICAL	the-cheese-store	pepper-jack-z9rt2-bnc5y-l6tx6-heehf	Jalapeño Cilantro	1 LB	SQ0505322	Options	Sliced											24.15	0	No	Unlimited	/All cheeses		0	0	0	0	Yes
+	051a8b3e-7673-4d57-9cfe-14f2c3a766d0		the-cheese-store			Jalapeño Cilantro.	SQ1558307	Options	Cubed											24.15	0	No	Unlimited	/All cheeses		0	0	0	0	
+64c1519b1b0566771bdc9122	413f9ee4-0047-498f-a47e-91fb664ce5cc	PHYSICAL	the-cheese-store	personal-pizza	Personal PIZZA	Personal Pizza	SQ0654066	Dough Type	Regular											18	0	No	Unlimited	/Pizza		0	0	0	0	Yes
+	4c50cdf6-d59f-401f-ba8b-68f964a79269		the-cheese-store			Personal PIZZA.	SQ8585969	Dough Type	Gluten-Free											20	0	No	Unlimited	/Pizza		0	0	0	0	
+	99af8de7-8d5e-4da7-8e2f-8d53696cee44		the-cheese-store			Personal PIZZA.	SQ0289720	Dough Type	Cauliflower											18	0	No	Unlimited	/Pizza		0	0	0	0	
+6314c2ff8fa7f80b1bd4c0c0	42e17f64-6263-4344-ae67-aee3e53ea337	PHYSICAL	the-cheese-store	raw-milk-cheddar-x79lm	RAW MILK Cheddar	1 LB	SQ7456357													17.6	0	No	Unlimited	/Flavored cheese		0	0	0	0	Yes
+6314c2ff8fa7f80b1bd4c0bb	73e9549c-92ae-49d2-af72-606dbf0fabd4	PHYSICAL	the-cheese-store	sharp-cheddar-dhlwt	SHARP Cheddar	1 LB	SQ6742842													17.6	0	No	Unlimited	/Flavored cheese		0	0	0	0	Yes
+6314c2ff8fa7f80b1bd4c049	db786f3f-4421-4acd-96ca-ee57b7be070b	PHYSICAL	the-cheese-store	smoked-muenster-2gkt2-bcbde-gc3ps	Smoked American	Smoked American.	SQ5852958	Options	Sliced											19.75	0	No	Unlimited	/All cheeses		0	0	0	0	Yes
+	354805fa-e053-43de-ba6e-2b39e102ee9c		the-cheese-store			Smoked American.	SQ2833771	Options	Cubed											19.75	0	No	Unlimited	/All cheeses		0	0	0	0	
+6314c2ff8fa7f80b1bd4c04e	836baea4-3caf-4b9c-9047-a2983d4dc759	PHYSICAL	the-cheese-store	smoked-muenster-2gkt2-bcbde-y4mel-ahk6p	Smoked Mozzarella	Smoked Mozzarella.	SQ4995733	Options	Sliced											19.75	0	No	Unlimited	/All cheeses		0	0	0	0	Yes
+	b03fab2e-3f62-4c05-8c91-bcce1e59b41d		the-cheese-store			Smoked Mozzarella.	SQ0508827	Options	Cubed											19.75	0	No	Unlimited	/All cheeses		0	0	0	0	
+6314c2ff8fa7f80b1bd4c044	a41f19a7-b709-4feb-8ee2-383abadac704	PHYSICAL	the-cheese-store	smoked-muenster-2gkt2-wh5pa	Smoked Pepper JACK	Smoked Pepper JACK.	SQ4285216	Options	Sliced											24.15	0	No	Unlimited	/All cheeses		0	0	0	0	Yes
+	dec6a1e9-9be4-4a5f-8c1c-078c2c0d4e23		the-cheese-store			Smoked Pepper JACK.	SQ6225813	Options	Cubed											24.15	0	No	Unlimited	/All cheeses		0	0	0	0	
+6314c2ff8fa7f80b1bd4c03e	6ff1b1b8-e343-46ea-8534-d8ac5b2ec456	PHYSICAL	the-cheese-store	smoked-muenster-w7gcs	Smoked Muenster	Smoked Muenster.	SQ6708622	Options	Sliced											19.75	0	No	Unlimited	/All cheeses		0	0	0	0	Yes
+	65d47a6f-e078-4d2c-af4c-a2c6fd325ebf		the-cheese-store			Smoked Muenster.	SQ2332146	Options	Cubed											19.75	0	No	Unlimited	/All cheeses		0	0	0	0	
+6314c2ff8fa7f80b1bd4c078	04cce52a-54b2-4b4b-914c-9d5e97ce91f6	PHYSICAL	the-cheese-store	spinach-and-artichoke-wj9gj-2h672-4mk4d-2r2kx-eyk4g	Garlic and HERB	Garlic and HERB.	SQ1134017													8.79	0	No	Unlimited	/All cheeses		0	0	0	0	Yes
+6314c2ff8fa7f80b1bd4c073	dae1291a-dcbb-4ede-9d7e-617b6ad2c508	PHYSICAL	the-cheese-store	spinach-and-artichoke-wj9gj-2h672-4mk4d-r4z4g	Reduced FAT Garlic and HERB	Reduced FAT Garlic and HERB.	SQ1335730													8.79	0	No	Unlimited	/All cheeses		0	0	0	0	Yes
+6314c2ff8fa7f80b1bd4c06e	41285e72-8424-40d3-bda9-21e49fc7c228	PHYSICAL	the-cheese-store	spinach-and-artichoke-wj9gj-2h672-hawa5	Garlic and HERB Boursin	Garlic and HERB Boursin.	SQ6761255													6.59	0	No	Unlimited	/All cheeses		0	0	0	0	Yes
+6314c2ff8fa7f80b1bd4c068	af04ef5b-d43e-4180-83e4-70fd2f4b9232	PHYSICAL	the-cheese-store	spinach-and-artichoke-wj9gj-8xb3f	Shallot and CHIVE Boursin	Shallot and CHIVE Boursin.	SQ3683472													6.59	0	No	Unlimited	/All cheeses		0	0	0	0	Yes
+6314c2ff8fa7f80b1bd4c0b6	5296a44c-a2ef-4ea6-b811-5e7a3bd578db	PHYSICAL	the-cheese-store	spinach-and-artichoke-xwcyy	Spinach and Artichoke	1 LB	SQ3301757													8.79	0	No	Unlimited	/Spreadable cheese		0	0	0	0	Yes
+6314c2ff8fa7f80b1bd4c0e9	7e0f392e-94b3-4b75-9233-010256162952	PHYSICAL	the-cheese-store	viney-sheep-wdejg	VINEY SHEEP	1 LB	SQ2444874													27.5	0	No	Unlimited	/Flavored cheese		0	0	0	0	Yes
+6314c2ff8fa7f80b1bd4c0b0	407373cb-89d2-4739-9c20-2db81f0096ee	PHYSICAL	the-cheese-store	wasabi-jack-yc5g4	Wasabi JACK	1 LB	SQ3642664													24.15	0	No	Unlimited	/Spicy cheese		0	0	0	0	Yes
+6314c2ff8fa7f80b1bd4c0ab	99d314f0-ccaf-4b58-940f-9beb5f050cb2	PHYSICAL	the-cheese-store	yogurt-herb-bszzd	Yogurt HERB	1 LB	SQ1875123													24.15	0	No	Unlimited	/Flavored cheese		0	0	0	0	Yes

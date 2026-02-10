@@ -222,6 +222,7 @@ backend/
 - [ ] User acceptance testing
 
 ### Environment Variables Needed
+**Security:** Use placeholders in docs; store real values only in `.env` (gitignored) or your host’s secret store.
 ```
 STRIPE_SECRET_KEY=sk_live_...
 STRIPE_PUBLISHABLE_KEY=pk_live_...
@@ -233,7 +234,7 @@ GOOGLE_PLACES_API_KEY=...
 
 ---
 
-## 📝 NOTES
+## NOTES
 
 ### What's Working Well
 - Backend API is solid and secure

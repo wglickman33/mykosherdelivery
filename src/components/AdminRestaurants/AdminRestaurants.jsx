@@ -265,7 +265,7 @@ const AdminRestaurants = () => {
       setFormData({});
       
       window.dispatchEvent(new CustomEvent('mkd-refresh-notifications'));
-      
+      window.dispatchEvent(new CustomEvent('mkd-restaurants-refresh'));
       showNotification('Restaurant created successfully', 'success');
       fetchRestaurants();
     }
@@ -280,7 +280,7 @@ const AdminRestaurants = () => {
       setSelectedRestaurant(null);
       
       window.dispatchEvent(new CustomEvent('mkd-refresh-notifications'));
-      
+      window.dispatchEvent(new CustomEvent('mkd-restaurants-refresh'));
       showNotification('Restaurant updated successfully', 'success');
       fetchRestaurants();
     }
@@ -303,7 +303,7 @@ const AdminRestaurants = () => {
       setSelectedRestaurant(null);
       
       window.dispatchEvent(new CustomEvent('mkd-refresh-notifications'));
-      
+      window.dispatchEvent(new CustomEvent('mkd-restaurants-refresh'));
       showNotification('Restaurant deleted successfully', 'success');
       await fetchRestaurants();
     }

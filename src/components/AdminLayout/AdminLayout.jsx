@@ -5,6 +5,7 @@ import { useAuth } from '../../hooks/useAuth';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import { fetchNotificationCounts, fetchAdminNotifications, markNotificationRead, markAllNotificationsRead, fetchOrdersStreamToken, deleteNotification } from '../../services/adminServices';
 import { fetchFacilitiesList } from '../../services/nursingHomeService';
+import { fetchAllRestaurants } from '../../services/adminServices';
 import whiteMKDIcon from '../../assets/whiteMKDIcon.png';
 
 const AdminLayout = () => {
@@ -20,6 +21,7 @@ const AdminLayout = () => {
   const [notifUnread, setNotifUnread] = useState(0);
   const [notifOpen, setNotifOpen] = useState(false);
   const [communities, setCommunities] = useState([]);
+  const [ownerRestaurants, setOwnerRestaurants] = useState([]);
   const { user, loading: authContextLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -188,7 +190,7 @@ const AdminLayout = () => {
           sseConnectionRef.current.close();
           sseConnectionRef.current = null;
         } catch {
-          void 0;
+          // Ignore close error during cleanup
         }
       }
       sseSetupRef.current = false;
@@ -215,6 +217,30 @@ const AdminLayout = () => {
     window.addEventListener('mkd-communities-refresh', onRefresh);
     return () => window.removeEventListener('mkd-communities-refresh', onRefresh);
   }, [loadCommunities]);
+
+  const loadOwnerRestaurants = useCallback(async () => {
+    if (user?.role !== 'admin') return;
+    try {
+      const res = await fetchAllRestaurants({ page: 1, limit: 300 });
+      const raw = res?.success ? (Array.isArray(res.data) ? res.data : res.data?.data) : null;
+      const list = Array.isArray(raw) ? raw : [];
+      const active = list.filter((r) => r.active !== false);
+      setOwnerRestaurants(active);
+    } catch (err) {
+      console.debug('Failed to load owner restaurants list:', err?.message ?? err);
+      setOwnerRestaurants([]);
+    }
+  }, [user?.role]);
+
+  useEffect(() => {
+    loadOwnerRestaurants();
+  }, [loadOwnerRestaurants]);
+
+  useEffect(() => {
+    const onRestaurantsRefresh = () => loadOwnerRestaurants();
+    window.addEventListener('mkd-restaurants-refresh', onRestaurantsRefresh);
+    return () => window.removeEventListener('mkd-restaurants-refresh', onRestaurantsRefresh);
+  }, [loadOwnerRestaurants]);
 
   useEffect(() => {
     const handleRefreshCounts = async () => {
@@ -399,6 +425,41 @@ const AdminLayout = () => {
                   <span className="nav-label">{f.name}</span>
                 </button>
               ))}
+            </div>
+          )}
+          {user?.role === 'admin' && !sidebarCollapsed && (
+            <div className="admin-sidebar__restaurants">
+              <div className="admin-sidebar__communities-label">Enter restaurant</div>
+              {ownerRestaurants.length > 0 ? (
+                ownerRestaurants.map((r) => (
+                  <button
+                    key={r.id}
+                    type="button"
+                    className="nav-item nav-item--community"
+                    onClick={() => navigate(`/owner/restaurant/${r.id}/menu`)}
+                  >
+                    <span className="nav-icon">
+                      <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                        <path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z" />
+                      </svg>
+                    </span>
+                    <span className="nav-label">{r.name}</span>
+                  </button>
+                ))
+              ) : (
+                <button
+                  type="button"
+                  className="nav-item nav-item--community"
+                  onClick={() => navigate('/admin/restaurants')}
+                >
+                  <span className="nav-icon">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                      <path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z" />
+                    </svg>
+                  </span>
+                  <span className="nav-label">No restaurants — Add one</span>
+                </button>
+              )}
             </div>
           )}
         </nav>

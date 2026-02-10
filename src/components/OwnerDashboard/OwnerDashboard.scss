@@ -1,0 +1,48 @@
+$owner-primary: #0284c7;
+
+.owner-dashboard {
+  &__title {
+    font-size: 1.75rem;
+    color: #155e75;
+    margin: 0 0 4px 0;
+    font-weight: 700;
+  }
+  &__subtitle {
+    color: #64748b;
+    margin: 0 0 24px 0;
+    font-size: 1rem;
+  }
+  &__cards {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  &__card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 160px;
+    padding: 24px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e2e8f0;
+    cursor: pointer;
+    transition: box-shadow 0.2s, border-color 0.2s;
+    &:hover {
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.15);
+      border-color: $owner-primary;
+    }
+  }
+  &__card-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: $owner-primary;
+  }
+  &__card-label {
+    font-size: 0.9rem;
+    color: #64748b;
+    margin-top: 4px;
+  }
+}

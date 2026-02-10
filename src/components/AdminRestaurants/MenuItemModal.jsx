@@ -11,6 +11,7 @@ import {
   getItemTypeDisplayName,
   getDefaultOptions
 } from '../../services/menuItemService';
+import * as ownerService from '../../services/ownerService';
 import { uploadMenuItemImage } from '../../services/imageService';
 
 const MenuItemModal = ({ 
@@ -18,7 +19,8 @@ const MenuItemModal = ({
   onClose, 
   restaurant, 
   menuItem = null, 
-  onSave 
+  onSave,
+  useOwnerApi = false
 }) => {
   const [step, setStep] = useState(1);
   const [itemType, setItemType] = useState(null);
@@ -103,23 +105,29 @@ const MenuItemModal = ({
     setLoading(true);
     try {
       const normalizedData = normalizeMenuItemData(formData);
-      
       let result;
-      if (menuItem) {
-        result = await updateMenuItem(restaurant.id, menuItem.id, normalizedData);
+      if (useOwnerApi) {
+        if (menuItem) {
+          result = await ownerService.updateMenuItem(restaurant.id, menuItem.id, normalizedData);
+        } else {
+          result = await ownerService.createMenuItem(restaurant.id, normalizedData);
+        }
       } else {
-        result = await createMenuItem(restaurant.id, normalizedData);
+        if (menuItem) {
+          result = await updateMenuItem(restaurant.id, menuItem.id, normalizedData);
+        } else {
+          result = await createMenuItem(restaurant.id, normalizedData);
+        }
       }
-
-      if (result.success) {
+      if (result?.success && result.data) {
         onSave(result.data);
         onClose();
       } else {
-        setErrors([result.message || 'Failed to save menu item']);
+        setErrors([result?.message || 'Failed to save menu item']);
       }
     } catch (error) {
       console.error('Error saving menu item:', error);
-      setErrors(['An error occurred while saving the menu item']);
+      setErrors([error?.message || 'An error occurred while saving the menu item']);
     } finally {
       setLoading(false);
     }
@@ -774,7 +782,8 @@ MenuItemModal.propTypes = {
     options: PropTypes.object,
     labels: PropTypes.array
   }),
-  onSave: PropTypes.func.isRequired
+  onSave: PropTypes.func.isRequired,
+  useOwnerApi: PropTypes.bool
 };
 
 TypeSelectionStep.propTypes = {

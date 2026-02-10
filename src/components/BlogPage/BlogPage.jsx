@@ -77,6 +77,8 @@ const BlogPage = () => {
       hasHtmlTags: /<[^>]*>/.test(post.content)
     });
 
+    // XSS: content is from controlled blog data (blogPosts). Basic sanitization for defense in depth.
+    // For user-generated HTML, use a library like DOMPurify instead.
     const sanitizedContent = post.content
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
       .replace(/javascript:/gi, '')

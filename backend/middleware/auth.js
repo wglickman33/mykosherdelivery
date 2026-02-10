@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const { Profile } = require('../models');
+const { Profile, RestaurantOwner } = require('../models');
 const logger = require('../utils/logger');
 
 const blacklistedTokens = new Set();
@@ -230,6 +230,38 @@ const requireRestaurantOwnerOrAdmin = (req, res, next) => {
   next();
 };
 
+/**
+ * Resolves owner's restaurant IDs for /api/owner routes. Must run after authenticateToken and requireRestaurantOwnerOrAdmin.
+ * - Admin: sets req.ownerRestaurantIds = null (bypass; handlers may allow all).
+ * - Restaurant owner: sets req.ownerRestaurantIds = array of restaurant ids from RestaurantOwner; 403 if none.
+ */
+const requireOwnerContext = async (req, res, next) => {
+  try {
+    if (req.user.role === 'admin') {
+      req.ownerRestaurantIds = null;
+      return next();
+    }
+    const rows = await RestaurantOwner.findAll({
+      where: { userId: req.userId },
+      attributes: ['restaurantId']
+    });
+    req.ownerRestaurantIds = (rows || []).map(r => r.restaurantId);
+    if (req.ownerRestaurantIds.length === 0) {
+      return res.status(403).json({
+        error: 'No restaurant assigned',
+        message: 'Your account is not linked to any restaurant'
+      });
+    }
+    next();
+  } catch (err) {
+    logger.error('requireOwnerContext error', { err: err.message, userId: req.userId });
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: 'Failed to resolve owner context'
+    });
+  }
+};
+
 const optionalAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers['authorization'];
@@ -335,6 +367,7 @@ module.exports = {
   authenticateToken,
   requireAdmin,
   requireRestaurantOwnerOrAdmin,
+  requireOwnerContext,
   requireNursingHomeAdmin,
   requireNursingHomeUser,
   optionalAuth,

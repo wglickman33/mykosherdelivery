@@ -1,7 +1,6 @@
 const express = require('express');
 const { Op } = require('sequelize');
 const multer = require('multer');
-const path = require('path');
 const ExcelJS = require('exceljs');
 const { KosherMapsRestaurant } = require('../models');
 const { requireAdmin } = require('../middleware/auth');
@@ -12,13 +11,9 @@ const { logAdminAction } = require('../utils/auditLog');
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
-function debugLog(location, message, data, hypothesisId) {
-  console.log('[AdminMaps import]', location, message, hypothesisId, JSON.stringify(data || {}));
-}
-
 function sheetToRaw(worksheet) {
   const raw = [];
-  worksheet.eachRow({ includeEmpty: true }, (row, rowNumber) => {
+  worksheet.eachRow({ includeEmpty: true }, (row) => {
     const vals = [];
     row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
       vals[colNumber - 1] = cell.value == null ? '' : cell.value;
@@ -42,7 +37,6 @@ async function parseXlsxBuffer(buffer) {
 
   for (let si = 0; si < workbook.worksheets.length; si++) {
     const sheet = workbook.worksheets[si];
-    const sheetName = sheet.name;
     const raw = sheetToRaw(sheet);
     if (raw.length < 2) continue;
 
@@ -69,17 +63,6 @@ async function parseXlsxBuffer(buffer) {
           });
           return obj;
         });
-      debugLog('admin-maps.js:parseXlsxBuffer_return_matched', 'parseXlsxBuffer returning from matched header path', {
-        sheetName,
-        headerRowIdx,
-        headers,
-        rowCount: rows.length,
-        firstRowKeys: rows[0] ? Object.keys(rows[0]) : [],
-        firstRowHasNameKey: rows[0] ? ('name' in rows[0]) : false,
-        firstRowNameLen: rows[0] && rows[0].name != null ? String(rows[0].name).length : 0,
-        firstHeader: headers[0],
-        firstRowFirstHeaderValueLen: rows[0] && headers[0] && rows[0][headers[0]] != null ? String(rows[0][headers[0]]).length : 0
-      }, 'A');
       return { headers, rows };
     }
   }
@@ -106,19 +89,7 @@ async function parseXlsxBuffer(buffer) {
       best = { count: firstColFilled, headers, rows, sheetName };
     }
   }
-  if (best.headers) {
-    debugLog('admin-maps.js:parseXlsxBuffer_return_best', 'parseXlsxBuffer returning from best fallback', {
-      bestSheetName: best.sheetName,
-      bestCount: best.count,
-      headers: best.headers,
-      rowCount: best.rows.length,
-      firstRowKeys: best.rows[0] ? Object.keys(best.rows[0]) : [],
-      firstRowHasNameKey: best.rows[0] ? ('name' in best.rows[0]) : false,
-      firstRowNameLen: best.rows[0] && best.rows[0].name != null ? String(best.rows[0].name).length : 0,
-      firstRowCol0Raw: best.rows[0] && best.rows[0].name != null ? 'set' : 'missing'
-    }, 'B');
-    return { headers: best.headers, rows: best.rows };
-  }
+  if (best.headers) return { headers: best.headers, rows: best.rows };
 
   const sheet = workbook.worksheets[0];
   const raw = sheetToRaw(sheet);
@@ -133,7 +104,6 @@ async function parseXlsxBuffer(buffer) {
       });
       return obj;
     });
-  debugLog('admin-maps.js:parseXlsxBuffer_return_fallback', 'parseXlsxBuffer returning first-sheet fallback', { headers, rowCount: rows.length, firstRowKeys: rows[0] ? Object.keys(rows[0]) : [] }, 'C');
   return { headers, rows };
 }
 
@@ -370,7 +340,6 @@ router.delete('/restaurants/:id', requireAdmin, async (req, res) => {
 });
 
 router.post('/restaurants/import', requireAdmin, upload.single('file'), async (req, res) => {
-  console.log('[AdminMaps import] ROUTE HIT – file:', !!req.file, 'buffer:', !!(req.file && req.file.buffer));
   try {
     if (!req.file || !req.file.buffer) {
       return res.status(400).json({ error: 'No file uploaded. Use field name "file".' });
@@ -378,14 +347,6 @@ router.post('/restaurants/import', requireAdmin, upload.single('file'), async (r
     const isXlsx = (req.file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
       (req.file.originalname && req.file.originalname.toLowerCase().endsWith('.xlsx')));
     const { headers, rows } = isXlsx ? await parseXlsxBuffer(req.file.buffer) : parseCsvBuffer(req.file.buffer);
-    debugLog('admin-maps.js:import_after_parse', 'import after parse', {
-      isXlsx,
-      headers,
-      rowCount: rows.length,
-      firstRowKeys: rows[0] ? Object.keys(rows[0]) : [],
-      firstHeader: headers[0],
-      firstRowFirstHeaderVal: rows[0] && headers[0] !== undefined ? (rows[0][headers[0]] != null ? String(rows[0][headers[0]]).length : 'undefined') : 'n/a'
-    }, 'D');
     const norm = (h) => (h || '').toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
     const col = (row, ...names) => {
       for (const n of names) {
@@ -406,20 +367,7 @@ router.post('/restaurants/import', requireAdmin, upload.single('file'), async (r
         const first = (row[headers[0]] || '').trim();
         if (first) name = first;
       }
-      if (i < 2) {
-        const nameFromCol = col(row, 'name', 'restaurant name', 'restaurant', 'business name', 'establishment');
-        const firstColVal = headers[0] !== undefined ? (row[headers[0]] || '').trim() : '';
-        debugLog('admin-maps.js:import_name_check', 'name resolution for row', {
-          rowIndex: i,
-          nameFromColLen: nameFromCol ? nameFromCol.length : 0,
-          firstColValLen: firstColVal ? firstColVal.length : 0,
-          hasName: !!name,
-          headers0: headers[0],
-          rowKeys: Object.keys(row)
-        }, 'E');
-      }
       if (!name) {
-        debugLog('admin-maps.js:import_missing_name', 'Missing name pushed', { rowIndex: i, rowDisplay: i + 2, rowKeys: Object.keys(row), headers0: headers[0], rowFirstCol: headers[0] !== undefined ? (row[headers[0]] != null ? 'set' : 'missing') : 'n/a' }, 'F');
         errors.push({ row: i + 2, message: 'Missing name' });
         continue;
       }

@@ -58,16 +58,15 @@ export default function RestaurantDetailPage() {
     return !item.itemType || item.itemType === 'simple';
   };
 
+  const menuItems = Array.isArray(restaurant?.menuItems) ? restaurant.menuItems : [];
+
   const getCategories = () => {
-    if (!restaurant?.menuItems) return [];
-    const categories = [...new Set(restaurant.menuItems.map(item => item.category).filter(Boolean))];
+    const categories = [...new Set(menuItems.map(item => item.category).filter(Boolean))];
     return categories.sort();
   };
 
   const getFilteredMenuItems = () => {
-    if (!restaurant?.menuItems) return [];
-    
-    return restaurant.menuItems.filter(item => {
+    return menuItems.filter(item => {
       const matchesSearch = !searchTerm || 
         item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.description.toLowerCase().includes(searchTerm.toLowerCase());
@@ -169,7 +168,7 @@ export default function RestaurantDetailPage() {
           {}
           <div className="results-info">
             <p>
-              Showing {getFilteredMenuItems().length} of {restaurant.menuItems.length} items
+              Showing {getFilteredMenuItems().length} of {menuItems.length} items
               {searchTerm && ` for "${searchTerm}"`}
               {selectedCategory !== 'all' && ` in ${selectedCategory}`}
             </p>
