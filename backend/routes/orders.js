@@ -49,7 +49,11 @@ router.post('/guest', [
   body('deliveryAddress.city').optional().isString().trim().isLength({ max: 100 }),
   body('deliveryAddress.state').optional().isString().trim().isLength({ max: 2 }),
   body('deliveryAddress.zip_code').optional().isString().trim().matches(/^\d{5}$/),
-  body('deliveryInstructions').optional().isString().trim().isLength({ max: 500 }),
+  body('deliveryInstructions')
+    .optional({ nullable: true })
+    .customSanitizer((v) => (v == null ? '' : String(v)))
+    .trim()
+    .isLength({ max: 500 }),
   body('subtotal').isNumeric(),
   body('deliveryFee').isNumeric().optional(),
   body('tax').isNumeric().optional()
@@ -143,7 +147,11 @@ router.post('/', authenticateToken, [
   body('deliveryAddress.city').optional().isString().trim().isLength({ max: 100 }),
   body('deliveryAddress.state').optional().isString().trim().isLength({ max: 2 }),
   body('deliveryAddress.zip_code').optional().isString().trim().matches(/^\d{5}$/),
-  body('deliveryInstructions').optional().isString().trim().isLength({ max: 500 }),
+  body('deliveryInstructions')
+    .optional({ nullable: true })
+    .customSanitizer((v) => (v == null ? '' : String(v)))
+    .trim()
+    .isLength({ max: 500 }),
   body('subtotal').isNumeric(),
   body('deliveryFee').isNumeric().optional(),
   body('tax').isNumeric().optional(),

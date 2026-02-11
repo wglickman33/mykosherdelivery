@@ -12,7 +12,7 @@ import { useNotification } from '../../hooks/useNotification';
 import Pagination from '../Pagination/Pagination';
 
 const STATUS_OPTIONS = [
-  { value: '', label: 'All statuses' },
+  { value: '', label: 'All Statuses' },
   { value: 'active', label: 'Active' },
   { value: 'used', label: 'Used' },
   { value: 'void', label: 'Void' }
@@ -115,13 +115,13 @@ const AdminGiftCards = () => {
       <div className="admin-gift-cards__header">
         <h1>Gift Cards</h1>
         <button type="button" className="admin-gift-cards__create-btn" onClick={() => setShowCreate(true)}>
-          Create gift card
+          Create Gift Card
         </button>
       </div>
 
       {showCreate && (
         <div className="admin-gift-cards__create-form">
-          <h2>Create gift card</h2>
+          <h2>Create Gift Card</h2>
           <form onSubmit={handleCreate}>
             <div className="admin-gift-cards__field">
               <label htmlFor="gc-initialBalance">Amount ($) *</label>
@@ -244,19 +244,17 @@ const AdminGiftCards = () => {
               </tbody>
             </table>
           </div>
-          {(pagination.totalPages > 0 || list.length > 0) && (
-            <div className="pagination-footer">
-              <Pagination
-                page={filters.page}
-                totalPages={Math.max(1, pagination.totalPages || 1)}
-                rowsPerPage={filters.limit}
-                total={pagination.total}
-                onPageChange={(p) => setFilters((f) => ({ ...f, page: p }))}
-                onRowsPerPageChange={(n) => setFilters((f) => ({ ...f, limit: n, page: 1 }))}
-                rowsPerPageOptions={[10, 20, 25, 30, 40, 50]}
-              />
-            </div>
-          )}
+          <div className="admin-gift-cards__pagination pagination-footer">
+            <Pagination
+              page={filters.page}
+              totalPages={Math.max(1, pagination.totalPages ?? 1)}
+              rowsPerPage={filters.limit}
+              total={pagination.total ?? 0}
+              onPageChange={(p) => setFilters((f) => ({ ...f, page: p }))}
+              onRowsPerPageChange={(n) => setFilters((f) => ({ ...f, limit: n, page: 1 }))}
+              rowsPerPageOptions={[10, 20, 25, 30, 40, 50]}
+            />
+          </div>
         </>
       )}
 
