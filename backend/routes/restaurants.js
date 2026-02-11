@@ -139,7 +139,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
         {
           model: MenuItem,
           as: 'menuItems',
-          where: { available: true },
+          where: { [Op.or]: [{ available: true }, { available: null }] },
           required: false,
           order: [['category', 'ASC'], ['name', 'ASC']]
         }

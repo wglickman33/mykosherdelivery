@@ -1,16 +1,59 @@
 $owner-primary: #0284c7;
 
 .owner-dashboard {
-  &__title {
-    font-size: 1.75rem;
-    color: #155e75;
-    margin: 0 0 4px 0;
+  &__header {
+    margin-bottom: 24px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  &__hero {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  &__hero-logo {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    background: #e0f2fe;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  &__hero-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+  &__hero-initials {
+    font-size: 1.1rem;
     font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #0f172a;
+  }
+  &__hero-text {
+    min-width: 0;
+  }
+  &__title {
+    font-size: 1.6rem;
+    color: #0f172a;
+    margin: 0 0 2px 0;
+    font-weight: 700;
+    letter-spacing: -0.02em;
   }
   &__subtitle {
     color: #64748b;
-    margin: 0 0 24px 0;
-    font-size: 1rem;
+    margin: 0;
+    font-size: 0.95rem;
+  }
+  &__loading {
+    margin-top: 12px;
+    color: #64748b;
+    font-size: 0.95rem;
   }
   &__cards {
     display: flex;

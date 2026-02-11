@@ -4,19 +4,24 @@ const OWNER_BASE = '/owner';
 
 export async function getOwnerRestaurants() {
   const res = await apiClient.get(`${OWNER_BASE}/me`);
-  return res?.data ?? [];
+  const data = res?.data;
+  return Array.isArray(data) ? data : (res?.data?.data ?? []);
 }
 
 export async function getRestaurant(restaurantId) {
   const res = await apiClient.get(`${OWNER_BASE}/restaurants/${restaurantId}`);
   if (!res?.success) throw new Error(res?.message || 'Failed to load restaurant');
-  return res.data;
+  return res.data ?? res?.data?.data;
 }
 
 export async function getMenuItems(restaurantId, params = {}) {
-  const res = await apiClient.get(`${OWNER_BASE}/restaurants/${restaurantId}/menu-items`, params);
+  const query = Object.fromEntries(
+    Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '')
+  );
+  const res = await apiClient.get(`${OWNER_BASE}/restaurants/${restaurantId}/menu-items`, query);
   if (!res?.success) throw new Error(res?.message || 'Failed to load menu items');
-  return { data: res.data || [], pagination: res.pagination };
+  const data = Array.isArray(res.data) ? res.data : (res?.data?.data ?? []);
+  return { data, pagination: res.pagination ?? {} };
 }
 
 export async function getMenuItem(restaurantId, itemId) {

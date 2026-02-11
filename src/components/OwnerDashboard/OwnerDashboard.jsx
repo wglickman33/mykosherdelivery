@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
-import { getOwnerRestaurants, getMenuItems, getOrders } from '../../services/ownerService';
+import { getMenuItems, getOrders } from '../../services/ownerService';
 import './OwnerDashboard.scss';
 
 const OwnerDashboard = () => {
-  const { currentRestaurant, restaurants } = useOutletContext();
+  const { currentRestaurant, restaurants, currentLogoUrl } = useOutletContext();
   const navigate = useNavigate();
   const [stats, setStats] = useState({ menuCount: 0, orderCount: 0 });
   const [loading, setLoading] = useState(true);
@@ -36,10 +36,34 @@ const OwnerDashboard = () => {
 
   return (
     <div className="owner-dashboard">
-      <h1 className="owner-dashboard__title">Dashboard</h1>
-      <p className="owner-dashboard__subtitle">{currentRestaurant.name}</p>
+      <div className="owner-dashboard__header">
+        <div className="owner-dashboard__hero">
+          <div className="owner-dashboard__hero-logo">
+            {currentLogoUrl ? (
+              <img
+                src={currentLogoUrl}
+                alt={currentRestaurant.name}
+                className="owner-dashboard__hero-img"
+              />
+            ) : (
+              <span className="owner-dashboard__hero-initials">
+                {currentRestaurant.name
+                  .split(' ')
+                  .filter(Boolean)
+                  .slice(0, 2)
+                  .map((w) => w[0]?.toUpperCase())
+                  .join('') || 'MK'}
+              </span>
+            )}
+          </div>
+          <div className="owner-dashboard__hero-text">
+            <h1 className="owner-dashboard__title">{currentRestaurant.name}</h1>
+            <p className="owner-dashboard__subtitle">Manage menu and orders for this restaurant</p>
+          </div>
+        </div>
+      </div>
       {loading ? (
-        <p>Loading...</p>
+        <p className="owner-dashboard__loading">Loading dashboard...</p>
       ) : (
         <div className="owner-dashboard__cards">
           <button

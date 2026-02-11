@@ -11,6 +11,24 @@ const logger = require('../utils/logger');
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
+function buildLogoUrl(req, logoFileName) {
+  if (!logoFileName) return null;
+  const base = `${req.protocol}://${req.get('host')}`;
+  return `${base}/static/restaurant-logos/${logoFileName}`;
+}
+
+function mapOwnerRestaurant(req, restaurantInstance) {
+  const r = typeof restaurantInstance.toJSON === 'function' ? restaurantInstance.toJSON() : restaurantInstance;
+  const fromInstance = typeof restaurantInstance.get === 'function'
+    ? (restaurantInstance.get('logoUrl') || restaurantInstance.get('logo_url'))
+    : null;
+  const storedFile = fromInstance ?? r.logo_url ?? r.logoUrl ?? null;
+  const filenameOnly = storedFile ? String(storedFile).split('/').pop() : null;
+  const logoFile = filenameOnly || storedFile || null;
+  const logoUrl = logoFile ? buildLogoUrl(req, logoFile) : (r.logoUrl || r.logo_url || null);
+  return { ...r, logoUrl, logoFileName: logoFile || undefined };
+}
+
 function canAccessRestaurant(req, restaurantId) {
   if (req.user.role === 'admin' && req.ownerRestaurantIds === null) return true;
   return Array.isArray(req.ownerRestaurantIds) && req.ownerRestaurantIds.includes(restaurantId);
@@ -33,10 +51,11 @@ router.get('/me', async (req, res) => {
   try {
     if (req.user.role === 'admin' && req.ownerRestaurantIds === null) {
       const restaurants = await Restaurant.findAll({
-        attributes: ['id', 'name', 'address', 'phone', 'active'],
+        attributes: ['id', 'name', 'address', 'phone', 'logoUrl', 'active'],
         order: [['name', 'ASC']]
       });
-      return res.json({ success: true, data: restaurants });
+      const mapped = restaurants.map((r) => mapOwnerRestaurant(req, r));
+      return res.json({ success: true, data: mapped });
     }
     const restaurantIds = req.ownerRestaurantIds;
     if (!restaurantIds || restaurantIds.length === 0) {
@@ -44,9 +63,10 @@ router.get('/me', async (req, res) => {
     }
     const restaurants = await Restaurant.findAll({
       where: { id: restaurantIds },
-      attributes: ['id', 'name', 'address', 'phone', 'active']
+      attributes: ['id', 'name', 'address', 'phone', 'logoUrl', 'active']
     });
-    res.json({ success: true, data: restaurants });
+    const mapped = restaurants.map((r) => mapOwnerRestaurant(req, r));
+    res.json({ success: true, data: mapped });
   } catch (err) {
     logger.error('Owner GET /me', { err: err.message });
     res.status(500).json({ error: 'Internal server error', message: 'Failed to load restaurants' });
@@ -63,7 +83,8 @@ router.get('/restaurants/:restaurantId', async (req, res) => {
     if (!restaurant) {
       return res.status(404).json({ error: 'Restaurant not found', message: 'Restaurant does not exist' });
     }
-    res.json({ success: true, data: restaurant });
+    const mapped = mapOwnerRestaurant(req, restaurant);
+    res.json({ success: true, data: mapped });
   } catch (err) {
     logger.error('Owner GET restaurant', { err: err.message });
     res.status(500).json({ error: 'Internal server error', message: 'Failed to load restaurant' });
@@ -78,7 +99,7 @@ router.get('/restaurants/:restaurantId/menu-items', async (req, res) => {
     }
     const { category, available, itemType, search, limit = 50, offset = 0 } = req.query;
     const whereClause = { restaurantId };
-    if (category && category !== 'all') whereClause.category = category;
+    if (category && category !== 'all' && category !== 'undefined') whereClause.category = category;
     if (available !== undefined) whereClause.available = available === 'true';
     if (itemType && itemType !== 'all') whereClause.itemType = itemType;
     if (search) {

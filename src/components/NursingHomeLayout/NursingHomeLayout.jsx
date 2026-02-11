@@ -2,10 +2,17 @@ import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { fetchCurrentFacility } from '../../services/nursingHomeService';
+import { buildImageUrl } from '../../services/imageService';
 import { NursingHomeFacilityContext } from '../../context/NursingHomeFacilityContext';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import whiteMKDLogo from '../../assets/whiteMKDLogo.png';
 import './NursingHomeLayout.scss';
+
+function effectiveFacilityLogoUrl(logoUrl) {
+  if (!logoUrl) return '';
+  if (logoUrl.startsWith('http') || logoUrl.startsWith('https') || logoUrl.startsWith('/')) return logoUrl;
+  return buildImageUrl('static/restaurant-logos/' + logoUrl);
+}
 
 const Icons = {
   dashboard: (
@@ -41,22 +48,6 @@ const Icons = {
   menuPage: (
     <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
       <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
-    </svg>
-  ),
-  toggle: (collapsed) => (
-    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-      <path
-        d={
-          collapsed
-            ? 'M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z'
-            : 'M3 18h13v-2H3v2zm0-5h10v-2H3v2zm0-7v2h13V6H3z'
-        }
-      />
-    </svg>
-  ),
-  arrowBack: (
-    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-      <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
     </svg>
   )
 };
@@ -138,6 +129,7 @@ const NursingHomeLayout = () => {
   ];
 
   const facilityDisplayName = facility?.name || 'Nursing Home';
+  const facilityLogoUrl = facility ? effectiveFacilityLogoUrl(facility.logoUrl) : '';
   const facilityInitials = facility?.name
     ? (facility.name.slice(0, 2).toUpperCase().replace(/\s/g, '') || 'NH')
     : 'NH';
@@ -167,81 +159,90 @@ const NursingHomeLayout = () => {
   return (
     <div className="nh-layout">
       <aside
-        className={`nh-sidebar ${sidebarCollapsed ? 'collapsed' : ''} ${mobileSidebarOpen ? 'open' : ''}`}
+        className={`admin-sidebar ${sidebarCollapsed ? 'collapsed' : ''} ${mobileSidebarOpen ? 'open' : ''}`}
       >
-        <div className="nh-sidebar__header">
-          <div className="nh-brand">
-            <img src={whiteMKDLogo} alt="MKD" className="nh-brand__logo" />
+        <div className="admin-sidebar__header">
+          <div className="admin-logo">
+            <img src={whiteMKDLogo} alt="MKD" />
           </div>
           <button
             type="button"
-            className="nh-sidebar__toggle"
+            className="sidebar-toggle"
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
             aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
-            {Icons.toggle(sidebarCollapsed)}
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+              <path
+                d={
+                  sidebarCollapsed
+                    ? 'M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z'
+                    : 'M3 18h13v-2H3v2zm0-5h10v-2H3v2zm0-7v2h13V6H3z'
+                }
+              />
+            </svg>
           </button>
         </div>
 
-        <nav className="nh-sidebar__nav">
+        <nav className="admin-sidebar__nav">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
-            const handleClick = () => navTo(item.path);
             return (
               <button
                 key={item.id}
                 type="button"
-                className={`nh-nav-item ${isActive ? 'active' : ''}`}
-                onClick={handleClick}
+                className={`nav-item ${isActive ? 'active' : ''}`}
+                onClick={() => navTo(item.path)}
               >
-                <span className="nh-nav-item__icon">{item.icon}</span>
-                {!sidebarCollapsed && <span className="nh-nav-item__label">{item.label}</span>}
+                <span className="nav-icon">{item.icon}</span>
+                {!sidebarCollapsed && <span className="nav-label">{item.label}</span>}
               </button>
             );
           })}
         </nav>
 
-        <div className="nh-sidebar__footer">
-          <div className="nh-community">
+        <div className="admin-sidebar__footer">
+          <div className="admin-sidebar__community">
             {user.role === 'admin' && (
               <button
                 type="button"
-                className="nh-community__back"
+                className="admin-sidebar__community-back"
                 onClick={() => navigate('/admin/nursing-homes')}
                 aria-label="Return to MKD Admin"
                 title="Return to MKD Admin"
               >
-                {Icons.arrowBack}
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                  <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
+                </svg>
               </button>
             )}
-            <div className="nh-community__logo">
-              {facility?.logoUrl ? (
-                <img src={facility.logoUrl} alt="" className="nh-community__img" />
+            <div className="admin-sidebar__community-logo">
+              {facilityLogoUrl ? (
+                <img src={facilityLogoUrl} alt="" className="admin-sidebar__community-logo-img" />
               ) : (
-                <span className="nh-community__initials" aria-hidden="true">{facilityInitials}</span>
+                <span aria-hidden="true">{facilityInitials}</span>
               )}
             </div>
             {!sidebarCollapsed && (
-              <div className="nh-community__info">
-                <span className="nh-community__label">Community</span>
-                <span className="nh-community__name">{facilityDisplayName}</span>
+              <div className="admin-sidebar__community-info">
+                <span className="admin-sidebar__community-label">Community</span>
+                <span className="admin-sidebar__community-name">{facilityDisplayName}</span>
               </div>
             )}
           </div>
-          <div className="nh-user">
-            <div className="nh-user__avatar" aria-hidden="true">
+          <div className="admin-user">
+            <div className="user-avatar" aria-hidden="true">
               {Icons.user}
             </div>
             {!sidebarCollapsed && (
-              <div className="nh-user__info">
-                <span className="nh-user__name">
+              <div className="user-info">
+                <span className="user-name">
                   {user.firstName} {user.lastName}
                 </span>
-                <span className="nh-user__role">{roleLabel}</span>
+                <span className="user-role">{roleLabel}</span>
               </div>
             )}
           </div>
-          <button type="button" className="nh-signout" onClick={handleSignOut}>
+          <button type="button" className="sign-out-btn" onClick={handleSignOut}>
             {Icons.signOut}
             {!sidebarCollapsed && <span>Sign Out</span>}
           </button>
@@ -249,7 +250,7 @@ const NursingHomeLayout = () => {
       </aside>
 
       {mobileSidebarOpen && (
-        <div className="nh-overlay" onClick={() => setMobileSidebarOpen(false)} aria-hidden="true" />
+        <div className="admin-overlay" onClick={() => setMobileSidebarOpen(false)} aria-hidden="true" />
       )}
 
       <main className="nh-main">

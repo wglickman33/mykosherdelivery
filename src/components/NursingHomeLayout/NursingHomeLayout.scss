@@ -1,4 +1,5 @@
 @use '../../styles/design-system' as *;
+@use '../AdminLayout/SharedSidebar';
 
 .nh-layout {
   display: flex;
@@ -13,7 +14,7 @@
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: linear-gradient(160deg, $nh-slate-800 0%, $nh-slate-900 100%);
+  background: linear-gradient(160deg, $nh-sidebar-from 0%, $nh-sidebar-to 100%);
   color: $white;
   gap: $spacing-lg;
 
@@ -22,369 +23,6 @@
     font-weight: $font-weight-medium;
     margin: 0;
   }
-}
-
-.nh-sidebar {
-  width: 280px;
-  background: linear-gradient(180deg, $nh-slate-800 0%, $nh-slate-900 100%);
-  color: $white;
-  transition: width 0.3s ease;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 4px 0 10px rgba(0, 0, 0, 0.15);
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  overflow: hidden;
-  z-index: 100;
-
-  &.collapsed {
-    width: 80px;
-  }
-
-  &__header {
-    padding: $spacing-xl 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-
-  .nh-brand {
-    display: flex;
-    align-items: center;
-    flex: 1;
-    min-width: 0;
-
-    &__logo {
-      height: 32px;
-      width: auto;
-      max-width: 160px;
-      object-fit: contain;
-      display: block;
-    }
-  }
-
-  &__toggle {
-    background: rgba(255, 255, 255, 0.12);
-    border: none;
-    color: $white;
-    padding: 0;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    flex-shrink: 0;
-
-    svg {
-      width: 20px;
-      height: 20px;
-    }
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.2);
-    }
-  }
-
-  &__nav {
-    flex: 1 1 auto;
-    padding: $spacing-lg 0;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-  }
-
-  .nh-nav-item {
-    display: flex;
-    align-items: center;
-    gap: $spacing-md;
-    padding: 10px 20px;
-    background: none;
-    border: none;
-    color: rgba(255, 255, 255, 0.75);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    width: 100%;
-    text-align: left;
-    position: relative;
-    min-height: 44px;
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: $white;
-    }
-
-    &.active {
-      background: rgba(255, 255, 255, 0.1);
-      color: $white;
-      border-right: 3px solid $nh-primary;
-    }
-
-    &__icon {
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 20px;
-      height: 20px;
-
-      svg {
-        width: 20px;
-        height: 20px;
-      }
-    }
-
-    &__label {
-      font-weight: $font-weight-medium;
-      font-size: 0.95rem;
-    }
-  }
-
-  &__footer {
-    padding: 20px;
-    border-top: 1px solid rgba(255, 255, 255, 0.12);
-    margin-top: auto;
-    display: flex;
-    flex-direction: column;
-    gap: $spacing-md;
-  }
-
-  .nh-community {
-    display: flex;
-    align-items: center;
-    gap: $spacing-md;
-    padding: 12px 14px;
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: $border-radius-md;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-
-    &__back {
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 36px;
-      height: 36px;
-      padding: 0;
-      background: rgba(255, 255, 255, 0.12);
-      border: none;
-      border-radius: $border-radius-md;
-      color: $white;
-      cursor: pointer;
-      transition: background 0.2s ease;
-
-      &:hover {
-        background: rgba(255, 255, 255, 0.2);
-      }
-
-      svg {
-        width: 20px;
-        height: 20px;
-      }
-    }
-
-    &__logo {
-      flex-shrink: 0;
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: $border-radius-md;
-      overflow: hidden;
-      background: rgba(255, 255, 255, 0.1);
-    }
-
-    &__img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-    }
-
-    &__initials {
-      font-size: 0.85rem;
-      font-weight: $font-weight-bold;
-      color: $white;
-    }
-
-    &__info {
-      min-width: 0;
-    }
-
-    &__label {
-      display: block;
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: rgba(255, 255, 255, 0.6);
-      margin-bottom: 2px;
-    }
-
-    &__name {
-      display: block;
-      font-size: 0.95rem;
-      font-weight: $font-weight-semibold;
-      color: $white;
-      @include truncate;
-    }
-  }
-
-  .nh-user {
-    display: flex;
-    align-items: center;
-    gap: $spacing-md;
-
-    &__avatar {
-      width: 36px;
-      height: 36px;
-      background: rgba(255, 255, 255, 0.12);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-
-      svg {
-        width: 20px;
-        height: 20px;
-      }
-    }
-
-    &__info {
-      min-width: 0;
-    }
-
-    &__name {
-      display: block;
-      font-weight: $font-weight-semibold;
-      font-size: $font-size-sm;
-      color: $white;
-      @include truncate;
-    }
-
-    &__role {
-      display: block;
-      font-size: $font-size-xs;
-      color: rgba(255, 255, 255, 0.6);
-    }
-  }
-
-  .nh-signout {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: $spacing-sm;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    color: rgba(255, 255, 255, 0.9);
-    padding: 8px 12px;
-    border-radius: $border-radius-md;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-size: $font-size-sm;
-    font-weight: 500;
-    width: 100%;
-    min-height: 40px;
-
-    svg {
-      width: 20px;
-      height: 20px;
-      flex-shrink: 0;
-    }
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.12);
-      border-color: rgba(255, 255, 255, 0.25);
-    }
-  }
-
-  &.collapsed {
-    .nh-sidebar__header {
-      flex-direction: column;
-      gap: 8px;
-      justify-content: flex-start;
-      padding: 14px 0;
-
-      .nh-brand__logo {
-        height: 28px;
-        max-width: 44px;
-      }
-
-      .nh-sidebar__toggle {
-        width: 40px;
-        height: 40px;
-        border-radius: 10px;
-      }
-    }
-
-    .nh-community .nh-community__back {
-      width: 36px;
-      height: 36px;
-    }
-
-    .nh-sidebar__nav .nh-nav-item {
-      justify-content: center;
-      padding: 10px;
-
-      .nh-nav-item__label {
-        display: none;
-      }
-    }
-
-    .nh-sidebar__footer {
-      .nh-community {
-        justify-content: center;
-        padding: 10px;
-
-        .nh-community__info {
-          display: none;
-        }
-
-        .nh-community__logo {
-          width: 36px;
-          height: 36px;
-        }
-      }
-
-      .nh-user {
-        justify-content: center;
-        margin-bottom: 0;
-
-        .nh-user__info {
-          display: none;
-        }
-
-        .nh-user__avatar {
-          width: 36px;
-          height: 36px;
-        }
-      }
-
-      .nh-signout {
-        width: 40px;
-        min-width: 40px;
-        min-height: 40px;
-        padding: 0;
-        margin: 0 auto;
-        border-radius: 10px;
-
-        span {
-          display: none;
-        }
-      }
-    }
-  }
-}
-
-.nh-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  z-index: 900;
 }
 
 .nh-main {
@@ -451,53 +89,73 @@
   background: $slate-50;
 }
 
-@media (max-width: 1280px) {
-  .nh-sidebar {
-    position: fixed;
-    left: 0;
-    top: 0;
-    height: 100vh;
-    z-index: 1000;
-    transform: translateX(-100%);
-    transition: transform 0.3s ease;
+// Nursing home: slate theme for sidebar (matches design-system)
+.nh-layout .admin-sidebar {
+  background: linear-gradient(180deg, $nh-sidebar-from 0%, $nh-sidebar-to 100%);
+  color: $white;
 
-    &.open {
-      transform: translateX(0);
+  .admin-sidebar__header .admin-logo img {
+    height: 30px;
+    width: auto;
+    max-width: 180px;
+    object-fit: contain;
+    display: block;
+  }
+
+  .admin-sidebar__header {
+    border-bottom-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .sidebar-toggle:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .nav-item {
+    color: rgba(255, 255, 255, 0.75);
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: $white;
     }
-
-    &.collapsed {
-      width: 280px;
-    }
-
-    &.collapsed .nh-sidebar__header .nh-logo__text,
-    &.collapsed .nh-sidebar__nav .nh-nav-item .nh-nav-item__label,
-    &.collapsed .nh-sidebar__footer .nh-user__info,
-    &.collapsed .nh-sidebar__footer .nh-signout span {
-      display: block;
-    }
-
-    &.collapsed .nh-sidebar__nav .nh-nav-item {
-      justify-content: flex-start;
-      padding: 10px 20px;
-    }
-
-    &.collapsed .nh-sidebar__footer .nh-user {
-      justify-content: flex-start;
-    }
-
-    &.collapsed .nh-sidebar__footer .nh-signout {
-      width: 100%;
-      justify-content: flex-start;
-      padding: 8px 12px;
-    }
-
-    .nh-sidebar__toggle {
-      display: none;
+    &.active {
+      background: rgba($nh-primary, 0.25);
+      color: $nh-primary-light;
+      border-right-color: $nh-primary;
+      &::before {
+        background: $nh-primary;
+      }
     }
   }
 
-  .nh-header .nh-mobile-menu {
-    display: inline-flex;
+  .admin-sidebar__footer {
+    border-top-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .admin-sidebar__community {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
+    .admin-sidebar__community-back {
+      background: rgba(255, 255, 255, 0.12);
+      &:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+    }
+    .admin-sidebar__community-logo {
+      background: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  .admin-user .user-avatar {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .sign-out-btn {
+    background: rgba($error, 0.18);
+    border-color: rgba($error, 0.28);
+    color: $error-light;
+    &:hover {
+      background: rgba($error, 0.3);
+      color: #fecaca;
+    }
   }
 }
 
@@ -508,15 +166,13 @@
     &__title h1 {
       font-size: 1.35rem;
     }
+
+    .nh-mobile-menu {
+      display: inline-flex;
+    }
   }
 
   .nh-content {
     padding: 20px;
-  }
-}
-
-@media (min-width: 1281px) {
-  .nh-overlay {
-    display: none;
   }
 }
