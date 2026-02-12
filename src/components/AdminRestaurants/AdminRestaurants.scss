@@ -252,6 +252,7 @@
     & > .admin-restaurants__btn--primary { flex: 1.4; background: #eff6ff; color: #061757; border-color: #dbeafe; &:hover { background: #dbeafe; } }
     & > .admin-restaurants__btn--icon { display: inline-flex; align-items: center; justify-content: center; padding: 10px; width: 44px; min-width: 44px; }
     & > .admin-restaurants__btn--edit { background: #fff7ed; color: #7c2d12; border-color: #fed7aa; &:hover { background: #fed7aa; } }
+    & > .admin-restaurants__btn--duplicate { background: #f0fdf4; color: #166534; border-color: #bbf7d0; &:hover:not(:disabled) { background: #bbf7d0; } &:disabled { opacity: 0.7; cursor: not-allowed; } }
     & > .admin-restaurants__btn--delete { background: #fef2f2; color: #991b1b; border-color: #fecaca; &:hover { background: #fecaca; } }
   }
 
@@ -575,6 +576,21 @@
 
         &:hover {
           background: #dbeafe;
+        }
+      }
+
+      &--duplicate {
+        background: #f0fdf4;
+        color: #166534;
+        border-color: #bbf7d0;
+
+        &:hover:not(:disabled) {
+          background: #bbf7d0;
+        }
+
+        &:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
         }
       }
 

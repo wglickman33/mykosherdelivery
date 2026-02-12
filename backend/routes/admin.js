@@ -2294,6 +2294,106 @@ router.delete('/restaurants/:restaurantId/menu-items/:itemId', requireAdmin, asy
   }
 });
 
+router.post('/restaurants/:restaurantId/menu-items/:itemId/duplicate', requireAdmin, async (req, res) => {
+  try {
+    const { restaurantId, itemId } = req.params;
+    const existingItem = await MenuItem.findOne({
+      where: { id: itemId, restaurantId },
+      include: [{ model: Restaurant, as: 'restaurant', attributes: ['id', 'name'] }]
+    });
+    if (!existingItem) {
+      return res.status(404).json({
+        error: 'Menu item not found',
+        message: 'Menu item does not exist'
+      });
+    }
+    const sourceName = (existingItem.name || '').trim();
+    const baseName = sourceName.replace(/\s+\d+$/, '').trim() || sourceName;
+    const allSameRestaurant = await MenuItem.findAll({
+      where: { restaurantId },
+      attributes: ['name']
+    });
+    let maxNum = 0;
+    const exactBase = baseName.toLowerCase();
+    for (const row of allSameRestaurant) {
+      const n = (row.name || '').trim();
+      if (n.toLowerCase() === exactBase) {
+        maxNum = Math.max(maxNum, 1);
+      } else if (n.toLowerCase().startsWith(exactBase + ' ')) {
+        const suffix = n.slice(baseName.length).trim();
+        const num = parseInt(suffix, 10);
+        if (String(num) === suffix && num >= 1) {
+          maxNum = Math.max(maxNum, num);
+        }
+      }
+    }
+    const newName = `${baseName} ${maxNum + 1}`;
+    const rawOptions = existingItem.options;
+    const rawLabels = existingItem.labels;
+    const optionsClone = rawOptions != null && typeof rawOptions === 'object'
+      ? JSON.parse(JSON.stringify(rawOptions))
+      : undefined;
+    const labelsClone = Array.isArray(rawLabels)
+      ? JSON.parse(JSON.stringify(rawLabels))
+      : (rawLabels != null ? [rawLabels] : []);
+    const payload = {
+      name: newName,
+      description: existingItem.description ?? null,
+      price: existingItem.price,
+      category: existingItem.category,
+      imageUrl: existingItem.imageUrl ?? null,
+      available: existingItem.available !== false,
+      itemType: existingItem.itemType || 'simple',
+      options: optionsClone,
+      labels: labelsClone
+    };
+    const validationErrors = validateMenuItemData(payload);
+    if (validationErrors.length > 0) {
+      return res.status(400).json({
+        error: 'Duplicated menu item validation failed',
+        message: validationErrors[0],
+        details: validationErrors
+      });
+    }
+    const normalizedData = normalizeMenuItemData(payload);
+    const menuItem = await MenuItem.create({
+      ...normalizedData,
+      restaurantId
+    });
+    await logAdminAction(req.user.id, 'CREATE', 'menu_items', menuItem.id, null, { ...normalizedData, duplicatedFrom: itemId }, req);
+    try {
+      await createGlobalAdminNotification({
+        type: 'menu_item.created',
+        title: 'Menu Item Duplicated',
+        message: `"${sourceName}" duplicated as "${newName}" in ${existingItem.restaurant.name}`,
+        ref: { kind: 'menu_item', id: menuItem.id, name: menuItem.name, restaurantId, restaurantName: existingItem.restaurant.name }
+      });
+    } catch (notifError) {
+      logger.warn('Failed to create menu item duplicate notification:', notifError);
+    }
+    try {
+      appEvents.emit('menu_item.created', {
+        type: 'menu_item.created',
+        data: { id: menuItem.id, name: menuItem.name, restaurantId },
+        timestamp: new Date().toISOString()
+      });
+    } catch (sseError) {
+      logger.warn('Failed to emit menu item created SSE event:', sseError);
+    }
+    res.status(201).json({
+      success: true,
+      data: menuItem.toJSON(),
+      message: `Menu item duplicated as "${newName}"`
+    });
+  } catch (error) {
+    logger.error('Error duplicating menu item:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: error.message || 'Failed to duplicate menu item'
+    });
+  }
+});
+
 router.patch('/restaurants/:restaurantId/menu-items/bulk', requireAdmin, [
   body('updates').isArray().isLength({ min: 1 }),
   body('updates.*.id').isUUID(),

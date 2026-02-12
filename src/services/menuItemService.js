@@ -102,6 +102,17 @@ export const deleteMenuItem = async (restaurantId, itemId) => {
   }
 };
 
+export const duplicateMenuItem = async (restaurantId, itemId) => {
+  try {
+    const response = await apiClient.post(`/admin/restaurants/${restaurantId}/menu-items/${itemId}/duplicate`);
+    const data = response?.data ?? response;
+    return data ? normalizeMenuItem(data) : response;
+  } catch (error) {
+    console.error('Error duplicating menu item:', error);
+    throw error;
+  }
+};
+
 export const bulkUpdateMenuItems = async (restaurantId, updates) => {
   try {
     const response = await apiClient.patch(`/admin/restaurants/${restaurantId}/menu-items/bulk`, { updates });

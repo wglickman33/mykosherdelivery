@@ -13,7 +13,7 @@ import { restaurants as restaurantsData } from '../../data/restaurants';
 import { formatPhoneNumber, formatPhoneForInput } from '../../utils/phoneFormatter';
 import MenuItemModal from './MenuItemModal';
 import NursingHomeMenuItemModal from './NursingHomeMenuItemModal';
-import { fetchRestaurantMenuItems, deleteMenuItem } from '../../services/menuItemService';
+import { fetchRestaurantMenuItems, deleteMenuItem, duplicateMenuItem } from '../../services/menuItemService';
 import { fetchNursingHomeMenu, createNursingHomeMenuItem, updateNursingHomeMenuItem, deleteNursingHomeMenuItem } from '../../services/nursingHomeMenuService';
 
 const logoModules = import.meta.glob('../../assets/restaurantlogos/*', { eager: true, import: 'default' });
@@ -61,6 +61,7 @@ const AdminRestaurants = () => {
   const [menuItemsLoading, setMenuItemsLoading] = useState(false);
   const [showMenuItemDeleteConfirm, setShowMenuItemDeleteConfirm] = useState(false);
   const [selectedMenuItemToDelete, setSelectedMenuItemToDelete] = useState(null);
+  const [duplicatingItemId, setDuplicatingItemId] = useState(null);
   const [menuItemsFilters, setMenuItemsFilters] = useState({
     search: '',
     page: 1,
@@ -306,6 +307,21 @@ const AdminRestaurants = () => {
       window.dispatchEvent(new CustomEvent('mkd-restaurants-refresh'));
       showNotification('Restaurant deleted successfully', 'success');
       await fetchRestaurants();
+    }
+  };
+
+  const handleDuplicateMenuItem = async (item) => {
+    if (!item || !selectedRestaurantForMenu) return;
+    setDuplicatingItemId(item.id);
+    try {
+      const result = await duplicateMenuItem(selectedRestaurantForMenu.id, item.id);
+      const newName = result?.name || result?.data?.name || 'Item';
+      showNotification(`Menu item duplicated as "${newName}"`, 'success');
+      await fetchMenuItems(selectedRestaurantForMenu.id);
+    } catch (error) {
+      showNotification(error?.message || 'Failed to duplicate menu item', 'error');
+    } finally {
+      setDuplicatingItemId(null);
     }
   };
 
@@ -843,6 +859,14 @@ const AdminRestaurants = () => {
                                 }}
                               >
                                 Edit
+                              </button>
+                              <button
+                                className="admin-restaurants__btn admin-restaurants__btn--duplicate"
+                                onClick={() => handleDuplicateMenuItem(item)}
+                                disabled={duplicatingItemId === item.id}
+                                title="Duplicate this menu item"
+                              >
+                                {duplicatingItemId === item.id ? 'Duplicating…' : 'Duplicate'}
                               </button>
                               <button
                                 className="admin-restaurants__btn admin-restaurants__btn--delete"
