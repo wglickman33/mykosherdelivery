@@ -298,8 +298,21 @@ const MenuItemModal = ({ item, restaurant, isOpen, onClose, onAdd }) => {
                           </div>
                           {hasSelection ? (
                             <div className="option-selected-controls">
-                              <span className="option-selected-indicator" aria-hidden="true">
-                                {count === 1 ? '✓' : `✓ × ${count}`}
+                              {canAddOne && (
+                                <button
+                                  type="button"
+                                  className="option-add-one"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleConfigurationChange(categoryIndex, optionIndex, true);
+                                  }}
+                                  aria-label={`Add another ${option.name}`}
+                                >
+                                  +
+                                </button>
+                              )}
+                              <span className="option-count" aria-live="polite">
+                                {count}
                               </span>
                               <button
                                 type="button"
