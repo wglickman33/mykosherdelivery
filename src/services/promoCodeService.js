@@ -5,6 +5,19 @@ const getAuthToken = () => {
   return token;
 };
 
+/** Sends an event to .cursor/debug.log via backend (only in dev / when backend has PROMO_DEBUG). */
+export const sendPromoDebug = async (location, message, data = {}) => {
+  try {
+    const token = getAuthToken();
+    if (!token) return;
+    await fetch(`${API_BASE_URL}/admin/promo-debug`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ location, message, data })
+    });
+  } catch { /* ignore */ }
+};
+
 export const fetchPromoCodes = async (page = 1, limit = 20, search = '', active = '') => {
   try {
     const token = getAuthToken();

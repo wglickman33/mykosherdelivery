@@ -6,7 +6,8 @@ import {
   fetchPromoCodes,
   createPromoCode,
   updatePromoCode,
-  deletePromoCode
+  deletePromoCode,
+  sendPromoDebug
 } from '../../services/promoCodeService';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -69,6 +70,10 @@ const SettingsPromoCodes = () => {
       if (result.success) {
         setPromoCodes(result.data.promoCodes);
         setPromoTotalCount(result.data.totalCount);
+        sendPromoDebug('SettingsPromoCodes.jsx:fetchPromoData', 'GET promo list received, table data', {
+          count: result.data.promoCodes?.length,
+          promos: (result.data.promoCodes || []).map(p => ({ id: p.id, code: p.code, allowedDays: p.allowedDays }))
+        });
       }
     } catch (error) {
       console.error('Error fetching promo codes:', error);
@@ -107,6 +112,12 @@ const SettingsPromoCodes = () => {
         formData.expiresAt = promoFormData.expiresAt.trim();
       }
 
+      sendPromoDebug('SettingsPromoCodes.jsx:handlePromoSubmit', editingPromo ? 'Update submitted' : 'Create submitted', {
+        editingPromoId: editingPromo?.id,
+        formData,
+        allowedDaysInFormData: formData.allowedDays
+      });
+
       if (editingPromo) {
         await updatePromoCode(editingPromo.id, formData);
       } else {
@@ -125,8 +136,14 @@ const SettingsPromoCodes = () => {
   };
 
   const handlePromoEdit = (promo) => {
-    setEditingPromo(promo);
     const allowed = getAllowedDaysFromPromo(promo);
+    sendPromoDebug('SettingsPromoCodes.jsx:handlePromoEdit', 'Edit clicked, modal opening', {
+      promoId: promo.id,
+      code: promo.code,
+      allowedDaysFromPromo: promo.allowedDays ?? promo.allowed_days,
+      allowedParsed: Array.isArray(allowed) ? allowed : (allowed != null && allowed.length ? allowed : null)
+    });
+    setEditingPromo(promo);
     setPromoFormData({
       code: promo.code,
       discountType: promo.discountType,

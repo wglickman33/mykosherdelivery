@@ -20,6 +20,7 @@ const jwt = require('jsonwebtoken');
 const { appEvents } = require('../utils/events');
 const { logAdminAction } = require('../utils/auditLog');
 const { validateMenuItemData, normalizeMenuItemData } = require('../utils/menuItemValidation');
+const promoDebugLog = require('../utils/promoDebugLog');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
@@ -4746,16 +4747,39 @@ router.get('/audit-logs', requireAdmin, async (req, res) => {
 
 function normalizePromoForResponse(promo) {
   const out = typeof promo.toJSON === 'function' ? promo.toJSON() : { ...promo };
-  const raw = out.allowed_days ?? out.allowedDays;
+  let raw;
+  if (typeof promo.getDataValue === 'function') {
+    raw = promo.getDataValue('allowed_days');
+  }
+  if (raw === undefined) raw = out.allowed_days ?? out.allowedDays;
   if (raw != null && raw !== '') {
-    out.allowedDays = Array.isArray(raw)
-      ? raw
-      : String(raw).split(',').map(Number).filter(n => !Number.isNaN(n) && n >= 0 && n <= 6);
+    const str = String(raw).trim();
+    if (str.startsWith('[') && str.endsWith(']')) {
+      try {
+        const arr = JSON.parse(str);
+        out.allowedDays = Array.isArray(arr) ? arr.map(Number).filter(n => !Number.isNaN(n) && n >= 0 && n <= 6) : null;
+      } catch {
+        out.allowedDays = null;
+      }
+    } else {
+      out.allowedDays = str.split(',').map(Number).filter(n => !Number.isNaN(n) && n >= 0 && n <= 6);
+    }
+    if (out.allowedDays && out.allowedDays.length === 0) out.allowedDays = null;
   } else {
     out.allowedDays = null;
   }
   return out;
 }
+
+router.post('/promo-debug', requireAdmin, (req, res) => {
+  const { location, message, data } = req.body || {};
+  promoDebugLog.write({
+    location: location || 'SettingsPromoCodes',
+    message: message || 'promo debug',
+    data: data || {}
+  });
+  res.json({ success: true });
+});
 
 router.get('/promo-codes', requireAdmin, async (req, res) => {
   try {
@@ -4781,10 +4805,24 @@ router.get('/promo-codes', requireAdmin, async (req, res) => {
       offset: parseInt(offset)
     });
 
+    const normalizedList = promoCodes.map(p => normalizePromoForResponse(p));
+    logger.info('Promo GET list response', {
+      totalCount: count,
+      promosAllowedDays: normalizedList.map(p => ({ id: p.id, code: p.code, allowedDays: p.allowedDays }))
+    });
+    promoDebugLog.write({
+      location: 'admin.js:GET /promo-codes',
+      message: 'GET promo codes list response',
+      data: {
+        totalCount: count,
+        promos: normalizedList.map(p => ({ id: p.id, code: p.code, allowedDays: p.allowedDays, allowed_days: p.allowed_days }))
+      }
+    });
+
     res.json({
       success: true,
       data: {
-        promoCodes: promoCodes.map(p => normalizePromoForResponse(p)),
+        promoCodes: normalizedList,
         totalCount: count,
         currentPage: parseInt(page),
         totalPages: Math.ceil(count / limit)
@@ -4938,9 +4976,21 @@ router.put('/promo-codes/:id', requireAdmin, [
     }
 
     const promoId = String(req.params.id).split(':')[0];
-    
+
+    logger.info('Promo PUT received', { promoId, allowedDaysInBody: req.body?.allowedDays });
+    promoDebugLog.write({
+      location: 'admin.js:PUT /promo-codes/:id',
+      message: 'PUT promo code received',
+      data: { promoId, body: req.body, allowedDaysInBody: req.body?.allowedDays }
+    });
+
     const promoCode = await PromoCode.findByPk(promoId);
     if (!promoCode) {
+      promoDebugLog.write({
+        location: 'admin.js:PUT /promo-codes/:id',
+        message: 'Promo code not found',
+        data: { promoId }
+      });
       return res.status(404).json({
         error: 'Not found',
         message: `Promo code with ID ${promoId} not found`
@@ -4955,9 +5005,6 @@ router.put('/promo-codes/:id', requireAdmin, [
         delete updateData[key];
       }
     });
-    // Normalize and persist allowedDays as comma-separated string. We use raw query so the DB gets
-    // the correct format; save({ fields: ['allowedDays'] }) would read the attribute via the getter
-    // (array) and could persist the wrong type. Use positional ? to avoid dialect param issues.
     if ('allowedDays' in updateData) {
       const normalized = (updateData.allowedDays != null && Array.isArray(updateData.allowedDays) && updateData.allowedDays.length > 0)
         ? updateData.allowedDays
@@ -4965,18 +5012,10 @@ router.put('/promo-codes/:id', requireAdmin, [
       const allowedDaysStr = (normalized != null && normalized.length > 0)
         ? normalized.map(d => Number(d)).filter(n => !Number.isNaN(n) && n >= 0 && n <= 6).join(',')
         : null;
-      const promoIdNum = parseInt(promoId, 10);
-      if (Number.isNaN(promoIdNum)) {
-        return res.status(400).json({ error: 'Invalid promo code ID', message: 'Promo code ID must be a number' });
-      }
-      const [, meta] = await sequelize.query(
-        'UPDATE promo_codes SET allowed_days = ? WHERE id = ?',
-        { replacements: [allowedDaysStr, promoIdNum] }
+      await PromoCode.update(
+        { allowedDays: allowedDaysStr },
+        { where: { id: promoId } }
       );
-      const rowCount = meta?.rowCount ?? meta?.affectedRows;
-      if (rowCount !== undefined && rowCount !== null && Number(rowCount) === 0) {
-        logger.warn('Promo code allowed_days update affected 0 rows', { promoId: promoIdNum, allowedDaysStr });
-      }
       promoCode.setDataValue('allowed_days', allowedDaysStr);
       delete updateData.allowedDays;
     }
@@ -5018,12 +5057,23 @@ router.put('/promo-codes/:id', requireAdmin, [
       req
     );
 
+    const responseData = normalizePromoForResponse(promoCode);
+    promoDebugLog.write({
+      location: 'admin.js:PUT /promo-codes/:id',
+      message: 'PUT promo code success, response payload',
+      data: { promoId, responseAllowedDays: responseData.allowedDays, responseAllowed_days: responseData.allowed_days }
+    });
     res.json({
       success: true,
-      data: normalizePromoForResponse(promoCode),
+      data: responseData,
       message: 'Promo code updated successfully'
     });
   } catch (error) {
+    promoDebugLog.write({
+      location: 'admin.js:PUT /promo-codes/:id',
+      message: 'PUT promo code error',
+      data: { error: error.message, stack: error.stack?.slice(0, 200) }
+    });
     logger.error('Error updating promo code:', error);
     res.status(500).json({
       error: 'Internal server error',
