@@ -35,7 +35,10 @@ import AdminAnalyticsOrders from "./components/AdminAnalytics/AdminAnalyticsOrde
 import AdminAnalyticsUsers from "./components/AdminAnalytics/AdminAnalyticsUsers";
 import AdminAnalyticsRestaurants from "./components/AdminAnalytics/AdminAnalyticsRestaurants";
 import AdminAnalyticsGiftCards from "./components/AdminAnalytics/AdminAnalyticsGiftCards";
-import AdminSettings from "./components/AdminSettings/AdminSettings";
+import AdminSettingsLayout from "./components/AdminSettings/AdminSettingsLayout";
+import SettingsCountdownTimer from "./components/AdminSettings/SettingsCountdownTimer";
+import SettingsPromoCodes from "./components/AdminSettings/SettingsPromoCodes";
+import SettingsLogs from "./components/AdminSettings/SettingsLogs";
 import AdminRequests from "./components/AdminRequests/AdminRequests";
 import AdminCampaigns from "./components/AdminCampaigns/AdminCampaigns";
 import AdminNursingHomes from "./components/AdminNursingHomes/AdminNursingHomes";
@@ -248,7 +251,12 @@ function AuthenticatedApp() {
             <Route path="requests" element={<AdminRequests />} />
             <Route path="campaigns" element={<AdminCampaigns />} />
             <Route path="nursing-homes" element={<AdminNursingHomes />} />
-            <Route path="settings" element={<AdminSettings />} />
+            <Route path="settings" element={<AdminSettingsLayout />}>
+              <Route index element={<Navigate to="countdown-timer" replace />} />
+              <Route path="countdown-timer" element={<SettingsCountdownTimer />} />
+              <Route path="promo-codes" element={<SettingsPromoCodes />} />
+              <Route path="logs" element={<SettingsLogs />} />
+            </Route>
             <Route path="" element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="*" element={<AdminNotFoundPage />} />
           </Route>

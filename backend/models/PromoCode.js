@@ -67,6 +67,16 @@ module.exports = (sequelize, DataTypes) => {
     get() {
       const raw = this.getDataValue('allowed_days');
       if (raw == null || raw === '') return null;
+      const trimmed = String(raw).trim();
+      if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+        try {
+          const arr = JSON.parse(trimmed);
+          if (Array.isArray(arr)) {
+            const nums = arr.map(Number).filter(n => !Number.isNaN(n) && n >= 0 && n <= 6);
+            return nums.length > 0 ? nums : null;
+          }
+        } catch { /* fall through to comma-split */ }
+      }
       return raw.split(',').map(Number).filter(n => !Number.isNaN(n) && n >= 0 && n <= 6);
     },
     set(val) {

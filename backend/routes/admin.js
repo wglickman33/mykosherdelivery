@@ -4826,7 +4826,10 @@ router.get('/promo-codes/:id', requireAdmin, async (req, res) => {
 const allowedDaysValidator = (value) => {
   if (value === null || value === undefined || (Array.isArray(value) && value.length === 0)) return true;
   if (!Array.isArray(value)) return false;
-  return value.every(d => Number.isInteger(d) && d >= 0 && d <= 6);
+  return value.every(d => {
+    const n = Number(d);
+    return !Number.isNaN(n) && n >= 0 && n <= 6 && Math.floor(n) === n;
+  });
 };
 
 router.post('/promo-codes', requireAdmin, [
@@ -4952,13 +4955,29 @@ router.put('/promo-codes/:id', requireAdmin, [
         delete updateData[key];
       }
     });
-    // Normalize and persist allowedDays so the model setter definitely runs (instance.update can skip setters in some paths)
+    // Normalize and persist allowedDays as comma-separated string. We use raw query so the DB gets
+    // the correct format; save({ fields: ['allowedDays'] }) would read the attribute via the getter
+    // (array) and could persist the wrong type. Use positional ? to avoid dialect param issues.
     if ('allowedDays' in updateData) {
       const normalized = (updateData.allowedDays != null && Array.isArray(updateData.allowedDays) && updateData.allowedDays.length > 0)
         ? updateData.allowedDays
         : null;
-      promoCode.set('allowedDays', normalized);
-      await promoCode.save({ fields: ['allowedDays'] });
+      const allowedDaysStr = (normalized != null && normalized.length > 0)
+        ? normalized.map(d => Number(d)).filter(n => !Number.isNaN(n) && n >= 0 && n <= 6).join(',')
+        : null;
+      const promoIdNum = parseInt(promoId, 10);
+      if (Number.isNaN(promoIdNum)) {
+        return res.status(400).json({ error: 'Invalid promo code ID', message: 'Promo code ID must be a number' });
+      }
+      const [, meta] = await sequelize.query(
+        'UPDATE promo_codes SET allowed_days = ? WHERE id = ?',
+        { replacements: [allowedDaysStr, promoIdNum] }
+      );
+      const rowCount = meta?.rowCount ?? meta?.affectedRows;
+      if (rowCount !== undefined && rowCount !== null && Number(rowCount) === 0) {
+        logger.warn('Promo code allowed_days update affected 0 rows', { promoId: promoIdNum, allowedDaysStr });
+      }
+      promoCode.setDataValue('allowed_days', allowedDaysStr);
       delete updateData.allowedDays;
     }
 

@@ -16,6 +16,7 @@ const getOrderDateValue = (order) => {
 
 const getActiveOrdersCount = (orders) => orders.filter(o => !['delivered', 'cancelled'].includes(o.status)).length;
 
+// eslint-disable-next-line no-unused-vars -- reserved for item display formatting
 const formatItemDetails = (item) => {
   let details = item.name || 'Unknown Item';
   
@@ -208,6 +209,7 @@ const AdminOrders = () => {
 
   const normalizeStatusForUI = (status) => (status === 'ready' ? 'preparing' : status);
 
+  // eslint-disable-next-line no-unused-vars -- reserved for week-filtered order list
   const getWeekOrders = useCallback(() => {
     let list = [...allOrders];
     
@@ -228,6 +230,7 @@ const AdminOrders = () => {
     return list;
   }, [allOrders, filters.timeMode, filters.weekOffset]);
 
+  // eslint-disable-next-line no-unused-vars -- reserved for resolving restaurant name from order/item
   const getRestaurantNameForItem = (order, item) => {
     if (item.restaurantId) {
       const restaurant = restaurants.find(r => r.id === item.restaurantId);
@@ -810,7 +813,7 @@ const AdminOrders = () => {
                     {normalizeStatusForUI(selectedOrder.status).replace(/_/g, ' ').toUpperCase()}
                   </div>
                 </div>
-                <div className="order-meta">
+                <div className="order-meta order-meta--grid">
                   {(() => {
                     try {
                       const isMultiRestaurant = selectedOrder.restaurantGroups && Object.keys(selectedOrder.restaurantGroups).length > 1;
@@ -883,31 +886,23 @@ const AdminOrders = () => {
                     const restaurant = selectedOrder.restaurants?.find(r => r.id == restaurantId);
                     const restaurantName = restaurant?.name || restaurantId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
                     const groupItems = Array.isArray(group.items) ? group.items : Object.values(group.items || {});
+                    const groupSubtotal = groupItems.length > 0
+                      ? groupItems.reduce((sum, item) => sum + (parseFloat(item.price) || 0) * (parseInt(item.quantity, 10) || 0), 0)
+                      : parseFloat(group.subtotal) || 0;
                     return (
                       <div key={restaurantId} className="restaurant-order-group">
                         <h5 className="restaurant-name">{restaurantName}</h5>
-                        {groupItems.length > 0 ? groupItems.map((item, index) => (
+                        {groupItems.length > 0 ? groupItems.map((item, index) => {
+                          const itemTypeLabel = item.itemType === 'builder' ? 'Builder' : item.itemType === 'variety' ? 'Variety' : 'Regular';
+                          return (
                           <div key={`${restaurantId}-${index}`} className="order-item">
                             <div className="item-details">
-                            <div className="item-name">
-                              {item.name}
+                            <div className="item-name-row">
+                              <span className={`item-type-badge item-type-badge--${item.itemType || 'regular'}`}>{itemTypeLabel}</span>
+                              <span className="item-name">{item.name}</span>
+                            </div>
+                            <div className="item-name item-name--secondary">
                               {(() => {
-                                if (import.meta.env.DEV) {
-                                  console.log('Item data:', {
-                                    name: item.name,
-                                    itemType: item.itemType,
-                                    selectedVariant: item.selectedVariant,
-                                    variant: item.variant,
-                                    type: item.type,
-                                    selectedConfigurations: item.selectedConfigurations,
-                                    configurations: item.configurations,
-                                    config: item.config,
-                                    selections: item.selections,
-                                    options: item.options,
-                                    fullItem: item
-                                  });
-                                }
-                                
                                 const variant = item.selectedVariant || item.variant || item.type || 
                                                (item.options && item.options.selectedVariant) ||
                                                (item.options && item.options.variant);
@@ -959,22 +954,20 @@ const AdminOrders = () => {
                                 return null;
                               })()}
                             </div>
-                              
-                              {}
-                              {item.itemType === 'variety' && item.selectedVariant && item.selectedVariant.priceModifier !== 0 && (
+                              {item.itemType === 'variety' && item.selectedVariant && (
                                 <div className="item-variant">
                                   <span className="variant-label">Variant:</span>
                                   <span className="variant-name">{item.selectedVariant.name}</span>
-                                  <span className="variant-price-modifier">
-                                    ({item.selectedVariant.priceModifier > 0 ? '+' : ''}${item.selectedVariant.priceModifier.toFixed(2)})
-                                  </span>
+                                  {item.selectedVariant.priceModifier !== 0 && (
+                                    <span className="variant-price-modifier">
+                                      ({item.selectedVariant.priceModifier > 0 ? '+' : ''}${item.selectedVariant.priceModifier.toFixed(2)})
+                                    </span>
+                                  )}
                                 </div>
                               )}
-                              
-                              {}
-                              {item.itemType === 'builder' && item.selectedConfigurations && item.selectedConfigurations.length > 0 && (
+                              {item.itemType === 'builder' && item.selectedConfigurations && (Array.isArray(item.selectedConfigurations) ? item.selectedConfigurations.length > 0 : Object.keys(item.selectedConfigurations).length > 0) && (
                                 <div className="item-customizations">
-                                  <div className="customizations-label">Size & Options:</div>
+                                  <div className="customizations-label">Size & options</div>
                                   <div className="customization-list">
                                     {Array.isArray(item.selectedConfigurations) ? (
                                       item.selectedConfigurations.map((config, idx) => (
@@ -1044,12 +1037,13 @@ const AdminOrders = () => {
                                 </div>
                               )}
                             </div>
-                            <div className="item-quantity">x{item.quantity}</div>
+                            <div className="item-quantity">×{item.quantity}</div>
                             <div className="item-price">{formatCurrency((item.price || 0) * (item.quantity || 0))}</div>
                           </div>
-                        )) : <p>No items found for this restaurant</p>}
+                          );
+                        }) : <p className="order-items-empty">No items found for this restaurant</p>}
                         <div className="restaurant-subtotal">
-                          <strong>Restaurant Subtotal: {formatCurrency(parseFloat(group.subtotal || 0))}</strong>
+                          <strong>Restaurant Subtotal: {formatCurrency(groupSubtotal)}</strong>
                         </div>
                       </div>
                     );
@@ -1220,42 +1214,41 @@ const AdminOrders = () => {
                 </div>
               )}
 
-              {}
-              <div className="price-breakdown">
-                <h4>Order Summary</h4>
-                <div className="breakdown-line">
-                  <span>Subtotal:</span>
-                  <span>{formatCurrency(parseFloat(selectedOrder.subtotal || 0))}</span>
-                </div>
-                
-{selectedOrder.discountAmount && parseFloat(selectedOrder.discountAmount) > 0 && (
-                  <div className="breakdown-line discount-line">
-                    <span>Promo Discount{selectedOrder.appliedPromo?.code ? ` (${selectedOrder.appliedPromo.code})` : ''}:</span>
-                    <span className="discount-value">-{formatCurrency(parseFloat(selectedOrder.discountAmount))}</span>
+              <div className="order-summary-card">
+                <h4 className="order-summary-card__title">Order Summary</h4>
+                <div className="price-breakdown">
+                  <div className="breakdown-row">
+                    <span className="breakdown-label">Subtotal</span>
+                    <span className="breakdown-value">{formatCurrency(parseFloat(selectedOrder.subtotal || 0))}</span>
                   </div>
-                )}
-                {selectedOrder.appliedGiftCard && selectedOrder.appliedGiftCard.amountApplied > 0 && (
-                  <div className="breakdown-line discount-line">
-                    <span>Gift card ({selectedOrder.appliedGiftCard.code}):</span>
-                    <span className="discount-value">-{formatCurrency(parseFloat(selectedOrder.appliedGiftCard.amountApplied))}</span>
+                  {selectedOrder.discountAmount && parseFloat(selectedOrder.discountAmount) > 0 && (
+                    <div className="breakdown-row breakdown-row--discount">
+                      <span className="breakdown-label">Promo{selectedOrder.appliedPromo?.code ? ` (${selectedOrder.appliedPromo.code})` : ''}</span>
+                      <span className="breakdown-value breakdown-value--discount">-{formatCurrency(parseFloat(selectedOrder.discountAmount))}</span>
+                    </div>
+                  )}
+                  {selectedOrder.appliedGiftCard && selectedOrder.appliedGiftCard.amountApplied > 0 && (
+                    <div className="breakdown-row breakdown-row--discount">
+                      <span className="breakdown-label">Gift card ({selectedOrder.appliedGiftCard.code})</span>
+                      <span className="breakdown-value breakdown-value--discount">-{formatCurrency(parseFloat(selectedOrder.appliedGiftCard.amountApplied))}</span>
+                    </div>
+                  )}
+                  <div className="breakdown-row">
+                    <span className="breakdown-label">Delivery fee</span>
+                    <span className="breakdown-value">{formatCurrency(parseFloat(selectedOrder.deliveryFee || selectedOrder.delivery_fee || 5.99))}</span>
                   </div>
-                )}
-
-                <div className="breakdown-line">
-                  <span>Delivery Fee:</span>
-                  <span>{formatCurrency(parseFloat(selectedOrder.deliveryFee || selectedOrder.delivery_fee || 5.99))}</span>
-                </div>
-                <div className="breakdown-line">
-                  <span>Tip:</span>
-                  <span>{formatCurrency(parseFloat(selectedOrder.tip || 0))}</span>
-                </div>
-                <div className="breakdown-line">
-                  <span>Tax:</span>
-                  <span>{formatCurrency(parseFloat(selectedOrder.tax || 0))}</span>
-                </div>
-                <div className="breakdown-line total-line">
-                  <span><strong>Total:</strong></span>
-                  <span><strong>{formatCurrency(parseFloat(selectedOrder.total || 0))}</strong></span>
+                  <div className="breakdown-row">
+                    <span className="breakdown-label">Tip</span>
+                    <span className="breakdown-value">{formatCurrency(parseFloat(selectedOrder.tip || 0))}</span>
+                  </div>
+                  <div className="breakdown-row">
+                    <span className="breakdown-label">Tax</span>
+                    <span className="breakdown-value">{formatCurrency(parseFloat(selectedOrder.tax || 0))}</span>
+                  </div>
+                  <div className="breakdown-row breakdown-row--total">
+                    <span className="breakdown-label">Total</span>
+                    <span className="breakdown-value breakdown-value--total">{formatCurrency(parseFloat(selectedOrder.total || 0))}</span>
+                  </div>
                 </div>
               </div>
               {selectedOrder.giftCards && selectedOrder.giftCards.length > 0 && (
