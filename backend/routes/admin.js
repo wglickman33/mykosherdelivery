@@ -4965,7 +4965,9 @@ router.put('/promo-codes/:id', requireAdmin, [
       }
     }
 
-    await promoCode.update(updateData);
+    const modelAttrNames = Object.keys(PromoCode.rawAttributes);
+    const fieldsToUpdate = Object.keys(updateData).filter(k => modelAttrNames.includes(k));
+    await promoCode.update(updateData, { fields: fieldsToUpdate.length ? fieldsToUpdate : undefined });
 
     await logAdminAction(
       req.userId,
