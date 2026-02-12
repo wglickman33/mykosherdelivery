@@ -12,7 +12,8 @@ import {
   fetchRevenueByRestaurant,
   fetchRevenueByTimeOfDay,
   fetchRevenueByDayOfWeek,
-  fetchTopRevenueUsers
+  fetchTopRevenueUsers,
+  fetchTaxProfitAnalytics
 } from '../../services/adminServices';
 
 const AdminAnalyticsRevenue = () => {
@@ -24,6 +25,7 @@ const AdminAnalyticsRevenue = () => {
   const [revenueByTimeOfDay, setRevenueByTimeOfDay] = useState([]);
   const [revenueByDayOfWeek, setRevenueByDayOfWeek] = useState([]);
   const [topRevenueUsers, setTopRevenueUsers] = useState([]);
+  const [revenueBreakdown, setRevenueBreakdown] = useState(null);
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
@@ -41,18 +43,26 @@ const AdminAnalyticsRevenue = () => {
         setAnalyticsData(analyticsResult.data);
       }
 
+      const now = new Date();
+      const end = new Date(now);
+      const start = new Date(now);
+      start.setDate(start.getDate() - 30);
+      const breakdownParams = { startDate: start.toISOString().slice(0, 10), endDate: end.toISOString().slice(0, 10) };
+
       const [
         trendsResult,
         restaurantResult,
         timeOfDayResult,
         dayOfWeekResult,
-        topUsersResult
+        topUsersResult,
+        taxProfitResult
       ] = await Promise.all([
         fetchRevenueTrends(revenuePeriod),
         fetchRevenueByRestaurant('30d'),
         fetchRevenueByTimeOfDay('30d'),
         fetchRevenueByDayOfWeek('30d'),
-        fetchTopRevenueUsers('30d')
+        fetchTopRevenueUsers('30d'),
+        fetchTaxProfitAnalytics(breakdownParams)
       ]);
 
       if (trendsResult.success) setRevenueTrends(trendsResult.data);
@@ -60,6 +70,8 @@ const AdminAnalyticsRevenue = () => {
       if (timeOfDayResult.success) setRevenueByTimeOfDay(timeOfDayResult.data);
       if (dayOfWeekResult.success) setRevenueByDayOfWeek(dayOfWeekResult.data);
       if (topUsersResult.success) setTopRevenueUsers(topUsersResult.data);
+      if (taxProfitResult.success && taxProfitResult.data?.revenue) setRevenueBreakdown(taxProfitResult.data.revenue);
+      else setRevenueBreakdown(null);
     } catch (error) {
       console.error('Error fetching revenue analytics:', error);
     } finally {
@@ -145,6 +157,21 @@ const AdminAnalyticsRevenue = () => {
             </div>
           </div>
         </div>
+
+        {revenueBreakdown != null && (
+          <div className="chart-section">
+            <h3>Revenue breakdown (last 30 days)</h3>
+            <p style={{ color: '#64748b', marginBottom: '12px' }}>Composition of order revenue by type</p>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, maxWidth: '400px' }}>
+              <li style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #e2e8f0' }}><span>Subtotal</span><span>{formatCurrency(revenueBreakdown.subtotal)}</span></li>
+              <li style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #e2e8f0' }}><span>Delivery fee</span><span>{formatCurrency(revenueBreakdown.deliveryFee)}</span></li>
+              <li style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #e2e8f0' }}><span>Tips</span><span>{formatCurrency(revenueBreakdown.tip)}</span></li>
+              <li style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #e2e8f0' }}><span>Tax collected</span><span>{formatCurrency(revenueBreakdown.tax)}</span></li>
+              <li style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #e2e8f0' }}><span>Discounts</span><span>{formatCurrency(revenueBreakdown.discountAmount)}</span></li>
+              <li style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontWeight: 600 }}><span>Total revenue</span><span>{formatCurrency(revenueBreakdown.total)}</span></li>
+            </ul>
+          </div>
+        )}
 
         {}
         <div className="chart-section">

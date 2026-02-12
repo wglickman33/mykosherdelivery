@@ -273,6 +273,207 @@ router.post(
   }
 );
 
+// Guest checkout: create payment intent for orders with userId null (no auth)
+router.post(
+  "/create-guest-intent",
+  [
+    body("amount")
+      .isNumeric()
+      .custom((value) => {
+        if (value <= 0 || value > 999999) {
+          throw new Error("Invalid payment amount");
+        }
+        return true;
+      }),
+    body("currency").isIn(["usd"]),
+    body("orderIds").isArray({ min: 1, max: 50 }).withMessage("orderIds must contain 1–50 order IDs"),
+    body("orderIds.*").isUUID().withMessage("Each order ID must be a valid UUID"),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          error: "Validation failed",
+          details: errors.array(),
+        });
+      }
+
+      const { amount, currency, orderIds } = req.body;
+
+      const orders = await Order.findAll({
+        where: {
+          id: orderIds,
+          userId: null,
+          status: "pending",
+        },
+      });
+
+      if (orders.length !== orderIds.length) {
+        return res.status(400).json({
+          error: "Invalid orders",
+          message: "Some orders are invalid or already processed",
+        });
+      }
+
+      const calculatedTotal = orders.reduce(
+        (sum, order) => sum + parseFloat(order.total),
+        0
+      );
+      const providedTotal = amount / 100;
+
+      if (Math.abs(calculatedTotal - providedTotal) > 0.01) {
+        return res.status(400).json({
+          error: "Amount mismatch",
+          message: "Payment amount does not match order total",
+        });
+      }
+
+      const client = stripe();
+      if (!client) {
+        return res.status(503).json({
+          error: "Payment provider not configured",
+          message: "Stripe is not configured. Set STRIPE_SECRET_KEY in environment.",
+        });
+      }
+
+      const paymentIntent = await client.paymentIntents.create({
+        amount: Math.round(amount),
+        currency: currency || "usd",
+        metadata: {
+          guest: "true",
+          orderIds: orderIds.join(","),
+          orderCount: orderIds.length,
+        },
+        automatic_payment_methods: { enabled: true },
+      });
+
+      logger.info("Guest payment intent created", {
+        paymentIntentId: paymentIntent.id,
+        amount: amount,
+        orderCount: orderIds.length,
+      });
+
+      res.json({
+        success: true,
+        clientSecret: paymentIntent.client_secret,
+        paymentIntentId: paymentIntent.id,
+        status: paymentIntent.status,
+        orderIds,
+      });
+    } catch (error) {
+      logger.error("Guest create-intent failed:", error);
+      res.status(500).json({
+        error: "Payment processing error",
+        message: "Unable to create payment intent. Please try again.",
+      });
+    }
+  }
+);
+
+// Guest checkout: confirm payment and update guest orders (no auth)
+router.post(
+  "/confirm-guest-intent",
+  [body("paymentIntentId").isString().notEmpty()],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          error: "Validation failed",
+          details: errors.array(),
+        });
+      }
+
+      const { paymentIntentId } = req.body;
+
+      const client = stripe();
+      if (!client) {
+        return res.status(503).json({
+          error: "Payment provider not configured",
+          message: "Stripe is not configured. Set STRIPE_SECRET_KEY in environment.",
+        });
+      }
+
+      const paymentIntent = await client.paymentIntents.retrieve(paymentIntentId);
+
+      if (paymentIntent.metadata.guest !== "true") {
+        return res.status(403).json({
+          error: "Access denied",
+          message: "Not a guest payment intent",
+        });
+      }
+
+      if (paymentIntent.status === "succeeded") {
+        const orderIds = paymentIntent.metadata.orderIds.split(",");
+
+        await Order.update(
+          {
+            status: "pending",
+            stripePaymentIntentId: paymentIntentId,
+            paymentAmount: paymentIntent.amount / 100,
+            updatedAt: new Date(),
+          },
+          {
+            where: {
+              id: orderIds,
+              userId: null,
+            },
+          }
+        );
+
+        logger.info("Guest payment confirmed, orders updated", {
+          paymentIntentId,
+          orderIds,
+          amount: paymentIntent.amount / 100,
+        });
+
+        try {
+          const orders = await Order.findAll({
+            where: { id: orderIds },
+            include: [
+              { model: Profile, as: "user", attributes: ["id", "firstName", "lastName", "email", "phone"], required: false },
+              { model: Restaurant, as: "restaurant", attributes: ["id", "name", "address", "phone"], required: false },
+            ],
+          });
+
+          for (const order of orders) {
+            if (order.shipdayOrderId) {
+              logger.debug("Guest order already sent to Shipday, skipping", { orderId: order.id, orderNumber: order.orderNumber });
+              continue;
+            }
+            try {
+              const shipdayResult = await sendOrderToShipday(order);
+              if (shipdayResult.success && shipdayResult.shipdayOrderId) {
+                await order.update({ shipdayOrderId: shipdayResult.shipdayOrderId });
+                logger.info("Guest order sent to Shipday", { orderId: order.id, orderNumber: order.orderNumber, shipdayOrderId: shipdayResult.shipdayOrderId });
+              } else {
+                logger.error("Guest order Shipday failed", { orderId: order.id, orderNumber: order.orderNumber, error: shipdayResult.error });
+              }
+            } catch (shipdayError) {
+              logger.error("Guest order Shipday exception", { orderId: order.id, error: shipdayError.message });
+            }
+          }
+        } catch (err) {
+          logger.error("Guest confirm Shipday error", err);
+        }
+      }
+
+      res.json({
+        success: true,
+        status: paymentIntent.status,
+        paymentIntentId: paymentIntentId,
+      });
+    } catch (error) {
+      logger.error("Guest confirm-intent failed:", error);
+      res.status(500).json({
+        error: "Payment confirmation failed",
+        message: "Unable to confirm payment. Please try again.",
+      });
+    }
+  }
+);
+
 router.post(
   "/confirm-intent",
   authenticateToken,

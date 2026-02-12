@@ -84,26 +84,20 @@ class ApiClient {
       if (response.status === 401) {
         const errorData = await response.json().catch(() => ({}));
         const hadToken = !!token;
+        // Always clear token and notify app so UI state stays in sync (e.g. checkout 401 with expired/missing token)
+        this.setToken(null);
+        try {
+          window.dispatchEvent(new CustomEvent("mkd-auth-invalid"));
+        } catch (e) {
+          logger.debug("mkd-auth-invalid dispatch", e);
+        }
         if (
           hadToken &&
           (errorData.error === "Token expired" ||
             errorData.error === "Invalid token" ||
             errorData.error === "Token revoked")
         ) {
-          logger.warn("Token invalid for this server - clearing (e.g. switched API URL)", errorData);
-          this.setToken(null);
-          try {
-            window.dispatchEvent(new CustomEvent("mkd-auth-invalid"));
-          } catch (e) {
-            logger.debug("mkd-auth-invalid dispatch", e);
-          }
-        } else if (hadToken) {
-          this.setToken(null);
-          try {
-            window.dispatchEvent(new CustomEvent("mkd-auth-invalid"));
-          } catch (e) {
-            logger.debug("mkd-auth-invalid dispatch", e);
-          }
+          logger.warn("Token invalid for this server", errorData);
         }
         throw new Error(errorData.message || "Authentication required. Please sign in again.");
       }

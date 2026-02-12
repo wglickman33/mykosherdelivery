@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { CreditCard, Lock, Plus, Check } from "lucide-react";
 import PropTypes from "prop-types";
 import { useAuth } from "../../hooks/useAuth";
-import { processPayment } from "../../services/paymentServices";
+import { processPayment, createGuestOrder, createGuestPaymentIntent, confirmGuestPaymentIntent } from "../../services/paymentServices";
 import apiClient from "../../lib/api";
 import { loadStripe } from '@stripe/stripe-js';
 import {
@@ -150,7 +150,8 @@ const PaymentStep = ({
   onTipPercentageChange, 
   onCustomTipChange 
 }) => {
-  const { profile } = useAuth();
+  const { profile, user, isGuest } = useAuth();
+  const isGuestCheckout = isGuest || !user;
   const [selectedMethod, setSelectedMethod] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState("");
@@ -216,12 +217,11 @@ const PaymentStep = ({
       });
 
       const subtotal = orderData.subtotal;
-
       const orderPayload = {
-        restaurantGroups: restaurantGroups,
+        restaurantGroups,
         deliveryAddress: orderData.deliveryAddress,
         deliveryInstructions: orderData.contactInfo?.deliveryInstructions || null,
-        subtotal: subtotal,
+        subtotal,
         deliveryFee: orderData.deliveryFee || 0,
         tax: orderData.tax || 0,
         total: orderData.total,
@@ -231,47 +231,82 @@ const PaymentStep = ({
         appliedGiftCard: orderData.appliedGiftCard || null
       };
 
-      const orderResponse = await apiClient.post('/orders', orderPayload);
+      let orderIds = [];
 
+      if (isGuestCheckout) {
+        const guestInfo = {
+          email: orderData.contactInfo?.email || '',
+          phone: orderData.contactInfo?.phone || '',
+          firstName: orderData.contactInfo?.firstName || '',
+          lastName: orderData.contactInfo?.lastName || ''
+        };
+        const guestResult = await createGuestOrder({
+          ...orderPayload,
+          guestInfo
+        });
+        if (!guestResult.success || !guestResult.orders?.length) {
+          throw new Error(guestResult.error || 'Failed to create guest order');
+        }
+        orderIds = guestResult.orders.map(o => o.id).filter(Boolean);
+        if (orderIds.length === 0) throw new Error('Invalid order IDs from guest order');
+
+        const intentResult = await createGuestPaymentIntent(
+          orderIds,
+          Math.round(orderData.total * 100),
+          'usd'
+        );
+        if (!intentResult.success || !intentResult.clientSecret) {
+          throw new Error(intentResult.error || 'Failed to create payment intent');
+        }
+        const orderNumber = guestResult.orders[0]?.orderNumber || guestResult.orders[0]?.order_number || null;
+        const stripeData = {
+          clientSecret: intentResult.clientSecret,
+          paymentIntentId: intentResult.paymentIntentId,
+          status: intentResult.status,
+          amount: Math.round(orderData.total * 100),
+          orderIds,
+          orderNumber,
+          isGuest: true
+        };
+        setStripePaymentData(stripeData);
+        return stripeData;
+      }
+
+      const orderResponse = await apiClient.post('/orders', orderPayload);
       if (!orderResponse.success || !orderResponse.data) {
         throw new Error('Failed to create orders');
       }
-
       const ordersArray = Array.isArray(orderResponse.data?.orders)
         ? orderResponse.data.orders
         : (Array.isArray(orderResponse.data) ? orderResponse.data : []);
-      const orderIds = ordersArray
-        .map(order => order?.id)
-        .filter(Boolean);
-
-      if (!orderIds || orderIds.length === 0 || orderIds.some(id => !id)) {
+      orderIds = ordersArray.map(order => order?.id).filter(Boolean);
+      if (!orderIds.length || orderIds.some(id => !id)) {
         throw new Error('Invalid order IDs extracted from response');
       }
 
       const paymentIntentResponse = await apiClient.post('/payments/create-intent', {
         amount: Math.round(orderData.total * 100),
         currency: 'usd',
-        orderIds: orderIds
+        orderIds
       });
-
       if (!paymentIntentResponse.success) {
         throw new Error(paymentIntentResponse.error || 'Failed to create payment intent');
       }
-
       const stripeData = {
         clientSecret: paymentIntentResponse.clientSecret,
         paymentIntentId: paymentIntentResponse.paymentIntentId,
         status: paymentIntentResponse.status,
         amount: Math.round(orderData.total * 100),
-        orderIds: orderIds
+        orderIds
       };
-
       setStripePaymentData(stripeData);
       return stripeData;
 
     } catch (error) {
       console.error('Payment intent creation failed:', error);
-      setErrorWithTimeout(error.message || 'Payment setup failed. Please try again.');
+      const msg = (error.message || '').toLowerCase();
+      const isAuthError = msg.includes('authentication') || msg.includes('sign in') || msg.includes('session') || msg.includes('token') || msg.includes('please sign in');
+      setErrorWithTimeout(isAuthError ? 'Your session expired. Please sign in again to complete your order.' : (error.message || 'Payment setup failed. Please try again.'));
       throw error;
     } finally {
       setIsProcessing(false);
@@ -279,56 +314,61 @@ const PaymentStep = ({
   };
 
   const handleStripePaymentSuccess = async (paymentIntent, paymentMeta = {}) => {
-    const orderIds = paymentMeta?.orderIds || stripePaymentData?.orderIds;
-    let orderNumber = null;
+    const meta = {
+      ...(paymentMeta || {}),
+      ...(stripePaymentData || {})
+    };
+    const orderIds = meta?.orderIds || paymentMeta?.orderIds || stripePaymentData?.orderIds;
+    let orderNumber = meta.orderNumber || null;
 
-    if (orderIds && orderIds.length > 0) {
+    if (!meta.isGuest && orderIds?.length > 0) {
       try {
         const firstOrderId = orderIds[0];
         const orderResponse = await apiClient.get(`/orders/${firstOrderId}`);
-        if (orderResponse && orderResponse.orderNumber) {
-          orderNumber = orderResponse.orderNumber;
-        } else if (orderResponse && orderResponse.order_number) {
-          orderNumber = orderResponse.order_number;
-        } else if (orderResponse && orderResponse.id) {
-          orderNumber = orderResponse.id;
-        }
+        if (orderResponse?.orderNumber) orderNumber = orderResponse.orderNumber;
+        else if (orderResponse?.order_number) orderNumber = orderResponse.order_number;
+        else if (orderResponse?.id) orderNumber = orderResponse.id;
       } catch (orderError) {
         console.warn('Failed to fetch order number:', orderError);
       }
     }
 
     try {
-      const meta = {
-        ...(paymentMeta || {}),
-        ...(stripePaymentData || {})
-      };
 
       if (!meta.orderIds || meta.orderIds.length === 0) {
         throw new Error('Payment succeeded but order metadata is missing.');
       }
 
-      try {
-        console.log('Confirming payment intent on backend...', { paymentIntentId: paymentIntent.id });
-        const confirmResult = await apiClient.post('/payments/confirm-intent', {
-          paymentIntentId: paymentIntent.id
-        });
-        console.log('Payment confirmed on backend:', confirmResult);
-      } catch (confirmError) {
-        console.error('Failed to confirm payment intent on backend:', confirmError);
+      if (meta.isGuest) {
+        const confirmOk = await confirmGuestPaymentIntent(paymentIntent.id);
+        if (!confirmOk) console.warn('Guest payment confirm returned false');
+      } else {
+        try {
+          const confirmResult = await apiClient.post('/payments/confirm-intent', {
+            paymentIntentId: paymentIntent.id
+          });
+          console.log('Payment confirmed on backend:', confirmResult);
+        } catch (confirmError) {
+          console.error('Failed to confirm payment intent on backend:', confirmError);
+        }
       }
 
-      const emailResult = await apiClient.post('/orders/send-confirmation', {
-        orderIds: meta.orderIds,
-        customerInfo: {
-          firstName: profile?.firstName || 'Customer',
-          lastName: profile?.lastName || '',
-          email: profile?.email || ''
-        },
-        total: (meta.amount || orderData.total * 100) / 100
-      });
-
-      console.log('Email sent:', emailResult);
+      if (!meta.isGuest) {
+        try {
+          const emailResult = await apiClient.post('/orders/send-confirmation', {
+            orderIds: meta.orderIds,
+            customerInfo: {
+              firstName: profile?.firstName || 'Customer',
+              lastName: profile?.lastName || '',
+              email: profile?.email || ''
+            },
+            total: (meta.amount || orderData.total * 100) / 100
+          });
+          console.log('Email sent:', emailResult);
+        } catch (emailErr) {
+          console.warn('Send confirmation failed:', emailErr);
+        }
+      }
     } catch (error) {
       console.error('Failed to send confirmation email:', error);
     }
@@ -427,7 +467,6 @@ const PaymentStep = ({
       });
 
       const orderPayload = {
-        userId: profile?.id,
         restaurantGroups,
         deliveryAddress: orderData.deliveryAddress,
         deliveryInstructions: orderData.contactInfo?.deliveryInstructions || null,
@@ -441,13 +480,44 @@ const PaymentStep = ({
         appliedGiftCard: orderData.appliedGiftCard || null
       };
 
-      const orderResponse = await apiClient.post('/orders', orderPayload);
+      let orderResponse;
+      let orderIds = [];
+
+      if (isGuestCheckout) {
+        const guestInfo = {
+          email: orderData.contactInfo?.email || '',
+          phone: orderData.contactInfo?.phone || '',
+          firstName: orderData.contactInfo?.firstName || '',
+          lastName: orderData.contactInfo?.lastName || ''
+        };
+        const guestResult = await createGuestOrder({ ...orderPayload, guestInfo });
+        if (!guestResult.success || !guestResult.orders?.length) {
+          throw new Error(guestResult.error || 'Failed to create guest order');
+        }
+        orderIds = guestResult.orders.map(o => o.id).filter(Boolean);
+        const intentResult = await createGuestPaymentIntent(orderIds, Math.round(orderData.total * 100), 'usd');
+        if (!intentResult.success || !intentResult.clientSecret) {
+          throw new Error(intentResult.error || 'Failed to create payment intent');
+        }
+        setStripePaymentData({
+          clientSecret: intentResult.clientSecret,
+          paymentIntentId: intentResult.paymentIntentId,
+          orderIds,
+          amount: Math.round(orderData.total * 100),
+          orderNumber: guestResult.orders[0]?.orderNumber || guestResult.orders[0]?.order_number || null,
+          isGuest: true
+        });
+        return;
+      }
+
+      orderPayload.userId = profile?.id;
+      orderResponse = await apiClient.post('/orders', orderPayload);
 
       if (!orderResponse.success) {
         throw new Error('Failed to create order');
       }
 
-      const orderIds = orderResponse.data.orders.map(order => order.id);
+      orderIds = orderResponse.data.orders.map(order => order.id);
       
       let paymentResult;
       
@@ -501,8 +571,12 @@ const PaymentStep = ({
       console.error('Payment failed:', error);
       
       let friendlyMessage = "We're having trouble processing your payment right now. Please try again in a moment.";
+      const msg = (error.message || '').toLowerCase();
+      const isAuthError = msg.includes('authentication') || msg.includes('sign in') || msg.includes('session') || msg.includes('token') || msg.includes('please sign in');
       
-      if (error.message?.includes('restaurant information')) {
+      if (isAuthError) {
+        friendlyMessage = "Your session expired. Please sign in again to complete your order.";
+      } else if (error.message?.includes('restaurant information')) {
         friendlyMessage = "There's an issue with your order. Please refresh the page and try again.";
       } else if (error.message?.includes('order')) {
         friendlyMessage = "We couldn't process your order right now. Please try again or contact support if the issue continues.";

@@ -3,6 +3,24 @@
   background: #f8fafc;
   min-height: 100vh;
 
+  .analytics-hub-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    max-width: 640px;
+
+    .analytics-card-button {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      min-height: 140px;
+
+      > div:first-child {
+        flex-shrink: 0;
+      }
+    }
+  }
+
   .analytics-header {
     display: flex;
     justify-content: space-between;
@@ -61,6 +79,9 @@
 
   .analytics-tabs {
     display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
     border-bottom: 1px solid #e2e8f0;
     margin-bottom: 32px;
     background: white;
@@ -69,8 +90,12 @@
     box-shadow: 0 2px 8px rgba(6, 23, 87, 0.06);
     border: 1px solid rgba(6, 23, 87, 0.08);
     border-bottom: none;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
 
     .tab-button {
+      flex-shrink: 0;
+      white-space: nowrap;
       padding: 16px 24px;
       border: none;
       background: none;

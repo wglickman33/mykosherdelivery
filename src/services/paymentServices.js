@@ -258,13 +258,18 @@ export const sendOrderConfirmationEmail = async (orderData) => {
 export const createGuestOrder = async (orderData) => {
   try {
     const {
-      guestInfo,
+      guestInfo = {},
       restaurantGroups,
       deliveryAddress,
       deliveryInstructions,
       subtotal,
       deliveryFee,
-      tax
+      tax,
+      total,
+      tip,
+      discountAmount,
+      appliedPromo,
+      appliedGiftCard
     } = orderData;
 
     const response = await apiClient.post('/orders/guest', {
@@ -274,16 +279,55 @@ export const createGuestOrder = async (orderData) => {
       deliveryInstructions,
       subtotal,
       deliveryFee,
-      tax
+      tax,
+      total,
+      tip: tip || 0,
+      discountAmount: discountAmount || 0,
+      appliedPromo: appliedPromo || null,
+      appliedGiftCard: appliedGiftCard || null
     });
 
     if (response.success) {
-      return { success: true, orders: response.data };
+      const orders = response.data?.orders ?? response.data;
+      return { success: true, data: response.data, orders: Array.isArray(orders) ? orders : [orders] };
     } else {
-      throw new Error(response.error || 'Failed to create guest orders');
+      throw new Error(response.error || 'Failed to create guest order');
     }
   } catch (error) {
     logger.error('Error creating guest orders:', error);
     return { success: false, error: error.message };
+  }
+};
+
+export const createGuestPaymentIntent = async (orderIds, amountCents, currency = 'usd') => {
+  try {
+    const response = await apiClient.post('/payments/create-guest-intent', {
+      orderIds,
+      amount: amountCents,
+      currency
+    });
+    if (response.success) {
+      return {
+        success: true,
+        clientSecret: response.clientSecret,
+        paymentIntentId: response.paymentIntentId,
+        status: response.status,
+        orderIds: response.orderIds
+      };
+    }
+    throw new Error(response.error || 'Failed to create guest payment intent');
+  } catch (error) {
+    logger.error('Error creating guest payment intent:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const confirmGuestPaymentIntent = async (paymentIntentId) => {
+  try {
+    const response = await apiClient.post('/payments/confirm-guest-intent', { paymentIntentId });
+    return !!response.success;
+  } catch (error) {
+    logger.error('Error confirming guest payment:', error);
+    return false;
   }
 }; 

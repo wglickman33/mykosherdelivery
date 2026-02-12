@@ -25,10 +25,14 @@ const retryWithBackoff = async (fn, maxRetries = 3, baseDelay = 1000) => {
 const mapOrderToShipdayFormat = (order) => {
   try {
     const orderData = order.toJSON ? order.toJSON() : order;
+    const isGuestOrder = orderData.userId == null;
     const customer = orderData.user || {};
+    const deliveryAddress = orderData.deliveryAddress || {};
 
     let customerName = 'Customer';
-    if (customer.firstName && customer.lastName) {
+    if (isGuestOrder && deliveryAddress.guestName) {
+      customerName = String(deliveryAddress.guestName).trim();
+    } else if (customer.firstName && customer.lastName) {
       customerName = `${customer.firstName} ${customer.lastName}`.trim();
     } else if (customer.firstName) {
       customerName = customer.firstName;
@@ -39,17 +43,18 @@ const mapOrderToShipdayFormat = (order) => {
     } else if (customer.name) {
       customerName = customer.name;
     }
-    
-    const deliveryAddress = orderData.deliveryAddress || {};
+
     const addressLine1 = deliveryAddress.address || deliveryAddress.street || deliveryAddress.addressLine1 || '';
-    const addressLine2 = deliveryAddress.addressLine2 || deliveryAddress.apt || deliveryAddress.unit || '';
+    const addressLine2 = deliveryAddress.addressLine2 || deliveryAddress.apt || deliveryAddress.apartment || deliveryAddress.unit || '';
     const city = deliveryAddress.city || '';
     const state = deliveryAddress.state || '';
-    const zipCode = deliveryAddress.zipCode || deliveryAddress.zip || deliveryAddress.postalCode || '';
-    let phoneNumber = customer.phone || customer.phoneNumber || deliveryAddress.phone || '';
-    phoneNumber = phoneNumber.replace(/\D/g, '');
-    
-    const email = customer.email || '';
+    const zipCode = deliveryAddress.zipCode || deliveryAddress.zip_code || deliveryAddress.zip || deliveryAddress.postalCode || '';
+    let phoneNumber = isGuestOrder
+      ? (deliveryAddress.guestPhone || '')
+      : (customer.phone || customer.phoneNumber || deliveryAddress.phone || '');
+    phoneNumber = String(phoneNumber).replace(/\D/g, '');
+
+    const email = isGuestOrder ? (deliveryAddress.guestEmail || '') : (customer.email || '');
     let orderItems = [];
     
     if (orderData.restaurantGroups && Object.keys(orderData.restaurantGroups).length > 0) {

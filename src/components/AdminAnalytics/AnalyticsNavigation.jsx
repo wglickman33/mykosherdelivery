@@ -11,7 +11,12 @@ const AnalyticsNavigation = () => {
     { id: 'orders', label: 'Orders', path: '/admin/analytics/orders' },
     { id: 'users', label: 'Users', path: '/admin/analytics/users' },
     { id: 'restaurants', label: 'Restaurants', path: '/admin/analytics/restaurants' },
-    { id: 'gift-cards', label: 'Gift Cards', path: '/admin/analytics/gift-cards' }
+    { id: 'gift-cards', label: 'Gift Cards', path: '/admin/analytics/gift-cards' },
+    { id: 'promos', label: 'Promos', path: '/admin/analytics/promos' },
+    { id: 'refunds', label: 'Refunds', path: '/admin/analytics/refunds' },
+    { id: 'support', label: 'Support', path: '/admin/analytics/support' },
+    { id: 'nursing-home', label: 'Nursing Home', path: '/admin/analytics/nursing-home' },
+    { id: 'tax-profit', label: 'Tax & Profit', path: '/admin/analytics/tax-profit' }
   ];
 
   const getCurrentTab = () => {

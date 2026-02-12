@@ -10,7 +10,7 @@ function stripe() {
   if (stripeClient === null) stripeClient = getStripe();
   return stripeClient;
 }
-const { Profile, Order, Restaurant, DeliveryZone, SupportTicket, TicketResponse, AdminNotification, Notification, AdminAuditLog, sequelize, MenuItem, MenuItemOption, UserRestaurantFavorite, MenuChangeRequest, UserLoginActivity, UserPreference, UserAnalytic, PaymentMethod, RestaurantOwner, Refund, PromoCode, GiftCard } = require('../models');
+const { Profile, Order, Restaurant, DeliveryZone, SupportTicket, TicketResponse, AdminNotification, Notification, AdminAuditLog, sequelize, MenuItem, MenuItemOption, UserRestaurantFavorite, MenuChangeRequest, UserLoginActivity, UserPreference, UserAnalytic, PaymentMethod, RestaurantOwner, Refund, PromoCode, GiftCard, PlatformExpense, NursingHomeFacility, NursingHomeOrder, NursingHomeInvoice } = require('../models');
 const { requireAdmin } = require('../middleware/auth');
 const { body, param, validationResult } = require('express-validator');
 const { VALID_PROFILE_ROLES } = require('../config/constants');
@@ -1192,6 +1192,382 @@ router.get('/analytics/gift-cards', requireAdmin, async (req, res) => {
   } catch (error) {
     console.error('Error fetching gift card analytics:', error);
     res.status(500).json({ error: 'Internal server error', message: 'Failed to fetch gift card analytics' });
+  }
+});
+
+// --- Platform expenses (deductions) CRUD ---
+router.get('/expenses', requireAdmin, async (req, res) => {
+  try {
+    const { startDate, endDate, category, limit = 500, offset = 0 } = req.query;
+    const where = {};
+    if (startDate || endDate) {
+      where.expenseDate = {};
+      if (startDate) where.expenseDate[Op.gte] = startDate;
+      if (endDate) where.expenseDate[Op.lte] = endDate;
+    }
+    if (category) where.category = category;
+    const limitNum = Math.min(parseInt(limit, 10) || 500, 1000);
+    const offsetNum = parseInt(offset, 10) || 0;
+    const { rows, count } = await PlatformExpense.findAndCountAll({
+      where,
+      order: [['expenseDate', 'DESC'], ['createdAt', 'DESC']],
+      limit: limitNum,
+      offset: offsetNum,
+      include: [{ model: Profile, as: 'creator', attributes: ['id', 'firstName', 'lastName', 'email'] }]
+    });
+    res.json({ success: true, data: rows, total: count });
+  } catch (error) {
+    logger.error('Error listing expenses:', error);
+    res.status(500).json({ error: 'Internal server error', message: 'Failed to list expenses' });
+  }
+});
+
+router.post('/expenses', requireAdmin, [
+  body('expenseDate').notEmpty().isDate({ format: 'YYYY-MM-DD', strictMode: true }),
+  body('category').notEmpty().trim().isLength({ min: 1, max: 64 }),
+  body('amount').isFloat({ min: 0 }),
+  body('note').optional().trim()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ error: 'Validation failed', details: errors.array() });
+    const { expenseDate, category, amount, note } = req.body;
+    const expense = await PlatformExpense.create({
+      expenseDate,
+      category: String(category).trim(),
+      amount: parseFloat(amount),
+      note: note ? String(note).trim() : null,
+      createdBy: req.user?.id || null
+    });
+    res.status(201).json({ success: true, data: expense });
+  } catch (error) {
+    logger.error('Error creating expense:', error);
+    res.status(500).json({ error: 'Internal server error', message: 'Failed to create expense' });
+  }
+});
+
+router.get('/expenses/:expenseId', requireAdmin, async (req, res) => {
+  try {
+    const expense = await PlatformExpense.findByPk(req.params.expenseId, {
+      include: [{ model: Profile, as: 'creator', attributes: ['id', 'firstName', 'lastName', 'email'] }]
+    });
+    if (!expense) return res.status(404).json({ error: 'Expense not found' });
+    res.json({ success: true, data: expense });
+  } catch (error) {
+    logger.error('Error fetching expense:', error);
+    res.status(500).json({ error: 'Internal server error', message: 'Failed to fetch expense' });
+  }
+});
+
+router.put('/expenses/:expenseId', requireAdmin, [
+  param('expenseId').isUUID(),
+  body('expenseDate').optional().isDate({ format: 'YYYY-MM-DD', strictMode: true }),
+  body('category').optional().trim().isLength({ min: 1, max: 64 }),
+  body('amount').optional().isFloat({ min: 0 }),
+  body('note').optional().trim()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ error: 'Validation failed', details: errors.array() });
+    const expense = await PlatformExpense.findByPk(req.params.expenseId);
+    if (!expense) return res.status(404).json({ error: 'Expense not found' });
+    if (req.body.expenseDate != null) expense.expenseDate = req.body.expenseDate;
+    if (req.body.category != null) expense.category = String(req.body.category).trim();
+    if (req.body.amount != null) expense.amount = parseFloat(req.body.amount);
+    if (req.body.note !== undefined) expense.note = req.body.note ? String(req.body.note).trim() : null;
+    await expense.save();
+    res.json({ success: true, data: expense });
+  } catch (error) {
+    logger.error('Error updating expense:', error);
+    res.status(500).json({ error: 'Internal server error', message: 'Failed to update expense' });
+  }
+});
+
+router.delete('/expenses/:expenseId', requireAdmin, async (req, res) => {
+  try {
+    const expense = await PlatformExpense.findByPk(req.params.expenseId);
+    if (!expense) return res.status(404).json({ error: 'Expense not found' });
+    await expense.destroy();
+    res.json({ success: true, message: 'Expense deleted' });
+  } catch (error) {
+    logger.error('Error deleting expense:', error);
+    res.status(500).json({ error: 'Internal server error', message: 'Failed to delete expense' });
+  }
+});
+
+// --- Tax & Profit (P&L) analytics ---
+router.get('/analytics/tax-profit', requireAdmin, async (req, res) => {
+  try {
+    const now = new Date();
+    const start = req.query.startDate ? new Date(req.query.startDate) : new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = req.query.endDate ? new Date(req.query.endDate) : new Date(now);
+    start.setHours(0, 0, 0, 0);
+    end.setHours(23, 59, 59, 999);
+    if (start > end) {
+      return res.status(400).json({ error: 'startDate must be before or equal to endDate' });
+    }
+
+    const orderWhere = {
+      status: { [Op.in]: ['delivered', 'confirmed'] },
+      createdAt: { [Op.gte]: start, [Op.lte]: end }
+    };
+    const [revenueSums, refundSums, expenseRows] = await Promise.all([
+      Order.findAll({
+        attributes: [
+          [sequelize.fn('SUM', sequelize.col('subtotal')), 'subtotal'],
+          [sequelize.fn('SUM', sequelize.col('delivery_fee')), 'deliveryFee'],
+          [sequelize.fn('SUM', sequelize.col('tip')), 'tip'],
+          [sequelize.fn('SUM', sequelize.col('tax')), 'tax'],
+          [sequelize.fn('SUM', sequelize.col('discount_amount')), 'discountAmount'],
+          [sequelize.fn('SUM', sequelize.col('total')), 'total']
+        ],
+        where: orderWhere,
+        raw: true
+      }),
+      Refund.findAll({
+        attributes: [
+          [sequelize.fn('COUNT', sequelize.col('id')), 'count'],
+          [sequelize.fn('SUM', sequelize.col('amount')), 'totalAmount']
+        ],
+        where: { status: 'processed', createdAt: { [Op.gte]: start, [Op.lte]: end } },
+        raw: true
+      }),
+      PlatformExpense.findAll({
+        attributes: [
+          'category',
+          [sequelize.fn('SUM', sequelize.col('amount')), 'total']
+        ],
+        where: { expenseDate: { [Op.gte]: start.toISOString().slice(0, 10), [Op.lte]: end.toISOString().slice(0, 10) } },
+        group: ['category'],
+        raw: true
+      })
+    ]);
+
+    const rev = revenueSums[0] || {};
+    const subtotal = parseFloat(rev.subtotal || 0);
+    const deliveryFee = parseFloat(rev.deliveryFee || 0);
+    const tip = parseFloat(rev.tip || 0);
+    const tax = parseFloat(rev.tax || 0);
+    const discountAmount = parseFloat(rev.discountAmount || 0);
+    const totalRevenue = parseFloat(rev.total || 0);
+
+    const ref = refundSums[0] || {};
+    const refundCount = parseInt(ref.count || 0, 10);
+    const refundTotal = parseFloat(ref.totalAmount || 0);
+
+    const deductionsByCategory = expenseRows.reduce((acc, row) => {
+      acc[row.category] = parseFloat(row.total || 0);
+      return acc;
+    }, {});
+    const totalDeductions = expenseRows.reduce((sum, row) => sum + parseFloat(row.total || 0), 0);
+
+    const netProfit = totalRevenue - refundTotal - totalDeductions;
+    const nyTaxRate = parseFloat(req.query.nyTaxRate) || 0; // optional; e.g. 0.065 for 6.5%
+    const nyTaxEstimate = nyTaxRate > 0 ? netProfit * nyTaxRate : null;
+
+    res.json({
+      success: true,
+      disclaimer: 'Estimate only; not tax advice. Consult a CPA for filing and compliance.',
+      period: { startDate: start.toISOString().slice(0, 10), endDate: end.toISOString().slice(0, 10) },
+      revenue: {
+        subtotal,
+        deliveryFee,
+        tip,
+        tax,
+        discountAmount,
+        total: totalRevenue
+      },
+      refunds: { count: refundCount, total: refundTotal },
+      deductions: { byCategory: deductionsByCategory, total: totalDeductions },
+      netProfit,
+      nyTaxEstimate: nyTaxEstimate != null ? { rate: nyTaxRate, estimate: nyTaxEstimate } : null
+    });
+  } catch (error) {
+    logger.error('Error fetching tax-profit analytics:', error);
+    res.status(500).json({ error: 'Internal server error', message: 'Failed to fetch tax-profit analytics' });
+  }
+});
+
+router.get('/analytics/promos', requireAdmin, async (req, res) => {
+  try {
+    const period = (req.query.period || 'monthly').toLowerCase();
+    const now = new Date();
+    const periods = [];
+    for (let i = 11; i >= 0; i--) {
+      let start, end;
+      if (period === 'weekly') {
+        const weekStart = new Date(now);
+        const dayOfWeek = weekStart.getDay();
+        const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        weekStart.setDate(weekStart.getDate() + mondayOffset - (i * 7));
+        weekStart.setHours(0, 0, 0, 0);
+        start = weekStart;
+        end = new Date(weekStart);
+        end.setDate(weekStart.getDate() + 6);
+        end.setHours(23, 59, 59, 999);
+      } else {
+        start = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        start.setHours(0, 0, 0, 0);
+        end = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
+        end.setHours(23, 59, 59, 999);
+      }
+      const redemptionsInPeriod = await Order.count({
+        where: {
+          status: { [Op.in]: ['delivered', 'confirmed'] },
+          appliedPromo: { [Op.ne]: null },
+          createdAt: { [Op.gte]: start, [Op.lte]: end }
+        }
+      });
+      const revenueWithPromo = await Order.sum('total', {
+        where: {
+          status: { [Op.in]: ['delivered', 'confirmed'] },
+          appliedPromo: { [Op.ne]: null },
+          createdAt: { [Op.gte]: start, [Op.lte]: end }
+        }
+      }) || 0;
+      periods.push({
+        period: period === 'weekly' ? `Week ${12 - i}` : start.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+        label: `${start.toLocaleDateString('en-US')} - ${end.toLocaleDateString('en-US')}`,
+        redemptions: redemptionsInPeriod,
+        revenueWithPromo: parseFloat(revenueWithPromo)
+      });
+    }
+    const topCodes = await PromoCode.findAll({
+      attributes: ['id', 'code', 'discountType', 'discountValue', 'usageCount', 'active', 'expiresAt'],
+      order: [['usageCount', 'DESC']],
+      limit: 20,
+      raw: true
+    });
+    const summary = await PromoCode.findAll({
+      attributes: [
+        [sequelize.fn('COUNT', sequelize.col('id')), 'totalCodes'],
+        [sequelize.fn('SUM', sequelize.col('usage_count')), 'totalRedemptions']
+      ],
+      raw: true
+    });
+    res.json({ success: true, data: { byPeriod: periods, topCodes, summary: summary[0] || {} } });
+  } catch (error) {
+    logger.error('Error fetching promos analytics:', error);
+    res.status(500).json({ error: 'Internal server error', message: 'Failed to fetch promos analytics' });
+  }
+});
+
+router.get('/analytics/refunds', requireAdmin, async (req, res) => {
+  try {
+    const period = (req.query.period || 'monthly').toLowerCase();
+    const now = new Date();
+    const periods = [];
+    for (let i = 11; i >= 0; i--) {
+      let start, end;
+      if (period === 'weekly') {
+        const weekStart = new Date(now);
+        const dayOfWeek = weekStart.getDay();
+        const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        weekStart.setDate(weekStart.getDate() + mondayOffset - (i * 7));
+        weekStart.setHours(0, 0, 0, 0);
+        start = weekStart;
+        end = new Date(weekStart);
+        end.setDate(weekStart.getDate() + 6);
+        end.setHours(23, 59, 59, 999);
+      } else {
+        start = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        start.setHours(0, 0, 0, 0);
+        end = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
+        end.setHours(23, 59, 59, 999);
+      }
+      const result = await Refund.findAll({
+        attributes: [
+          [sequelize.fn('COUNT', sequelize.col('id')), 'count'],
+          [sequelize.fn('SUM', sequelize.col('amount')), 'totalAmount']
+        ],
+        where: { status: 'processed', createdAt: { [Op.gte]: start, [Op.lte]: end } },
+        raw: true
+      });
+      const row = result[0] || { count: 0, totalAmount: 0 };
+      periods.push({
+        period: period === 'weekly' ? `Week ${12 - i}` : start.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+        label: `${start.toLocaleDateString('en-US')} - ${end.toLocaleDateString('en-US')}`,
+        count: parseInt(row.count, 10),
+        total: parseFloat(row.totalAmount || 0)
+      });
+    }
+    const allTime = await Refund.findAll({
+      attributes: [
+        [sequelize.fn('COUNT', sequelize.col('id')), 'count'],
+        [sequelize.fn('SUM', sequelize.col('amount')), 'totalAmount']
+      ],
+      where: { status: 'processed' },
+      raw: true
+    });
+    const allRow = allTime[0] || { count: 0, totalAmount: 0 };
+    res.json({ success: true, data: { byPeriod: periods, summary: { count: parseInt(allRow.count, 10), total: parseFloat(allRow.totalAmount || 0) } } });
+  } catch (error) {
+    logger.error('Error fetching refunds analytics:', error);
+    res.status(500).json({ error: 'Internal server error', message: 'Failed to fetch refunds analytics' });
+  }
+});
+
+router.get('/analytics/support', requireAdmin, async (req, res) => {
+  try {
+    const byStatus = await SupportTicket.findAll({
+      attributes: ['status', [sequelize.fn('COUNT', sequelize.col('id')), 'count']],
+      group: ['status'],
+      raw: true
+    });
+    const now = new Date();
+    const periods = [];
+    for (let i = 11; i >= 0; i--) {
+      const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      monthStart.setHours(0, 0, 0, 0);
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
+      monthEnd.setHours(23, 59, 59, 999);
+      const count = await SupportTicket.count({
+        where: { createdAt: { [Op.gte]: monthStart, [Op.lte]: monthEnd } }
+      });
+      periods.push({
+        period: monthStart.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+        label: monthStart.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+        count
+      });
+    }
+    const total = await SupportTicket.count();
+    const openStatuses = ['open', 'in_progress', 'waiting'];
+    const openCount = byStatus.filter(r => openStatuses.includes(r.status)).reduce((s, r) => s + parseInt(r.count), 0);
+    const closedCount = total - openCount;
+    res.json({ success: true, data: { byStatus, byPeriod: periods, total, open: openCount, closed: closedCount } });
+  } catch (error) {
+    logger.error('Error fetching support analytics:', error);
+    res.status(500).json({ error: 'Internal server error', message: 'Failed to fetch support analytics' });
+  }
+});
+
+router.get('/analytics/nursing-home', requireAdmin, async (req, res) => {
+  try {
+    const facilityCount = await NursingHomeFacility.count();
+    const orderCount = await NursingHomeOrder.count({
+      where: { status: { [Op.in]: ['completed', 'confirmed', 'submitted'] } }
+    });
+    const invoiceCount = await NursingHomeInvoice.count();
+    const [orderRevenue, invoiceRevenue] = await Promise.all([
+      NursingHomeOrder.sum('total', { where: { status: { [Op.in]: ['completed', 'confirmed'] } } }),
+      NursingHomeInvoice.sum('total', { where: { status: { [Op.in]: ['sent', 'paid'] } } })
+    ]);
+    const revenueFromOrders = parseFloat(orderRevenue || 0);
+    const revenueFromInvoices = parseFloat(invoiceRevenue || 0);
+    res.json({
+      success: true,
+      data: {
+        facilityCount,
+        orderCount,
+        invoiceCount,
+        revenueFromOrders,
+        revenueFromInvoices,
+        totalRevenue: revenueFromOrders + revenueFromInvoices
+      }
+    });
+  } catch (error) {
+    logger.error('Error fetching nursing-home analytics:', error);
+    res.status(500).json({ error: 'Internal server error', message: 'Failed to fetch nursing-home analytics' });
   }
 });
 

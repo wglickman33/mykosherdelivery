@@ -3,6 +3,16 @@ const { body, validationResult } = require('express-validator');
 const router = express.Router();
 const { sequelize } = require('../models');
 
+const PROMO_DAY_TIMEZONE = process.env.PROMO_TIMEZONE || process.env.COUNTDOWN_TIMEZONE || 'America/New_York';
+
+/** Current day of week (0=Sun .. 6=Sat) in the business timezone, so "Monday only" means Monday in EST, not UTC. */
+function getDayOfWeekInTimezone(timezone = PROMO_DAY_TIMEZONE) {
+  const formatter = new Intl.DateTimeFormat('en-US', { timeZone: timezone, weekday: 'short' });
+  const short = formatter.format(new Date());
+  const map = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  return map[short] ?? new Date().getDay();
+}
+
 const validateCodeBody = [
   body('code').notEmpty().withMessage('Promo code is required').isString().trim().isLength({ min: 1, max: 50 }).withMessage('Code must be 1–50 characters')
 ];
@@ -60,7 +70,7 @@ router.post('/validate', validateCodeBody, async (req, res) => {
     if (results.allowed_days != null && String(results.allowed_days).trim() !== '') {
       const allowed = String(results.allowed_days).split(',').map(d => parseInt(d, 10)).filter(d => !Number.isNaN(d) && d >= 0 && d <= 6);
       if (allowed.length > 0) {
-        const today = now.getDay();
+        const today = getDayOfWeekInTimezone();
         if (!allowed.includes(today)) {
           return res.status(400).json({
             error: 'Invalid promo code',
@@ -136,7 +146,7 @@ router.post('/calculate-discount', calculateDiscountBody, async (req, res) => {
     if (results.allowed_days != null && String(results.allowed_days).trim() !== '') {
       const allowed = String(results.allowed_days).split(',').map(d => parseInt(d, 10)).filter(d => !Number.isNaN(d) && d >= 0 && d <= 6);
       if (allowed.length > 0) {
-        const today = now.getDay();
+        const today = getDayOfWeekInTimezone();
         if (!allowed.includes(today)) {
           return res.status(400).json({
             error: 'Invalid promo code',

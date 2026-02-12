@@ -41,7 +41,7 @@ async function createGlobalAdminNotification(payload) {
 }
 
 router.post('/guest', [
-  body('guestInfo').isObject(),
+  body('guestInfo').optional().isObject(),
   body('restaurantGroups').isObject(),
   body('deliveryAddress').isObject(),
   body('deliveryAddress.street').optional().isString().trim().isLength({ max: 200 }),
@@ -56,7 +56,12 @@ router.post('/guest', [
     .isLength({ max: 500 }),
   body('subtotal').isNumeric(),
   body('deliveryFee').isNumeric().optional(),
-  body('tax').isNumeric().optional()
+  body('tax').isNumeric().optional(),
+  body('total').isNumeric(),
+  body('tip').isNumeric().optional(),
+  body('discountAmount').isNumeric().optional(),
+  body('appliedPromo').optional().custom(value => value === null || typeof value === 'object'),
+  body('appliedGiftCard').optional().custom(value => value === null || (typeof value === 'object' && value.giftCardId && value.code && typeof value.amountApplied === 'number'))
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -68,12 +73,18 @@ router.post('/guest', [
     }
 
     const {
-      guestInfo,
+      guestInfo = {},
       restaurantGroups,
       deliveryAddress,
       deliveryInstructions,
       deliveryFee = 0,
-      tax = 0
+      tip = 0,
+      tax = 0,
+      subtotal = 0,
+      total = 0,
+      discountAmount = 0,
+      appliedPromo = null,
+      appliedGiftCard = null
     } = req.body;
 
     const sanitizedAddress = {
@@ -82,7 +93,10 @@ router.post('/guest', [
       street: deliveryAddress.street ? String(deliveryAddress.street).trim().substring(0, 200) : undefined,
       city: deliveryAddress.city ? String(deliveryAddress.city).trim().substring(0, 100) : undefined,
       state: deliveryAddress.state ? String(deliveryAddress.state).trim().substring(0, 2) : undefined,
-      zip_code: deliveryAddress.zip_code ? String(deliveryAddress.zip_code).trim().substring(0, 5) : undefined
+      zip_code: deliveryAddress.zip_code ? String(deliveryAddress.zip_code).trim().substring(0, 5) : undefined,
+      guestEmail: guestInfo.email || null,
+      guestPhone: guestInfo.phone || null,
+      guestName: [guestInfo.firstName, guestInfo.lastName].filter(Boolean).join(' ') || null
     };
 
     const sanitizedInstructions = deliveryInstructions ? String(deliveryInstructions).trim().substring(0, 500) : null;
@@ -101,33 +115,38 @@ router.post('/guest', [
       });
     }
 
-    const orders = [];
-
-    for (const [restaurantId, group] of Object.entries(restaurantGroups)) {
-      const orderNumber = generateOrderNumber();
-      
-      const order = await Order.create({
-        userId: null,
-        restaurantId: restaurantId,
-        orderNumber: orderNumber,
-        status: 'pending',
-        items: group.items,
-        subtotal: group.total,
-        deliveryFee: deliveryFee / Object.keys(restaurantGroups).length,
-        tax: (tax * group.total) / Object.values(restaurantGroups).reduce((sum, g) => sum + g.total, 0),
-        total: group.total + (deliveryFee / Object.keys(restaurantGroups).length) + ((tax * group.total) / Object.values(restaurantGroups).reduce((sum, g) => sum + g.total, 0)),
-        deliveryAddress: sanitizedAddress,
-        deliveryInstructions: sanitizedInstructions,
-        guestInfo: guestInfo
+    const orderNumber = generateOrderNumber();
+    const allItems = [];
+    Object.entries(restaurantGroups).forEach(([restaurantId, group]) => {
+      const groupItems = Array.isArray(group.items) ? group.items : Object.values(group.items || {});
+      groupItems.forEach(item => {
+        allItems.push({ ...item, restaurantId });
       });
+    });
 
-      orders.push(order);
-    }
+    const order = await Order.create({
+      userId: null,
+      restaurantId: null,
+      restaurantGroups: restaurantGroups,
+      orderNumber: orderNumber,
+      status: 'pending',
+      items: allItems,
+      subtotal: Number(subtotal),
+      deliveryFee: Number(deliveryFee),
+      tip: Number(tip),
+      tax: Number(tax),
+      total: Number(total),
+      discountAmount: Number(discountAmount),
+      appliedPromo: appliedPromo,
+      appliedGiftCard: appliedGiftCard,
+      deliveryAddress: sanitizedAddress,
+      deliveryInstructions: sanitizedInstructions
+    });
 
     res.status(201).json({
       success: true,
-      data: orders,
-      message: 'Guest orders created successfully'
+      data: { orders: [order] },
+      message: 'Guest order created successfully'
     });
 
   } catch (error) {

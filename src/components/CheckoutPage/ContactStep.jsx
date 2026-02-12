@@ -5,6 +5,8 @@ import { useAuth } from "../../hooks/useAuth";
 const ContactStep = ({ onNext }) => {
   const { user, profile } = useAuth();
   const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
     phone: "",
     email: "",
     deliveryInstructions: "",
@@ -19,7 +21,9 @@ const ContactStep = ({ onNext }) => {
       setFormData(prev => ({
         ...prev,
         email: user.email || "",
-        phone: profile.phone || ""
+        phone: profile.phone || "",
+        firstName: profile.firstName || prev.firstName,
+        lastName: profile.lastName || prev.lastName
       }));
     }
   }, [user, profile]);
@@ -74,6 +78,34 @@ const ContactStep = ({ onNext }) => {
 
       <div className="contact-form-card">
         <div className="contact-form">
+          <div className="form-grid">
+            <div className="form-group">
+              <label htmlFor="firstName" className="form-label">
+                First Name
+              </label>
+              <input
+                id="firstName"
+                type="text"
+                className="form-input"
+                placeholder="First name"
+                value={formData.firstName}
+                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="lastName" className="form-label">
+                Last Name
+              </label>
+              <input
+                id="lastName"
+                type="text"
+                className="form-input"
+                placeholder="Last name"
+                value={formData.lastName}
+                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+              />
+            </div>
+          </div>
           <div className="form-grid">
             <div className="form-group">
               <label htmlFor="phone" className="form-label">

@@ -59,6 +59,12 @@ const AdminRequests = () => {
     load();
   }, []);
 
+  useEffect(() => {
+    const activeStatuses = ['open', 'in_progress', 'waiting'];
+    const count = (tickets || []).filter(t => activeStatuses.includes(t?.status)).length;
+    window.dispatchEvent(new CustomEvent('mkd-admin-active-requests', { detail: { count } }));
+  }, [tickets]);
+
   const grouped = useMemo(() => {
     const out = { open: [], in_progress: [], waiting: [], resolved: [], closed: [] };
     const q = filters.q.trim().toLowerCase();

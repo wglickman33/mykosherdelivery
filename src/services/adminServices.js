@@ -738,6 +738,104 @@ export const fetchGiftCardAnalytics = async (period = 'monthly') => {
   }
 };
 
+export const fetchTaxProfitAnalytics = async (params = {}) => {
+  try {
+    const { startDate, endDate, nyTaxRate } = params;
+    const response = await apiClient.get('/admin/analytics/tax-profit', { startDate, endDate, nyTaxRate });
+    const payload = response?.data ?? response;
+    return { success: true, data: payload, disclaimer: payload?.disclaimer };
+  } catch (error) {
+    logger.error('Error fetching tax-profit analytics:', error);
+    return { success: false, error: error?.message, data: null };
+  }
+};
+
+export const fetchExpenses = async (params = {}) => {
+  try {
+    const response = await apiClient.get('/admin/expenses', params);
+    const data = response?.data;
+    const total = response?.total;
+    return { success: true, data: Array.isArray(data) ? data : [], total: total ?? 0 };
+  } catch (error) {
+    logger.error('Error fetching expenses:', error);
+    return { success: false, error: error?.message, data: [], total: 0 };
+  }
+};
+
+export const createExpense = async (payload) => {
+  try {
+    const response = await apiClient.post('/admin/expenses', payload);
+    return { success: true, data: response?.data ?? response };
+  } catch (error) {
+    logger.error('Error creating expense:', error);
+    return { success: false, error: error?.message };
+  }
+};
+
+export const updateExpense = async (id, payload) => {
+  try {
+    const response = await apiClient.put(`/admin/expenses/${id}`, payload);
+    return { success: true, data: response?.data ?? response };
+  } catch (error) {
+    logger.error('Error updating expense:', error);
+    return { success: false, error: error?.message };
+  }
+};
+
+export const deleteExpense = async (id) => {
+  try {
+    await apiClient.delete(`/admin/expenses/${id}`);
+    return { success: true };
+  } catch (error) {
+    logger.error('Error deleting expense:', error);
+    return { success: false, error: error?.message };
+  }
+};
+
+export const fetchPromosAnalytics = async (period = 'monthly') => {
+  try {
+    const response = await apiClient.get('/admin/analytics/promos', { period });
+    const payload = response?.data ?? response;
+    return { success: true, data: payload?.data ?? payload };
+  } catch (error) {
+    logger.error('Error fetching promos analytics:', error);
+    return { success: false, error: error?.message, data: null };
+  }
+};
+
+export const fetchRefundsAnalytics = async (period = 'monthly') => {
+  try {
+    const response = await apiClient.get('/admin/analytics/refunds', { period });
+    const payload = response?.data ?? response;
+    return { success: true, data: payload?.data ?? payload };
+  } catch (error) {
+    logger.error('Error fetching refunds analytics:', error);
+    return { success: false, error: error?.message, data: null };
+  }
+};
+
+export const fetchSupportAnalytics = async () => {
+  try {
+    const response = await apiClient.get('/admin/analytics/support');
+    const payload = response?.data ?? response;
+    return { success: true, data: payload?.data ?? payload };
+  } catch (error) {
+    logger.error('Error fetching support analytics:', error);
+    return { success: false, error: error?.message, data: null };
+  }
+};
+
+export const fetchNursingHomeAnalytics = async () => {
+  try {
+    const response = await apiClient.get('/admin/analytics/nursing-home');
+    const payload = response?.data ?? response;
+    return { success: true, data: payload?.data ?? payload };
+  } catch (error) {
+    logger.error('Error fetching nursing-home analytics:', error);
+    return { success: false, error: error?.message, data: null };
+  }
+};
+
 export const fetchRevenueTrends = async (period = 'quarterly') => {
   try {
     const now = new Date();

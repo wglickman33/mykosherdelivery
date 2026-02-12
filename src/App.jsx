@@ -35,6 +35,11 @@ import AdminAnalyticsOrders from "./components/AdminAnalytics/AdminAnalyticsOrde
 import AdminAnalyticsUsers from "./components/AdminAnalytics/AdminAnalyticsUsers";
 import AdminAnalyticsRestaurants from "./components/AdminAnalytics/AdminAnalyticsRestaurants";
 import AdminAnalyticsGiftCards from "./components/AdminAnalytics/AdminAnalyticsGiftCards";
+import AdminAnalyticsTaxProfit from "./components/AdminAnalytics/AdminAnalyticsTaxProfit";
+import AdminAnalyticsPromos from "./components/AdminAnalytics/AdminAnalyticsPromos";
+import AdminAnalyticsRefunds from "./components/AdminAnalytics/AdminAnalyticsRefunds";
+import AdminAnalyticsSupport from "./components/AdminAnalytics/AdminAnalyticsSupport";
+import AdminAnalyticsNursingHome from "./components/AdminAnalytics/AdminAnalyticsNursingHome";
 import AdminSettingsLayout from "./components/AdminSettings/AdminSettingsLayout";
 import SettingsCountdownTimer from "./components/AdminSettings/SettingsCountdownTimer";
 import SettingsPromoCodes from "./components/AdminSettings/SettingsPromoCodes";
@@ -248,6 +253,11 @@ function AuthenticatedApp() {
             <Route path="analytics/users" element={<AdminAnalyticsUsers />} />
             <Route path="analytics/restaurants" element={<AdminAnalyticsRestaurants />} />
             <Route path="analytics/gift-cards" element={<AdminAnalyticsGiftCards />} />
+            <Route path="analytics/tax-profit" element={<AdminAnalyticsTaxProfit />} />
+            <Route path="analytics/promos" element={<AdminAnalyticsPromos />} />
+            <Route path="analytics/refunds" element={<AdminAnalyticsRefunds />} />
+            <Route path="analytics/support" element={<AdminAnalyticsSupport />} />
+            <Route path="analytics/nursing-home" element={<AdminAnalyticsNursingHome />} />
             <Route path="requests" element={<AdminRequests />} />
             <Route path="campaigns" element={<AdminCampaigns />} />
             <Route path="nursing-homes" element={<AdminNursingHomes />} />

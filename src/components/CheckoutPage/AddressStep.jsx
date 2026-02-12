@@ -6,7 +6,8 @@ import { validateDeliveryAddress } from "../../services/addressValidationService
 import AddressConfirmationModal from "./AddressConfirmationModal";
 
 const AddressStep = ({ onNext }) => {
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
+  const isGuest = !user;
   const [showAddForm, setShowAddForm] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [selectedAddressForConfirm, setSelectedAddressForConfirm] = useState(null);
@@ -124,6 +125,8 @@ const AddressStep = ({ onNext }) => {
     }
   };
 
+  const showAddressForm = isGuest || showAddForm;
+
   return (
     <div className="address-step">
       <div className="step-header">
@@ -131,40 +134,44 @@ const AddressStep = ({ onNext }) => {
           Delivery Address
         </h2>
         <p className="step-description">
-          Choose where you&apos;d like your order delivered
+          {isGuest
+            ? "Enter your delivery address. We'll validate it against our delivery zones."
+            : "Choose where you&apos;d like your order delivered"}
         </p>
       </div>
 
-      <div className="addresses-list">
-        {savedAddresses.map((address) => (
-          <div
-            key={address.id}
-            className="address-card"
-            onClick={() => handleAddressSelect(address)}
-          >
-            <div className="address-content">
-              <div className="address-row">
-                <MapPin className="address-icon" />
-                <div className="address-info">
-                  <span className="address-type">
-                    {address.label || address.type || "Address"}
-                  </span>
-                  {address.is_primary && (
-                    <span className="primary-badge">
-                      Primary
+      {!isGuest && (
+        <div className="addresses-list">
+          {savedAddresses.map((address) => (
+            <div
+              key={address.id}
+              className="address-card"
+              onClick={() => handleAddressSelect(address)}
+            >
+              <div className="address-content">
+                <div className="address-row">
+                  <MapPin className="address-icon" />
+                  <div className="address-info">
+                    <span className="address-type">
+                      {address.label || address.type || "Address"}
                     </span>
-                  )}
-                  <span className="address-text">
-                    {`${address.street || ''}${address.apartment ? `, ${address.apartment}` : ''}, ${address.city || ''}, ${address.state || ''} ${address.zip_code || ''}`}
-                  </span>
+                    {address.is_primary && (
+                      <span className="primary-badge">
+                        Primary
+                      </span>
+                    )}
+                    <span className="address-text">
+                      {`${address.street || ''}${address.apartment ? `, ${address.apartment}` : ''}, ${address.city || ''}, ${address.state || ''} ${address.zip_code || ''}`}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
-      {!showAddForm ? (
+      {!isGuest && !showAddForm ? (
         <button
           className="add-address-button"
           onClick={() => {
@@ -180,10 +187,14 @@ const AddressStep = ({ onNext }) => {
           <Plus className="plus-icon" />
           Add New Address
         </button>
-      ) : (
+      ) : null}
+
+      {showAddressForm ? (
         <div className="add-address-form">
           <form className="form-card" onSubmit={handleAddNewAddress}>
-            <h3 className="form-title">Add New Address</h3>
+            <h3 className="form-title">
+              {isGuest ? "Enter your delivery address" : "Add New Address"}
+            </h3>
             
             <div className="form-grid">
               <div className="form-group">
@@ -269,28 +280,30 @@ const AddressStep = ({ onNext }) => {
                 className="submit-button"
                 disabled={!formData.address.trim() || isValidating}
               >
-                {isValidating ? 'Validating...' : 'Use This Address'}
+                {isValidating ? 'Validating...' : (isGuest ? 'Continue' : 'Use This Address')}
               </button>
-              <button
-                type="button"
-                className="cancel-button"
-                onClick={() => {
-                  setShowAddForm(false);
-                  setAddressError("");
-                  setFormData({
-                    type: "",
-                    address: "",
-                    apartment: ""
-                  });
-                }}
-                disabled={isValidating}
-              >
-                Cancel
-              </button>
+              {!isGuest && (
+                <button
+                  type="button"
+                  className="cancel-button"
+                  onClick={() => {
+                    setShowAddForm(false);
+                    setAddressError("");
+                    setFormData({
+                      type: "",
+                      address: "",
+                      apartment: ""
+                    });
+                  }}
+                  disabled={isValidating}
+                >
+                  Cancel
+                </button>
+              )}
             </div>
           </form>
         </div>
-      )}
+      ) : null}
 
       <AddressConfirmationModal
         isOpen={showConfirmModal}
