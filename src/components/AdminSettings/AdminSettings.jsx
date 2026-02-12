@@ -894,9 +894,13 @@ const AdminSettings = () => {
                         Cancel
                       </button>
                       <button 
-                        type="submit" 
+                        type="button"
                         className="save-btn"
                         disabled={promoSaving}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handlePromoSubmit(e);
+                        }}
                       >
                         {promoSaving ? 'Saving...' : (editingPromo ? 'Update' : 'Create')}
                       </button>
