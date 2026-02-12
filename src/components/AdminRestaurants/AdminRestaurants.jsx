@@ -583,8 +583,8 @@ const AdminRestaurants = () => {
                 value={filters.sort}
                 onChange={(e) => setFilters({ ...filters, sort: e.target.value, page: 1 })}
               >
-                <option value="name_asc">Name (A→Z)</option>
-                <option value="name_desc">Name (Z→A)</option>
+                <option value="name_asc">Name (A → Z)</option>
+                <option value="name_desc">Name (Z → A)</option>
                 <option value="featured">Featured First</option>
               </select>
             </div>

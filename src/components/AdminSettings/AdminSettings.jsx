@@ -59,6 +59,7 @@ const AdminSettings = () => {
   const [promoFormErrors, setPromoFormErrors] = useState({});
   const [promoSaving, setPromoSaving] = useState(false);
   const [deletingPromoId, setDeletingPromoId] = useState(null);
+  const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const [promoFormData, setPromoFormData] = useState({
     code: '',
     discountType: 'percentage',
@@ -66,7 +67,8 @@ const AdminSettings = () => {
     active: true,
     expiresAt: '',
     usageLimit: '',
-    stackable: false
+    stackable: false,
+    allowedDays: [] // 0=Sun .. 6=Sat; empty = valid every day
   });
   
   const { user } = useAuth();
@@ -255,12 +257,21 @@ const AdminSettings = () => {
     setPromoError('');
     
     try {
+      const discountVal = parseFloat(promoFormData.discountValue);
       const formData = {
-        ...promoFormData,
-        discountValue: parseFloat(promoFormData.discountValue),
-        ...(promoFormData.usageLimit && promoFormData.usageLimit.trim() ? { usageLimit: parseInt(promoFormData.usageLimit) } : {}),
-        ...(promoFormData.expiresAt && promoFormData.expiresAt.trim() ? { expiresAt: promoFormData.expiresAt } : {})
+        code: promoFormData.code.trim(),
+        discountType: promoFormData.discountType,
+        discountValue: discountVal,
+        active: Boolean(promoFormData.active),
+        stackable: Boolean(promoFormData.stackable),
+        allowedDays: (promoFormData.allowedDays && promoFormData.allowedDays.length > 0) ? promoFormData.allowedDays : []
       };
+      if (promoFormData.usageLimit && String(promoFormData.usageLimit).trim()) {
+        formData.usageLimit = parseInt(promoFormData.usageLimit, 10);
+      }
+      if (promoFormData.expiresAt && String(promoFormData.expiresAt).trim()) {
+        formData.expiresAt = promoFormData.expiresAt.trim();
+      }
 
       if (editingPromo) {
         await updatePromoCode(editingPromo.id, formData);
@@ -281,6 +292,7 @@ const AdminSettings = () => {
 
   const handlePromoEdit = (promo) => {
     setEditingPromo(promo);
+    const allowed = promo.allowedDays;
     setPromoFormData({
       code: promo.code,
       discountType: promo.discountType,
@@ -288,7 +300,8 @@ const AdminSettings = () => {
       active: promo.active,
       expiresAt: promo.expiresAt ? promo.expiresAt.split('T')[0] : '',
       usageLimit: promo.usageLimit ? promo.usageLimit.toString() : '',
-      stackable: promo.stackable || false
+      stackable: promo.stackable || false,
+      allowedDays: Array.isArray(allowed) ? [...allowed] : (allowed != null && allowed !== '' ? String(allowed).split(',').map(Number).filter(n => !Number.isNaN(n) && n >= 0 && n <= 6) : [])
     });
     setPromoFormErrors({});
     setPromoError('');
@@ -322,9 +335,27 @@ const AdminSettings = () => {
       active: true,
       expiresAt: '',
       usageLimit: '',
-      stackable: false
+      stackable: false,
+      allowedDays: []
     });
     setPromoFormErrors({});
+  };
+
+  const togglePromoAllowedDay = (dayNum) => {
+    const current = promoFormData.allowedDays || [];
+    if (current.includes(dayNum)) {
+      setPromoFormData({ ...promoFormData, allowedDays: current.filter(d => d !== dayNum) });
+    } else {
+      setPromoFormData({ ...promoFormData, allowedDays: [...current, dayNum].sort((a, b) => a - b) });
+    }
+  };
+
+  const formatAllowedDays = (promo) => {
+    const allowed = promo.allowedDays;
+    if (!allowed || (Array.isArray(allowed) && allowed.length === 0)) return 'Every day';
+    const arr = Array.isArray(allowed) ? allowed : String(allowed).split(',').map(Number).filter(n => !Number.isNaN(n) && n >= 0 && n <= 6);
+    if (arr.length === 0) return 'Every day';
+    return arr.map(d => DAY_NAMES[d].slice(0, 3)).join(', ');
   };
 
   const validatePromoForm = () => {
@@ -616,6 +647,7 @@ const AdminSettings = () => {
                         <th>Code</th>
                         <th>Type</th>
                         <th>Value</th>
+                        <th>Valid days</th>
                         <th>Usage</th>
                         <th>Status</th>
                         <th>Expires</th>
@@ -633,6 +665,7 @@ const AdminSettings = () => {
                               ? `${promo.discountValue}%` 
                               : `${promo.discountValue}`}
                           </td>
+                          <td>{formatAllowedDays(promo)}</td>
                           <td>
                             {promo.usageLimit 
                               ? `${promo.usageCount}/${promo.usageLimit}` 
@@ -718,14 +751,14 @@ const AdminSettings = () => {
                   )}
                   
                   <form onSubmit={handlePromoSubmit} className="promo-form">
-                    <div className="form-row">
+                    <div className="form-row form-row--two">
                       <div className="form-group">
                         <label htmlFor="code">Promo Code *</label>
                         <input
                           type="text"
                           id="code"
                           value={promoFormData.code}
-                          onChange={(e) => setPromoFormData({ ...promoFormData, code: e.target.value.toUpperCase() })}
+                          onChange={(e) => setPromoFormData({ ...promoFormData, code: e.target.value })}
                           placeholder="e.g., WELCOME2MKD"
                           required
                           maxLength={50}
@@ -749,7 +782,7 @@ const AdminSettings = () => {
                       </div>
                     </div>
 
-                    <div className="form-row">
+                    <div className="form-row form-row--two">
                       <div className="form-group">
                         <label htmlFor="discountValue">
                           Discount Value * {promoFormData.discountType === 'percentage' ? '(%)' : '($)'}
@@ -770,7 +803,7 @@ const AdminSettings = () => {
                           <span className="field-error">{promoFormErrors.discountValue}</span>
                         )}
                       </div>
-                      <div className="form-group">
+                      <div className="form-group form-group--equal">
                         <label htmlFor="usageLimit">Usage Limit</label>
                         <input
                           type="number"
@@ -787,7 +820,7 @@ const AdminSettings = () => {
                       </div>
                     </div>
 
-                    <div className="form-row">
+                    <div className="form-row form-row--two">
                       <div className="form-group">
                         <label htmlFor="expiresAt">Expiration Date</label>
                         <input
@@ -802,29 +835,54 @@ const AdminSettings = () => {
                           <span className="field-error">{promoFormErrors.expiresAt}</span>
                         )}
                       </div>
+                      <div className="form-group form-group--spacer" aria-hidden="true" />
                     </div>
 
-                    <div className="form-row">
-                      <div className="form-group checkbox-group">
-                        <label>
-                          <input
-                            type="checkbox"
-                            checked={promoFormData.active}
-                            onChange={(e) => setPromoFormData({ ...promoFormData, active: e.target.checked })}
-                          />
-                          Active
-                        </label>
+                    <div className="form-row form-row--days">
+                      <div className="form-group form-group--full">
+                        <label>Valid days of week</label>
+                        <p className="field-hint">Tap days when this code works. Leave all unselected for every day.</p>
+                        <div className="day-pills">
+                          {DAY_NAMES.map((name, idx) => {
+                            const isSelected = (promoFormData.allowedDays || []).includes(idx);
+                            return (
+                              <button
+                                key={idx}
+                                type="button"
+                                className={`day-pill ${isSelected ? 'day-pill--selected' : ''}`}
+                                onClick={() => togglePromoAllowedDay(idx)}
+                                title={name}
+                                aria-pressed={isSelected}
+                              >
+                                {name.slice(0, 3)}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
-                      <div className="form-group checkbox-group">
-                        <label>
-                          <input
-                            type="checkbox"
-                            checked={promoFormData.stackable}
-                            onChange={(e) => setPromoFormData({ ...promoFormData, stackable: e.target.checked })}
-                          />
-                          Stackable with other promos
-                        </label>
-                      </div>
+                    </div>
+
+                    <div className="form-row form-row--toggles">
+                      <label className="promo-toggle">
+                        <input
+                          type="checkbox"
+                          checked={promoFormData.active}
+                          onChange={(e) => setPromoFormData({ ...promoFormData, active: e.target.checked })}
+                          aria-label="Promo code is active"
+                        />
+                        <span className="toggle-track" aria-hidden="true" />
+                        <span className="toggle-label">Active</span>
+                      </label>
+                      <label className="promo-toggle">
+                        <input
+                          type="checkbox"
+                          checked={promoFormData.stackable}
+                          onChange={(e) => setPromoFormData({ ...promoFormData, stackable: e.target.checked })}
+                          aria-label="Stackable with other promos"
+                        />
+                        <span className="toggle-track" aria-hidden="true" />
+                        <span className="toggle-label" title="Stackable with other promos">Stackable</span>
+                      </label>
                     </div>
 
                     <div className="modal-actions">

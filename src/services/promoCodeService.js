@@ -85,7 +85,11 @@ export const createPromoCode = async (promoCodeData) => {
     const data = await response.json();
     
     if (!response.ok) {
-      throw new Error(data.message || 'Failed to create promo code');
+      const msg = data.message
+        || (data.details && data.details[0] && (data.details[0].msg || data.details[0].message))
+        || data.error
+        || 'Failed to create promo code';
+      throw new Error(msg);
     }
 
     return data;

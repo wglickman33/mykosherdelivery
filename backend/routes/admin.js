@@ -4810,6 +4810,12 @@ router.get('/promo-codes/:id', requireAdmin, async (req, res) => {
   }
 });
 
+const allowedDaysValidator = (value) => {
+  if (value === null || value === undefined || (Array.isArray(value) && value.length === 0)) return true;
+  if (!Array.isArray(value)) return false;
+  return value.every(d => Number.isInteger(d) && d >= 0 && d <= 6);
+};
+
 router.post('/promo-codes', requireAdmin, [
   body('code').notEmpty().isLength({ min: 1, max: 50 }).withMessage('Code must be 1-50 characters'),
   body('discountType').isIn(['percentage', 'fixed']).withMessage('Discount type must be percentage or fixed'),
@@ -4817,14 +4823,18 @@ router.post('/promo-codes', requireAdmin, [
   body('active').optional().isBoolean().withMessage('Active must be a boolean'),
   body('expiresAt').optional().isISO8601().withMessage('Expires at must be a valid date'),
   body('usageLimit').optional().isInt({ min: 1 }).withMessage('Usage limit must be a positive integer'),
-  body('stackable').optional().isBoolean().withMessage('Stackable must be a boolean')
+  body('stackable').optional().isBoolean().withMessage('Stackable must be a boolean'),
+  body('allowedDays').optional().custom(allowedDaysValidator).withMessage('allowedDays must be an array of day numbers 0-6 (0=Sun, 6=Sat)')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      const errs = errors.array();
+      const firstMsg = errs[0]?.msg || errs[0]?.message || 'Validation failed';
       return res.status(400).json({
         error: 'Validation failed',
-        details: errors.array()
+        message: firstMsg,
+        details: errs
       });
     }
 
@@ -4835,13 +4845,15 @@ router.post('/promo-codes', requireAdmin, [
       active = true,
       expiresAt,
       usageLimit,
-      stackable = false
+      stackable = false,
+      allowedDays
     } = req.body;
 
+    const codeTrimmed = (typeof code === 'string' ? code.trim() : String(code));
     const existingCode = await PromoCode.findOne({ 
       where: sequelize.where(
         sequelize.fn('UPPER', sequelize.col('code')),
-        code.toUpperCase()
+        codeTrimmed.toUpperCase()
       )
     });
     if (existingCode) {
@@ -4852,13 +4864,14 @@ router.post('/promo-codes', requireAdmin, [
     }
 
     const promoCode = await PromoCode.create({
-      code: code.toUpperCase(),
+      code: codeTrimmed,
       discountType,
       discountValue,
       active,
       expiresAt: expiresAt || null,
       usageLimit: usageLimit || null,
-      stackable
+      stackable,
+      ...(allowedDays != null && Array.isArray(allowedDays) && allowedDays.length > 0 ? { allowedDays } : {})
     });
 
     await logAdminAction(
@@ -4892,7 +4905,8 @@ router.put('/promo-codes/:id', requireAdmin, [
   body('active').optional().isBoolean().withMessage('Active must be a boolean'),
   body('expiresAt').optional({ nullable: true, checkFalsy: true }).isISO8601().withMessage('Expires at must be a valid date'),
   body('usageLimit').optional({ nullable: true, checkFalsy: true }).isInt({ min: 1 }).withMessage('Usage limit must be a positive integer'),
-  body('stackable').optional().isBoolean().withMessage('Stackable must be a boolean')
+  body('stackable').optional().isBoolean().withMessage('Stackable must be a boolean'),
+  body('allowedDays').optional().custom(allowedDaysValidator).withMessage('allowedDays must be an array of day numbers 0-6 (0=Sun, 6=Sat)')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -4922,16 +4936,22 @@ router.put('/promo-codes/:id', requireAdmin, [
         delete updateData[key];
       }
     });
-    
+    // Normalize allowedDays: empty array or null => set to null in DB
+    if ('allowedDays' in updateData) {
+      if (updateData.allowedDays == null || (Array.isArray(updateData.allowedDays) && updateData.allowedDays.length === 0)) {
+        updateData.allowedDays = null;
+      }
+    }
+
     if (updateData.code) {
-      updateData.code = updateData.code.toUpperCase();
+      updateData.code = (typeof updateData.code === 'string' ? updateData.code.trim() : String(updateData.code));
       
       const existingCode = await PromoCode.findOne({ 
         where: { 
           [Op.and]: [
             sequelize.where(
               sequelize.fn('UPPER', sequelize.col('code')),
-              updateData.code
+              updateData.code.toUpperCase()
             ),
             { id: { [Op.ne]: promoId } }
           ]

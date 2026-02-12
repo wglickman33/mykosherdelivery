@@ -11,6 +11,7 @@ import SearchIcon from "./SearchIcon";
 import SettingsIcon from "./SettingsIcon";
 import NotificationIcon from "./NotificationIcon";
 import FavoritesIcon from "./FavoritesIcon";
+import ChevronDownIcon from "./ChevronDownIcon";
 import "./IconSet.scss";
 
 const IconSet = ({ direction = "vertical" }) => {
@@ -30,6 +31,9 @@ const IconSet = ({ direction = "vertical" }) => {
       <SettingsIcon />
       <NotificationIcon />
       <FavoritesIcon />
+      <div className="app-icon app-icon--chevron">
+        <ChevronDownIcon size={24} />
+      </div>
     </div>
   );
 };

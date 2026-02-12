@@ -22,7 +22,7 @@ router.post('/validate', validateCodeBody, async (req, res) => {
     const codeTrimmed = typeof code === 'string' ? code.trim() : String(code);
 
     const [results] = await sequelize.query(
-      'SELECT * FROM promo_codes WHERE code = :code LIMIT 1',
+      'SELECT * FROM promo_codes WHERE LOWER(TRIM(code)) = LOWER(:code) LIMIT 1',
       {
         replacements: { code: codeTrimmed },
         type: sequelize.QueryTypes.SELECT
@@ -54,6 +54,20 @@ router.post('/validate', validateCodeBody, async (req, res) => {
         error: 'Invalid promo code',
         message: 'This promo code has reached its usage limit'
       });
+    }
+
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    if (results.allowed_days != null && String(results.allowed_days).trim() !== '') {
+      const allowed = String(results.allowed_days).split(',').map(d => parseInt(d, 10)).filter(d => !Number.isNaN(d) && d >= 0 && d <= 6);
+      if (allowed.length > 0) {
+        const today = now.getDay();
+        if (!allowed.includes(today)) {
+          return res.status(400).json({
+            error: 'Invalid promo code',
+            message: `This promo code is only valid on ${allowed.map(d => dayNames[d]).join(', ')}. It cannot be used on ${dayNames[today]}.`
+          });
+        }
+      }
     }
 
     res.status(200).json({
@@ -95,7 +109,7 @@ router.post('/calculate-discount', calculateDiscountBody, async (req, res) => {
     const codeTrimmed = typeof code === 'string' ? code.trim() : String(code);
 
     const [results] = await sequelize.query(
-      'SELECT * FROM promo_codes WHERE code = :code LIMIT 1',
+      'SELECT * FROM promo_codes WHERE LOWER(TRIM(code)) = LOWER(:code) LIMIT 1',
       {
         replacements: { code: codeTrimmed },
         type: sequelize.QueryTypes.SELECT
@@ -116,6 +130,20 @@ router.post('/calculate-discount', calculateDiscountBody, async (req, res) => {
         error: 'Invalid promo code',
         message: 'This promo code is not valid'
       });
+    }
+
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    if (results.allowed_days != null && String(results.allowed_days).trim() !== '') {
+      const allowed = String(results.allowed_days).split(',').map(d => parseInt(d, 10)).filter(d => !Number.isNaN(d) && d >= 0 && d <= 6);
+      if (allowed.length > 0) {
+        const today = now.getDay();
+        if (!allowed.includes(today)) {
+          return res.status(400).json({
+            error: 'Invalid promo code',
+            message: `This promo code is only valid on ${allowed.map(d => dayNames[d]).join(', ')}. It cannot be used on ${dayNames[today]}.`
+          });
+        }
+      }
     }
 
     let discountAmount = 0;

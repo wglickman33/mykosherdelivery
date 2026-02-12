@@ -8,12 +8,14 @@ module.exports = {
     const isPostgres = dialect === 'postgres' || dialect === 'postgresql' || String(url).includes('postgres') || String(url).includes('postgresql');
 
     if (isPostgres) {
-      await queryInterface.sequelize.query(`
-        DO $$ BEGIN
-          CREATE TYPE "enum_nursing_home_refunds_status" AS ENUM ('pending', 'processed', 'failed');
-        EXCEPTION WHEN duplicate_object THEN NULL;
-        END $$;
-      `);
+      const [enumRows] = await queryInterface.sequelize.query(
+        "SELECT 1 FROM pg_type WHERE typname = 'enum_nursing_home_refunds_status'"
+      );
+      if (enumRows.length === 0) {
+        await queryInterface.sequelize.query(
+          'CREATE TYPE "enum_nursing_home_refunds_status" AS ENUM (\'pending\', \'processed\', \'failed\')'
+        );
+      }
 
       const [tableRows] = await queryInterface.sequelize.query(
         "SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'nursing_home_refunds'"
@@ -34,27 +36,31 @@ module.exports = {
         `);
       }
 
-      await queryInterface.sequelize.query(`
-        DO $$ BEGIN
-          CREATE INDEX nursing_home_refunds_resident_order_id ON nursing_home_refunds (resident_order_id);
-        EXCEPTION WHEN duplicate_table THEN NULL;
-        EXCEPTION WHEN duplicate_object THEN NULL;
-        END $$;
-      `);
-      await queryInterface.sequelize.query(`
-        DO $$ BEGIN
-          CREATE INDEX nursing_home_refunds_processed_by ON nursing_home_refunds (processed_by);
-        EXCEPTION WHEN duplicate_table THEN NULL;
-        EXCEPTION WHEN duplicate_object THEN NULL;
-        END $$;
-      `);
-      await queryInterface.sequelize.query(`
-        DO $$ BEGIN
-          CREATE INDEX nursing_home_refunds_status ON nursing_home_refunds (status);
-        EXCEPTION WHEN duplicate_table THEN NULL;
-        EXCEPTION WHEN duplicate_object THEN NULL;
-        END $$;
-      `);
+      const indexNames = [
+        'nursing_home_refunds_resident_order_id',
+        'nursing_home_refunds_processed_by',
+        'nursing_home_refunds_status'
+      ];
+      const [indexRows] = await queryInterface.sequelize.query(
+        "SELECT indexname FROM pg_indexes WHERE schemaname = 'public' AND tablename = 'nursing_home_refunds'"
+      );
+      const existingIndexes = new Set((indexRows || []).map((r) => r.indexname));
+
+      if (!existingIndexes.has(indexNames[0])) {
+        await queryInterface.sequelize.query(
+          'CREATE INDEX nursing_home_refunds_resident_order_id ON nursing_home_refunds (resident_order_id)'
+        );
+      }
+      if (!existingIndexes.has(indexNames[1])) {
+        await queryInterface.sequelize.query(
+          'CREATE INDEX nursing_home_refunds_processed_by ON nursing_home_refunds (processed_by)'
+        );
+      }
+      if (!existingIndexes.has(indexNames[2])) {
+        await queryInterface.sequelize.query(
+          'CREATE INDEX nursing_home_refunds_status ON nursing_home_refunds (status)'
+        );
+      }
       return;
     }
 

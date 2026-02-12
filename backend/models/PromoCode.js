@@ -59,6 +59,25 @@ module.exports = (sequelize, DataTypes) => {
     type: DataTypes.BOOLEAN,
     allowNull: false,
     defaultValue: false
+  },
+  allowedDays: {
+    type: DataTypes.STRING(20),
+    allowNull: true,
+    field: 'allowed_days',
+    get() {
+      const raw = this.getDataValue('allowed_days');
+      if (raw == null || raw === '') return null;
+      return raw.split(',').map(Number).filter(n => !Number.isNaN(n) && n >= 0 && n <= 6);
+    },
+    set(val) {
+      if (Array.isArray(val) && val.length > 0) {
+        this.setDataValue('allowed_days', val.join(','));
+      } else if (val == null || val === '' || (Array.isArray(val) && val.length === 0)) {
+        this.setDataValue('allowed_days', null);
+      } else {
+        this.setDataValue('allowed_days', val);
+      }
+    }
   }
 }, {
   tableName: 'promo_codes',
@@ -68,10 +87,15 @@ module.exports = (sequelize, DataTypes) => {
   updatedAt: 'updated_at'
 });
 
-  PromoCode.prototype.isValid = function() {
+  PromoCode.prototype.isValid = function(date = new Date()) {
     if (!this.active) return false;
-    if (this.expiresAt && new Date() > this.expiresAt) return false;
+    if (this.expiresAt && date > this.expiresAt) return false;
     if (this.usageLimit && this.usageCount >= this.usageLimit) return false;
+    const allowedDays = this.allowedDays;
+    if (allowedDays != null && allowedDays.length > 0) {
+      const day = date.getDay(); // 0=Sun, 6=Sat
+      if (!allowedDays.includes(day)) return false;
+    }
     return true;
   };
 
