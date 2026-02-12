@@ -2877,6 +2877,68 @@ const enhancedOrders = await Promise.all(rows.map(async (order) => {
   }
 });
 
+router.post('/orders/send-to-shipday', requireAdmin, async (req, res) => {
+  const { sendOrderToShipday } = require('../services/shipdayService');
+  try {
+    const { orderIds } = req.body || {};
+    const whereClause = {
+      status: { [Op.notIn]: ['delivered', 'cancelled'] }
+    };
+    if (Array.isArray(orderIds) && orderIds.length > 0) {
+      whereClause.id = orderIds;
+    } else {
+      whereClause.shipdayOrderId = { [Op.or]: [null, ''] };
+    }
+    const orders = await Order.findAll({
+      where: whereClause,
+      include: [
+        { model: Profile, as: 'user', attributes: ['id', 'firstName', 'lastName', 'email', 'phone'], required: false },
+        { model: Restaurant, as: 'restaurant', attributes: ['id', 'name', 'address', 'phone'], required: false }
+      ],
+      order: [['createdAt', 'DESC']],
+      limit: 100
+    });
+    const results = [];
+    let sent = 0;
+    let failed = 0;
+    for (const order of orders) {
+      if (order.shipdayOrderId) {
+        results.push({ orderId: order.id, orderNumber: order.orderNumber, status: 'skipped', message: 'Already has Shipday ID' });
+        continue;
+      }
+      try {
+        const shipdayResult = await sendOrderToShipday(order);
+        if (shipdayResult.success && shipdayResult.shipdayOrderId) {
+          await order.update({ shipdayOrderId: shipdayResult.shipdayOrderId });
+          sent++;
+          results.push({ orderId: order.id, orderNumber: order.orderNumber, status: 'sent', shipdayOrderId: shipdayResult.shipdayOrderId });
+          logger.info('Admin sent order to Shipday', { orderId: order.id, orderNumber: order.orderNumber, shipdayOrderId: shipdayResult.shipdayOrderId });
+        } else {
+          failed++;
+          results.push({ orderId: order.id, orderNumber: order.orderNumber, status: 'failed', error: shipdayResult.error || 'Unknown error' });
+        }
+      } catch (err) {
+        failed++;
+        results.push({ orderId: order.id, orderNumber: order.orderNumber, status: 'failed', error: err.message || String(err) });
+        logger.error('Admin send-to-shipday error for order', { orderId: order.id, orderNumber: order.orderNumber, error: err.message });
+      }
+    }
+    res.json({
+      success: true,
+      sent,
+      failed,
+      total: orders.length,
+      results
+    });
+  } catch (error) {
+    logger.error('Error in send-to-shipday:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: error.message || 'Failed to send orders to Shipday'
+    });
+  }
+});
+
 function formatAddressForExport(deliveryAddress) {
   if (!deliveryAddress) return '—';
   const parts = [];

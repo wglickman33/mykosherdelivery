@@ -162,6 +162,7 @@ const AdminOrders = () => {
   });
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 0 });
   const [restaurants, setRestaurants] = useState([]);
+  const [sendingToShipday, setSendingToShipday] = useState(false);
 
   useEffect(() => {
     const count = getActiveOrdersCount(allOrders);
@@ -435,6 +436,35 @@ const AdminOrders = () => {
     }
   };
 
+  const handleSendToShipday = async () => {
+    setSendingToShipday(true);
+    try {
+      const res = await apiClient.post('/admin/orders/send-to-shipday', {});
+      const data = res?.data ?? res;
+      const sent = data?.sent ?? 0;
+      const failed = data?.failed ?? 0;
+      const total = data?.total ?? 0;
+      if (sent > 0 || failed > 0) {
+        showNotification(
+          sent > 0
+            ? `Sent ${sent} order(s) to Shipday${failed > 0 ? `; ${failed} failed` : ''}.`
+            : `${failed} order(s) failed to send to Shipday.`,
+          sent > 0 ? 'success' : 'error'
+        );
+        if (sent > 0) {
+          const result = await fetchAllOrders({});
+          if (result.success) setAllOrders(Array.isArray(result.data) ? result.data : []);
+        }
+      } else {
+        showNotification(total === 0 ? 'No orders to send (all have Shipday ID or are delivered/cancelled).' : 'No orders were sent.', 'info');
+      }
+    } catch (err) {
+      showNotification(err?.response?.data?.message || err?.message || 'Failed to send orders to Shipday', 'error');
+    } finally {
+      setSendingToShipday(false);
+    }
+  };
+
   const handleDeleteOrder = async () => {
     if (!selectedOrder) return;
     
@@ -544,6 +574,16 @@ const AdminOrders = () => {
                 Totalled Items by Restaurant
               </button>
             </div>
+          </div>
+          <button
+            type="button"
+            className="shipday-btn"
+            onClick={handleSendToShipday}
+            disabled={sendingToShipday}
+            title="Send orders that don't have a Shipday ID yet to Shipday (active orders only)"
+          >
+            {sendingToShipday ? 'Sending…' : 'Send to Shipday'}
+          </button>
         </div>
         <div className="header-stats">
           <div className="stat-card">
@@ -553,12 +593,10 @@ const AdminOrders = () => {
           <div className="stat-card">
             <span className="stat-label">Active Orders</span>
             <span className="stat-value">{allOrders.filter(o => !['delivered', 'cancelled'].includes(o.status)).length}</span>
-            </div>
           </div>
         </div>
       </div>
 
-      {}
       <div className="orders-filters">
         <div className="filter-group">
           <label>Status</label>
@@ -1319,7 +1357,6 @@ const AdminOrders = () => {
         </div>
       )}
 
-      {}
       <NotificationToast 
         notification={notification} 
         onClose={hideNotification} 
