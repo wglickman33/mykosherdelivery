@@ -537,7 +537,7 @@
       padding: 0.875rem 1rem;
       border: 2px solid #e2e8f0;
       border-radius: 10px;
-      cursor: pointer;
+      cursor: default;
       transition: all 0.2s ease;
       background: #ffffff;
       position: relative;
@@ -563,7 +563,19 @@
         display: flex;
         flex-direction: column;
         gap: 0.25rem;
-        
+        flex: 1;
+        min-width: 0;
+
+        &.clickable {
+          cursor: pointer;
+          outline: none;
+
+          &:focus-visible {
+            border-radius: 6px;
+            box-shadow: 0 0 0 2px rgba(95, 180, 249, 0.5);
+          }
+        }
+
         .option-name {
           font-size: 0.95rem;
           font-weight: 500;
@@ -577,18 +589,47 @@
         }
       }
       
+      .option-selected-controls {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
       .option-selected-indicator {
-        font-size: 1.25rem;
+        font-size: 0.95rem;
         color: #5fb4f9;
-        font-weight: bold;
-        width: 24px;
-        height: 24px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+
+      .option-remove-one {
+        width: 28px;
+        height: 28px;
+        min-width: 28px;
+        padding: 0;
         display: flex;
         align-items: center;
         justify-content: center;
-        background: #eff6ff;
-        border-radius: 50%;
+        font-size: 1.25rem;
+        line-height: 1;
+        color: #061757;
+        background: #fff;
         border: 2px solid #5fb4f9;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-weight: bold;
+        flex-shrink: 0;
+
+        &:hover {
+          background: #5fb4f9;
+          color: #fff;
+        }
+
+        &:focus-visible {
+          outline: none;
+          box-shadow: 0 0 0 2px rgba(95, 180, 249, 0.6);
+        }
       }
     }
   }

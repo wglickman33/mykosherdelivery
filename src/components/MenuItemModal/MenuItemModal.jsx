@@ -35,23 +35,29 @@ const MenuItemModal = ({ item, restaurant, isOpen, onClose, onAdd }) => {
     }
   };
 
-  const handleConfigurationChange = (categoryIndex, optionIndex, isSelected) => {
+  const handleConfigurationChange = (categoryIndex, optionIndex, addOne) => {
     setSelectedConfigurations(prev => {
       const newConfigurations = { ...prev };
       const categoryKey = `category_${categoryIndex}`;
-      
+      const config = item?.options?.configurations?.[categoryIndex];
+      const maxSelections = config?.maxSelections ?? 1;
+
       if (!newConfigurations[categoryKey]) {
         newConfigurations[categoryKey] = [];
       }
-      
-      if (isSelected) {
-        if (!newConfigurations[categoryKey].includes(optionIndex)) {
-          newConfigurations[categoryKey] = [...newConfigurations[categoryKey], optionIndex];
+      const arr = newConfigurations[categoryKey];
+
+      if (addOne) {
+        if (arr.length < maxSelections) {
+          newConfigurations[categoryKey] = [...arr, optionIndex];
         }
       } else {
-        newConfigurations[categoryKey] = newConfigurations[categoryKey].filter(idx => idx !== optionIndex);
+        const idx = arr.indexOf(optionIndex);
+        if (idx !== -1) {
+          newConfigurations[categoryKey] = [...arr.slice(0, idx), ...arr.slice(idx + 1)];
+        }
       }
-      
+
       return newConfigurations;
     });
   };
@@ -248,27 +254,41 @@ const MenuItemModal = ({ item, restaurant, isOpen, onClose, onAdd }) => {
                       {config.required && <span className="required-indicator">*</span>}
                     </h5>
                     <span className="category-limit">
-                      {config.maxSelections === 1 ? 'Choose 1' : `Choose up to ${config.maxSelections}`}
+                      {(selectedConfigurations[`category_${categoryIndex}`]?.length || 0)} / {config.maxSelections} selected
                     </span>
                   </div>
                   
                   <div className="category-options">
                     {config.options.filter(option => option.available).map((option, optionIndex) => {
                       const categoryKey = `category_${categoryIndex}`;
-                      const isSelected = selectedConfigurations[categoryKey]?.includes(optionIndex) || false;
-                      const canSelect = !isSelected && (selectedConfigurations[categoryKey]?.length || 0) < config.maxSelections;
+                      const selectedArr = selectedConfigurations[categoryKey] || [];
+                      const count = selectedArr.filter(i => i === optionIndex).length;
+                      const totalSelected = selectedArr.length;
+                      const canAddOne = totalSelected < config.maxSelections;
+                      const hasSelection = count > 0;
                       
                       return (
                         <div 
                           key={optionIndex}
-                          className={`configuration-option ${isSelected ? 'selected' : ''} ${!canSelect && !isSelected ? 'disabled' : ''}`}
-                          onClick={() => {
-                            if (canSelect || isSelected) {
-                              handleConfigurationChange(categoryIndex, optionIndex, !isSelected);
-                            }
-                          }}
+                          className={`configuration-option ${hasSelection ? 'selected' : ''} ${!canAddOne && !hasSelection ? 'disabled' : ''}`}
                         >
-                          <div className="option-info">
+                          <div
+                            className={`option-info ${canAddOne ? 'clickable' : ''}`}
+                            onClick={() => {
+                              if (canAddOne) {
+                                handleConfigurationChange(categoryIndex, optionIndex, true);
+                              }
+                            }}
+                            onKeyDown={(e) => {
+                              if (canAddOne && (e.key === 'Enter' || e.key === ' ')) {
+                                e.preventDefault();
+                                handleConfigurationChange(categoryIndex, optionIndex, true);
+                              }
+                            }}
+                            role={canAddOne ? 'button' : undefined}
+                            tabIndex={canAddOne ? 0 : undefined}
+                            aria-label={canAddOne ? `Add ${option.name}` : undefined}
+                          >
                             <span className="option-name">{option.name}</span>
                             {option.priceModifier !== 0 && (
                               <span className="option-price-modifier">
@@ -276,9 +296,24 @@ const MenuItemModal = ({ item, restaurant, isOpen, onClose, onAdd }) => {
                               </span>
                             )}
                           </div>
-                          {isSelected && (
-                            <div className="option-selected-indicator">✓</div>
-                          )}
+                          {hasSelection ? (
+                            <div className="option-selected-controls">
+                              <span className="option-selected-indicator" aria-hidden="true">
+                                {count === 1 ? '✓' : `✓ × ${count}`}
+                              </span>
+                              <button
+                                type="button"
+                                className="option-remove-one"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleConfigurationChange(categoryIndex, optionIndex, false);
+                                }}
+                                aria-label={`Remove one ${option.name}`}
+                              >
+                                −
+                              </button>
+                            </div>
+                          ) : null}
                         </div>
                       );
                     })}
