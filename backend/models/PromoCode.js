@@ -87,6 +87,14 @@ module.exports = (sequelize, DataTypes) => {
   updatedAt: 'updated_at'
 });
 
+  PromoCode.prototype.toJSON = function() {
+    const values = { ...this.get() };
+    if (!Object.prototype.hasOwnProperty.call(values, 'allowedDays')) {
+      values.allowedDays = this.allowedDays;
+    }
+    return values;
+  };
+
   PromoCode.prototype.isValid = function(date = new Date()) {
     if (!this.active) return false;
     if (this.expiresAt && date > this.expiresAt) return false;

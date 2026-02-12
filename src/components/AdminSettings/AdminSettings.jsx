@@ -292,16 +292,16 @@ const AdminSettings = () => {
 
   const handlePromoEdit = (promo) => {
     setEditingPromo(promo);
-    const allowed = promo.allowedDays;
+    const allowed = getAllowedDaysFromPromo(promo);
     setPromoFormData({
       code: promo.code,
       discountType: promo.discountType,
-      discountValue: promo.discountValue.toString(),
+      discountValue: (promo.discountValue ?? promo.discount_value ?? '').toString(),
       active: promo.active,
-      expiresAt: promo.expiresAt ? promo.expiresAt.split('T')[0] : '',
-      usageLimit: promo.usageLimit ? promo.usageLimit.toString() : '',
-      stackable: promo.stackable || false,
-      allowedDays: Array.isArray(allowed) ? [...allowed] : (allowed != null && allowed !== '' ? String(allowed).split(',').map(Number).filter(n => !Number.isNaN(n) && n >= 0 && n <= 6) : [])
+      expiresAt: promo.expiresAt ? (typeof promo.expiresAt === 'string' ? promo.expiresAt : promo.expires_at || '').split('T')[0] : '',
+      usageLimit: promo.usageLimit != null ? promo.usageLimit.toString() : (promo.usage_limit != null ? String(promo.usage_limit) : ''),
+      stackable: promo.stackable ?? false,
+      allowedDays: Array.isArray(allowed) ? [...allowed] : (allowed != null && allowed.length ? allowed : [])
     });
     setPromoFormErrors({});
     setPromoError('');
@@ -350,11 +350,16 @@ const AdminSettings = () => {
     }
   };
 
+  const getAllowedDaysFromPromo = (promo) => {
+    const raw = promo.allowedDays ?? promo.allowed_days;
+    if (raw == null || raw === '') return null;
+    if (Array.isArray(raw)) return raw.length ? raw : null;
+    return String(raw).split(',').map(Number).filter(n => !Number.isNaN(n) && n >= 0 && n <= 6);
+  };
+
   const formatAllowedDays = (promo) => {
-    const allowed = promo.allowedDays;
-    if (!allowed || (Array.isArray(allowed) && allowed.length === 0)) return 'Every day';
-    const arr = Array.isArray(allowed) ? allowed : String(allowed).split(',').map(Number).filter(n => !Number.isNaN(n) && n >= 0 && n <= 6);
-    if (arr.length === 0) return 'Every day';
+    const arr = getAllowedDaysFromPromo(promo);
+    if (!arr || arr.length === 0) return 'Every day';
     return arr.map(d => DAY_NAMES[d].slice(0, 3)).join(', ');
   };
 

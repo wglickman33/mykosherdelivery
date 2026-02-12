@@ -4744,6 +4744,19 @@ router.get('/audit-logs', requireAdmin, async (req, res) => {
 });
 
 
+function normalizePromoForResponse(promo) {
+  const out = typeof promo.toJSON === 'function' ? promo.toJSON() : { ...promo };
+  const raw = out.allowed_days ?? out.allowedDays;
+  if (raw != null && raw !== '') {
+    out.allowedDays = Array.isArray(raw)
+      ? raw
+      : String(raw).split(',').map(Number).filter(n => !Number.isNaN(n) && n >= 0 && n <= 6);
+  } else {
+    out.allowedDays = null;
+  }
+  return out;
+}
+
 router.get('/promo-codes', requireAdmin, async (req, res) => {
   try {
     const { page = 1, limit = 20, search = '', active } = req.query;
@@ -4771,7 +4784,7 @@ router.get('/promo-codes', requireAdmin, async (req, res) => {
     res.json({
       success: true,
       data: {
-        promoCodes,
+        promoCodes: promoCodes.map(p => normalizePromoForResponse(p)),
         totalCount: count,
         currentPage: parseInt(page),
         totalPages: Math.ceil(count / limit)
@@ -4799,7 +4812,7 @@ router.get('/promo-codes/:id', requireAdmin, async (req, res) => {
 
     res.json({
       success: true,
-      data: promoCode
+      data: normalizePromoForResponse(promoCode)
     });
   } catch (error) {
     logger.error('Error fetching promo code:', error);
@@ -4863,6 +4876,9 @@ router.post('/promo-codes', requireAdmin, [
       });
     }
 
+    const allowedDaysValue = (allowedDays != null && Array.isArray(allowedDays) && allowedDays.length > 0)
+      ? allowedDays
+      : null;
     const promoCode = await PromoCode.create({
       code: codeTrimmed,
       discountType,
@@ -4871,7 +4887,7 @@ router.post('/promo-codes', requireAdmin, [
       expiresAt: expiresAt || null,
       usageLimit: usageLimit || null,
       stackable,
-      ...(allowedDays != null && Array.isArray(allowedDays) && allowedDays.length > 0 ? { allowedDays } : {})
+      allowedDays: allowedDaysValue
     });
 
     await logAdminAction(
@@ -4886,7 +4902,7 @@ router.post('/promo-codes', requireAdmin, [
 
     res.status(201).json({
       success: true,
-      data: promoCode,
+      data: normalizePromoForResponse(promoCode),
       message: 'Promo code created successfully'
     });
   } catch (error) {
@@ -4968,6 +4984,7 @@ router.put('/promo-codes/:id', requireAdmin, [
     const modelAttrNames = Object.keys(PromoCode.rawAttributes);
     const fieldsToUpdate = Object.keys(updateData).filter(k => modelAttrNames.includes(k));
     await promoCode.update(updateData, { fields: fieldsToUpdate.length ? fieldsToUpdate : undefined });
+    await promoCode.reload();
 
     await logAdminAction(
       req.userId,
@@ -4981,7 +4998,7 @@ router.put('/promo-codes/:id', requireAdmin, [
 
     res.json({
       success: true,
-      data: promoCode,
+      data: normalizePromoForResponse(promoCode),
       message: 'Promo code updated successfully'
     });
   } catch (error) {
