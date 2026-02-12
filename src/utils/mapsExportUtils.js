@@ -61,18 +61,23 @@ export function exportMapsRestaurantsCsv(list, options = {}) {
 
 export async function exportMapsRestaurantsXlsx(list, options = {}) {
   const filtered = filterList(Array.isArray(list) ? list : [], options);
-  const XLSX = await import('xlsx');
+  const ExcelJS = (await import('exceljs')).default;
   const headers = ['Name', 'Address', 'City', 'State', 'Zip', 'Phone', 'Website', 'Kosher Certification', 'Google Rating', 'Diet Tags', 'Hours', 'Distance'];
-  const rows = [headers];
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('Restaurants');
+  ws.addRow(headers);
   filtered.forEach((place) => {
     const r = row(place);
-    rows.push(headers.map((h) => r[h]));
+    ws.addRow(headers.map((h) => r[h]));
   });
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Restaurants');
+  const buffer = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const name = options.filename || `maps-restaurants-${new Date().toISOString().slice(0, 10)}.xlsx`;
-  XLSX.writeFile(wb, name);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 
 export async function exportMapsRestaurantsPdf(list, options = {}) {
