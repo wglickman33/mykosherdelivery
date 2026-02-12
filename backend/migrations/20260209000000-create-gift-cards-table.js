@@ -57,7 +57,6 @@ module.exports = {
       }
     });
 
-    await queryInterface.addIndex('gift_cards', ['code'], { unique: true });
     await queryInterface.addIndex('gift_cards', ['purchased_by_user_id']);
     await queryInterface.addIndex('gift_cards', ['order_id']);
     await queryInterface.addIndex('gift_cards', ['status']);
