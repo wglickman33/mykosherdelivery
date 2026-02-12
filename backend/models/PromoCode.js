@@ -65,7 +65,7 @@ module.exports = (sequelize, DataTypes) => {
     allowNull: true,
     field: 'allowed_days',
     get() {
-      const raw = this.getDataValue('allowed_days');
+      const raw = this.getDataValue('allowedDays');
       if (raw == null || raw === '') return null;
       const trimmed = String(raw).trim();
       if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
@@ -81,11 +81,11 @@ module.exports = (sequelize, DataTypes) => {
     },
     set(val) {
       if (Array.isArray(val) && val.length > 0) {
-        this.setDataValue('allowed_days', val.join(','));
+        this.setDataValue('allowedDays', val.join(','));
       } else if (val == null || val === '' || (Array.isArray(val) && val.length === 0)) {
-        this.setDataValue('allowed_days', null);
+        this.setDataValue('allowedDays', null);
       } else {
-        this.setDataValue('allowed_days', val);
+        this.setDataValue('allowedDays', val);
       }
     }
   }

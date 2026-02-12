@@ -4749,7 +4749,7 @@ function normalizePromoForResponse(promo) {
   const out = typeof promo.toJSON === 'function' ? promo.toJSON() : { ...promo };
   let raw;
   if (typeof promo.getDataValue === 'function') {
-    raw = promo.getDataValue('allowed_days');
+    raw = promo.getDataValue('allowedDays') ?? promo.getDataValue('allowed_days');
   }
   if (raw === undefined) raw = out.allowed_days ?? out.allowedDays;
   if (raw != null && raw !== '') {
@@ -5012,11 +5012,14 @@ router.put('/promo-codes/:id', requireAdmin, [
       const allowedDaysStr = (normalized != null && normalized.length > 0)
         ? normalized.map(d => Number(d)).filter(n => !Number.isNaN(n) && n >= 0 && n <= 6).join(',')
         : null;
-      await PromoCode.update(
-        { allowedDays: allowedDaysStr },
-        { where: { id: promoId } }
-      );
-      promoCode.setDataValue('allowed_days', allowedDaysStr);
+      const promoIdNum = parseInt(promoId, 10);
+      if (!Number.isNaN(promoIdNum)) {
+        await sequelize.query(
+          "UPDATE promo_codes SET allowed_days = $1 WHERE id = $2",
+          { bind: [allowedDaysStr, promoIdNum] }
+        );
+      }
+      promoCode.setDataValue('allowedDays', allowedDaysStr);
       delete updateData.allowedDays;
     }
 
