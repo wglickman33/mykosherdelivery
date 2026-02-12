@@ -4952,11 +4952,14 @@ router.put('/promo-codes/:id', requireAdmin, [
         delete updateData[key];
       }
     });
-    // Normalize allowedDays: empty array or null => set to null in DB
+    // Normalize and persist allowedDays so the model setter definitely runs (instance.update can skip setters in some paths)
     if ('allowedDays' in updateData) {
-      if (updateData.allowedDays == null || (Array.isArray(updateData.allowedDays) && updateData.allowedDays.length === 0)) {
-        updateData.allowedDays = null;
-      }
+      const normalized = (updateData.allowedDays != null && Array.isArray(updateData.allowedDays) && updateData.allowedDays.length > 0)
+        ? updateData.allowedDays
+        : null;
+      promoCode.set('allowedDays', normalized);
+      await promoCode.save({ fields: ['allowedDays'] });
+      delete updateData.allowedDays;
     }
 
     if (updateData.code) {
