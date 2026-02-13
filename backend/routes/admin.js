@@ -994,18 +994,11 @@ router.get('/analytics', requireAdmin, async (req, res) => {
     });
 
     const totalRestaurants = await Restaurant.count({
-      where: { 
-        active: true,
-        deletedAt: null
-      }
+      where: { active: true }
     });
-    
+
     const featuredRestaurants = await Restaurant.count({
-      where: { 
-        featured: true,
-        active: true,
-        deletedAt: null
-      }
+      where: { featured: true, active: true }
     });
 
     const [giftCardCounts, giftCardTotalCount, totalInitial, totalBalance] = await Promise.all([
@@ -1344,19 +1337,19 @@ router.get('/analytics/tax-profit', requireAdmin, async (req, res) => {
     ]);
 
     const rev = revenueSums[0] || {};
-    const subtotal = parseFloat(rev.subtotal || 0);
-    const deliveryFee = parseFloat(rev.deliveryFee || 0);
-    const tip = parseFloat(rev.tip || 0);
-    const tax = parseFloat(rev.tax || 0);
-    const discountAmount = parseFloat(rev.discountAmount || 0);
-    const totalRevenue = parseFloat(rev.total || 0);
+    const subtotal = parseFloat(rev.subtotal ?? 0);
+    const deliveryFee = parseFloat(rev.deliveryFee ?? rev.deliveryfee ?? 0);
+    const tip = parseFloat(rev.tip ?? 0);
+    const tax = parseFloat(rev.tax ?? 0);
+    const discountAmount = parseFloat(rev.discountAmount ?? rev.discountamount ?? 0);
+    const totalRevenue = parseFloat(rev.total ?? 0);
 
     const ref = refundSums[0] || {};
-    const refundCount = parseInt(ref.count || 0, 10);
-    const refundTotal = parseFloat(ref.totalAmount || 0);
+    const refundCount = parseInt(ref.count ?? 0, 10);
+    const refundTotal = parseFloat(ref.totalAmount ?? ref.totalamount ?? 0);
 
     const deductionsByCategory = expenseRows.reduce((acc, row) => {
-      acc[row.category] = parseFloat(row.total || 0);
+      acc[row.category] = parseFloat(row.total ?? 0);
       return acc;
     }, {});
     const totalDeductions = expenseRows.reduce((sum, row) => sum + parseFloat(row.total || 0), 0);
@@ -2832,10 +2825,7 @@ router.get('/dashboard/stats', requireAdmin, async (req, res) => {
 
     const totalUsers = await Profile.count();
     const totalRestaurants = await Restaurant.count({
-      where: { 
-        active: true,
-        deletedAt: null
-      }
+      where: { active: true }
     });
 
     const previousPeriodStart = new Date(startDate.getTime() - (now.getTime() - startDate.getTime()));

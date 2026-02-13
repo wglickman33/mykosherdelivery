@@ -104,15 +104,18 @@ const AdminAnalyticsTaxProfit = () => {
         <div className="chart-section">
           <div className="chart-header">
             <h3>Tax & Profit (P&amp;L)</h3>
-            <div className="chart-controls" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <div className="chart-controls tax-profit-controls">
               <label>
-                Start: <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                <span>Start</span>
+                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
               </label>
               <label>
-                End: <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                <span>End</span>
+                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
               </label>
               <label>
-                NY tax rate % (optional): <input type="number" min="0" step="0.1" placeholder="e.g. 6.5" value={nyTaxRatePct} onChange={(e) => setNyTaxRatePct(e.target.value)} style={{ width: '70px' }} />
+                <span>NY tax % (optional)</span>
+                <input type="number" min="0" step="0.1" placeholder="e.g. 6.5" value={nyTaxRatePct} onChange={(e) => setNyTaxRatePct(e.target.value)} />
               </label>
               <button type="button" className="period-selector" onClick={fetchData}>Refresh</button>
               {data && (
@@ -122,16 +125,25 @@ const AdminAnalyticsTaxProfit = () => {
           </div>
 
           {error && (
-            <p className="admin-analytics-error" style={{ marginBottom: '16px' }}>{error}</p>
+            <div className="tax-profit-error">
+              <p>{error}</p>
+              <button type="button" className="period-selector" onClick={fetchData}>Try again</button>
+            </div>
           )}
 
-          {data && (
+          {!error && !data && !loading && (
+            <div className="tax-profit-empty-state">
+              <p>No data for the selected period. Adjust dates and click Refresh.</p>
+            </div>
+          )}
+
+          {data && !error && (
             <>
-              <div className="tax-profit-disclaimer" style={{ background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: '8px', padding: '12px 16px', marginBottom: '24px', fontWeight: 500 }}>
+              <div className="tax-profit-disclaimer">
                 {data.disclaimer || 'Estimate only; not tax advice. Consult a CPA for filing and compliance.'}
               </div>
 
-              <div className="metrics-grid" style={{ marginBottom: '24px' }}>
+              <div className="metrics-grid">
                 <div className="metric-card revenue">
                   <div className="metric-content">
                     <h3>Total Revenue</h3>
@@ -151,7 +163,7 @@ const AdminAnalyticsTaxProfit = () => {
                     <p className="metric-value">{formatCurrency(data.deductions?.total)}</p>
                   </div>
                 </div>
-                <div className="metric-card" style={{ borderLeftColor: '#10b981' }}>
+                <div className="metric-card tax-profit-net-card">
                   <div className="metric-content">
                     <h3>Net Profit</h3>
                     <p className="metric-value">{formatCurrency(data.netProfit)}</p>
@@ -159,27 +171,25 @@ const AdminAnalyticsTaxProfit = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '24px' }}>
+              <div className="tax-profit-breakdown-grid">
                 <div className="chart-section">
                   <h4>Revenue breakdown</h4>
-                  <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                    <li style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #eee' }}><span>Subtotal</span><span>{formatCurrency(data.revenue?.subtotal)}</span></li>
-                    <li style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #eee' }}><span>Delivery fee</span><span>{formatCurrency(data.revenue?.deliveryFee)}</span></li>
-                    <li style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #eee' }}><span>Tip</span><span>{formatCurrency(data.revenue?.tip)}</span></li>
-                    <li style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #eee' }}><span>Tax collected</span><span>{formatCurrency(data.revenue?.tax)}</span></li>
-                    <li style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #eee' }}><span>Discounts</span><span>{formatCurrency(data.revenue?.discountAmount)}</span></li>
+                  <ul className="tax-profit-breakdown-list">
+                    <li><span>Subtotal</span><span>{formatCurrency(data.revenue?.subtotal)}</span></li>
+                    <li><span>Delivery fee</span><span>{formatCurrency(data.revenue?.deliveryFee)}</span></li>
+                    <li><span>Tip</span><span>{formatCurrency(data.revenue?.tip)}</span></li>
+                    <li><span>Tax collected</span><span>{formatCurrency(data.revenue?.tax)}</span></li>
+                    <li><span>Discounts</span><span>{formatCurrency(data.revenue?.discountAmount)}</span></li>
                   </ul>
                 </div>
                 <div className="chart-section">
                   <h4>Deductions by category</h4>
                   {Object.keys(data.deductions?.byCategory || {}).length === 0 ? (
-                    <p style={{ color: '#64748b' }}>None in this period</p>
+                    <p className="tax-profit-empty-inline">None in this period</p>
                   ) : (
-                    <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                    <ul className="tax-profit-breakdown-list">
                       {Object.entries(data.deductions?.byCategory || {}).map(([cat, amt]) => (
-                        <li key={cat} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #eee' }}>
-                          <span>{cat}</span><span>{formatCurrency(amt)}</span>
-                        </li>
+                        <li key={cat}><span>{cat}</span><span>{formatCurrency(amt)}</span></li>
                       ))}
                     </ul>
                   )}
@@ -187,7 +197,7 @@ const AdminAnalyticsTaxProfit = () => {
               </div>
 
               {data.nyTaxEstimate != null && (
-                <div className="chart-section" style={{ marginBottom: '24px' }}>
+                <div className="chart-section">
                   <h4>NY tax estimate</h4>
                   <p>Rate: {(data.nyTaxEstimate.rate * 100).toFixed(2)}% — Estimate: {formatCurrency(data.nyTaxEstimate.estimate)}</p>
                 </div>
@@ -197,22 +207,22 @@ const AdminAnalyticsTaxProfit = () => {
                 <div className="chart-section">
                   <h4>Expense entries in period</h4>
                   <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <table className="tax-profit-expense-table">
                       <thead>
-                        <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
-                          <th style={{ textAlign: 'left', padding: '8px' }}>Date</th>
-                          <th style={{ textAlign: 'left', padding: '8px' }}>Category</th>
-                          <th style={{ textAlign: 'right', padding: '8px' }}>Amount</th>
-                          <th style={{ textAlign: 'left', padding: '8px' }}>Note</th>
+                        <tr>
+                          <th>Date</th>
+                          <th>Category</th>
+                          <th className="amount-cell">Amount</th>
+                          <th>Note</th>
                         </tr>
                       </thead>
                       <tbody>
                         {expenses.map((e) => (
-                          <tr key={e.id} style={{ borderBottom: '1px solid #eee' }}>
-                            <td style={{ padding: '8px' }}>{e.expenseDate}</td>
-                            <td style={{ padding: '8px' }}>{e.category}</td>
-                            <td style={{ padding: '8px', textAlign: 'right' }}>{formatCurrency(e.amount)}</td>
-                            <td style={{ padding: '8px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.note || '—'}</td>
+                          <tr key={e.id}>
+                            <td>{e.expenseDate}</td>
+                            <td>{e.category}</td>
+                            <td className="amount-cell">{formatCurrency(e.amount)}</td>
+                            <td>{e.note || '—'}</td>
                           </tr>
                         ))}
                       </tbody>
