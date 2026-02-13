@@ -2178,6 +2178,16 @@ export const deleteNotification = async (id) => {
   }
 };
 
+export const deleteAllNotifications = async () => {
+  try {
+    const response = await apiClient.delete('/admin/notifications/all');
+    return { success: true, unreadCount: response.unreadCount ?? 0 };
+  } catch (error) {
+    logger.error('Error deleting all notifications:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 export const fetchOrdersStreamToken = async () => {
   try {
     const response = await apiClient.post('/admin/orders/stream-token', {});

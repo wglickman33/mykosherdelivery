@@ -126,12 +126,18 @@
           border-bottom: 1px solid #e5e7eb;
           font-weight: 600;
 
+          .notif-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          }
+
           .notif-markall {
             border: none;
             background: transparent;
             color: #2563eb;
             font-weight: 600;
-            font-size: 0.85rem; 
+            font-size: 0.85rem;
             padding: 6px 8px;
             border-radius: 6px;
             cursor: pointer;
@@ -139,6 +145,22 @@
 
             &:hover { background: #e0e7ff; }
             &:focus-visible { outline: 2px solid #93c5fd; outline-offset: 2px; }
+          }
+
+          .notif-delete-all {
+            border: none;
+            background: transparent;
+            color: #b91c1c;
+            font-weight: 600;
+            font-size: 0.85rem;
+            padding: 6px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.15s ease, color 0.15s ease;
+
+            &:hover:not(:disabled) { background: #fee2e2; }
+            &:disabled { opacity: 0.7; cursor: not-allowed; }
+            &:focus-visible { outline: 2px solid #f87171; outline-offset: 2px; }
           }
         }
 

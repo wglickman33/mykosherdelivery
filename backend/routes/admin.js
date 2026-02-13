@@ -4250,6 +4250,30 @@ router.patch('/notifications/read-all', requireAdmin, async (req, res) => {
   }
 });
 
+router.delete('/notifications/all', requireAdmin, async (req, res) => {
+  try {
+    const count = await AdminNotification.count();
+    await AdminNotification.destroy({ where: {}, force: true });
+    try {
+      await logAdminAction(
+        req.user.id,
+        'DELETE',
+        'admin_notifications',
+        null,
+        { deletedCount: count },
+        null,
+        req
+      );
+    } catch (auditError) {
+      logger.warn('Failed to log admin action for delete-all notifications:', auditError);
+    }
+    res.json({ success: true, unreadCount: 0 });
+  } catch (error) {
+    logger.error('Error deleting all admin notifications:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 router.delete('/notifications/:id', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;

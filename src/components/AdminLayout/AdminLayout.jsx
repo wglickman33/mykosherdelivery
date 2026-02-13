@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
-import { fetchNotificationCounts, fetchAdminNotifications, markNotificationRead, markAllNotificationsRead, fetchOrdersStreamToken, deleteNotification } from '../../services/adminServices';
+import { fetchNotificationCounts, fetchAdminNotifications, markNotificationRead, markAllNotificationsRead, fetchOrdersStreamToken, deleteNotification, deleteAllNotifications } from '../../services/adminServices';
 import { fetchFacilitiesList } from '../../services/nursingHomeService';
 import { fetchAllRestaurants } from '../../services/adminServices';
 import whiteMKDIcon from '../../assets/whiteMKDIcon.png';
@@ -20,6 +20,7 @@ const AdminLayout = () => {
   const [notifList, setNotifList] = useState([]);
   const [notifUnread, setNotifUnread] = useState(0);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [deletingAll, setDeletingAll] = useState(false);
   const [communities, setCommunities] = useState([]);
   const [ownerRestaurants, setOwnerRestaurants] = useState([]);
   const { user, loading: authContextLoading, signOut } = useAuth();
@@ -526,7 +527,27 @@ const AdminLayout = () => {
                 <div className="notif-dropdown" onMouseLeave={() => setNotifOpen(false)}>
                   <div className="notif-header">
                     <span>Notifications</span>
-                    {notifUnread > 0 && <button className="notif-markall" onClick={markAllRead}>Mark all read</button>}
+                    <div className="notif-header-actions">
+                      {notifUnread > 0 && <button className="notif-markall" onClick={markAllRead}>Mark all read</button>}
+                      {notifList.length >= 3 && (
+                        <button
+                          type="button"
+                          className="notif-delete-all"
+                          disabled={deletingAll}
+                          onClick={async () => {
+                            setDeletingAll(true);
+                            const res = await deleteAllNotifications();
+                            if (res?.success) {
+                              setNotifList([]);
+                              setNotifUnread(0);
+                            }
+                            setDeletingAll(false);
+                          }}
+                        >
+                          {deletingAll ? 'Deleting…' : 'Delete All'}
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <ul className="notif-list">
                     {notifList.length === 0 && <li className="notif-empty">No notifications</li>}
