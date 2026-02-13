@@ -15,6 +15,7 @@ import MenuItemModal from './MenuItemModal';
 import NursingHomeMenuItemModal from './NursingHomeMenuItemModal';
 import { fetchRestaurantMenuItems, deleteMenuItem, duplicateMenuItem } from '../../services/menuItemService';
 import { fetchNursingHomeMenu, createNursingHomeMenuItem, updateNursingHomeMenuItem, deleteNursingHomeMenuItem } from '../../services/nursingHomeMenuService';
+import apiClient from '../../lib/api';
 
 const logoModules = import.meta.glob('../../assets/restaurantlogos/*', { eager: true, import: 'default' });
 
@@ -62,6 +63,7 @@ const AdminRestaurants = () => {
   const [showMenuItemDeleteConfirm, setShowMenuItemDeleteConfirm] = useState(false);
   const [selectedMenuItemToDelete, setSelectedMenuItemToDelete] = useState(null);
   const [duplicatingItemId, setDuplicatingItemId] = useState(null);
+  const [menuExporting, setMenuExporting] = useState(false);
   const [menuItemsFilters, setMenuItemsFilters] = useState({
     search: '',
     page: 1,
@@ -727,8 +729,93 @@ const AdminRestaurants = () => {
       {activeTab === 'menus' && (
         <div className="admin-restaurants__menus-tab">
           <div className="admin-restaurants__menus-placeholder">
-            <h3>Menu Management</h3>
-            <p>Select a restaurant to manage its menu items</p>
+            <div className="admin-restaurants__menus-header">
+              <div>
+                <h3>Menu Management</h3>
+                <p>Select a restaurant to manage its menu items</p>
+              </div>
+              <div className="admin-restaurants__menu-export">
+                <span className="admin-restaurants__menu-export-label">Backup all menus:</span>
+                <div className="admin-restaurants__menu-export-buttons">
+                  <button
+                    type="button"
+                    className="admin-restaurants__btn admin-restaurants__btn--export"
+                    disabled={menuExporting || allRestaurants.length === 0}
+                    onClick={async () => {
+                      setMenuExporting(true);
+                      try {
+                        const blob = await apiClient.getBlob('/admin/restaurants/menu-export', { format: 'csv' });
+                        const dateStr = new Date().toISOString().slice(0, 10);
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `menu-backup-${dateStr}.csv`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        showNotification('Menu backup (CSV) downloaded', 'success');
+                      } catch (err) {
+                        showNotification(err?.message || 'Export failed', 'error');
+                      } finally {
+                        setMenuExporting(false);
+                      }
+                    }}
+                  >
+                    CSV
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-restaurants__btn admin-restaurants__btn--export"
+                    disabled={menuExporting || allRestaurants.length === 0}
+                    onClick={async () => {
+                      setMenuExporting(true);
+                      try {
+                        const blob = await apiClient.getBlob('/admin/restaurants/menu-export', { format: 'tsv' });
+                        const dateStr = new Date().toISOString().slice(0, 10);
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `menu-backup-${dateStr}.tsv`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        showNotification('Menu backup (TSV) downloaded', 'success');
+                      } catch (err) {
+                        showNotification(err?.message || 'Export failed', 'error');
+                      } finally {
+                        setMenuExporting(false);
+                      }
+                    }}
+                  >
+                    TSV
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-restaurants__btn admin-restaurants__btn--export"
+                    disabled={menuExporting || allRestaurants.length === 0}
+                    onClick={async () => {
+                      setMenuExporting(true);
+                      try {
+                        const blob = await apiClient.getBlob('/admin/restaurants/menu-export', { format: 'xlsx' });
+                        const dateStr = new Date().toISOString().slice(0, 10);
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `menu-backup-${dateStr}.xlsx`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        showNotification('Menu backup (XLSX) downloaded', 'success');
+                      } catch (err) {
+                        showNotification(err?.message || 'Export failed', 'error');
+                      } finally {
+                        setMenuExporting(false);
+                      }
+                    }}
+                  >
+                    XLSX
+                  </button>
+                </div>
+                {menuExporting && <span className="admin-restaurants__menu-export-status">Exporting…</span>}
+              </div>
+            </div>
             <div className="admin-restaurants__restaurant-selector">
               <label>Choose Restaurant:</label>
               <select
@@ -765,8 +852,7 @@ const AdminRestaurants = () => {
                 <p className="admin-restaurants__no-restaurants">No restaurants available</p>
               )}
             </div>
-            
-            {}
+
             {selectedRestaurantForMenu && (
               <div className="admin-restaurants__menu-items-section">
                 <div className="admin-restaurants__menu-items-header">
@@ -782,7 +868,6 @@ const AdminRestaurants = () => {
                   </button>
                 </div>
 
-                {}
                 <div className="admin-restaurants__menu-items-controls">
                   <div className="admin-restaurants__search-container">
                     <input

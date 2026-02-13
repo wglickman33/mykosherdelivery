@@ -1571,6 +1571,85 @@ router.get('/analytics/nursing-home', requireAdmin, async (req, res) => {
   }
 });
 
+router.get('/restaurants/menu-export', requireAdmin, async (req, res) => {
+  try {
+    const format = (req.query.format || 'xlsx').toLowerCase();
+    if (!['csv', 'tsv', 'xlsx'].includes(format)) {
+      return res.status(400).json({ error: 'Invalid format', message: 'Format must be csv, tsv, or xlsx' });
+    }
+    const restaurants = await Restaurant.findAll({
+      order: [['name', 'ASC']],
+      attributes: ['id', 'name']
+    });
+    const sep = format === 'tsv' ? '\t' : ',';
+    const escapeCsv = (v) => {
+      if (v == null) return '';
+      const s = String(v);
+      if (format === 'tsv') return s.replace(/\t/g, ' ');
+      const needsQuotes = /[",\n\r]/.test(s);
+      return needsQuotes ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const headers = ['restaurantId', 'restaurantName', 'id', 'name', 'description', 'price', 'category', 'itemType', 'available', 'imageUrl', 'options', 'labels'];
+    const allRows = [];
+    const restaurantSheets = [];
+    for (const rest of restaurants) {
+      const items = await MenuItem.findAll({
+        where: { restaurantId: rest.id },
+        order: [['category', 'ASC'], ['name', 'ASC']],
+        limit: 10000
+      });
+      const rows = items.map(item => {
+        const j = item.toJSON();
+        const optionsStr = j.options != null ? JSON.stringify(j.options) : '';
+        const labelsVal = j.labels;
+        const labelsStr = Array.isArray(labelsVal) ? labelsVal.join(';') : (labelsVal != null ? String(labelsVal) : '');
+        return {
+          restaurantId: rest.id,
+          restaurantName: rest.name,
+          id: j.id,
+          name: j.name || '',
+          description: j.description || '',
+          price: j.price != null ? String(j.price) : '',
+          category: j.category || '',
+          itemType: j.itemType || 'simple',
+          available: j.available !== false ? 'true' : 'false',
+          imageUrl: j.imageUrl || '',
+          options: optionsStr,
+          labels: labelsStr
+        };
+      });
+      allRows.push(...rows.map(r => ({ ...r })));
+      restaurantSheets.push({ name: rest.name, rows });
+    }
+    const dateStr = new Date().toISOString().slice(0, 10);
+    if (format === 'xlsx') {
+      const wb = new ExcelJS.Workbook();
+      const sheetName = (name) => String(name).replace(/[\\/*?:[\]]/g, ' ').slice(0, 31);
+      for (const { name, rows } of restaurantSheets) {
+        const ws = wb.addWorksheet(sheetName(name) || 'Sheet', { headerFooter: { firstHeader: name } });
+        ws.addRow(headers);
+        rows.forEach(r => ws.addRow(headers.map(h => r[h])));
+      }
+      const buffer = await wb.xlsx.writeBuffer();
+      const filename = `menu-backup-${dateStr}.xlsx`;
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      return res.send(Buffer.from(buffer));
+    }
+    const headerLine = headers.map(h => escapeCsv(h)).join(sep);
+    const bodyLines = allRows.map(r => headers.map(h => escapeCsv(r[h])).join(sep));
+    const content = [headerLine, ...bodyLines].join('\n');
+    const filename = `menu-backup-${dateStr}.${format}`;
+    const mime = format === 'tsv' ? 'text/tab-separated-values' : 'text/csv';
+    res.setHeader('Content-Type', mime);
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    return res.send(content);
+  } catch (error) {
+    logger.error('Error exporting menu:', error);
+    res.status(500).json({ error: 'Internal server error', message: 'Failed to export menu' });
+  }
+});
+
 router.post('/restaurants', requireAdmin, [
   body('id').notEmpty(),
   body('name').notEmpty(),
