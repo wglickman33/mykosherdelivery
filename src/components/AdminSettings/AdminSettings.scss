@@ -1647,7 +1647,32 @@
           cursor: not-allowed;
         }
       }
+
+      &.delete-btn {
+        background: #dc2626;
+        color: white;
+
+        &:hover:not(:disabled) {
+          background: #b91c1c;
+        }
+
+        &:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+      }
     }
+  }
+
+  .modal-content--confirm {
+    max-width: 440px;
+  }
+
+  .modal-confirm-body {
+    margin: 0;
+    padding: 1.25rem 1.5rem;
+    color: #374151;
+    line-height: 1.5;
   }
 }
 }

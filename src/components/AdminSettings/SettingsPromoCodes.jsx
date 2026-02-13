@@ -29,6 +29,8 @@ const SettingsPromoCodes = () => {
   const [promoFormErrors, setPromoFormErrors] = useState({});
   const [promoSaving, setPromoSaving] = useState(false);
   const [deletingPromoId, setDeletingPromoId] = useState(null);
+  const [deleteConfirmPromo, setDeleteConfirmPromo] = useState(null);
+  const [deletePromoError, setDeletePromoError] = useState(null);
   const [promoFormData, setPromoFormData] = useState({
     code: '',
     discountType: 'percentage',
@@ -159,20 +161,19 @@ const SettingsPromoCodes = () => {
     setShowPromoModal(true);
   };
 
-  const handlePromoDelete = async (id, code) => {
-    if (!window.confirm(`Are you sure you want to delete the promo code "${code}"? This action cannot be undone.`)) {
-      return;
-    }
-
-    setPromoError('');
+  const handlePromoDeleteConfirm = async () => {
+    if (!deleteConfirmPromo) return;
+    const { id } = deleteConfirmPromo;
+    setDeletePromoError(null);
     setDeletingPromoId(id);
 
     try {
       await deletePromoCode(id);
+      setDeleteConfirmPromo(null);
       fetchPromoData();
     } catch (error) {
       console.error('Error deleting promo code:', error);
-      setPromoError(error.message || 'Failed to delete promo code');
+      setDeletePromoError(error.message || 'Failed to delete promo code');
     } finally {
       setDeletingPromoId(null);
     }
@@ -360,7 +361,7 @@ const SettingsPromoCodes = () => {
                       </button>
                       <button
                         className="delete-btn"
-                        onClick={() => handlePromoDelete(promo.id, promo.code)}
+                        onClick={() => setDeleteConfirmPromo({ id: promo.id, code: promo.code })}
                         disabled={deletingPromoId === promo.id}
                       >
                         {deletingPromoId === promo.id ? 'Deleting...' : 'Delete'}
@@ -570,6 +571,31 @@ const SettingsPromoCodes = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {deleteConfirmPromo && (
+        <div className="modal-overlay" onClick={() => { setDeleteConfirmPromo(null); setDeletePromoError(null); }}>
+          <div className="modal-content modal-content--confirm" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h4>Delete promo code</h4>
+              <button type="button" className="close-btn" onClick={() => { setDeleteConfirmPromo(null); setDeletePromoError(null); }} aria-label="Close">×</button>
+            </div>
+            {deletePromoError && (
+              <div className="error-message">
+                <p>{deletePromoError}</p>
+              </div>
+            )}
+            <p className="modal-confirm-body">
+              Are you sure you want to delete the promo code &quot;{deleteConfirmPromo.code}&quot;? This action cannot be undone.
+            </p>
+            <div className="modal-actions">
+              <button type="button" className="cancel-btn" onClick={() => { setDeleteConfirmPromo(null); setDeletePromoError(null); }}>Cancel</button>
+              <button type="button" className="delete-btn" onClick={handlePromoDeleteConfirm} disabled={deletingPromoId === deleteConfirmPromo.id}>
+                {deletingPromoId === deleteConfirmPromo.id ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
           </div>
         </div>
       )}

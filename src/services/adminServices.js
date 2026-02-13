@@ -2397,7 +2397,6 @@ export const fetchRestaurantMenuItems = async (restaurantId, timeRange = '30d') 
 export const uploadRestaurantLogo = async (file) => {
   try {
     console.log('Uploading file:', file.name, file.type, file.size);
-    console.log('Auth token present:', !!apiClient.getToken());
     const form = new FormData();
     form.append('logo', file);
     

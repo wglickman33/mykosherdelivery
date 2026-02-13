@@ -64,6 +64,7 @@ const AdminRestaurants = () => {
   const [selectedMenuItemToDelete, setSelectedMenuItemToDelete] = useState(null);
   const [duplicatingItemId, setDuplicatingItemId] = useState(null);
   const [menuExporting, setMenuExporting] = useState(false);
+  const [deactivateConfirmItem, setDeactivateConfirmItem] = useState(null);
   const [menuItemsFilters, setMenuItemsFilters] = useState({
     search: '',
     page: 1,
@@ -450,13 +451,12 @@ const AdminRestaurants = () => {
     }
   };
 
-  const handleDeleteNHMenuItem = async (id) => {
-    if (!window.confirm('Are you sure you want to deactivate this menu item?')) {
-      return;
-    }
-    const result = await deleteNursingHomeMenuItem(id);
+  const handleDeactivateNHMenuItemConfirm = async () => {
+    if (!deactivateConfirmItem) return;
+    const result = await deleteNursingHomeMenuItem(deactivateConfirmItem.id);
     if (result.success) {
       showNotification('Menu item deactivated successfully', 'success');
+      setDeactivateConfirmItem(null);
       fetchNHMenu();
     } else {
       showNotification(result.error || 'Failed to deactivate menu item', 'error');
@@ -1180,7 +1180,7 @@ const AdminRestaurants = () => {
                             </button>
                             <button
                               className="btn-delete"
-                              onClick={() => handleDeleteNHMenuItem(item.id)}
+                              onClick={() => setDeactivateConfirmItem({ id: item.id, name: item.name })}
                             >
                               {item.isActive ? 'Deactivate' : 'Activate'}
                             </button>
@@ -1528,8 +1528,25 @@ const AdminRestaurants = () => {
           }}
         />
       )}
-      
-      {}
+
+      {deactivateConfirmItem && (
+        <div className="admin-restaurants__modal-overlay" onClick={() => setDeactivateConfirmItem(null)}>
+          <div className="admin-restaurants__modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-restaurants__modal-header">
+              <h4>Deactivate menu item</h4>
+              <button type="button" className="admin-restaurants__modal-close" onClick={() => setDeactivateConfirmItem(null)} aria-label="Close">×</button>
+            </div>
+            <p className="admin-restaurants__modal-body">
+              Are you sure you want to deactivate &quot;{deactivateConfirmItem.name}&quot;? This menu item will no longer be available.
+            </p>
+            <div className="admin-restaurants__modal-actions">
+              <button type="button" className="admin-restaurants__modal-btn-cancel" onClick={() => setDeactivateConfirmItem(null)}>Cancel</button>
+              <button type="button" className="admin-restaurants__modal-btn-danger" onClick={handleDeactivateNHMenuItemConfirm}>Deactivate</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <NotificationToast 
         notification={notification} 
         onClose={hideNotification} 

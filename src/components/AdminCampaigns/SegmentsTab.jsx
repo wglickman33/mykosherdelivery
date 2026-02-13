@@ -9,6 +9,7 @@ const SegmentsTab = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [deleteConfirmSegment, setDeleteConfirmSegment] = useState(null);
   const [segmentForm, setSegmentForm] = useState({
     name: '',
     type: 'static',
@@ -97,15 +98,14 @@ const SegmentsTab = () => {
     }
   };
 
-  const handleDeleteSegment = async (segmentId) => {
-    if (!window.confirm('Are you sure you want to delete this segment?')) {
-      return;
-    }
+  const handleDeleteSegmentConfirm = async () => {
+    if (!deleteConfirmSegment) return;
 
     setLoading(true);
     try {
-      const response = await mailchimpService.deleteSegment(selectedListId, segmentId);
+      const response = await mailchimpService.deleteSegment(selectedListId, deleteConfirmSegment.id);
       if (response.success) {
+        setDeleteConfirmSegment(null);
         await loadSegments();
       } else {
         setError('Failed to delete segment');
@@ -208,7 +208,7 @@ const SegmentsTab = () => {
               </div>
               <div className="segment-actions">
                 <button 
-                  onClick={() => handleDeleteSegment(segment.id)}
+                  onClick={() => setDeleteConfirmSegment({ id: segment.id, name: segment.name })}
                   className="btn btn-sm btn-danger"
                 >
                   Delete
@@ -216,6 +216,42 @@ const SegmentsTab = () => {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {deleteConfirmSegment && (
+        <div className="modal-overlay" onClick={() => setDeleteConfirmSegment(null)}>
+          <div className="modal modal--confirm" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Delete segment</h3>
+              <button
+                type="button"
+                className="modal-close"
+                onClick={() => setDeleteConfirmSegment(null)}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <p>Are you sure you want to delete the segment &quot;{deleteConfirmSegment.name}&quot;? This action cannot be undone.</p>
+            </div>
+            <div className="modal-footer">
+              <button
+                className="btn btn-secondary"
+                onClick={() => setDeleteConfirmSegment(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-danger"
+                onClick={handleDeleteSegmentConfirm}
+                disabled={loading}
+              >
+                {loading ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

@@ -295,6 +295,25 @@ const AdminOrders = () => {
     }
   };
 
+  const exportPerRestaurant = async () => {
+    const { start, end } = getMKDWeekWindow(filters.timeMode === 'week' ? filters.weekOffset : 0);
+    const filename = `orders_per_restaurant_${start.toISOString().split('T')[0]}_to_${end.toISOString().split('T')[0]}.xlsx`;
+    try {
+      const blob = await apiClient.getBlob('/admin/orders/export/per-restaurant', {
+        startDate: start.toISOString(),
+        endDate: end.toISOString()
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      showNotification(err.message || 'Export failed', 'error');
+    }
+  };
+
   const applyFiltersAndPaginate = useCallback(() => {
     let list = [...allOrders];
 
@@ -572,6 +591,15 @@ const AdminOrders = () => {
                 }}
               >
                 Totalled Items by Restaurant
+              </button>
+              <button 
+                className="export-option"
+                onClick={() => {
+                  exportPerRestaurant();
+                  document.querySelector('.export-dropdown')?.classList.remove('active');
+                }}
+              >
+                Per-restaurant (for texting)
               </button>
             </div>
           </div>

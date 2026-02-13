@@ -43,6 +43,49 @@ function orderBelongsToOwner(order, ownerRestaurantIds) {
   return false;
 }
 
+/**
+ * Get the slice of an order for a single restaurant: items and subtotal only (no tax, delivery, order total).
+ * Used so owners see only their items and their portion subtotal.
+ * @param {Object} order - Order plain object (e.g. order.toJSON())
+ * @param {string} restaurantId - Restaurant id to slice for
+ * @returns {{ items: Array, subtotal: number }}
+ */
+function getOwnerSlice(order, restaurantId) {
+  const d = order;
+  if (d.restaurantGroups && d.restaurantGroups[restaurantId]) {
+    const group = d.restaurantGroups[restaurantId];
+    const items = Array.isArray(group.items) ? group.items : (group.items ? Object.values(group.items) : []);
+    let subtotal = 0;
+    items.forEach((it) => {
+      const lineTotal = it.totalPrice != null ? Number(it.totalPrice) : (Number(it.price || 0) * (Number(it.quantity) || 1));
+      subtotal += lineTotal;
+    });
+    if (group.subtotal != null) subtotal = Number(group.subtotal);
+    return { items, subtotal };
+  }
+  if (d.restaurantId === restaurantId && Array.isArray(d.items)) {
+    let subtotal = 0;
+    d.items.forEach((it) => {
+      const lineTotal = it.totalPrice != null ? Number(it.totalPrice) : (Number(it.price || 0) * (Number(it.quantity) || 1));
+      subtotal += lineTotal;
+    });
+    return { items: d.items, subtotal };
+  }
+  return { items: [], subtotal: 0 };
+}
+
+/**
+ * Effective single restaurant id when owner (or admin) is viewing in single-restaurant context.
+ * @param {Array<string>|null} ownerRestaurantIds
+ * @param {string|undefined} queryRestaurantId
+ */
+function getEffectiveRestaurantId(ownerRestaurantIds, queryRestaurantId) {
+  if (!ownerRestaurantIds || ownerRestaurantIds.length === 0) return null;
+  if (queryRestaurantId && ownerRestaurantIds.includes(queryRestaurantId)) return queryRestaurantId;
+  if (ownerRestaurantIds.length === 1) return ownerRestaurantIds[0];
+  return null;
+}
+
 router.use(authenticateToken);
 router.use(requireRestaurantOwnerOrAdmin);
 router.use(requireOwnerContext);
@@ -344,6 +387,7 @@ router.get('/orders', async (req, res) => {
       limit: limitNum,
       offset: offsetNum
     });
+    const effectiveRestaurantId = getEffectiveRestaurantId(ids, queryRestaurantId);
     const enhanced = await Promise.all(rows.map(async (order) => {
       const d = order.toJSON();
       if (d.restaurantGroups && Object.keys(d.restaurantGroups).length > 0) {
@@ -354,6 +398,9 @@ router.get('/orders', async (req, res) => {
       } else if (d.restaurant) {
         d.restaurants = [d.restaurant];
         d.isMultiRestaurant = false;
+      }
+      if (effectiveRestaurantId && orderBelongsToOwner(d, ids)) {
+        d.ownerSlice = getOwnerSlice(d, effectiveRestaurantId);
       }
       return d;
     }));
@@ -402,6 +449,10 @@ router.get('/orders/:orderId', async (req, res) => {
     } else if (d.restaurant) {
       d.restaurants = [d.restaurant];
       d.isMultiRestaurant = false;
+    }
+    const effectiveRestaurantId = getEffectiveRestaurantId(ids || [], req.query.restaurantId);
+    if (effectiveRestaurantId && orderBelongsToOwner(d, ids || [])) {
+      d.ownerSlice = getOwnerSlice(d, effectiveRestaurantId);
     }
     res.json({ success: true, data: d });
   } catch (err) {

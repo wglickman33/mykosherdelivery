@@ -70,8 +70,8 @@ export async function getOrders(params = {}) {
   return { data: res.data || [], pagination: res.pagination };
 }
 
-export async function getOrder(orderId) {
-  const res = await apiClient.get(`${OWNER_BASE}/orders/${orderId}`);
+export async function getOrder(orderId, params = {}) {
+  const res = await apiClient.get(`${OWNER_BASE}/orders/${orderId}`, params);
   if (!res?.success) throw new Error(res?.message || 'Failed to load order');
   return res.data;
 }

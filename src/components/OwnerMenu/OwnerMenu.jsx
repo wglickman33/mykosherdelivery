@@ -10,11 +10,12 @@ const OwnerMenu = () => {
   const { restaurantId } = useParams();
   const { currentRestaurant } = useOutletContext();
   const [items, setItems] = useState([]);
-  const [pagination, setPagination] = useState({});
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [deleteError, setDeleteError] = useState(null);
+  const [importSuccessMessage, setImportSuccessMessage] = useState(null);
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [importOpen, setImportOpen] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -30,7 +31,6 @@ const OwnerMenu = () => {
     try {
       const res = await getMenuItems(restaurantId, { limit: 100, offset: 0, category: categoryFilter !== 'all' ? categoryFilter : undefined });
       setItems(res.data || []);
-      setPagination(res.pagination || {});
     } catch {
       setItems([]);
     } finally {
@@ -53,13 +53,12 @@ const OwnerMenu = () => {
   };
 
   const handleDeleteConfirm = async (item) => {
-    if (!window.confirm(`Delete "${item.name}"? This cannot be undone.`)) return;
     try {
       await deleteMenuItem(restaurantId, item.id);
       setDeleteConfirm(null);
       fetchItems();
     } catch (err) {
-      alert(err?.message || 'Failed to delete item');
+      setDeleteError(err?.message || 'Failed to delete item');
     }
   };
 
@@ -78,7 +77,7 @@ const OwnerMenu = () => {
       setImportReplace(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
       if (result.created > 0 || result.replaced > 0) fetchItems();
-      alert(result.message || `Imported: ${result.created} created, ${result.skipped} skipped.`);
+      setImportSuccessMessage(result.message || `Imported: ${result.created} created, ${result.skipped} skipped.`);
     } catch (err) {
       setImportError(err?.message || 'Import failed');
     } finally {
@@ -201,12 +200,46 @@ const OwnerMenu = () => {
       )}
 
       {deleteConfirm && (
-        <div className="owner-menu__confirm-overlay" onClick={() => setDeleteConfirm(null)}>
-          <div className="owner-menu__confirm-box" onClick={e => e.stopPropagation()}>
-            <p>Delete &quot;{deleteConfirm.name}&quot;?</p>
-            <div className="owner-menu__confirm-actions">
-              <button type="button" className="owner-menu__btn-cancel" onClick={() => setDeleteConfirm(null)}>Cancel</button>
-              <button type="button" className="owner-menu__btn-delete-confirm" onClick={() => handleDeleteConfirm(deleteConfirm)}>Delete</button>
+        <div className="owner-menu__modal-overlay" onClick={() => setDeleteConfirm(null)}>
+          <div className="owner-menu__modal-content" onClick={e => e.stopPropagation()}>
+            <div className="owner-menu__modal-header">
+              <h4>Delete menu item</h4>
+              <button type="button" className="owner-menu__modal-close" onClick={() => setDeleteConfirm(null)} aria-label="Close">×</button>
+            </div>
+            <p className="owner-menu__modal-body">Delete &quot;{deleteConfirm.name}&quot;? This cannot be undone.</p>
+            <div className="owner-menu__modal-actions">
+              <button type="button" className="owner-menu__modal-btn-cancel" onClick={() => setDeleteConfirm(null)}>Cancel</button>
+              <button type="button" className="owner-menu__modal-btn-danger" onClick={() => handleDeleteConfirm(deleteConfirm)}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteError && (
+        <div className="owner-menu__modal-overlay" onClick={() => setDeleteError(null)}>
+          <div className="owner-menu__modal-content" onClick={e => e.stopPropagation()}>
+            <div className="owner-menu__modal-header">
+              <h4>Error</h4>
+              <button type="button" className="owner-menu__modal-close" onClick={() => setDeleteError(null)} aria-label="Close">×</button>
+            </div>
+            <p className="owner-menu__modal-body">{deleteError}</p>
+            <div className="owner-menu__modal-actions">
+              <button type="button" className="owner-menu__modal-btn-cancel" onClick={() => setDeleteError(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {importSuccessMessage && (
+        <div className="owner-menu__modal-overlay" onClick={() => setImportSuccessMessage(null)}>
+          <div className="owner-menu__modal-content" onClick={e => e.stopPropagation()}>
+            <div className="owner-menu__modal-header">
+              <h4>Import complete</h4>
+              <button type="button" className="owner-menu__modal-close" onClick={() => setImportSuccessMessage(null)} aria-label="Close">×</button>
+            </div>
+            <p className="owner-menu__modal-body">{importSuccessMessage}</p>
+            <div className="owner-menu__modal-actions">
+              <button type="button" className="owner-menu__modal-btn-cancel" onClick={() => setImportSuccessMessage(null)}>OK</button>
             </div>
           </div>
         </div>

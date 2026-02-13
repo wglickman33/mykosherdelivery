@@ -33,7 +33,8 @@ backend/.env.backup
 *.sqlite
 *.sqlite3
 
-# Editor directories and files
+# Editor / IDE
+.cursor
 .vscode/*
 !.vscode/extensions.json
 .idea

@@ -3221,10 +3221,13 @@ router.get('/orders/export/individual', requireAdmin, async (req, res) => {
     });
 
     const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet('Orders');
+    const ws = wb.addWorksheet('Orders', { views: [{ state: 'frozen', ySplit: 1 }] });
     const headers = exportData.length ? Object.keys(exportData[0]) : ['Last Name', 'Qty/Item', 'Address'];
     ws.addRow(headers);
     exportData.forEach(row => ws.addRow(headers.map(h => row[h])));
+    ws.getColumn(1).width = 14;
+    ws.getColumn(2).width = 50;
+    ws.getColumn(3).width = 32;
     const buffer = await wb.xlsx.writeBuffer();
     const filename = `orders_individual_${startDate.toISOString().split('T')[0]}_to_${endDate.toISOString().split('T')[0]}.xlsx`;
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -3305,10 +3308,12 @@ router.get('/orders/export/totalled', requireAdmin, async (req, res) => {
     }));
 
     const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet('Totals');
+    const ws = wb.addWorksheet('Totals', { views: [{ state: 'frozen', ySplit: 1 }] });
     const headers = exportData.length ? Object.keys(exportData[0]) : ['Restaurant', 'Items'];
     ws.addRow(headers);
     exportData.forEach(row => ws.addRow(headers.map(h => row[h])));
+    ws.getColumn(1).width = 22;
+    ws.getColumn(2).width = 55;
     const buffer = await wb.xlsx.writeBuffer();
     const filename = `orders_totalled_${startDate.toISOString().split('T')[0]}_to_${endDate.toISOString().split('T')[0]}.xlsx`;
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -3317,6 +3322,108 @@ router.get('/orders/export/totalled', requireAdmin, async (req, res) => {
   } catch (error) {
     logger.error('Error exporting orders (totalled):', error);
     res.status(500).json({ error: 'Internal server error', message: 'Failed to export totalled orders' });
+  }
+});
+
+router.get('/orders/export/per-restaurant', requireAdmin, async (req, res) => {
+  try {
+    const { startDate: startParam, endDate: endParam } = req.query;
+    const startDate = startParam ? new Date(startParam) : null;
+    const endDate = endParam ? new Date(endParam) : null;
+    if (!startDate || !endDate || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return res.status(400).json({ error: 'startDate and endDate query params required (ISO)' });
+    }
+    const whereClause = { createdAt: { [Op.gte]: startDate, [Op.lte]: endDate } };
+    const include = [
+      { model: Profile, as: 'user', attributes: ['firstName', 'lastName', 'email'] },
+      { model: Restaurant, as: 'restaurant', attributes: ['name'] }
+    ];
+    const rows = await Order.findAll({
+      where: whereClause,
+      include,
+      order: [['createdAt', 'ASC']],
+      limit: 10000
+    });
+    const enhancedOrders = await Promise.all(rows.map(async (order) => {
+      const orderData = order.toJSON();
+      if (orderData.restaurantGroups && Object.keys(orderData.restaurantGroups).length > 0) {
+        const restaurantIds = Object.keys(orderData.restaurantGroups);
+        const restaurants = await Restaurant.findAll({ where: { id: restaurantIds }, attributes: ['id', 'name'] });
+        orderData.restaurants = restaurants;
+      } else if (orderData.restaurant) {
+        orderData.restaurants = [orderData.restaurant];
+      }
+      return orderData;
+    }));
+
+    const byRestaurant = {};
+    enhancedOrders.forEach(order => {
+      const customerName = order.user
+        ? `${order.user.lastName || ''} ${(order.user.firstName || '').charAt(0)}`.trim() || 'Guest'
+        : (order.guestInfo?.lastName ? `${order.guestInfo.lastName} ${(order.guestInfo.firstName || '').charAt(0)}`.trim() : 'Guest');
+      const formattedAddress = formatAddressForExport(order.deliveryAddress || order.delivery_address);
+
+      if (order.restaurantGroups && Object.keys(order.restaurantGroups).length > 0) {
+        Object.entries(order.restaurantGroups).forEach(([rId, group]) => {
+          const items = Array.isArray(group.items) ? group.items : Object.values(group.items || {});
+          let subtotal = 0;
+          items.forEach((it) => {
+            subtotal += Number(it.totalPrice ?? (Number(it.price || 0) * (Number(it.quantity) || 1)));
+          });
+          if (group.subtotal != null) subtotal = Number(group.subtotal);
+          const restaurantName = getRestaurantNameForItemExport(order, { restaurantId: rId });
+          if (!byRestaurant[rId]) byRestaurant[rId] = { name: restaurantName, rows: [] };
+          const itemsText = items.map((it) => `${it.quantity || 1}x ${formatItemDetailsForExport(it)}`).join(', ');
+          byRestaurant[rId].rows.push({ customer: customerName, items: itemsText, address: formattedAddress, subtotal });
+        });
+      } else if (order.restaurantId && Array.isArray(order.items)) {
+        const rId = order.restaurantId;
+        const restaurantName = getRestaurantNameForItemExport(order, { restaurantId: rId });
+        let subtotal = 0;
+        order.items.forEach((it) => {
+          subtotal += Number(it.totalPrice ?? (Number(it.price || 0) * (Number(it.quantity) || 1)));
+        });
+        const itemsText = order.items.map((it) => `${it.quantity || 1}x ${formatItemDetailsForExport(it)}`).join(', ');
+        if (!byRestaurant[rId]) byRestaurant[rId] = { name: restaurantName, rows: [] };
+        byRestaurant[rId].rows.push({ customer: customerName, items: itemsText, address: formattedAddress, subtotal });
+      }
+    });
+
+    const wb = new ExcelJS.Workbook();
+    const sheetNames = new Set();
+    Object.entries(byRestaurant).forEach(([rId, data]) => {
+      const safeName = (data.name || `Restaurant_${rId}`).replace(/[/\\*?[\]:]/g, '_').slice(0, 31);
+      let name = safeName;
+      let n = 0;
+      while (sheetNames.has(name)) {
+        n += 1;
+        name = `${safeName.slice(0, 28)}_${n}`.slice(0, 31);
+      }
+      sheetNames.add(name);
+      const ws = wb.addWorksheet(name, { views: [{ state: 'frozen', ySplit: 1 }] });
+      ws.addRow(['Customer', 'Items', 'Delivery address', 'Subtotal']);
+      data.rows.forEach((row) => {
+        const subtotalFormatted = typeof row.subtotal === 'number' ? `$${Number(row.subtotal).toFixed(2)}` : (row.subtotal ?? '');
+        ws.addRow([row.customer, row.items, row.address, subtotalFormatted]);
+      });
+      ws.getColumn(1).width = 18;
+      ws.getColumn(2).width = 45;
+      ws.getColumn(3).width = 30;
+      ws.getColumn(4).width = 12;
+    });
+    if (Object.keys(byRestaurant).length === 0) {
+      const ws = wb.addWorksheet('Orders');
+      ws.addRow(['Customer', 'Items', 'Delivery address', 'Subtotal']);
+      ws.getColumn(4).width = 12;
+    }
+    const buffer = await wb.xlsx.writeBuffer();
+    const filename = `orders_per_restaurant_${startDate.toISOString().split('T')[0]}_to_${endDate.toISOString().split('T')[0]}.xlsx`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(Buffer.from(buffer));
+  } catch (error) {
+    logger.error('Error exporting orders (per-restaurant):', error);
+    res.status(500).json({ error: 'Internal server error', message: 'Failed to export per-restaurant orders' });
   }
 });
 
