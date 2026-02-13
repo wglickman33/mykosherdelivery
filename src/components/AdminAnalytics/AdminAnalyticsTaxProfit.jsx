@@ -13,6 +13,7 @@ const formatCurrency = (amount) =>
 const AdminAnalyticsTaxProfit = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [expensesError, setExpensesError] = useState(null);
   const [data, setData] = useState(null);
   const [expenses, setExpenses] = useState([]);
   const [startDate, setStartDate] = useState(() => {
@@ -27,10 +28,14 @@ const AdminAnalyticsTaxProfit = () => {
     try {
       setLoading(true);
       setError(null);
+      setExpensesError(null);
+      const numRate = nyTaxRatePct !== '' && !Number.isNaN(parseFloat(nyTaxRatePct)) && parseFloat(nyTaxRatePct) >= 0
+        ? parseFloat(nyTaxRatePct) / 100
+        : null;
       const params = {
         startDate,
         endDate,
-        ...(nyTaxRatePct !== '' && parseFloat(nyTaxRatePct) >= 0 ? { nyTaxRate: parseFloat(nyTaxRatePct) / 100 } : {})
+        ...(numRate != null ? { nyTaxRate: numRate } : {})
       };
       const [result, expResult] = await Promise.all([
         fetchTaxProfitAnalytics(params),
@@ -38,13 +43,17 @@ const AdminAnalyticsTaxProfit = () => {
       ]);
       if (result.success && result.data) setData(result.data);
       else setData(null);
-      if (expResult.success) setExpenses(expResult.data || []);
-      else setExpenses([]);
       if (!result.success && result.error) setError(result.error);
+      if (expResult.success) setExpenses(expResult.data || []);
+      else {
+        setExpenses([]);
+        if (expResult.error) setExpensesError(expResult.error);
+      }
     } catch (err) {
       setError(err?.message || 'Failed to load data');
       setData(null);
       setExpenses([]);
+      setExpensesError(null);
     } finally {
       setLoading(false);
     }
@@ -98,82 +107,78 @@ const AdminAnalyticsTaxProfit = () => {
   }
 
   return (
-    <div className="admin-analytics">
+    <div className="admin-analytics tax-profit-page">
       <AnalyticsNavigation />
-      <div className="analytics-content">
-        <div className="chart-section">
-          <div className="chart-header">
-            <h3>Tax & Profit (P&amp;L)</h3>
-            <div className="chart-controls tax-profit-controls">
-              <label>
-                <span>Start</span>
-                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-              </label>
-              <label>
-                <span>End</span>
-                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-              </label>
-              <label>
-                <span>NY tax % (optional)</span>
-                <input type="number" min="0" step="0.1" placeholder="e.g. 6.5" value={nyTaxRatePct} onChange={(e) => setNyTaxRatePct(e.target.value)} />
-              </label>
-              <button type="button" className="period-selector" onClick={fetchData}>Refresh</button>
+      <div className="analytics-content tax-profit-content">
+        <header className="tax-profit-page-header">
+          <h2 className="tax-profit-page-title">Tax & Profit (P&amp;L)</h2>
+          <div className="tax-profit-controls">
+            <label className="tax-profit-control">
+              <span className="tax-profit-control-label">Start date</span>
+              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} aria-label="Start date" />
+            </label>
+            <label className="tax-profit-control">
+              <span className="tax-profit-control-label">End date</span>
+              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} aria-label="End date" />
+            </label>
+            <label className="tax-profit-control">
+              <span className="tax-profit-control-label">NY tax % (optional)</span>
+              <input type="number" min="0" step="0.1" placeholder="6.5" value={nyTaxRatePct} onChange={(e) => setNyTaxRatePct(e.target.value)} aria-label="NY tax rate percent" />
+            </label>
+            <div className="tax-profit-actions">
+              <button type="button" className="tax-profit-btn tax-profit-btn--primary" onClick={fetchData}>Refresh</button>
               {data && (
-                <button type="button" className="period-selector" onClick={handleExportCSV}>Export CSV</button>
+                <button type="button" className="tax-profit-btn tax-profit-btn--secondary" onClick={handleExportCSV}>Export CSV</button>
               )}
             </div>
           </div>
+        </header>
 
-          {error && (
-            <div className="tax-profit-error">
-              <p>{error}</p>
-              <button type="button" className="period-selector" onClick={fetchData}>Try again</button>
-            </div>
-          )}
+        {error && (
+          <section className="tax-profit-section tax-profit-error-block">
+            <p>{error}</p>
+            <button type="button" className="tax-profit-btn tax-profit-btn--primary" onClick={fetchData}>Try again</button>
+          </section>
+        )}
 
-          {!error && !data && !loading && (
-            <div className="tax-profit-empty-state">
-              <p>No data for the selected period. Adjust dates and click Refresh.</p>
-            </div>
-          )}
+        {!error && !data && !loading && (
+          <section className="tax-profit-section tax-profit-empty-state">
+            <p>No data for the selected period. Adjust dates and click Refresh.</p>
+          </section>
+        )}
 
-          {data && !error && (
-            <>
-              <div className="tax-profit-disclaimer">
-                {data.disclaimer || 'Estimate only; not tax advice. Consult a CPA for filing and compliance.'}
-              </div>
+        {data && !error && (
+          <>
+            <section className="tax-profit-section tax-profit-disclaimer" aria-live="polite">
+              <p>{data.disclaimer || 'Estimate only; not tax advice. Consult a CPA for filing and compliance.'}</p>
+            </section>
 
-              <div className="metrics-grid">
-                <div className="metric-card revenue">
-                  <div className="metric-content">
-                    <h3>Total Revenue</h3>
-                    <p className="metric-value">{formatCurrency(data.revenue?.total)}</p>
-                  </div>
+            <section className="tax-profit-section tax-profit-kpis" aria-label="Key figures">
+              <div className="tax-profit-kpis-grid">
+                <div className="tax-profit-kpi tax-profit-kpi--revenue">
+                  <span className="tax-profit-kpi-label">Total Revenue</span>
+                  <span className="tax-profit-kpi-value">{formatCurrency(data.revenue?.total)}</span>
                 </div>
-                <div className="metric-card">
-                  <div className="metric-content">
-                    <h3>Refunds</h3>
-                    <p className="metric-value">{formatCurrency(data.refunds?.total)}</p>
-                    <span className="metric-change neutral">{data.refunds?.count ?? 0} refunds</span>
-                  </div>
+                <div className="tax-profit-kpi">
+                  <span className="tax-profit-kpi-label">Refunds</span>
+                  <span className="tax-profit-kpi-value">{formatCurrency(data.refunds?.total)}</span>
+                  <span className="tax-profit-kpi-meta">{data.refunds?.count ?? 0} refunds</span>
                 </div>
-                <div className="metric-card">
-                  <div className="metric-content">
-                    <h3>Deductions</h3>
-                    <p className="metric-value">{formatCurrency(data.deductions?.total)}</p>
-                  </div>
+                <div className="tax-profit-kpi">
+                  <span className="tax-profit-kpi-label">Deductions</span>
+                  <span className="tax-profit-kpi-value">{formatCurrency(data.deductions?.total)}</span>
                 </div>
-                <div className="metric-card tax-profit-net-card">
-                  <div className="metric-content">
-                    <h3>Net Profit</h3>
-                    <p className="metric-value">{formatCurrency(data.netProfit)}</p>
-                  </div>
+                <div className="tax-profit-kpi tax-profit-kpi--net">
+                  <span className="tax-profit-kpi-label">Net Profit</span>
+                  <span className="tax-profit-kpi-value">{formatCurrency(data.netProfit)}</span>
                 </div>
               </div>
+            </section>
 
+            <section className="tax-profit-section tax-profit-breakdowns" aria-label="Revenue and deductions breakdown">
               <div className="tax-profit-breakdown-grid">
-                <div className="chart-section">
-                  <h4>Revenue breakdown</h4>
+                <div className="tax-profit-card tax-profit-breakdown-card">
+                  <h3 className="tax-profit-card-title">Revenue breakdown</h3>
                   <ul className="tax-profit-breakdown-list">
                     <li><span>Subtotal</span><span>{formatCurrency(data.revenue?.subtotal)}</span></li>
                     <li><span>Delivery fee</span><span>{formatCurrency(data.revenue?.deliveryFee)}</span></li>
@@ -182,8 +187,8 @@ const AdminAnalyticsTaxProfit = () => {
                     <li><span>Discounts</span><span>{formatCurrency(data.revenue?.discountAmount)}</span></li>
                   </ul>
                 </div>
-                <div className="chart-section">
-                  <h4>Deductions by category</h4>
+                <div className="tax-profit-card tax-profit-breakdown-card">
+                  <h3 className="tax-profit-card-title">Deductions by category</h3>
                   {Object.keys(data.deductions?.byCategory || {}).length === 0 ? (
                     <p className="tax-profit-empty-inline">None in this period</p>
                   ) : (
@@ -195,44 +200,52 @@ const AdminAnalyticsTaxProfit = () => {
                   )}
                 </div>
               </div>
+            </section>
 
-              {data.nyTaxEstimate != null && (
-                <div className="chart-section">
-                  <h4>NY tax estimate</h4>
-                  <p>Rate: {(data.nyTaxEstimate.rate * 100).toFixed(2)}% — Estimate: {formatCurrency(data.nyTaxEstimate.estimate)}</p>
-                </div>
+            {data.nyTaxEstimate != null && (
+              <section className="tax-profit-section tax-profit-ny-estimate">
+                <h3 className="tax-profit-card-title">NY tax estimate</h3>
+                <p className="tax-profit-ny-text">
+                  Rate: {(data.nyTaxEstimate.rate * 100).toFixed(2)}% — Estimate: {formatCurrency(data.nyTaxEstimate.estimate)}
+                </p>
+              </section>
+            )}
+
+            <section className="tax-profit-section tax-profit-expenses-section" aria-label="Expense entries">
+              <h3 className="tax-profit-card-title">Expense entries in period</h3>
+              {expensesError && (
+                <p className="tax-profit-expenses-error">Expense list could not be loaded. P&amp;L totals above are still accurate.</p>
               )}
-
-              {expenses.length > 0 && (
-                <div className="chart-section">
-                  <h4>Expense entries in period</h4>
-                  <div style={{ overflowX: 'auto' }}>
-                    <table className="tax-profit-expense-table">
-                      <thead>
-                        <tr>
-                          <th>Date</th>
-                          <th>Category</th>
-                          <th className="amount-cell">Amount</th>
-                          <th>Note</th>
+              {!expensesError && expenses.length === 0 && (
+                <p className="tax-profit-empty-inline">No expense entries in this period.</p>
+              )}
+              {!expensesError && expenses.length > 0 && (
+                <div className="tax-profit-table-wrap">
+                  <table className="tax-profit-expense-table">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Category</th>
+                        <th className="tax-profit-amount-col">Amount</th>
+                        <th>Note</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {expenses.map((e) => (
+                        <tr key={e.id}>
+                          <td>{e.expenseDate}</td>
+                          <td>{e.category}</td>
+                          <td className="tax-profit-amount-col">{formatCurrency(e.amount)}</td>
+                          <td>{e.note || '—'}</td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {expenses.map((e) => (
-                          <tr key={e.id}>
-                            <td>{e.expenseDate}</td>
-                            <td>{e.category}</td>
-                            <td className="amount-cell">{formatCurrency(e.amount)}</td>
-                            <td>{e.note || '—'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
-            </>
-          )}
-        </div>
+            </section>
+          </>
+        )}
       </div>
     </div>
   );

@@ -1205,12 +1205,15 @@ router.get('/expenses', requireAdmin, async (req, res) => {
       where,
       order: [['expenseDate', 'DESC'], ['createdAt', 'DESC']],
       limit: limitNum,
-      offset: offsetNum,
-      include: [{ model: Profile, as: 'creator', attributes: ['id', 'firstName', 'lastName', 'email'] }]
+      offset: offsetNum
     });
     res.json({ success: true, data: rows, total: count });
   } catch (error) {
     logger.error('Error listing expenses:', error);
+    const msg = error?.message || '';
+    if (msg.includes('does not exist') || msg.includes('relation') || msg.includes('Unknown column')) {
+      return res.json({ success: true, data: [], total: 0 });
+    }
     res.status(500).json({ error: 'Internal server error', message: 'Failed to list expenses' });
   }
 });

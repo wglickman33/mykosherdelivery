@@ -589,55 +589,217 @@
     }
   }
 
-  .tax-profit-disclaimer {
-    background: #fef3c7;
-    border: 1px solid #f59e0b;
-    border-radius: 8px;
-    padding: 12px 16px;
-    margin-bottom: 24px;
-    font-weight: 500;
-    color: #92400e;
-    font-size: 0.9rem;
+  .tax-profit-page .tax-profit-content {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .tax-profit-page-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .tax-profit-page-title {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #061757;
   }
 
   .tax-profit-controls {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
-    align-items: center;
+    align-items: flex-end;
+    gap: 12px 20px;
+  }
 
-    label {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.9rem;
-      color: #374151;
+  .tax-profit-control {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 0;
 
-      input[type='date'],
-      input[type='number'] {
-        padding: 8px 10px;
-        border: 1px solid #d1d5db;
-        border-radius: 6px;
-        font-size: 0.9rem;
+    .tax-profit-control-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
 
-        &:focus {
-          outline: none;
-          border-color: #5fb4f9;
-          box-shadow: 0 0 0 2px rgba(95, 180, 249, 0.2);
-        }
+    input[type='date'],
+    input[type='number'] {
+      padding: 8px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      min-width: 0;
+
+      &:focus {
+        outline: none;
+        border-color: #5fb4f9;
+        box-shadow: 0 0 0 2px rgba(95, 180, 249, 0.2);
       }
+    }
 
-      input[type='number'] {
-        width: 72px;
+    input[type='number'] {
+      width: 5rem;
+    }
+  }
+
+  .tax-profit-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .tax-profit-btn {
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+    border: 1px solid transparent;
+
+    &--primary {
+      background: #061757;
+      color: #fff;
+      border-color: #061757;
+
+      &:hover {
+        background: #0c2563;
+        border-color: #0c2563;
+      }
+    }
+
+    &--secondary {
+      background: #fff;
+      color: #061757;
+      border-color: #d1d5db;
+
+      &:hover {
+        background: #f8fafc;
+        border-color: #5fb4f9;
       }
     }
   }
 
+  .tax-profit-section {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px 24px;
+    border: 1px solid rgba(6, 23, 87, 0.08);
+    box-shadow: 0 2px 8px rgba(6, 23, 87, 0.06);
+  }
+
+  .tax-profit-disclaimer {
+    background: #fef3c7;
+    border-color: #f59e0b;
+    color: #92400e;
+    font-weight: 500;
+    font-size: 0.9rem;
+
+    p {
+      margin: 0;
+    }
+  }
+
+  .tax-profit-error-block {
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #b91c1c;
+
+    p {
+      margin: 0 0 12px 0;
+    }
+  }
+
+  .tax-profit-empty-state {
+    text-align: center;
+    padding: 48px 24px;
+    color: #64748b;
+    font-size: 1rem;
+  }
+
+  .tax-profit-kpis {
+    padding: 24px;
+  }
+
+  .tax-profit-kpis-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+  }
+
+  .tax-profit-kpi {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 16px;
+    border-radius: 10px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+
+    &--revenue {
+      border-left: 4px solid #059669;
+      background: rgba(5, 150, 105, 0.06);
+    }
+
+    &--net {
+      border-left: 4px solid #10b981;
+      background: rgba(16, 185, 129, 0.06);
+    }
+  }
+
+  .tax-profit-kpi-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .tax-profit-kpi-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #061757;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tax-profit-kpi-meta {
+    font-size: 0.8rem;
+    color: #64748b;
+  }
+
+  .tax-profit-breakdowns {
+    padding: 24px;
+  }
+
   .tax-profit-breakdown-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 20px;
-    margin-bottom: 24px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+
+  .tax-profit-card {
+    padding: 0;
+  }
+
+  .tax-profit-card-title {
+    margin: 0 0 16px 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #061757;
   }
 
   .tax-profit-breakdown-list {
@@ -648,9 +810,10 @@
     li {
       display: flex;
       justify-content: space-between;
-      padding: 8px 0;
+      padding: 10px 0;
       border-bottom: 1px solid #e5e7eb;
       font-size: 0.95rem;
+      gap: 16px;
 
       &:last-child {
         border-bottom: none;
@@ -658,14 +821,42 @@
     }
   }
 
+  .tax-profit-ny-estimate {
+    .tax-profit-ny-text {
+      margin: 0;
+      font-size: 0.95rem;
+      color: #374151;
+    }
+  }
+
+  .tax-profit-expenses-section {
+    .tax-profit-card-title {
+      margin-bottom: 12px;
+    }
+  }
+
+  .tax-profit-expenses-error {
+    margin: 0 0 12px 0;
+    font-size: 0.9rem;
+    color: #b91c1c;
+  }
+
+  .tax-profit-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 -24px;
+    padding: 0 24px;
+  }
+
   .tax-profit-expense-table {
     width: 100%;
+    min-width: 420px;
     border-collapse: collapse;
     font-size: 0.9rem;
 
     th,
     td {
-      padding: 10px 12px;
+      padding: 12px 16px;
       text-align: left;
       border-bottom: 1px solid #e5e7eb;
     }
@@ -674,32 +865,19 @@
       font-weight: 600;
       color: #374151;
       background: #f8fafc;
+      white-space: nowrap;
     }
 
     td:last-of-type {
-      max-width: 200px;
+      max-width: 220px;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
-    .amount-cell {
+    .tax-profit-amount-col {
       text-align: right;
       font-variant-numeric: tabular-nums;
     }
-  }
-
-  .tax-profit-net-card {
-    border-left: 4px solid #10b981;
-  }
-
-  .tax-profit-empty-state {
-    text-align: center;
-    padding: 48px 24px;
-    color: #64748b;
-    font-size: 1rem;
-    background: white;
-    border-radius: 12px;
-    border: 1px solid #e2e8f0;
   }
 
   .tax-profit-empty-inline {
@@ -708,17 +886,66 @@
     margin: 0;
   }
 
-  .tax-profit-error {
-    padding: 16px;
-    margin-bottom: 24px;
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-    border-radius: 8px;
-    color: #b91c1c;
+  .tax-profit-page {
+    @media (max-width: 1024px) {
+      .tax-profit-kpis-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
 
-    p {
-      margin: 0 0 12px 0;
-      font-size: 0.95rem;
+      .tax-profit-breakdown-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .tax-profit-page-header {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .tax-profit-controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .tax-profit-control input[type='number'] {
+        width: 100%;
+      }
+
+      .tax-profit-actions {
+        width: 100%;
+        justify-content: flex-start;
+      }
+
+      .tax-profit-section {
+        padding: 16px;
+      }
+
+      .tax-profit-kpis-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .tax-profit-kpi-value {
+        font-size: 1.25rem;
+      }
+
+      .tax-profit-table-wrap {
+        margin: 0 -16px;
+        padding: 0 16px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .tax-profit-page-title {
+        font-size: 1.25rem;
+      }
+
+      .tax-profit-expense-table th,
+      .tax-profit-expense-table td {
+        padding: 10px 12px;
+        font-size: 0.85rem;
+      }
     }
   }
 
