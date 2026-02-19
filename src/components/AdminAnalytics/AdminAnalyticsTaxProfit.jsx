@@ -73,7 +73,7 @@ const AdminAnalyticsTaxProfit = () => {
       ['Delivery fee', formatCurrency(data.revenue?.deliveryFee)],
       ['Tip', formatCurrency(data.revenue?.tip)],
       ['Tax collected', formatCurrency(data.revenue?.tax)],
-      ['Discounts', formatCurrency(data.revenue?.discountAmount)],
+      ['Discounts (reduction)', formatCurrency(-(data.revenue?.discountAmount || 0))],
       ['Total revenue', formatCurrency(data.revenue?.total)],
       [],
       ['Refunds', 'Count', data.refunds?.count, 'Total', formatCurrency(data.refunds?.total)],
@@ -184,7 +184,7 @@ const AdminAnalyticsTaxProfit = () => {
                     <li><span>Delivery fee</span><span>{formatCurrency(data.revenue?.deliveryFee)}</span></li>
                     <li><span>Tip</span><span>{formatCurrency(data.revenue?.tip)}</span></li>
                     <li><span>Tax collected</span><span>{formatCurrency(data.revenue?.tax)}</span></li>
-                    <li><span>Discounts</span><span>{formatCurrency(data.revenue?.discountAmount)}</span></li>
+                    <li><span>Discounts (reduction)</span><span className="revenue-reduction">-{formatCurrency(data.revenue?.discountAmount)}</span></li>
                   </ul>
                 </div>
                 <div className="tax-profit-card tax-profit-breakdown-card">
@@ -204,9 +204,10 @@ const AdminAnalyticsTaxProfit = () => {
 
             {data.nyTaxEstimate != null && (
               <section className="tax-profit-section tax-profit-ny-estimate">
-                <h3 className="tax-profit-card-title">NY tax estimate</h3>
+                <h3 className="tax-profit-card-title">Estimated tax on profit (NY %)</h3>
                 <p className="tax-profit-ny-text">
-                  Rate: {(data.nyTaxEstimate.rate * 100).toFixed(2)}% — Estimate: {formatCurrency(data.nyTaxEstimate.estimate)}
+                  Rate: {(data.nyTaxEstimate.rate * 100).toFixed(2)}% of net profit — Estimate: {formatCurrency(data.nyTaxEstimate.estimate)}
+                  <span className="tax-profit-ny-hint"> (Use the optional NY tax % field above to estimate liability on profit. Not a substitute for professional tax advice.)</span>
                 </p>
               </section>
             )}

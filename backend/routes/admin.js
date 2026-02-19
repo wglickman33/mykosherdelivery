@@ -1351,12 +1351,16 @@ router.get('/analytics/tax-profit', requireAdmin, async (req, res) => {
     const refundCount = parseInt(ref.count ?? 0, 10);
     const refundTotal = parseFloat(ref.totalAmount ?? ref.totalamount ?? 0);
 
-    const deductionsByCategory = expenseRows.reduce((acc, row) => {
-      acc[row.category] = parseFloat(row.total ?? 0);
-      return acc;
-    }, {});
-    const totalDeductions = expenseRows.reduce((sum, row) => sum + parseFloat(row.total || 0), 0);
+    const deductionsByCategory = {};
+    // Tax collected is sales tax we must remit to the state - it's a liability, not profit (show first)
+    deductionsByCategory['Tax to remit (sales tax collected)'] = tax;
+    expenseRows.forEach((row) => {
+      deductionsByCategory[row.category] = parseFloat(row.total ?? 0);
+    });
+    const totalExpenses = expenseRows.reduce((sum, row) => sum + parseFloat(row.total || 0), 0);
+    const totalDeductions = totalExpenses + tax;
 
+    // Net profit = revenue - refunds - tax to remit - expenses
     const netProfit = totalRevenue - refundTotal - totalDeductions;
     const nyTaxRate = parseFloat(req.query.nyTaxRate) || 0; // optional; e.g. 0.065 for 6.5%
     const nyTaxEstimate = nyTaxRate > 0 ? netProfit * nyTaxRate : null;

@@ -875,6 +875,38 @@
         
         .form-grid {
           margin-bottom: 1rem;
+          
+          &.form-grid-two {
+            grid-template-columns: 2fr 1fr;
+            gap: 0.75rem;
+            
+            @media (max-width: 640px) {
+              grid-template-columns: 1fr;
+            }
+          }
+        }
+        
+        .form-input-state {
+          max-width: 5rem;
+        }
+        
+        .form-input-zip {
+          max-width: 8rem;
+        }
+        
+        .form-group-paste {
+          margin-top: 0.5rem;
+        }
+        
+        .paste-label {
+          font-weight: 500;
+          color: #6b7280;
+          font-size: 0.8125rem;
+        }
+        
+        .error-text-form {
+          margin-top: 0.5rem;
+          margin-bottom: 0;
         }
         
         .form-group {

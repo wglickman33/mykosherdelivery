@@ -1,9 +1,48 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { MapPin, Plus } from "lucide-react";
 import PropTypes from "prop-types";
 import { useAuth } from "../../hooks/useAuth";
 import { validateDeliveryAddress } from "../../services/addressValidationService";
 import AddressConfirmationModal from "./AddressConfirmationModal";
+
+/**
+ * Parse a pasted full-address string into street, city, state, zip.
+ * Handles: "630 w 254th st Bronx NY 10471", "123 Main St, New York, NY 10001", etc.
+ */
+const parsePastedAddress = (str) => {
+  const s = (str || "").trim();
+  if (!s) return null;
+
+  const zipMatch = s.match(/\b(\d{5})(?:-\d{4})?\b/);
+  const zip_code = zipMatch ? zipMatch[1].slice(0, 5) : "";
+
+  const stateMatch = s.match(/\b([A-Za-z]{2})\s*\d{5}/);
+  const state = stateMatch ? stateMatch[1].toUpperCase() : "";
+
+  if (!zip_code) return null;
+
+  let withoutZip = s.replace(/\s*\d{5}(?:-\d{4})?\s*$/, "").trim();
+  let withoutStateZip = state ? withoutZip.replace(new RegExp(`\\s*${state}\\s*$`, "i"), "").trim() : withoutZip;
+
+  const parts = withoutStateZip.split(",").map((p) => p.trim()).filter(Boolean);
+  let street = "";
+  let city = "";
+
+  if (parts.length >= 2) {
+    street = parts[0];
+    city = parts.slice(1).join(" ").trim();
+  } else if (parts.length === 1) {
+    const tokens = parts[0].split(/\s+/).filter(Boolean);
+    if (tokens.length >= 2) {
+      city = tokens[tokens.length - 1];
+      street = tokens.slice(0, -1).join(" ");
+    } else {
+      street = parts[0];
+    }
+  }
+
+  return { street: street.trim(), city: city.trim(), state, zip_code };
+};
 
 const AddressStep = ({ onNext }) => {
   const { user, profile } = useAuth();
@@ -13,10 +52,15 @@ const AddressStep = ({ onNext }) => {
   const [selectedAddressForConfirm, setSelectedAddressForConfirm] = useState(null);
   const [isValidating, setIsValidating] = useState(false);
   const [addressError, setAddressError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
   const [formData, setFormData] = useState({
     type: "",
-    address: "",
-    apartment: ""
+    street: "",
+    city: "",
+    state: "",
+    zip_code: "",
+    apartment: "",
+    pasteField: ""
   });
 
   const savedAddresses = profile?.addresses || [];
@@ -30,42 +74,66 @@ const AddressStep = ({ onNext }) => {
     onNext(address);
   };
 
-  const parseAddress = (addressString, validationResult) => {
-    const address = addressString || "";
-    
-    const zipMatch = address.match(/\b(\d{5}(?:-\d{4})?)\b/);
-    const zip_code = zipMatch ? zipMatch[1] : (validationResult?.zipCode || "");
-    
-    const stateMatch = address.match(/\b([A-Z]{2})\s+\d{5}/);
-    const state = stateMatch ? stateMatch[1] : "";
-    
-    const parts = address.split(',').map(p => p.trim()).filter(p => p);
-    
-    let street = "";
-    let city = "";
-    
-    if (parts.length >= 3) {
-      street = parts[0];
-      city = parts[1];
-    } else if (parts.length === 2) {
-      street = parts[0];
-      const cityStateZip = parts[1];
-      const cityMatch = cityStateZip.match(/^(.+?)\s+[A-Z]{2}\s+\d{5}/);
-      city = cityMatch ? cityMatch[1].trim() : cityStateZip.replace(/\s+[A-Z]{2}\s+\d{5}.*$/, '').trim();
-    } else if (parts.length === 1) {
-      street = parts[0].replace(/\s+[A-Z]{2}\s+\d{5}.*$/, '').trim();
+  const handlePastedAddress = useCallback((pastedText) => {
+    const text = (pastedText || "").trim();
+    if (!text || text.length < 10) return false;
+
+    const parsed = parsePastedAddress(text);
+    if (parsed && parsed.zip_code && parsed.street) {
+      setFormData((prev) => ({
+        ...prev,
+        street: prev.street || parsed.street,
+        city: prev.city || parsed.city,
+        state: prev.state || parsed.state,
+        zip_code: prev.zip_code || parsed.zip_code,
+        pasteField: ""
+      }));
+      setFieldErrors({});
+      return true;
     }
-    
-    if (!street && address) {
-      street = address.replace(/,\s*[^,]+,\s*[A-Z]{2}\s+\d{5}.*$/, '').trim() || address;
+    return false;
+  }, []);
+
+  const handlePasteFieldPaste = useCallback((e) => {
+    const text = e.clipboardData?.getData?.("text/plain") || "";
+    if (handlePastedAddress(text)) {
+      e.preventDefault();
     }
-    
-    return {
-      street: street || formData.address.trim(),
-      city: city || "",
-      state: state || "",
-      zip_code: zip_code || ""
-    };
+  }, [handlePastedAddress]);
+
+  const validateFields = () => {
+    const errs = {};
+    const street = formData.street.trim();
+    const city = formData.city.trim();
+    const state = formData.state.trim().toUpperCase();
+    const zip = formData.zip_code.replace(/\D/g, "").slice(0, 5);
+
+    if (!street) {
+      errs.street = "Street address is required";
+    } else if (street.length < 4) {
+      errs.street = "Please enter a complete street address";
+    }
+
+    if (!city) {
+      errs.city = "City is required";
+    } else if (city.length < 2) {
+      errs.city = "Please enter a valid city name";
+    }
+
+    if (!state) {
+      errs.state = "State is required";
+    } else if (!/^[A-Za-z]{2}$/.test(state)) {
+      errs.state = "Enter 2-letter state (e.g. NY)";
+    }
+
+    if (!zip) {
+      errs.zip_code = "ZIP code is required";
+    } else if (zip.length !== 5) {
+      errs.zip_code = "ZIP must be 5 digits";
+    }
+
+    setFieldErrors(errs);
+    return Object.keys(errs).length === 0;
   };
 
   const handleAddNewAddress = async (e) => {
@@ -73,46 +141,46 @@ const AddressStep = ({ onNext }) => {
       e.preventDefault();
       e.stopPropagation();
     }
-    
-    if (!formData.address.trim()) {
-      setAddressError("Please enter a delivery address");
+
+    if (!validateFields()) {
+      setAddressError("Please fill in all required fields correctly.");
       return;
     }
 
-    if (isValidating) {
-      return;
-    }
+    if (isValidating) return;
+
+    const street = formData.street.trim();
+    const city = formData.city.trim();
+    const state = formData.state.trim().toUpperCase().slice(0, 2);
+    const zip_code = formData.zip_code.replace(/\D/g, "").slice(0, 5);
+    const addressString = `${street}, ${city}, ${state} ${zip_code}`;
 
     setIsValidating(true);
     setAddressError("");
+    setFieldErrors({});
 
     try {
-      const validation = await validateDeliveryAddress(formData.address.trim());
-      
-      if (validation.isValid) {
-        const validatedAddress = validation.formattedAddress || formData.address.trim();
-        const parsed = parseAddress(validatedAddress, validation);
+      const validation = await validateDeliveryAddress(addressString);
 
+      if (validation.isValid) {
         const newAddress = {
           id: Date.now().toString(),
           type: formData.type || "New Address",
-          address: validatedAddress,
-          street: parsed.street,
+          address: validation.formattedAddress || addressString,
+          street,
           apartment: formData.apartment.trim().substring(0, 20),
-          city: parsed.city,
-          state: parsed.state,
-          zip_code: parsed.zip_code,
+          city,
+          state,
+          zip_code,
           zone: validation.zone
         };
         onNext(newAddress);
       } else {
-        const errorMessage = validation.error || "Sorry, we don't deliver to this area yet. Please try a different address.";
-        setAddressError(errorMessage);
+        setAddressError(validation.error || "Sorry, we don't deliver to this area yet. Please try a different address.");
       }
     } catch (error) {
       console.error("Address validation error:", error);
-      const errorMessage = error.message || "Unable to validate address. Please check your connection and try again.";
-      setAddressError(errorMessage);
+      setAddressError(error.message || "Unable to validate address. Please check your connection and try again.");
     } finally {
       setIsValidating(false);
     }
@@ -177,10 +245,15 @@ const AddressStep = ({ onNext }) => {
           onClick={() => {
             setShowAddForm(true);
             setAddressError("");
+            setFieldErrors({});
             setFormData({
               type: "",
-              address: "",
-              apartment: ""
+              street: "",
+              city: "",
+              state: "",
+              zip_code: "",
+              apartment: "",
+              pasteField: ""
             });
           }}
         >
@@ -196,6 +269,23 @@ const AddressStep = ({ onNext }) => {
               {isGuest ? "Enter your delivery address" : "Add New Address"}
             </h3>
             
+            <div className="form-group form-group-paste">
+              <label htmlFor="paste-address" className="form-label paste-label">
+                Paste your full address to auto-fill fields below
+              </label>
+              <input
+                id="paste-address"
+                className="form-input form-input-paste"
+                placeholder="e.g. 630 W 254th St, Bronx, NY 10471"
+                value={formData.pasteField}
+                onChange={(e) => setFormData({ ...formData, pasteField: e.target.value })}
+                onPaste={handlePasteFieldPaste}
+                onBlur={(e) => handlePastedAddress(e.target.value)}
+                disabled={isValidating}
+                autoFocus
+              />
+            </div>
+
             <div className="form-grid">
               <div className="form-group">
                 <label htmlFor="address-type" className="form-label">Address Type</label>
@@ -208,7 +298,7 @@ const AddressStep = ({ onNext }) => {
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
-                      document.getElementById('address')?.focus();
+                      document.getElementById('street')?.focus();
                     }
                   }}
                 />
@@ -216,32 +306,77 @@ const AddressStep = ({ onNext }) => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="address" className="form-label">
-                Full Address *
-                <span className="label-hint">(Street, City, State, ZIP Code)</span>
-              </label>
+              <label htmlFor="street" className="form-label">Street Address *</label>
               <input
-                id="address"
-                className={`form-input ${addressError ? 'error' : ''}`}
-                placeholder="Enter complete address: 123 Main St, New York, NY 10001"
-                value={formData.address}
+                id="street"
+                className={`form-input ${fieldErrors.street ? 'error' : ''}`}
+                placeholder="123 Main St"
+                value={formData.street}
                 onChange={(e) => {
-                  setFormData({ ...formData, address: e.target.value });
+                  setFormData({ ...formData, street: e.target.value });
+                  if (fieldErrors.street) setFieldErrors({ ...fieldErrors, street: undefined });
                   if (addressError) setAddressError("");
                 }}
                 onKeyDown={handleKeyDown}
-                required
                 disabled={isValidating}
               />
-              {addressError ? (
-                <p className="error-text">
-                  {addressError}
-                </p>
-              ) : (
-                <p className="form-hint">
-                  Please include street address, city, state, and ZIP code
-                </p>
-              )}
+              {fieldErrors.street && <p className="error-text">{fieldErrors.street}</p>}
+            </div>
+
+            <div className="form-grid form-grid-two">
+              <div className="form-group">
+                <label htmlFor="city" className="form-label">City *</label>
+                <input
+                  id="city"
+                  className={`form-input ${fieldErrors.city ? 'error' : ''}`}
+                  placeholder="New York"
+                  value={formData.city}
+                  onChange={(e) => {
+                    setFormData({ ...formData, city: e.target.value });
+                    if (fieldErrors.city) setFieldErrors({ ...fieldErrors, city: undefined });
+                    if (addressError) setAddressError("");
+                  }}
+                  disabled={isValidating}
+                />
+                {fieldErrors.city && <p className="error-text">{fieldErrors.city}</p>}
+              </div>
+              <div className="form-group">
+                <label htmlFor="state" className="form-label">State *</label>
+                <input
+                  id="state"
+                  className={`form-input form-input-state ${fieldErrors.state ? 'error' : ''}`}
+                  placeholder="NY"
+                  value={formData.state}
+                  onChange={(e) => {
+                    const v = e.target.value.toUpperCase().replace(/[^A-Za-z]/g, "").slice(0, 2);
+                    setFormData({ ...formData, state: v });
+                    if (fieldErrors.state) setFieldErrors({ ...fieldErrors, state: undefined });
+                    if (addressError) setAddressError("");
+                  }}
+                  maxLength={2}
+                  disabled={isValidating}
+                />
+                {fieldErrors.state && <p className="error-text">{fieldErrors.state}</p>}
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="zip_code" className="form-label">ZIP Code *</label>
+              <input
+                id="zip_code"
+                className={`form-input form-input-zip ${fieldErrors.zip_code ? 'error' : ''}`}
+                placeholder="10001"
+                value={formData.zip_code}
+                onChange={(e) => {
+                  const v = e.target.value.replace(/\D/g, "").slice(0, 5);
+                  setFormData({ ...formData, zip_code: v });
+                  if (fieldErrors.zip_code) setFieldErrors({ ...fieldErrors, zip_code: undefined });
+                  if (addressError) setAddressError("");
+                }}
+                maxLength={5}
+                disabled={isValidating}
+              />
+              {fieldErrors.zip_code && <p className="error-text">{fieldErrors.zip_code}</p>}
             </div>
 
             <div className="form-group">
@@ -274,11 +409,21 @@ const AddressStep = ({ onNext }) => {
               </p>
             </div>
 
+            {addressError && (
+              <p className="error-text error-text-form">{addressError}</p>
+            )}
+
             <div className="form-actions">
               <button
                 type="submit"
                 className="submit-button"
-                disabled={!formData.address.trim() || isValidating}
+                disabled={
+                  !formData.street.trim() ||
+                  !formData.city.trim() ||
+                  !formData.state.trim() ||
+                  formData.zip_code.replace(/\D/g, "").length !== 5 ||
+                  isValidating
+                }
               >
                 {isValidating ? 'Validating...' : (isGuest ? 'Continue' : 'Use This Address')}
               </button>
@@ -289,10 +434,15 @@ const AddressStep = ({ onNext }) => {
                   onClick={() => {
                     setShowAddForm(false);
                     setAddressError("");
+                    setFieldErrors({});
                     setFormData({
                       type: "",
-                      address: "",
-                      apartment: ""
+                      street: "",
+                      city: "",
+                      state: "",
+                      zip_code: "",
+                      apartment: "",
+                      pasteField: ""
                     });
                   }}
                   disabled={isValidating}
