@@ -1,6 +1,6 @@
 import './AdminUsers.scss';
 import { useState, useEffect } from 'react';
-import { fetchAllUsers, fetchUserById, updateUserProfile, deleteUser, createUser, logAdminAction } from '../../services/adminServices';
+import { fetchAllUsers, fetchUserById, updateUserProfile, deleteUser, createUser, logAdminAction, resetUserPassword } from '../../services/adminServices';
 import { fetchFacilitiesList } from '../../services/nursingHomeService';
 import { useAuth } from '../../hooks/useAuth';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
@@ -59,6 +59,9 @@ const AdminUsers = () => {
   const [viewUserDetail, setViewUserDetail] = useState(null);
   const [loadingViewUser, setLoadingViewUser] = useState(false);
   const { user: adminUser } = useAuth();
+  const [resetPassword, setResetPassword] = useState('');
+  const [resetPasswordConfirm, setResetPasswordConfirm] = useState('');
+  const [resetSaving, setResetSaving] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -246,6 +249,59 @@ const AdminUsers = () => {
     } else {
       console.error('Failed to delete user:', result.error);
       showNotification(`Failed to delete user: ${result.error}`, 'error');
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!selectedUser?.id) {
+      showNotification('No user selected for password reset.', 'error');
+      return;
+    }
+
+    if (!resetPassword) {
+      showNotification('Please enter a new password.', 'error');
+      return;
+    }
+
+    if (resetPassword !== resetPasswordConfirm) {
+      showNotification('New password and confirmation do not match.', 'error');
+      return;
+    }
+
+    const password = resetPassword.trim();
+    const passwordMinLength = 8;
+    const hasNumber = /\d/.test(password);
+    const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+    if (password.length < passwordMinLength || !hasNumber || !hasSpecial) {
+      showNotification('Password must be 8–128 characters and include at least one number and one special character.', 'error');
+      return;
+    }
+
+    setResetSaving(true);
+    try {
+      const result = await resetUserPassword(selectedUser.id, password);
+      if (result.success) {
+        setResetPassword('');
+        setResetPasswordConfirm('');
+        showNotification('Password reset successfully.', 'success');
+        await logAdminAction(
+          adminUser.id,
+          'UPDATE',
+          'profiles',
+          selectedUser.id,
+          { id: selectedUser.id },
+          { password: '[RESET_BY_ADMIN]' }
+        );
+      } else {
+        const msg = result.error || 'Failed to reset password.';
+        showNotification(msg.split('\n')[0], 'error');
+      }
+    } catch (err) {
+      const msg = err?.message || 'Failed to reset password.';
+      showNotification(msg.split('\n')[0], 'error');
+    } finally {
+      setResetSaving(false);
     }
   };
 
@@ -630,6 +686,42 @@ const AdminUsers = () => {
                   </button>
                 </div>
               </form>
+              <div className="admin-users__password-reset">
+                <h3 className="admin-users__password-reset-title">Reset Password</h3>
+                <p className="admin-users__password-reset-help">
+                  Set a new password for this user. Share it with them securely and ask them to change it after logging in.
+                </p>
+                <div className="admin-users__form-grid admin-users__form-grid--two">
+                  <div className="admin-users__form-group">
+                    <label>New Password</label>
+                    <input
+                      type="password"
+                      value={resetPassword}
+                      onChange={(e) => setResetPassword(e.target.value)}
+                      placeholder="New password"
+                    />
+                  </div>
+                  <div className="admin-users__form-group">
+                    <label>Confirm New Password</label>
+                    <input
+                      type="password"
+                      value={resetPasswordConfirm}
+                      onChange={(e) => setResetPasswordConfirm(e.target.value)}
+                      placeholder="Confirm new password"
+                    />
+                  </div>
+                </div>
+                <div className="admin-users__form-actions admin-users__form-actions--password">
+                  <button
+                    type="button"
+                    className="admin-users__save-btn admin-users__save-btn--secondary"
+                    onClick={handleResetPassword}
+                    disabled={resetSaving}
+                  >
+                    {resetSaving ? 'Resetting…' : 'Reset Password'}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

@@ -477,6 +477,25 @@ export const deleteUser = async (userId) => {
 };
 
 
+export const resetUserPassword = async (userId, newPassword) => {
+  try {
+    const response = await apiClient.post(`/admin/users/${userId}/reset-password`, { newPassword });
+    const data = response?.data ?? response;
+    return { success: true, data };
+  } catch (error) {
+    logger.error('Error resetting user password:', error);
+    const message = error.message || 'Failed to reset user password';
+    const detail = [error.serverErrorName, error.serverStack].filter(Boolean).join('\n');
+    return {
+      success: false,
+      error: detail ? `${message}\n${detail}` : message,
+      serverErrorName: error.serverErrorName,
+      serverStack: error.serverStack
+    };
+  }
+};
+
+
 export const fetchAllRestaurants = async (filters = {}) => {
   try {
     const response = await apiClient.get('/admin/restaurants', filters);
