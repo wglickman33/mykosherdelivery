@@ -63,17 +63,25 @@ app.use(cors({
 
 app.use(validateRateLimit(15 * 60 * 1000, 500));
 
+const isStripeWebhookRequest = (req) => {
+  const url = req.originalUrl || req.url || '';
+  const path = req.path || '';
+  return url.startsWith('/api/payments/webhook') || path.startsWith('/api/payments/webhook');
+};
+
 app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
 
+// For all non-webhook routes, use JSON body parser
 app.use((req, res, next) => {
-  if (req.originalUrl === '/api/payments/webhook' || req.path === '/api/payments/webhook' || req.url === '/api/payments/webhook') {
+  if (isStripeWebhookRequest(req)) {
     return next();
   }
   express.json({ limit: '10mb' })(req, res, next);
 });
 
+// For all non-webhook routes, use urlencoded parser
 app.use((req, res, next) => {
-  if (req.originalUrl === '/api/payments/webhook' || req.path === '/api/payments/webhook' || req.url === '/api/payments/webhook') {
+  if (isStripeWebhookRequest(req)) {
     return next();
   }
   express.urlencoded({ extended: true, limit: '10mb' })(req, res, next);
