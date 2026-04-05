@@ -112,39 +112,25 @@ app.use((req, res, next) => {
   next();
 });
 
-// --- TEMPORARY: Site closed for Pesach ---
-// Block all non-admin API routes with a 503 response.
-// To reopen: remove this middleware block and uncomment the route registrations below.
-app.use('/api', (req, res, next) => {
-  const isAdminRoute = req.path.startsWith('/admin');
-  if (isAdminRoute) return next();
-  return res.status(503).json({
-    error: 'Site temporarily closed',
-    message: 'Closed for Pesach! We will reopen post-Chag.'
-  });
-});
-// --- END TEMPORARY ---
-
-// TEMPORARILY COMMENTED OUT for Pesach closure — uncomment to restore normal operation:
-// app.use('/api/auth', authRoutes);
-// app.use('/api/profiles', profileRoutes);
-// app.use('/api/restaurants', restaurantRoutes);
-// app.use('/api/orders', orderRoutes);
-// app.use('/api/payments', paymentRoutes);
-// app.use('/api/favorites', favoriteRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/profiles', profileRoutes);
+app.use('/api/restaurants', restaurantRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/favorites', favoriteRoutes);
 app.use('/api/admin/maps', requireAdmin, adminMapsRoutes);
 app.use('/api/admin/gift-cards', requireAdmin, adminGiftCardsRoutes);
 app.get('/api/admin/orders/stream', adminOrdersStreamHandler);
 app.use('/api/admin', adminRoutes);
-// app.use('/api/owner', ownerRoutes);
-// app.use('/api/gift-cards', giftCardsRoutes);
-// app.use('/api/promo-codes', promoCodeRoutes);
-// app.use('/api/support', supportRoutes);
-// app.use('/api/countdown', countdownRoutes);
-// app.use('/api/tax', taxRoutes);
-// app.use('/api/images', require('./routes/images'));
-// app.use('/api/nursing-homes', nursingHomeRoutes);
-// app.use('/api/maps', mapsRoutes);
+app.use('/api/owner', ownerRoutes);
+app.use('/api/gift-cards', giftCardsRoutes);
+app.use('/api/promo-codes', promoCodeRoutes);
+app.use('/api/support', supportRoutes);
+app.use('/api/countdown', countdownRoutes);
+app.use('/api/tax', taxRoutes);
+app.use('/api/images', require('./routes/images'));
+app.use('/api/nursing-homes', nursingHomeRoutes);
+app.use('/api/maps', mapsRoutes);
 
 app.get('/api/health', async (req, res) => {
   try {

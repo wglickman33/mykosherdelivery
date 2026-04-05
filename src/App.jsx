@@ -52,8 +52,6 @@ import AdminGiftCards from "./components/AdminGiftCards/AdminGiftCards";
 import AdminNotFoundPage from "./components/AdminNotFoundPage/AdminNotFoundPage";
 import NotFoundPage from "./components/NotFoundPage/NotFoundPage";
 import ErrorBoundary from "./components/ErrorBoundary/ErrorBoundary";
-// TEMPORARY: Pesach closure page
-import PesachClosedPage from "./components/PesachClosedPage/PesachClosedPage";
 import OrdersClosedBanner from "./components/OrdersClosedBanner/OrdersClosedBanner";
 import { MenuProvider } from "./context/MenuContext";
 import { AuthProvider } from "./context/AuthContextProvider";
@@ -186,14 +184,6 @@ function AuthenticatedApp() {
     const isOwnerRoute = pathname.startsWith("/owner");
     const isNursingHomeRoute = pathname.startsWith("/nursing-homes");
     const isMapsRoute = pathname === "/maps" || pathname.startsWith("/maps/");
-
-    // --- TEMPORARY: Site closed for Pesach ---
-    // Show closed page for all non-admin/non-owner/non-nursing-home/non-maps routes.
-    // To reopen: remove this block.
-    if (!isAdminRoute && !isOwnerRoute && !isNursingHomeRoute && !isMapsRoute) {
-      return <PesachClosedPage />;
-    }
-    // --- END TEMPORARY ---
 
     if (isOwnerRoute) {
       return (
