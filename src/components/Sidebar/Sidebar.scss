@@ -303,12 +303,16 @@
     left: 0;
     width: 280px;
     height: 100vh;
+    height: 100dvh;
     transform: translateX(-100%);
     z-index: 2000;
     padding-top: 20px;
     border-right: none;
     background-color: white;
     transition: transform 0.3s ease, width 0.3s ease, opacity 0.3s ease, visibility 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     
     .sidebar-header {
       display: block;
@@ -348,8 +352,16 @@
       }
     }
     
+    .sidebar-nav {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
     .sidebar-footer {
+      flex-shrink: 0;
       padding: 16px;
+      padding-bottom: max(16px, env(safe-area-inset-bottom));
       transition: padding 0.3s ease;
       
       .sidebar-login-link {
