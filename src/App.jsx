@@ -180,7 +180,7 @@ function AuthenticatedApp() {
   }
 
   function renderApp() {
-    const isAuthRoute = ["/signin", "/signup"].includes(pathname);
+    const isAuthRoute = ["/signin", "/signup", "/forgot-password", "/reset-password"].includes(pathname);
     const isLandingRoute = pathname === "/landing";
     const isAdminRoute = pathname.startsWith("/admin");
     const isOwnerRoute = pathname.startsWith("/owner");

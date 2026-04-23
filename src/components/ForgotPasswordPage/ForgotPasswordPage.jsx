@@ -81,7 +81,7 @@ const ForgotPasswordPage = () => {
                 The link expires in 1 hour.
               </p>
               <p className="forgot-password-page__hint">
-                Don't see it? Check your spam folder.
+                Don&apos;t see it? Check your spam folder.
               </p>
               <Link to="/signin" className="forgot-password-page__back-link">
                 Back to Sign In
@@ -92,7 +92,7 @@ const ForgotPasswordPage = () => {
               <div className="forgot-password-page__header">
                 <h1 className="forgot-password-page__title">Forgot your password?</h1>
                 <p className="forgot-password-page__subtitle">
-                  Enter your email address and we'll send you a link to reset your password.
+                  Enter your email address and we&apos;ll send you a link to reset your password.
                 </p>
               </div>
 

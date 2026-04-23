@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const { QueryTypes } = require('sequelize');
 const { Profile, UserLoginActivity, AdminNotification, sequelize } = require('../models');
 const { authenticateToken } = require('../middleware/auth');
 const { body, validationResult } = require('express-validator');
@@ -404,12 +405,25 @@ router.post('/forgot-password', [
 
     const { email } = req.body;
 
-    const user = await Profile.findOne({
-      where: sequelize.where(
-        sequelize.fn('LOWER', sequelize.col('email')),
-        sequelize.fn('LOWER', email)
-      )
-    });
+    let user;
+    try {
+      user = await Profile.findOne({
+        where: sequelize.where(
+          sequelize.fn('LOWER', sequelize.col('email')),
+          sequelize.fn('LOWER', email)
+        )
+      });
+    } catch (dbError) {
+      if (dbError.message?.includes('nursing_home_facility_id') || dbError.original?.message?.includes('nursing_home_facility_id')) {
+        const rows = await sequelize.query(
+          `SELECT id, email, first_name AS "firstName", last_name AS "lastName" FROM profiles WHERE LOWER(email) = LOWER(:email)`,
+          { replacements: { email }, type: QueryTypes.SELECT }
+        );
+        user = rows && rows.length > 0 ? rows[0] : null;
+      } else {
+        throw dbError;
+      }
+    }
 
     if (!user) {
       // Don't reveal whether the email exists
@@ -471,14 +485,14 @@ router.post('/reset-password', [
 
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
 
-    const rows = await sequelize.query(
+    const results = await sequelize.query(
       `SELECT * FROM password_reset_tokens
        WHERE token_hash = :tokenHash AND used_at IS NULL AND expires_at > NOW()
        LIMIT 1`,
-      { replacements: { tokenHash }, type: sequelize.QueryTypes ? sequelize.QueryTypes.SELECT : 'SELECT' }
+      { replacements: { tokenHash }, type: QueryTypes.SELECT }
     );
 
-    const resetToken = Array.isArray(rows[0]) ? rows[0][0] : rows[0];
+    const resetToken = results[0];
 
     if (!resetToken) {
       return res.status(400).json({
