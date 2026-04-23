@@ -6,6 +6,8 @@ import IconSidebar from "./components/Sidebar/IconSidebar";
 import HomePage from "./components/HomePage/HomePage";
 import Landing from "./components/Landing/Landing";
 import AuthPage from "./components/AuthPage/AuthPage";
+import ForgotPasswordPage from "./components/ForgotPasswordPage/ForgotPasswordPage";
+import ResetPasswordPage from "./components/ResetPasswordPage/ResetPasswordPage";
 import RestaurantsPage from "./components/RestaurantsPage/RestaurantsPage";
 import RestaurantDetailPage from "./components/RestaurantDetailPage/RestaurantDetailPage";
 import CartPage from "./components/CartPage/CartPage";
@@ -87,7 +89,7 @@ function NhRedirectToDashboard() {
   return <Navigate to={`/nursing-homes/dashboard${location.search}`} replace />;
 }
 
-const PUBLIC_ROUTES = ["/landing", "/signin", "/signup", "/blog", "/faq", "/contact", "/partner", "/advertise", "/help", "/terms", "/privacy", "/admin", "/owner", "/nursing-homes/login", "/nursing-homes/admin", "/nursing-homes/admin/login"];
+const PUBLIC_ROUTES = ["/landing", "/signin", "/signup", "/forgot-password", "/reset-password", "/blog", "/faq", "/contact", "/partner", "/advertise", "/help", "/terms", "/privacy", "/admin", "/owner", "/nursing-homes/login", "/nursing-homes/admin", "/nursing-homes/admin/login"];
 const APP_ROUTES = ["/home", "/restaurants", "/restaurant", "/cart", "/checkout", "/order-confirmation", "/gift-card", "/subscriptions", "/account"];
 
 function AuthenticatedApp() {
@@ -302,6 +304,8 @@ function AuthenticatedApp() {
             <Route path="/account" element={<AccountPage />} />
             <Route path="/signin" element={<AuthPage />} />
             <Route path="/signup" element={<AuthPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </main>

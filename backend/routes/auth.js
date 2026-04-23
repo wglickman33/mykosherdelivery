@@ -1,6 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const { Profile, UserLoginActivity, AdminNotification, sequelize } = require('../models');
 const { authenticateToken } = require('../middleware/auth');
 const { body, validationResult } = require('express-validator');
@@ -388,4 +389,125 @@ router.post('/signout', authenticateToken, async (req, res) => {
   }
 });
 
-module.exports = router; 
+// POST /api/auth/forgot-password
+// Generates a reset token, stores its hash, and returns token data for the frontend to send via EmailJS.
+// Always responds with 200 to prevent email enumeration.
+router.post('/forgot-password', [
+  body('email').isEmail().normalizeEmail()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      // Return 200 even on bad input to prevent enumeration
+      return res.status(200).json({ success: true });
+    }
+
+    const { email } = req.body;
+
+    const user = await Profile.findOne({
+      where: sequelize.where(
+        sequelize.fn('LOWER', sequelize.col('email')),
+        sequelize.fn('LOWER', email)
+      )
+    });
+
+    if (!user) {
+      // Don't reveal whether the email exists
+      return res.status(200).json({ success: true });
+    }
+
+    // Invalidate any existing unused tokens for this user
+    await sequelize.query(
+      `UPDATE password_reset_tokens SET used_at = NOW() WHERE user_id = :userId AND used_at IS NULL`,
+      { replacements: { userId: user.id } }
+    );
+
+    // Generate a cryptographically secure random token
+    const plainToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(plainToken).digest('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await sequelize.query(
+      `INSERT INTO password_reset_tokens (id, user_id, token_hash, expires_at, created_at)
+       VALUES (gen_random_uuid(), :userId, :tokenHash, :expiresAt, NOW())`,
+      { replacements: { userId: user.id, tokenHash, expiresAt } }
+    );
+
+    logger.info('Password reset token generated', { userId: user.id });
+
+    // Return token and user info for the frontend to send via EmailJS
+    return res.status(200).json({
+      success: true,
+      token: plainToken,
+      firstName: user.firstName || 'there',
+      email: user.email
+    });
+
+  } catch (error) {
+    logger.error('Forgot password error:', error);
+    res.status(500).json({ error: 'Internal server error', message: 'Failed to process request' });
+  }
+});
+
+// POST /api/auth/reset-password
+// Validates the token and updates the user's password.
+router.post('/reset-password', [
+  body('token').notEmpty().isLength({ min: 64, max: 64 }),
+  body('password')
+    .isLength({ min: 8, max: 128 })
+    .withMessage('Password must be between 8 and 128 characters')
+    .matches(/^(?=.*\d)/)
+    .withMessage('Password must contain at least one number')
+    .matches(/^(?=.*[!@#$%^&*(),.?":{}|<>])/)
+    .withMessage('Password must contain at least one special character')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: 'Validation failed', details: errors.array() });
+    }
+
+    const { token, password } = req.body;
+
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+    const rows = await sequelize.query(
+      `SELECT * FROM password_reset_tokens
+       WHERE token_hash = :tokenHash AND used_at IS NULL AND expires_at > NOW()
+       LIMIT 1`,
+      { replacements: { tokenHash }, type: sequelize.QueryTypes ? sequelize.QueryTypes.SELECT : 'SELECT' }
+    );
+
+    const resetToken = Array.isArray(rows[0]) ? rows[0][0] : rows[0];
+
+    if (!resetToken) {
+      return res.status(400).json({
+        error: 'Invalid or expired token',
+        message: 'This password reset link is invalid or has expired. Please request a new one.'
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, parseInt(process.env.BCRYPT_SALT_ROUNDS) || 12);
+
+    await Profile.update(
+      { password: hashedPassword },
+      { where: { id: resetToken.user_id } }
+    );
+
+    // Mark token as used
+    await sequelize.query(
+      `UPDATE password_reset_tokens SET used_at = NOW() WHERE token_hash = :tokenHash`,
+      { replacements: { tokenHash } }
+    );
+
+    logger.info('Password reset successful', { userId: resetToken.user_id });
+
+    res.status(200).json({ success: true, message: 'Password updated successfully' });
+
+  } catch (error) {
+    logger.error('Reset password error:', error);
+    res.status(500).json({ error: 'Internal server error', message: 'Failed to reset password' });
+  }
+});
+
+module.exports = router;
