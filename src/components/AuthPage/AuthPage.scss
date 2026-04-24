@@ -14,12 +14,13 @@ $error-color: #dc3545;
 $success-color: #28a745;
 
 .auth-page {
-  height: 100vh;
+  min-height: 100vh;
+  min-height: 100dvh;
   background: linear-gradient(135deg, $primary-color 0%, #7bc5fb 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: 2rem 1rem;
   position: relative;
   overflow: hidden;
 }
@@ -29,21 +30,6 @@ $success-color: #28a745;
   max-width: 480px;
   position: relative;
 }
-
-.auth-page__logo {
-  text-align: center;
-  margin-bottom: 2rem;
-  
-  a {
-    display: inline-block;
-  }
-  
-  img {
-    height: 32px;
-    width: auto;
-  }
-}
-
 
 .auth-page__form-container {
   background-color: $white;

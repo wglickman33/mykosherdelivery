@@ -1,6 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
 import { useNavigateWithScroll } from "../../hooks/useNavigateWithScroll";
-import logoImg from "../../assets/navyMKDLogo.png";
 import { useAuth } from "../../hooks/useAuth";
 import "./AuthPage.scss";
 import { useState, useEffect } from "react";
@@ -228,12 +227,6 @@ const AuthPage = () => {
   return (
     <div className="auth-page">
       <div className="auth-page__container">
-        <div className="auth-page__logo">
-          <Link to="/home">
-            <img src={logoImg} alt="My Kosher Delivery" />
-          </Link>
-        </div>
-
         <div className={`auth-page__form-container ${mode === 'signup' ? 'auth-page__form-container--signup' : ''}`}>
           <div className={`auth-page__header ${mode === 'signup' ? 'auth-page__header--signup' : ''}`}>
             <h1 className={`auth-page__title ${mode === 'signup' ? 'auth-page__title--signup' : ''}`}>
