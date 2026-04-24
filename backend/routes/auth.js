@@ -72,7 +72,13 @@ router.post('/signup', [
     .matches(/^(?=.*[!@#$%^&*(),.?":{}|<>])/)
     .withMessage('Password must contain at least one special character'),
   body('firstName').notEmpty().trim(),
-  body('lastName').notEmpty().trim()
+  body('lastName').notEmpty().trim(),
+  body('phone')
+    .notEmpty()
+    .withMessage('Phone number is required')
+    .trim()
+    .matches(/^[0-9+()\-\s.]{10,20}$/)
+    .withMessage('Please provide a valid phone number')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -83,7 +89,7 @@ router.post('/signup', [
       });
     }
 
-    const { email, password, firstName, lastName } = req.body;
+    const { email, password, firstName, lastName, phone } = req.body;
 
     let existingUser;
     try {
@@ -118,6 +124,7 @@ router.post('/signup', [
       password: hashedPassword,
       firstName,
       lastName,
+      phone: String(phone).trim(),
       role: 'user'
     });
 

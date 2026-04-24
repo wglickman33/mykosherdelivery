@@ -6,13 +6,14 @@ let lastSessionResult = null;
 const SESSION_CHECK_COOLDOWN = 30 * 1000;
 
 export const authService = {
-  async signUp(email, password, firstName, lastName) {
+  async signUp(email, password, firstName, lastName, phone) {
     try {
       const response = await apiClient.post('/auth/signup', {
         email,
         password,
         firstName,
-        lastName
+        lastName,
+        phone
       });
 
       if (response.data && response.data.session) {

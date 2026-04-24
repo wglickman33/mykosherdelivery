@@ -247,7 +247,7 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  const signUp = async (email, password, firstName, lastName) => {
+  const signUp = async (email, password, firstName, lastName, phone) => {
     try {
       logger.debug('AuthContext - Signing up user:', email)
       
@@ -255,7 +255,8 @@ export const AuthProvider = ({ children }) => {
         email, 
         password, 
         firstName, 
-        lastName
+        lastName,
+        phone
       )
 
       if (success && newUser) {

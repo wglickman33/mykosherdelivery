@@ -16,6 +16,7 @@ const AuthPage = () => {
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
+    phone: "",
     email: "",
     password: "",
     confirmPassword: ""
@@ -33,6 +34,7 @@ const AuthPage = () => {
       setFormData({
         firstName: "",
         lastName: "",
+        phone: "",
         email: "",
         password: "",
         confirmPassword: ""
@@ -80,6 +82,12 @@ const AuthPage = () => {
       
       if (!formData.lastName.trim()) {
         newErrors.lastName = "Last name is required";
+      }
+
+      if (!formData.phone.trim()) {
+        newErrors.phone = "Phone number is required";
+      } else if (!/^[0-9+()\-\s.]{10,20}$/.test(formData.phone.trim())) {
+        newErrors.phone = "Please enter a valid phone number";
       }
     }
     
@@ -135,13 +143,15 @@ const AuthPage = () => {
           email: formData.email,
           firstName: formData.firstName,
           lastName: formData.lastName,
+          hasPhone: !!formData.phone,
           hasPassword: !!formData.password
         });
         result = await signUp(
           formData.email,
           formData.password,
           formData.firstName,
-          formData.lastName
+          formData.lastName,
+          formData.phone
         );
       } else {
         result = await signIn(formData.email, formData.password);
@@ -277,6 +287,27 @@ const AuthPage = () => {
                     <span className="auth-page__error auth-page__error--signup">{errors.lastName}</span>
                   )}
                 </div>
+              </div>
+            )}
+
+            {mode === 'signup' && (
+              <div className="auth-page__form-field auth-page__form-field--signup">
+                <label htmlFor="phone" className="auth-page__label auth-page__label--signup">
+                  Phone Number <span className="required">*</span>
+                </label>
+                <input
+                  type="tel"
+                  id="phone"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  className={`auth-page__input auth-page__input--signup ${errors.phone ? 'error' : ''}`}
+                  placeholder="(555) 123-4567"
+                  required={mode === 'signup'}
+                />
+                {errors.phone && (
+                  <span className="auth-page__error auth-page__error--signup">{errors.phone}</span>
+                )}
               </div>
             )}
             
