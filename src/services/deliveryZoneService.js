@@ -13,7 +13,7 @@ export const fetchDeliveryZones = async () => {
       return { success: true, data: deliveryZonesCache };
     }
 
-    const response = await apiClient.get('/admin/delivery-zones');
+    const response = await apiClient.get('/restaurants/delivery-zones');
     
     if (response && Array.isArray(response)) {
       deliveryZonesCache = response;

@@ -60,6 +60,12 @@ module.exports = (sequelize, DataTypes) => {
     allowNull: false,
     defaultValue: false
   },
+  applyToDelivery: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+    field: 'apply_to_delivery'
+  },
   allowedDays: {
     type: DataTypes.STRING(20),
     allowNull: true,
@@ -117,15 +123,38 @@ module.exports = (sequelize, DataTypes) => {
     return true;
   };
 
+  /**
+   * Calculate the subtotal discount. Promo codes with applyToDelivery=true
+   * reduce the delivery fee, not the subtotal, so this returns 0 for those.
+   */
   PromoCode.prototype.calculateDiscount = function(subtotal) {
     if (!this.isValid()) return 0;
-    
+    if (this.applyToDelivery) return 0;
+
     if (this.discountType === 'percentage') {
       return (subtotal * this.discountValue) / 100;
     } else if (this.discountType === 'fixed') {
       return Math.min(this.discountValue, subtotal);
     }
-    
+
+    return 0;
+  };
+
+  /**
+   * Calculate the delivery fee discount for codes with applyToDelivery=true.
+   * percentage type → reduce fee by that %, fixed type → reduce fee by $ amount (min 0).
+   * Returns 0 for subtotal-only promo codes.
+   */
+  PromoCode.prototype.calculateDeliveryDiscount = function(deliveryFee) {
+    if (!this.isValid()) return 0;
+    if (!this.applyToDelivery) return 0;
+
+    if (this.discountType === 'percentage') {
+      return (deliveryFee * this.discountValue) / 100;
+    } else if (this.discountType === 'fixed') {
+      return Math.min(this.discountValue, deliveryFee);
+    }
+
     return 0;
   };
 

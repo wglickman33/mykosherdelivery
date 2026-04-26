@@ -59,15 +59,23 @@ export const formatTimeForDisplay = (timeString) => {
 
 export const parseDisplayTime = (displayTime) => {
   if (!displayTime) return '00:00';
+
+  // Already in 24h HH:MM format (from <input type="time">)
+  if (/^\d{1,2}:\d{2}$/.test(displayTime.trim())) {
+    const [h, m] = displayTime.trim().split(':');
+    return `${parseInt(h, 10).toString().padStart(2, '0')}:${m}`;
+  }
+
+  // Legacy 12h format: "6:00 PM"
   const [time, ampm] = displayTime.split(' ');
   const [hours, minutes] = time.split(':');
-  let hour = parseInt(hours);
-  
+  let hour = parseInt(hours, 10);
+
   if (ampm === 'PM' && hour !== 12) {
     hour += 12;
   } else if (ampm === 'AM' && hour === 12) {
     hour = 0;
   }
-  
+
   return `${hour.toString().padStart(2, '0')}:${minutes}`;
 };

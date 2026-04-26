@@ -80,6 +80,7 @@ function normalizeMenuItemData(data) {
     category: data.category?.trim(),
     imageUrl: data.imageUrl?.trim() || null,
     available: data.available !== false,
+    featured: data.featured === true || data.featured === 'true',
     itemType: data.itemType,
     options: data.options || null,
     labels: data.labels || []

@@ -177,7 +177,16 @@ const CheckoutPage = () => {
             setDeliveryFee(5.99);
           }
           
-          const feeForTax = fee && fee > 0 ? fee : 5.99;
+          const rawFee = fee && fee > 0 ? fee : 5.99;
+
+          // Apply delivery promo inline so Stripe Tax gets the correct taxable fee
+          let feeForTax = rawFee;
+          if (appliedPromo?.applyToDelivery) {
+            const feeDiscount = appliedPromo.discountType === 'percentage'
+              ? (rawFee * appliedPromo.discountValue) / 100
+              : Math.min(appliedPromo.discountValue, rawFee);
+            feeForTax = Math.max(0, rawFee - feeDiscount);
+          }
 
           const addressLine1 = selectedAddress.street || selectedAddress.address || '';
           const addressCity = selectedAddress.city || '';
@@ -190,7 +199,7 @@ const CheckoutPage = () => {
               state: addressState,
               zipCode,
             });
-            const discountedSubtotal = appliedPromo 
+            const discountedSubtotal = (appliedPromo && !appliedPromo.applyToDelivery)
               ? (appliedPromo.discountType === 'percentage'
                   ? subtotal - (subtotal * appliedPromo.discountValue / 100)
                   : subtotal - Math.min(appliedPromo.discountValue, subtotal))
@@ -218,7 +227,7 @@ const CheckoutPage = () => {
 
           if (taxResult.success) {
             setTaxAmount(taxResult.taxAmount);
-            const discountedSubtotal = appliedPromo 
+            const discountedSubtotal = (appliedPromo && !appliedPromo.applyToDelivery)
               ? (appliedPromo.discountType === 'percentage'
                   ? subtotal - (subtotal * appliedPromo.discountValue / 100)
                   : subtotal - Math.min(appliedPromo.discountValue, subtotal))
@@ -249,15 +258,25 @@ const CheckoutPage = () => {
   }, [selectedAddress, cartItems, appliedPromo, appliedGiftCard, subtotal]);
   
   let discountAmount = 0;
+  let deliveryFeeDiscount = 0;
   let discountedSubtotal = subtotal;
   if (appliedPromo) {
-    if (appliedPromo.discountType === 'percentage') {
-      discountAmount = (subtotal * appliedPromo.discountValue) / 100;
-    } else if (appliedPromo.discountType === 'fixed') {
-      discountAmount = Math.min(appliedPromo.discountValue, subtotal);
+    if (appliedPromo.applyToDelivery) {
+      if (appliedPromo.discountType === 'percentage') {
+        deliveryFeeDiscount = (deliveryFee * appliedPromo.discountValue) / 100;
+      } else if (appliedPromo.discountType === 'fixed') {
+        deliveryFeeDiscount = Math.min(appliedPromo.discountValue, deliveryFee);
+      }
+    } else {
+      if (appliedPromo.discountType === 'percentage') {
+        discountAmount = (subtotal * appliedPromo.discountValue) / 100;
+      } else if (appliedPromo.discountType === 'fixed') {
+        discountAmount = Math.min(appliedPromo.discountValue, subtotal);
+      }
     }
     discountedSubtotal = subtotal - discountAmount;
   }
+  const effectiveDeliveryFee = Math.max(0, deliveryFee - deliveryFeeDiscount);
   const giftCardAmount = appliedGiftCard
     ? Math.min(parseFloat(appliedGiftCard.balance), discountedSubtotal)
     : 0;
@@ -267,7 +286,7 @@ const CheckoutPage = () => {
   const tax = taxAmount > 0 && selectedAddress?.zipCode
     ? taxAmount
     : subtotalAfterGiftCard * taxRate;
-  const total = subtotalAfterGiftCard + deliveryFee + tip + tax;
+  const total = subtotalAfterGiftCard + effectiveDeliveryFee + tip + tax;
 
   const orderItems = cartItems.map(item => ({
     id: item.cartItemId || item.id,
@@ -338,11 +357,12 @@ const CheckoutPage = () => {
       state: {
         orderTotal: total,
         subtotal,
-        deliveryFee,
+        deliveryFee: effectiveDeliveryFee,
         tip,
         tax,
         taxRate,
         discountAmount,
+        deliveryFeeDiscount,
         appliedPromo,
         giftCardAmount: appliedGiftCard ? Math.min(parseFloat(appliedGiftCard.balance), discountedSubtotal) : 0,
         appliedGiftCard: appliedGiftCard ? { giftCardId: appliedGiftCard.giftCardId, code: appliedGiftCard.code, amountApplied: Math.min(parseFloat(appliedGiftCard.balance), discountedSubtotal) } : null,
@@ -392,7 +412,7 @@ const CheckoutPage = () => {
                 code: appliedGiftCard.code,
                 amountApplied: giftCardAmount
               } : null,
-              deliveryFee,
+              deliveryFee: effectiveDeliveryFee,
               tax,
               subtotal: discountedSubtotal
             }}
@@ -441,7 +461,7 @@ const CheckoutPage = () => {
               <OrderSummary
                 items={orderItems}
                 subtotal={subtotal}
-                deliveryFee={deliveryFee}
+                deliveryFee={effectiveDeliveryFee}
                 tip={tip}
                 tax={tax}
                 total={total}
@@ -453,6 +473,7 @@ const CheckoutPage = () => {
                 promoError={promoError}
                 isValidatingPromo={isValidatingPromo}
                 discountAmount={discountAmount}
+                deliveryFeeDiscount={deliveryFeeDiscount}
                 giftCardCode={giftCardCode}
                 onGiftCardCodeChange={setGiftCardCode}
                 onApplyGiftCard={handleApplyGiftCard}

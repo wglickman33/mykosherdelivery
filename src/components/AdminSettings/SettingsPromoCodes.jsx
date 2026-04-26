@@ -39,6 +39,7 @@ const SettingsPromoCodes = () => {
     expiresAt: '',
     usageLimit: '',
     stackable: false,
+    applyToDelivery: false,
     allowedDays: []
   });
 
@@ -105,6 +106,7 @@ const SettingsPromoCodes = () => {
         discountValue: discountVal,
         active: Boolean(promoFormData.active),
         stackable: Boolean(promoFormData.stackable),
+        applyToDelivery: Boolean(promoFormData.applyToDelivery),
         allowedDays: (promoFormData.allowedDays && promoFormData.allowedDays.length > 0) ? promoFormData.allowedDays : []
       };
       if (promoFormData.usageLimit && String(promoFormData.usageLimit).trim()) {
@@ -151,9 +153,10 @@ const SettingsPromoCodes = () => {
       discountType: promo.discountType,
       discountValue: (promo.discountValue ?? promo.discount_value ?? '').toString(),
       active: promo.active,
-      expiresAt: promo.expiresAt ? (typeof promo.expiresAt === 'string' ? promo.expiresAt : promo.expires_at || '').split('T')[0] : '',
+      expiresAt: (() => { const v = promo.expiresAt ?? promo.expires_at; return v ? String(v).split('T')[0] : ''; })(),
       usageLimit: promo.usageLimit != null ? promo.usageLimit.toString() : (promo.usage_limit != null ? String(promo.usage_limit) : ''),
       stackable: promo.stackable ?? false,
+      applyToDelivery: promo.applyToDelivery ?? promo.apply_to_delivery ?? false,
       allowedDays: Array.isArray(allowed) ? [...allowed] : (allowed != null && allowed.length ? allowed : [])
     });
     setPromoFormErrors({});
@@ -188,6 +191,7 @@ const SettingsPromoCodes = () => {
       expiresAt: '',
       usageLimit: '',
       stackable: false,
+      applyToDelivery: false,
       allowedDays: []
     });
     setPromoFormErrors({});
@@ -226,12 +230,12 @@ const SettingsPromoCodes = () => {
       errors.code = 'Promo code can only contain letters and numbers';
     }
 
-    if (!promoFormData.discountValue) {
+    if (String(promoFormData.discountValue).trim() === '') {
       errors.discountValue = 'Discount value is required';
     } else {
       const value = parseFloat(promoFormData.discountValue);
-      if (isNaN(value) || value <= 0) {
-        errors.discountValue = 'Discount value must be a positive number';
+      if (isNaN(value) || value < 0) {
+        errors.discountValue = 'Discount value must be a non-negative number';
       } else if (promoFormData.discountType === 'percentage' && value > 100) {
         errors.discountValue = 'Percentage discount cannot exceed 100%';
       }
@@ -318,6 +322,7 @@ const SettingsPromoCodes = () => {
                   <th>Status</th>
                   <th>Expires</th>
                   <th>Stackable</th>
+                  <th>Delivery</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -350,6 +355,11 @@ const SettingsPromoCodes = () => {
                     <td>
                       <span className={`stackable-badge ${promo.stackable ? 'yes' : 'no'}`}>
                         {promo.stackable ? 'Yes' : 'No'}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`stackable-badge ${(promo.applyToDelivery ?? promo.apply_to_delivery) ? 'yes' : 'no'}`}>
+                        {(promo.applyToDelivery ?? promo.apply_to_delivery) ? 'Yes' : 'No'}
                       </span>
                     </td>
                     <td className="actions-cell">
@@ -547,6 +557,16 @@ const SettingsPromoCodes = () => {
                   />
                   <span className="toggle-track" aria-hidden="true" />
                   <span className="toggle-label" title="Stackable with other promos">Stackable</span>
+                </label>
+                <label className="promo-toggle">
+                  <input
+                    type="checkbox"
+                    checked={promoFormData.applyToDelivery}
+                    onChange={(e) => setPromoFormData({ ...promoFormData, applyToDelivery: e.target.checked })}
+                    aria-label="Apply discount to delivery fee"
+                  />
+                  <span className="toggle-track" aria-hidden="true" />
+                  <span className="toggle-label" title="Discount reduces the delivery fee instead of the subtotal">Apply to Delivery</span>
                 </label>
               </div>
 

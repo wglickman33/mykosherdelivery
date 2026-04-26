@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { useCart } from '../../context/CartContext';
 import './MenuItemModal.scss';
 import navyMKDIcon from '../../assets/navyMKDIcon.png';
+import { buildImageUrl } from '../../services/imageService';
 
 import { AVAILABLE_LABELS } from '../../data/labels';
 
@@ -186,15 +187,21 @@ const MenuItemModal = ({ item, restaurant, isOpen, onClose, onAdd }) => {
         </button>
 
         <div className="modal-image">
-          <img 
-            src={item.image || navyMKDIcon} 
-            alt={item.name}
-            className={!item.image ? 'placeholder-image' : ''}
-            onError={(e) => {
-              e.target.src = navyMKDIcon;
-              e.target.classList.add('placeholder-image');
-            }}
-          />
+          {(() => {
+            const variantImg = selectedVariant?.imageUrl ? buildImageUrl(selectedVariant.imageUrl) : null;
+            const displayImg = variantImg || item.image || null;
+            return (
+              <img
+                src={displayImg || navyMKDIcon}
+                alt={selectedVariant ? `${item.name} – ${selectedVariant.name}` : item.name}
+                className={!displayImg ? 'placeholder-image' : ''}
+                onError={(e) => {
+                  e.target.src = navyMKDIcon;
+                  e.target.classList.add('placeholder-image');
+                }}
+              />
+            );
+          })()}
         </div>
 
         <div className="modal-content">

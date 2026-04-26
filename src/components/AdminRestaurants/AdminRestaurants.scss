@@ -508,6 +508,11 @@
       background: #f8f9fa;
       border-color: #e2e8f0;
     }
+
+    &.featured {
+      border-color: #f5a623;
+      box-shadow: 0 2px 8px rgba(245, 166, 35, 0.18);
+    }
   }
 
   &__unavailable-overlay {
@@ -602,6 +607,29 @@
     font-weight: 600 !important;
     display: inline-block;
     margin-top: 8px;
+  }
+
+  &__menu-item-pills {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+
+  &__menu-item-pills .admin-restaurants__menu-item-type {
+    margin-top: 0;
+  }
+
+  &__menu-item-featured-pill {
+    background: #eef2ff;
+    color: #1e3a8a;
+    border: 1px solid #c7d2fe;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: inline-block;
   }
 
   &__menu-item-description {
@@ -1475,5 +1503,137 @@
   &:hover {
     background: #334155;
     box-shadow: 0 4px 12px rgba(51, 65, 85, 0.25);
+  }
+}
+
+.admin-restaurants {
+  &__logo-zone {
+    border: 2px dashed #ced4da;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    background: #f8f9fa;
+    min-height: 110px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    outline: none;
+    margin-bottom: 8px;
+
+    &:hover, &:focus {
+      border-color: #007bff;
+      background: #f0f4ff;
+    }
+
+    &--dragging {
+      border-color: #007bff;
+      background: #e8f0fe;
+    }
+
+    &--has-image {
+      padding: 0;
+      border-style: solid;
+      border-color: #ced4da;
+    }
+  }
+
+  &__logo-preview {
+    width: 100%;
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+
+    &-img {
+      width: 100%;
+      max-height: 160px;
+      object-fit: contain;
+      display: block;
+    }
+  }
+
+  &__logo-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+    font-size: 13px;
+    font-weight: 500;
+
+    .admin-restaurants__logo-zone:hover &,
+    .admin-restaurants__logo-zone:focus & {
+      opacity: 1;
+    }
+  }
+
+  &__logo-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    color: #6c757d;
+    font-size: 14px;
+    pointer-events: none;
+  }
+
+  &__logo-icon {
+    font-size: 28px;
+  }
+
+  &__logo-hint {
+    font-size: 11px;
+    color: #adb5bd;
+  }
+
+  &__logo-upload-error {
+    color: #dc3545;
+    font-size: 12px;
+    margin-bottom: 4px;
+    display: block;
+  }
+
+  &__logo-url-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  &__logo-url-input {
+    flex: 1;
+    padding: 8px 10px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #495057;
+    background: #fff;
+
+    &:focus {
+      outline: none;
+      border-color: #007bff;
+    }
+  }
+
+  &__logo-clear-btn {
+    background: none;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    padding: 6px 10px;
+    cursor: pointer;
+    color: #6c757d;
+    font-size: 14px;
+    line-height: 1;
+
+    &:hover {
+      background: #f8d7da;
+      border-color: #dc3545;
+      color: #dc3545;
+    }
   }
 } 

@@ -1,5 +1,6 @@
 import './AdminRestaurants.scss';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import PropTypes from 'prop-types';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { RefreshCw } from 'lucide-react';
 import { fetchAllRestaurants, createRestaurant, updateRestaurant, deleteRestaurant, logAdminAction } from '../../services/adminServices';
@@ -26,6 +27,109 @@ const normalizeRestaurant = (r = {}) => {
   out.kosher_certification = r.kosher_certification ?? r.kosherCertification ?? '';
   out.logo_url = r.logo_url ?? r.logoUrl ?? '';
   return out;
+};
+
+const RestaurantLogoUploadZone = ({ logoUrl, onLogoChange }) => {
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const fileInputRef = useRef(null);
+
+  const previewUrl = buildImageUrl(logoUrl);
+
+  const handleFile = async (file) => {
+    if (!file) return;
+    setUploadError('');
+    setUploading(true);
+    try {
+      const res = await uploadRestaurantLogo(file);
+      if (res?.success && res.data?.originalUrl) {
+        onLogoChange(res.data.originalUrl);
+      } else {
+        setUploadError(res?.error || 'Upload failed. Please try again.');
+      }
+    } catch {
+      setUploadError('Upload failed. Please try again.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const onDragOver = (e) => { e.preventDefault(); setIsDragging(true); };
+  const onDragLeave = () => setIsDragging(false);
+  const onDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFile(file);
+  };
+
+  return (
+    <div>
+      <label>Restaurant Logo</label>
+      <div
+        className={`admin-restaurants__logo-zone ${isDragging ? 'admin-restaurants__logo-zone--dragging' : ''} ${previewUrl ? 'admin-restaurants__logo-zone--has-image' : ''}`}
+        onDragOver={onDragOver}
+        onDragLeave={onDragLeave}
+        onDrop={onDrop}
+        onClick={() => !uploading && fileInputRef.current?.click()}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => e.key === 'Enter' && fileInputRef.current?.click()}
+      >
+        {previewUrl ? (
+          <div className="admin-restaurants__logo-preview">
+            <img src={previewUrl} alt="Logo preview" className="admin-restaurants__logo-preview-img" />
+            <div className="admin-restaurants__logo-overlay">
+              <span>{uploading ? 'Uploading…' : 'Click or drag to replace'}</span>
+            </div>
+          </div>
+        ) : (
+          <div className="admin-restaurants__logo-placeholder">
+            <span className="admin-restaurants__logo-icon">🏪</span>
+            <span>{uploading ? 'Uploading…' : 'Drag & drop logo here, or click to browse'}</span>
+            <span className="admin-restaurants__logo-hint">PNG, JPG, JPEG, SVG, HEIC — max 15 MB</span>
+          </div>
+        )}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/svg+xml,image/heic,image/heif,.heic,.heif"
+          style={{ display: 'none' }}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) handleFile(file);
+            e.target.value = '';
+          }}
+        />
+      </div>
+      {uploadError && <span className="admin-restaurants__logo-upload-error">{uploadError}</span>}
+      <div className="admin-restaurants__logo-url-row">
+        <input
+          type="text"
+          value={logoUrl}
+          onChange={(e) => onLogoChange(e.target.value)}
+          placeholder="Or paste a logo URL / filename"
+          className="admin-restaurants__logo-url-input"
+        />
+        {logoUrl && (
+          <button
+            type="button"
+            className="admin-restaurants__logo-clear-btn"
+            onClick={(e) => { e.stopPropagation(); onLogoChange(''); }}
+            title="Remove logo"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+RestaurantLogoUploadZone.propTypes = {
+  logoUrl: PropTypes.string.isRequired,
+  onLogoChange: PropTypes.func.isRequired,
 };
 
 const AdminRestaurants = () => {
@@ -911,7 +1015,7 @@ const AdminRestaurants = () => {
                     ) : (
                       <div className="admin-restaurants__menu-items-grid">
                         {menuItems.map(item => (
-                          <div key={item.id} className={`admin-restaurants__menu-item-card ${!item.available ? 'unavailable' : ''}`}>
+                          <div key={item.id} className={`admin-restaurants__menu-item-card ${!item.available ? 'unavailable' : ''} ${item.featured ? 'featured' : ''}`}>
                             {!item.available && (
                               <div className="admin-restaurants__unavailable-overlay">
                                 <span className="admin-restaurants__unavailable-text">UNAVAILABLE</span>
@@ -919,7 +1023,7 @@ const AdminRestaurants = () => {
                             )}
                             <div className="admin-restaurants__menu-item-image">
                               {item.imageUrl ? (
-                                <img src={item.imageUrl} alt={item.name} />
+                                <img src={buildImageUrl(item.imageUrl)} alt={item.name} />
                               ) : (
                                 <div className="admin-restaurants__menu-item-placeholder">
                                   No Image
@@ -930,7 +1034,12 @@ const AdminRestaurants = () => {
                               <h5>{item.name}</h5>
                               <p className="admin-restaurants__menu-item-category">{item.category}</p>
                               <p className="admin-restaurants__menu-item-price">${(parseFloat(item.price) || 0).toFixed(2)}</p>
-                              <p className="admin-restaurants__menu-item-type">{item.itemType}</p>
+                              <div className="admin-restaurants__menu-item-pills">
+                                <span className="admin-restaurants__menu-item-type">{item.itemType}</span>
+                                {item.featured && (
+                                  <span className="admin-restaurants__menu-item-featured-pill">Featured</span>
+                                )}
+                              </div>
                               {item.description && (
                                 <p className="admin-restaurants__menu-item-description">{item.description}</p>
                               )}
@@ -1359,25 +1468,11 @@ const AdminRestaurants = () => {
                       placeholder="e.g., OU, OK, Star-K"
                     />
                   </div>
-                  <div className="admin-restaurants__form-group">
-                    <label>Logo URL or Filename</label>
-                    <input
-                      type="text"
-                      value={formData.logo_url || ''}
-                      onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
-                      placeholder="https://... or filename.png"
-                    />
-                  </div>
                   <div className="admin-restaurants__form-group admin-restaurants__form-group--full">
-                    <label>Or Upload Logo</label>
-                    <input type="file" accept="image/*" onChange={async (e) => {
-                      const file = e.target.files && e.target.files[0];
-                      if (!file) return;
-                      const res = await uploadRestaurantLogo(file);
-                      if (res?.success && res.data?.originalUrl) {
-                        setFormData({ ...formData, logo_url: res.data.originalUrl });
-                      }
-                    }} />
+                    <RestaurantLogoUploadZone
+                      logoUrl={formData.logo_url || ''}
+                      onLogoChange={(url) => setFormData(prev => ({ ...prev, logo_url: url }))}
+                    />
                   </div>
                   <div className="admin-restaurants__form-group admin-restaurants__form-group--checkbox">
                     <label>

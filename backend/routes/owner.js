@@ -154,7 +154,7 @@ router.get('/restaurants/:restaurantId/menu-items', async (req, res) => {
     }
     const menuItems = await MenuItem.findAll({
       where: whereClause,
-      order: [['category', 'ASC'], ['name', 'ASC']],
+      order: [['featured', 'DESC'], ['category', 'ASC'], ['name', 'ASC']],
       limit: Math.min(parseInt(limit) || 50, 100),
       offset: parseInt(offset) || 0,
       include: [{ model: Restaurant, as: 'restaurant', attributes: ['id', 'name'] }]
@@ -217,8 +217,9 @@ const menuItemCreateValidation = [
   body('price').custom(v => !isNaN(parseFloat(v)) && parseFloat(v) >= 0).withMessage('Price must be >= 0'),
   body('category').notEmpty().trim().isLength({ min: 1, max: 100 }),
   body('description').optional().isString().isLength({ max: 1000 }),
-  body('imageUrl').optional().custom(v => !v || v.trim() === '' || (() => { try { new URL(v); return true; } catch { return false; } })()).withMessage('Image URL must be valid'),
+  body('imageUrl').optional().custom(v => !v || v.trim() === '' || v.startsWith('images/') || v.startsWith('/images/') || (() => { try { new URL(v); return true; } catch { return false; } })()).withMessage('Image URL must be valid'),
   body('available').optional().custom(v => [true, false, 'true', 'false', 1, 0].includes(v)).withMessage('Available must be boolean'),
+  body('featured').optional().custom(v => [true, false, 'true', 'false'].includes(v)).withMessage('Featured must be boolean'),
   body('options').optional().custom(v => v == null || typeof v === 'object').withMessage('Options must be object or null'),
   body('labels').optional().custom(v => v == null || Array.isArray(v)).withMessage('Labels must be array or null')
 ];
@@ -256,8 +257,9 @@ const menuItemUpdateValidation = [
   body('price').optional().custom(v => !isNaN(parseFloat(v)) && parseFloat(v) >= 0).withMessage('Price must be >= 0'),
   body('category').optional().trim().isLength({ min: 1, max: 100 }),
   body('description').optional().isString().isLength({ max: 1000 }),
-  body('imageUrl').optional().custom(v => !v || v.trim() === '' || (() => { try { new URL(v); return true; } catch { return false; } })()).withMessage('Image URL must be valid'),
+  body('imageUrl').optional().custom(v => !v || v.trim() === '' || v.startsWith('images/') || v.startsWith('/images/') || (() => { try { new URL(v); return true; } catch { return false; } })()).withMessage('Image URL must be valid'),
   body('available').optional().custom(v => [true, false, 'true', 'false', 1, 0].includes(v)).withMessage('Available must be boolean'),
+  body('featured').optional().custom(v => [true, false, 'true', 'false'].includes(v)).withMessage('Featured must be boolean'),
   body('options').optional().custom(v => v == null || typeof v === 'object').withMessage('Options must be object or null'),
   body('labels').optional().custom(v => v == null || Array.isArray(v)).withMessage('Labels must be array or null')
 ];

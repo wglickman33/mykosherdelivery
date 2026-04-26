@@ -1595,7 +1595,7 @@ router.get('/restaurants/menu-export', requireAdmin, async (req, res) => {
     for (const rest of restaurants) {
       const items = await MenuItem.findAll({
         where: { restaurantId: rest.id },
-        order: [['category', 'ASC'], ['name', 'ASC']],
+        order: [['featured', 'DESC'], ['category', 'ASC'], ['name', 'ASC']],
         limit: 10000
       });
       const rows = items.map(item => {
@@ -1923,7 +1923,7 @@ router.get('/restaurants/:restaurantId/menu-items', requireAdmin, async (req, re
     
     const menuItems = await MenuItem.findAll({
       where: whereClause,
-      order: [['category', 'ASC'], ['name', 'ASC']],
+      order: [['featured', 'DESC'], ['category', 'ASC'], ['name', 'ASC']],
       limit: parseInt(limit),
       offset: parseInt(offset),
       include: [
@@ -2036,16 +2036,20 @@ router.post('/restaurants/:restaurantId/menu-items', requireAdmin, [
   body('description').optional().isString().isLength({ max: 1000 }),
   body('imageUrl').optional().custom((value) => {
     if (!value || value.trim() === '') return true;
+    if (value.startsWith('images/') || value.startsWith('/images/')) return true;
     try {
       new URL(value);
       return true;
     } catch {
       return false;
     }
-  }).withMessage('Image URL must be a valid URL'),
+  }).withMessage('Image URL must be a valid URL or an uploaded image path'),
   body('available').optional().custom((value) => {
     return value === true || value === false || value === 'true' || value === 'false' || value === 1 || value === 0;
   }).withMessage('Available must be a boolean value'),
+  body('featured').optional().custom((value) => {
+    return value === true || value === false || value === 'true' || value === 'false' || value === 1 || value === 0;
+  }).withMessage('Featured must be a boolean value'),
   body('options').optional().custom((value) => {
     return value === null || value === undefined || typeof value === 'object';
   }).withMessage('Options must be an object, null, or undefined'),
@@ -2158,16 +2162,20 @@ router.put('/restaurants/:restaurantId/menu-items/:itemId', requireAdmin, [
   body('description').optional().isString().isLength({ max: 1000 }),
   body('imageUrl').optional().custom((value) => {
     if (!value || value.trim() === '') return true;
+    if (value.startsWith('images/') || value.startsWith('/images/')) return true;
     try {
       new URL(value);
       return true;
     } catch {
       return false;
     }
-  }).withMessage('Image URL must be a valid URL'),
+  }).withMessage('Image URL must be a valid URL or an uploaded image path'),
   body('available').optional().custom((value) => {
     return value === true || value === false || value === 'true' || value === 'false' || value === 1 || value === 0;
   }).withMessage('Available must be a boolean value'),
+  body('featured').optional().custom((value) => {
+    return value === true || value === false || value === 'true' || value === 'false' || value === 1 || value === 0;
+  }).withMessage('Featured must be a boolean value'),
   body('options').optional().custom((value) => {
     return value === null || value === undefined || typeof value === 'object';
   }).withMessage('Options must be an object, null, or undefined'),
@@ -3530,7 +3538,7 @@ router.get('/restaurants/:restaurantId/menu', requireAdmin, async (req, res) => 
           attributes: ['id', 'optionName', 'optionType', 'required', 'options']
         }
       ],
-      order: [['category', 'ASC'], ['name', 'ASC']]
+      order: [['featured', 'DESC'], ['category', 'ASC'], ['name', 'ASC']]
     });
 
     const groupedItems = menuItems.reduce((acc, item) => {
@@ -3606,7 +3614,7 @@ router.get('/menu-items', requireAdmin, async (req, res) => {
           attributes: ['id', 'optionName', 'optionType', 'required', 'options']
         }
       ],
-      order: [['restaurantId', 'ASC'], ['category', 'ASC'], ['name', 'ASC']],
+      order: [['restaurantId', 'ASC'], ['featured', 'DESC'], ['category', 'ASC'], ['name', 'ASC']],
       limit: parseInt(limit),
       offset
     });
@@ -5623,6 +5631,7 @@ router.post('/promo-codes', requireAdmin, [
   body('expiresAt').optional().isISO8601().withMessage('Expires at must be a valid date'),
   body('usageLimit').optional().isInt({ min: 1 }).withMessage('Usage limit must be a positive integer'),
   body('stackable').optional().isBoolean().withMessage('Stackable must be a boolean'),
+  body('applyToDelivery').optional().isBoolean().withMessage('applyToDelivery must be a boolean'),
   body('allowedDays').optional().custom(allowedDaysValidator).withMessage('allowedDays must be an array of day numbers 0-6 (0=Sun, 6=Sat)')
 ], async (req, res) => {
   try {
@@ -5645,6 +5654,7 @@ router.post('/promo-codes', requireAdmin, [
       expiresAt,
       usageLimit,
       stackable = false,
+      applyToDelivery = false,
       allowedDays
     } = req.body;
 
@@ -5673,6 +5683,7 @@ router.post('/promo-codes', requireAdmin, [
       expiresAt: expiresAt || null,
       usageLimit: usageLimit || null,
       stackable,
+      applyToDelivery,
       allowedDays: allowedDaysValue
     });
 
@@ -5708,6 +5719,7 @@ router.put('/promo-codes/:id', requireAdmin, [
   body('expiresAt').optional({ nullable: true, checkFalsy: true }).isISO8601().withMessage('Expires at must be a valid date'),
   body('usageLimit').optional({ nullable: true, checkFalsy: true }).isInt({ min: 1 }).withMessage('Usage limit must be a positive integer'),
   body('stackable').optional().isBoolean().withMessage('Stackable must be a boolean'),
+  body('applyToDelivery').optional().isBoolean().withMessage('applyToDelivery must be a boolean'),
   body('allowedDays').optional().custom(allowedDaysValidator).withMessage('allowedDays must be an array of day numbers 0-6 (0=Sun, 6=Sat)')
 ], async (req, res) => {
   try {

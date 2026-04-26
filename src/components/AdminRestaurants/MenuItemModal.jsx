@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import PropTypes from 'prop-types';
 import LabelSelector from './LabelSelector';
 import { AVAILABLE_LABELS } from '../../data/labels';
@@ -12,7 +12,7 @@ import {
   getDefaultOptions
 } from '../../services/menuItemService';
 import * as ownerService from '../../services/ownerService';
-import { uploadMenuItemImage } from '../../services/imageService';
+import { uploadMenuItemImage, buildImageUrl } from '../../services/imageService';
 
 const MenuItemModal = ({ 
   isOpen, 
@@ -39,6 +39,7 @@ const MenuItemModal = ({
           category: menuItem.category || '',
           imageUrl: menuItem.imageUrl || '',
           available: menuItem.available !== false,
+          featured: menuItem.featured === true,
           itemType: menuItem.itemType,
           options: menuItem.options || getDefaultOptions(menuItem.itemType),
           labels: menuItem.labels || []
@@ -53,6 +54,7 @@ const MenuItemModal = ({
           category: '',
           imageUrl: '',
           available: true,
+          featured: false,
           itemType: null,
           options: null,
           labels: []
@@ -278,6 +280,116 @@ const TypeSelectionStep = ({ onTypeSelect, selectedType }) => {
   );
 };
 
+const ImageUploadZone = ({ imageUrl, onInputChange, compact = false }) => {
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const fileInputRef = useRef(null);
+  const previewUrl = buildImageUrl(imageUrl);
+
+  const handleFile = async (file) => {
+    if (!file) return;
+    setUploadError('');
+    setUploading(true);
+    try {
+      const res = await uploadMenuItemImage(file);
+      if (res?.success && res.data?.originalUrl) {
+        onInputChange('imageUrl', res.data.originalUrl);
+      } else {
+        setUploadError(res?.error || 'Upload failed. Please try again.');
+      }
+    } catch {
+      setUploadError('Upload failed. Please try again.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const onDragOver = (e) => { e.preventDefault(); setIsDragging(true); };
+  const onDragLeave = () => setIsDragging(false);
+  const onDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFile(file);
+  };
+
+  const zoneClass = [
+    compact ? 'menu-item-modal__image-zone--compact' : 'menu-item-modal__image-zone',
+    isDragging ? 'menu-item-modal__image-zone--dragging' : '',
+    previewUrl ? 'menu-item-modal__image-zone--has-image' : '',
+  ].filter(Boolean).join(' ');
+
+  return (
+    <div className={compact ? 'menu-item-modal__variant-image-upload' : 'menu-item-modal__form-group menu-item-modal__form-group--full'}>
+      {!compact && <label>Item Image</label>}
+      <div
+        className={zoneClass}
+        onDragOver={onDragOver}
+        onDragLeave={onDragLeave}
+        onDrop={onDrop}
+        onClick={() => !uploading && fileInputRef.current?.click()}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => e.key === 'Enter' && fileInputRef.current?.click()}
+      >
+        {previewUrl ? (
+          <div className="menu-item-modal__image-preview">
+            <img src={previewUrl} alt="Preview" className="menu-item-modal__image-preview-img" />
+            <div className="menu-item-modal__image-overlay">
+              <span>{uploading ? 'Uploading…' : 'Click or drag to replace'}</span>
+            </div>
+          </div>
+        ) : (
+          <div className="menu-item-modal__image-placeholder">
+            <span className="menu-item-modal__image-placeholder-text">
+              {uploading ? 'Uploading…' : compact ? 'Upload image' : 'Drag and drop image here, or click to browse'}
+            </span>
+            {!compact && <span className="menu-item-modal__image-hint">PNG, JPG, JPEG, SVG, HEIC — max 15 MB</span>}
+          </div>
+        )}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/svg+xml,image/heic,image/heif,.heic,.heif"
+          style={{ display: 'none' }}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) handleFile(file);
+            e.target.value = '';
+          }}
+        />
+      </div>
+      {uploadError && <span className="menu-item-modal__upload-error">{uploadError}</span>}
+      <div className="menu-item-modal__image-url-row">
+        <input
+          type="text"
+          value={imageUrl || ''}
+          onChange={(e) => onInputChange('imageUrl', e.target.value)}
+          placeholder={compact ? 'Or paste URL' : 'Or paste image URL'}
+          className="menu-item-modal__image-url-input"
+        />
+        {imageUrl && (
+          <button
+            type="button"
+            className="menu-item-modal__image-clear-btn"
+            onClick={(e) => { e.stopPropagation(); onInputChange('imageUrl', ''); }}
+            title="Remove image"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+ImageUploadZone.propTypes = {
+  imageUrl: PropTypes.string,
+  onInputChange: PropTypes.func.isRequired,
+  compact: PropTypes.bool,
+};
+
 const DetailsFormStep = ({ 
   formData, 
   itemType, 
@@ -345,31 +457,7 @@ const DetailsFormStep = ({
             />
           </div>
 
-          <div className="menu-item-modal__form-group">
-            <label>Image URL</label>
-            <input
-              type="url"
-              value={formData.imageUrl}
-              onChange={(e) => onInputChange('imageUrl', e.target.value)}
-              placeholder="https://example.com/image.jpg or upload file"
-            />
-          </div>
-          
-          <div className="menu-item-modal__form-group">
-            <label>Or Upload Image</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={async (e) => {
-                const file = e.target.files && e.target.files[0];
-                if (!file) return;
-                const res = await uploadMenuItemImage(file);
-                if (res?.success && res.data?.originalUrl) {
-                  onInputChange('imageUrl', res.data.originalUrl);
-                }
-              }}
-            />
-          </div>
+          <ImageUploadZone imageUrl={formData.imageUrl} onInputChange={onInputChange} />
 
           <div className="menu-item-modal__form-group menu-item-modal__form-group--checkbox">
             <label>
@@ -379,6 +467,18 @@ const DetailsFormStep = ({
                 onChange={(e) => onInputChange('available', e.target.checked)}
               />
               Available for ordering
+            </label>
+          </div>
+
+          <div className="menu-item-modal__form-group menu-item-modal__form-group--checkbox">
+            <label className="menu-item-modal__featured-label">
+              <input
+                type="checkbox"
+                checked={formData.featured || false}
+                onChange={(e) => onInputChange('featured', e.target.checked)}
+              />
+              <span className="menu-item-modal__featured-title">Featured item</span>
+              <span className="menu-item-modal__featured-hint">Appears in the Featured section at the top of the menu</span>
             </label>
           </div>
         </div>
@@ -430,12 +530,18 @@ const DetailsFormStep = ({
 };
 
 const PreviewStep = ({ formData, itemType, onSave, onBack, loading, isEditing }) => {
+  const previewUrl = buildImageUrl(formData.imageUrl);
   return (
     <div className="menu-item-modal__preview">
       <h3>Preview & Save</h3>
       
       <div className="menu-item-modal__preview-content">
         <div className="menu-item-modal__preview-item">
+          {previewUrl && (
+            <div className="menu-item-modal__preview-image">
+              <img src={previewUrl} alt={formData.name} className="menu-item-modal__preview-image-img" />
+            </div>
+          )}
           <h4>{formData.name}</h4>
           <p className="menu-item-modal__preview-description">{formData.description}</p>
           <div className="menu-item-modal__preview-details">
@@ -444,6 +550,9 @@ const PreviewStep = ({ formData, itemType, onSave, onBack, loading, isEditing })
             <span className={`menu-item-modal__preview-status ${formData.available ? 'available' : 'unavailable'}`}>
               {formData.available ? 'Available' : 'Unavailable'}
             </span>
+            {formData.featured && (
+              <span className="menu-item-modal__preview-featured">Featured</span>
+            )}
           </div>
           
           {formData.labels && formData.labels.length > 0 && (
@@ -564,11 +673,10 @@ const VarietyOptionsEditor = ({ options, onChange }) => {
                   value={variant.name}
                   onChange={(e) => updateVariant(index, 'name', e.target.value)}
                 />
-                <input
-                  type="url"
-                  placeholder="Image URL (optional)"
-                  value={variant.imageUrl}
-                  onChange={(e) => updateVariant(index, 'imageUrl', e.target.value)}
+                <ImageUploadZone
+                  imageUrl={variant.imageUrl}
+                  onInputChange={(_, url) => updateVariant(index, 'imageUrl', url)}
+                  compact
                 />
                 <input
                   type="number"
@@ -799,6 +907,7 @@ DetailsFormStep.propTypes = {
     category: PropTypes.string,
     imageUrl: PropTypes.string,
     available: PropTypes.bool,
+    featured: PropTypes.bool,
     itemType: PropTypes.string,
     options: PropTypes.object,
     labels: PropTypes.array
@@ -819,6 +928,7 @@ PreviewStep.propTypes = {
     category: PropTypes.string,
     imageUrl: PropTypes.string,
     available: PropTypes.bool,
+    featured: PropTypes.bool,
     itemType: PropTypes.string,
     options: PropTypes.object,
     labels: PropTypes.array

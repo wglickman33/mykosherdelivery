@@ -159,7 +159,7 @@ const SettingsCountdownTimer = () => {
                 onChange={(e) => handleCountdownSettingChange('targetTime', e.target.value)}
                 disabled={countdownLoading}
               />
-              <small>Current: {formatTimeForDisplay(countdownSettings.targetTime)} EST</small>
+              <small>Current: {formatTimeForDisplay(countdownSettings.targetTime)} ({countdownSettings.timezone || 'America/New_York'})</small>
             </div>
           </div>
 
@@ -191,7 +191,7 @@ const SettingsCountdownTimer = () => {
                 onChange={(e) => handleCountdownSettingChange('resetTime', e.target.value)}
                 disabled={countdownLoading}
               />
-              <small>Current: {formatTimeForDisplay(countdownSettings.resetTime)} EST</small>
+              <small>Current: {formatTimeForDisplay(countdownSettings.resetTime)} ({countdownSettings.timezone || 'America/New_York'})</small>
             </div>
           </div>
 
@@ -215,10 +215,10 @@ const SettingsCountdownTimer = () => {
             <h4>Current Configuration</h4>
             <div className="settings-summary">
               <p>
-                <strong>Orders close:</strong> {countdownSettings.targetDayName}s at {formatTimeForDisplay(countdownSettings.targetTime)} EST
+                <strong>Orders close:</strong> {countdownSettings.targetDayName}s at {formatTimeForDisplay(countdownSettings.targetTime)} ({countdownSettings.timezone || 'America/New_York'})
               </p>
               <p>
-                <strong>Orders reset:</strong> {countdownSettings.resetDayName}s at {formatTimeForDisplay(countdownSettings.resetTime)} EST
+                <strong>Orders reset:</strong> {countdownSettings.resetDayName}s at {formatTimeForDisplay(countdownSettings.resetTime)} ({countdownSettings.timezone || 'America/New_York'})
               </p>
             </div>
           </div>

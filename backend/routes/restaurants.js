@@ -1,7 +1,7 @@
 const express = require('express');
 const { query, validationResult } = require('express-validator');
-const { Op, sequelize } = require('sequelize');
-const { Restaurant, MenuItem, UserRestaurantFavorite } = require('../models');
+const { Op } = require('sequelize');
+const { Restaurant, MenuItem, UserRestaurantFavorite, sequelize, DeliveryZone } = require('../models');
 const { optionalAuth } = require('../middleware/auth');
 
 const router = express.Router();
@@ -141,7 +141,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
           as: 'menuItems',
           where: { [Op.or]: [{ available: true }, { available: null }] },
           required: false,
-          order: [['category', 'ASC'], ['name', 'ASC']]
+          order: [['featured', 'DESC'], ['category', 'ASC'], ['name', 'ASC']]
         }
       ]
     });
@@ -255,7 +255,7 @@ router.get('/:id/menu', async (req, res) => {
 
     const menuItems = await MenuItem.findAll({
       where: whereClause,
-      order: [['category', 'ASC'], ['name', 'ASC']],
+      order: [['featured', 'DESC'], ['category', 'ASC'], ['name', 'ASC']],
       include: [
         {
           model: Restaurant,
@@ -338,6 +338,7 @@ router.get('/:id/menu/categories', async (req, res) => {
       group: ['category'],
       order: [['category', 'ASC']]
     });
+    // Note: categories endpoint just lists category names — no featured ordering needed here
 
     res.json({
       success: true,
@@ -422,4 +423,21 @@ router.get('/:id/menu/:itemId', async (req, res) => {
   }
 });
 
-module.exports = router; 
+// Public endpoint — no auth required, used by checkout for guests
+router.get('/delivery-zones', async (req, res) => {
+  try {
+    const deliveryZones = await DeliveryZone.findAll({
+      where: { available: true },
+      order: [['state', 'ASC'], ['city', 'ASC'], ['zipCode', 'ASC']]
+    });
+    res.json(deliveryZones);
+  } catch (error) {
+    console.error('Error fetching delivery zones (public):', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: 'Failed to fetch delivery zones'
+    });
+  }
+});
+
+module.exports = router;

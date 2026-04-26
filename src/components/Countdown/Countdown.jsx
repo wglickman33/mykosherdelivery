@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import PropTypes from "prop-types";
 import "./Countdown.scss";
 import { getCountdownSettings } from "../../services/countdownService";
-import { isInPastDuePeriod } from "../../utils/countdownUtils";
+import { isInPastDuePeriod, getNextTargetDate as computeNextTargetDate, getTimeInTimezone } from "../../utils/countdownUtils";
 
 const Countdown = ({ variant = "default", className = "" }) => {
   const [settings, setSettings] = useState({
@@ -20,59 +20,8 @@ const Countdown = ({ variant = "default", className = "" }) => {
   }, [settings]);
 
   const getNextTargetDate = useCallback(() => {
-    const now = new Date();
-    const timezone = settings.timezone || 'America/New_York';
-    
-    const formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone: timezone,
-      weekday: 'long',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    });
-    
-    const parts = formatter.formatToParts(now);
-    const dayName = parts.find(part => part.type === 'weekday').value;
-    const currentHour = parseInt(parts.find(part => part.type === 'hour').value);
-    const currentMinute = parseInt(parts.find(part => part.type === 'minute').value);
-    
-    const dayMap = {
-      'Sunday': 0,
-      'Monday': 1,
-      'Tuesday': 2,
-      'Wednesday': 3,
-      'Thursday': 4,
-      'Friday': 5,
-      'Saturday': 6
-    };
-    const currentDay = dayMap[dayName];
-    
-    const targetDay = settings.targetDay;
-    const targetHour = parseInt(settings.targetTime.split(':')[0]);
-    const targetMinute = parseInt(settings.targetTime.split(':')[1]);
-
-    let daysUntilTarget;
-
-    if (currentDay === targetDay) {
-      if (currentHour < targetHour || (currentHour === targetHour && currentMinute < targetMinute)) {
-        daysUntilTarget = 0;
-      } else {
-        const isPastDue = checkIsInPastDuePeriod();
-        daysUntilTarget = isPastDue ? 0 : 7;
-      }
-    } else if (currentDay < targetDay) {
-      daysUntilTarget = targetDay - currentDay;
-    } else {
-      daysUntilTarget = 7 - (currentDay - targetDay);
-    }
-
-    const targetDate = new Date(now);
-    targetDate.setDate(now.getDate() + daysUntilTarget);
-    targetDate.setHours(targetHour, targetMinute, 0, 0);
-    
-    return targetDate;
-  }, [settings, checkIsInPastDuePeriod]);
+    return computeNextTargetDate(settings);
+  }, [settings]);
 
   const calculateTimeRemaining = useCallback((target) => {
     if (!target) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
@@ -108,62 +57,41 @@ const Countdown = ({ variant = "default", className = "" }) => {
     if (!date) return "Calculating...";
 
     try {
-      const options = {
+      const tz = settings.timezone || 'America/New_York';
+      const formattedDate = new Intl.DateTimeFormat("en-US", {
         weekday: "long",
         year: "numeric",
         month: "long",
         day: "numeric",
-        timeZone: settings.timezone,
-      };
+        timeZone: tz,
+      }).format(date);
 
-      const formattedDate = new Intl.DateTimeFormat("en-US", options).format(date);
       const timeStr = settings.targetTime;
       const [hours, minutes] = timeStr.split(':');
-      const hour = parseInt(hours);
+      const hour = parseInt(hours, 10);
       const ampm = hour >= 12 ? 'PM' : 'AM';
       const displayHour = hour % 12 || 12;
       const displayTime = `${displayHour}:${minutes} ${ampm}`;
 
-      return `${formattedDate} at ${displayTime} EST`;
+      // Show the abbreviated timezone name (e.g. "EDT", "CDT", "PST")
+      const tzAbbr = new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'short' })
+        .formatToParts(date)
+        .find(p => p.type === 'timeZoneName')?.value || tz;
+
+      return `${formattedDate} at ${displayTime} ${tzAbbr}`;
     } catch {
-      return date.toLocaleDateString() + ` at ${settings.targetTime} EST`;
+      return date.toLocaleDateString() + ` at ${settings.targetTime}`;
     }
   };
 
   const checkForPeriodTransition = useCallback(() => {
-    const now = new Date();
     const timezone = settings.timezone || 'America/New_York';
-    
-    const formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone: timezone,
-      weekday: 'long',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    });
-    
-    const parts = formatter.formatToParts(now);
-    const dayName = parts.find(part => part.type === 'weekday').value;
-    const currentHour = parseInt(parts.find(part => part.type === 'hour').value);
-    const currentMinute = parseInt(parts.find(part => part.type === 'minute').value);
-    
-    const dayMap = {
-      'Sunday': 0,
-      'Monday': 1,
-      'Tuesday': 2,
-      'Wednesday': 3,
-      'Thursday': 4,
-      'Friday': 5,
-      'Saturday': 6
-    };
-    const currentDay = dayMap[dayName];
-    
+    const current = getTimeInTimezone(timezone);
     const resetDay = settings.resetDay;
-    const resetHour = parseInt(settings.resetTime.split(':')[0]);
-    const resetMinute = parseInt(settings.resetTime.split(':')[1]);
+    const resetHour = parseInt(settings.resetTime.split(':')[0], 10);
+    const resetMinute = parseInt(settings.resetTime.split(':')[1], 10);
 
-    if (currentDay === resetDay && currentHour === resetHour && currentMinute < resetMinute + 1) {
+    if (current.day === resetDay && current.hour === resetHour && current.minute < resetMinute + 1) {
       const newTarget = getNextTargetDate();
       setTargetDate(newTarget);
       setIsPastDue(false);

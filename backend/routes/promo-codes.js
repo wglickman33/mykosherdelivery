@@ -86,6 +86,7 @@ router.post('/validate', validateCodeBody, async (req, res) => {
         code: results.code,
         discountType: results.discount_type,
         discountValue: parseFloat(results.discount_value),
+        applyToDelivery: Boolean(results.apply_to_delivery),
         expiresAt: results.expires_at
       },
       message: 'Promo code is valid'
@@ -102,7 +103,8 @@ router.post('/validate', validateCodeBody, async (req, res) => {
 
 const calculateDiscountBody = [
   body('code').notEmpty().withMessage('Promo code is required').isString().trim().isLength({ min: 1, max: 50 }).withMessage('Code must be 1–50 characters'),
-  body('subtotal').notEmpty().withMessage('Subtotal is required').isFloat({ min: 0 }).withMessage('Subtotal must be a non-negative number').toFloat()
+  body('subtotal').notEmpty().withMessage('Subtotal is required').isFloat({ min: 0 }).withMessage('Subtotal must be a non-negative number').toFloat(),
+  body('deliveryFee').optional().isFloat({ min: 0 }).withMessage('Delivery fee must be a non-negative number').toFloat()
 ];
 
 router.post('/calculate-discount', calculateDiscountBody, async (req, res) => {
@@ -115,7 +117,7 @@ router.post('/calculate-discount', calculateDiscountBody, async (req, res) => {
         details: errors.array()
       });
     }
-    const { code, subtotal } = req.body;
+    const { code, subtotal, deliveryFee = 0 } = req.body;
     const codeTrimmed = typeof code === 'string' ? code.trim() : String(code);
 
     const [results] = await sequelize.query(
@@ -156,13 +158,26 @@ router.post('/calculate-discount', calculateDiscountBody, async (req, res) => {
       }
     }
 
-    let discountAmount = 0;
     const subtotalValue = typeof subtotal === 'number' ? subtotal : parseFloat(subtotal);
-    
-    if (results.discount_type === 'percentage') {
-      discountAmount = (subtotalValue * parseFloat(results.discount_value)) / 100;
-    } else if (results.discount_type === 'fixed') {
-      discountAmount = Math.min(parseFloat(results.discount_value), subtotalValue);
+    const deliveryFeeValue = typeof deliveryFee === 'number' ? deliveryFee : parseFloat(deliveryFee || 0);
+    const applyToDelivery = Boolean(results.apply_to_delivery);
+    const discountVal = parseFloat(results.discount_value);
+
+    let discountAmount = 0;
+    let deliveryFeeDiscount = 0;
+
+    if (applyToDelivery) {
+      if (results.discount_type === 'percentage') {
+        deliveryFeeDiscount = (deliveryFeeValue * discountVal) / 100;
+      } else if (results.discount_type === 'fixed') {
+        deliveryFeeDiscount = Math.min(discountVal, deliveryFeeValue);
+      }
+    } else {
+      if (results.discount_type === 'percentage') {
+        discountAmount = (subtotalValue * discountVal) / 100;
+      } else if (results.discount_type === 'fixed') {
+        discountAmount = Math.min(discountVal, subtotalValue);
+      }
     }
 
     res.status(200).json({
@@ -170,10 +185,13 @@ router.post('/calculate-discount', calculateDiscountBody, async (req, res) => {
       data: {
         code: results.code,
         discountType: results.discount_type,
-        discountValue: parseFloat(results.discount_value),
-        discountAmount: discountAmount,
+        discountValue: discountVal,
+        applyToDelivery,
+        discountAmount,
+        deliveryFeeDiscount,
         subtotal: subtotalValue,
-        newSubtotal: subtotalValue - discountAmount
+        newSubtotal: subtotalValue - discountAmount,
+        newDeliveryFee: Math.max(0, deliveryFeeValue - deliveryFeeDiscount)
       },
       message: 'Discount calculated successfully'
     });

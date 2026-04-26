@@ -17,6 +17,7 @@ const OrderSummary = ({
   promoError = "",
   isValidatingPromo = false,
   discountAmount = 0,
+  deliveryFeeDiscount = 0,
   giftCardCode = "",
   onGiftCardCodeChange = () => {},
   onApplyGiftCard = () => {},
@@ -165,6 +166,12 @@ const OrderSummary = ({
               <span className="pricing-value discount-value">-${discountAmount.toFixed(2)}</span>
             </div>
           )}
+          {deliveryFeeDiscount > 0 && (
+            <div className="pricing-line discount-line">
+              <span className="pricing-label">Delivery Discount</span>
+              <span className="pricing-value discount-value">-${deliveryFeeDiscount.toFixed(2)}</span>
+            </div>
+          )}
           {giftCardAmount > 0 && (
             <div className="pricing-line discount-line">
               <span className="pricing-label">Gift Card</span>
@@ -225,6 +232,7 @@ OrderSummary.propTypes = {
   promoError: PropTypes.string,
   isValidatingPromo: PropTypes.bool,
   discountAmount: PropTypes.number,
+  deliveryFeeDiscount: PropTypes.number,
   giftCardCode: PropTypes.string,
   onGiftCardCodeChange: PropTypes.func,
   onApplyGiftCard: PropTypes.func,

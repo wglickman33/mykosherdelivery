@@ -1,6 +1,6 @@
 const express = require("express");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
-const { authenticateToken } = require("../middleware/auth");
+const { optionalAuth } = require("../middleware/auth");
 const { body, validationResult } = require("express-validator");
 const logger = require("../utils/logger");
 
@@ -9,7 +9,7 @@ const router = express.Router();
 
 router.post(
   "/calculate",
-  authenticateToken,
+  optionalAuth,
   [
     body("items").isArray({ min: 1 }).withMessage("Items array is required"),
     body("items.*.amount").isNumeric().withMessage("Item amount must be numeric"),

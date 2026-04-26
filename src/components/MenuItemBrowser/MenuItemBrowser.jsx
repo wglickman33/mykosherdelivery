@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { fetchAllRestaurants, fetchAllMenuItems } from '../../services/adminServices';
 import { fetchRestaurantMenuItems } from '../../services/menuItemService';
+import { buildImageUrl } from '../../services/imageService';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import MenuItemModal from '../MenuItemModal/MenuItemModal';
 
@@ -286,7 +287,7 @@ const MenuItemBrowser = ({ onItemSelect, onClose }) => {
                       <div key={item.id} className="menu-item-card">
                         <div className="item-image">
                           {item.imageUrl ? (
-                            <img src={item.imageUrl} alt={item.name} />
+                            <img src={buildImageUrl(item.imageUrl)} alt={item.name} />
                           ) : (
                             <div className="no-image">No Image</div>
                           )}

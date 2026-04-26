@@ -48,6 +48,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.JSONB,
       defaultValue: []
     },
+    featured: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false
+    },
     createdAt: {
       type: DataTypes.DATE,
       field: 'created_at',

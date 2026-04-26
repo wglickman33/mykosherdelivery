@@ -4,8 +4,6 @@ import logger from '../utils/logger';
 
 export const uploadRestaurantLogo = async (file) => {
   try {
-    console.log('Uploading restaurant logo:', file.name, file.type, file.size);
-    
     const formData = new FormData();
     formData.append('logo', file);
     
@@ -21,11 +19,9 @@ export const uploadRestaurantLogo = async (file) => {
       headers
     });
     
-    console.log('Restaurant logo upload response:', response);
     return { success: true, data: response.data };
     
   } catch (error) {
-    console.error('Restaurant logo upload error:', error);
     logger.error('Error uploading restaurant logo:', error);
     return { success: false, error: error.message };
   }
@@ -34,8 +30,6 @@ export const uploadRestaurantLogo = async (file) => {
 
 export const uploadMenuItemImage = async (file) => {
   try {
-    console.log('Uploading menu item image:', file.name, file.type, file.size);
-    
     const formData = new FormData();
     formData.append('image', file);
     
@@ -51,11 +45,9 @@ export const uploadMenuItemImage = async (file) => {
       headers
     });
     
-    console.log('Menu item image upload response:', response);
     return { success: true, data: response.data };
     
   } catch (error) {
-    console.error('Menu item image upload error:', error);
     logger.error('Error uploading menu item image:', error);
     return { success: false, error: error.message };
   }
@@ -121,7 +113,9 @@ export const buildImageUrl = (imagePath) => {
 
 
 export const getImageVariantUrl = (filename, type, size = 'optimized') => {
-  const baseName = filename.replace(/\.(jpg|jpeg|png|webp)$/i, '');
-  const variantPath = `images/${type}/variants/${baseName}_${size}.jpg`;
+  const isSvg = /\.svg$/i.test(filename);
+  const baseName = filename.replace(/\.(jpg|jpeg|png|webp|svg)$/i, '');
+  const ext = isSvg ? '.svg' : '.jpg';
+  const variantPath = `images/${type}/variants/${baseName}_${size}${ext}`;
   return buildImageUrl(variantPath);
 };

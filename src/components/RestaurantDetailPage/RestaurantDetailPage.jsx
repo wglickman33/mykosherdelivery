@@ -65,17 +65,25 @@ export default function RestaurantDetailPage() {
     return categories.sort();
   };
 
-  const getFilteredMenuItems = () => {
-    return menuItems.filter(item => {
+  const filteredMenuItems = menuItems.filter(item => {
       const matchesSearch = !searchTerm || 
         item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.description.toLowerCase().includes(searchTerm.toLowerCase());
+        (item.description || '').toLowerCase().includes(searchTerm.toLowerCase());
       
       const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
       
       return matchesSearch && matchesCategory;
     });
-  };
+  
+
+  // Featured strip: only shown when no specific category is selected and no search active
+  const showFeaturedStrip = selectedCategory === 'all' && !searchTerm;
+  const featuredItems = showFeaturedStrip
+    ? menuItems.filter(item => item.featured)
+    : [];
+  const regularItems = showFeaturedStrip
+    ? filteredMenuItems.filter(item => !item.featured)
+    : filteredMenuItems;
 
   if (loading) {
     return (
@@ -165,17 +173,84 @@ export default function RestaurantDetailPage() {
             </div>
           </div>
 
+          {featuredItems.length > 0 && (
+            <div className="featured-section">
+              <h3 className="featured-section__title">Featured Items</h3>
+              <div className="featured-section__grid">
+                {featuredItems.map(item => (
+                  <div className="menu-card featured-card" key={`featured-${item.id}`}>
+                    <div
+                      className="menu-card__clickable"
+                      onClick={() => {
+                        setSelectedItem(item);
+                        setIsModalOpen(true);
+                      }}
+                    >
+                      <div className="menu-card__image-wrapper">
+                        <img
+                          src={item.image || navyMKDIcon}
+                          alt={item.name}
+                          className={`menu-card__image ${!item.image ? 'placeholder-image' : ''}`}
+                          onError={(e) => {
+                            e.target.src = navyMKDIcon;
+                            e.target.classList.add('placeholder-image');
+                          }}
+                        />
+                      </div>
+                      <div className="menu-card__content">
+                        <h3 className="menu-card__name">{item.name}</h3>
+                        <p className="menu-card__desc">{item.description}</p>
+                        {item.labels && item.labels.length > 0 && (
+                          <div className="menu-card__labels">
+                            {item.labels.map(label => (
+                              <span className="menu-card__label" key={label} title={labelMap[label] || label}>
+                                {label}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <div className="menu-card__price">${item.price.toFixed(2)}</div>
+                      </div>
+                    </div>
+                    <div className="menu-card__actions">
+                      {canAddDirectlyToCart(item) ? (
+                        <button
+                          className={`add-to-cart-btn ${addedItems.has(item.id) ? 'added' : ''}`}
+                          onClick={(e) => handleAddToCart(item, e)}
+                          disabled={addedItems.has(item.id)}
+                        >
+                          {addedItems.has(item.id) ? 'Added!' : 'Add to Cart'}
+                        </button>
+                      ) : (
+                        <button
+                          className="add-to-cart-btn add-to-cart-btn--customize"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedItem(item);
+                            setIsModalOpen(true);
+                          }}
+                        >
+                          Customize & Add
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {}
           <div className="results-info">
             <p>
-              Showing {getFilteredMenuItems().length} of {menuItems.length} items
+              Showing {regularItems.length + featuredItems.length} of {menuItems.length} items
               {searchTerm && ` for "${searchTerm}"`}
               {selectedCategory !== 'all' && ` in ${selectedCategory}`}
             </p>
           </div>
 
           <div className="menu-grid">
-            {getFilteredMenuItems().map(item => (
+            {regularItems.map(item => (
               <div className="menu-card" key={item.id}>
                 <div 
                   className="menu-card__clickable"
