@@ -132,6 +132,12 @@ export const DELIVERY_ZONES = {
     name: 'Bergen County',
     deliveryFee: 27.00,
     zipCodes: ['07666', '07631', '07632', '07621', '07652', '07653', '07410', '07024']
+  },
+
+  UNION_NJ: {
+    name: 'Union County',
+    deliveryFee: 27.00,
+    zipCodes: ['07081']
   }
 };
 

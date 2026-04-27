@@ -3,10 +3,19 @@
 const { v4: uuidv4 } = require('uuid');
 const { Op } = require('sequelize');
 
-const NJ_ZONES = [
-  { city: 'Essex County', delivery_fee: 27.00, state: 'NJ', zips: ['07039', '07052', '07042', '07043', '07028'] },
-  { city: 'Bergen County', delivery_fee: 27.00, state: 'NJ', zips: ['07666', '07631', '07632', '07621', '07652', '07653', '07410', '07024'] }
+/** NJ delivery by county label (stored in `city` column). Fee $27 unless changed per county. */
+const NJ_COUNTY_ZONES = [
+  { county: 'Essex County', delivery_fee: 27.0, zips: ['07039', '07052', '07042', '07043', '07028'] },
+  { county: 'Bergen County', delivery_fee: 27.0, zips: ['07666', '07631', '07632', '07621', '07652', '07653', '07410', '07024'] },
+  { county: 'Union County', delivery_fee: 27.0, zips: ['07081'] }
 ];
+
+const NJ_ZONES = NJ_COUNTY_ZONES.map((z) => ({
+  city: z.county,
+  state: 'NJ',
+  delivery_fee: z.delivery_fee,
+  zips: z.zips
+}));
 
 module.exports = {
   async up(queryInterface) {
