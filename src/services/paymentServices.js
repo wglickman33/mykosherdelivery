@@ -284,6 +284,7 @@ export const createGuestOrder = async (orderData) => {
       tip: tip || 0,
       discountAmount: discountAmount || 0,
       appliedPromo: appliedPromo || null,
+      appliedPromo2: orderData.appliedPromo2 || null,
       appliedGiftCard: appliedGiftCard || null
     });
 

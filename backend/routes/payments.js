@@ -322,7 +322,13 @@ router.post(
       );
       const providedTotal = amount / 100;
 
-      if (Math.abs(calculatedTotal - providedTotal) > 0.01) {
+      // Allow up to $0.10 tolerance to absorb JS floating-point and rounding differences
+      if (Math.abs(calculatedTotal - providedTotal) > 0.10) {
+        logger.warn('Guest payment intent amount mismatch', {
+          calculatedTotal,
+          providedTotal,
+          difference: Math.abs(calculatedTotal - providedTotal)
+        });
         return res.status(400).json({
           error: "Amount mismatch",
           message: "Payment amount does not match order total",

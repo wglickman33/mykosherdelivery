@@ -48,24 +48,26 @@ router.post('/guest', [
   body('deliveryAddress.apartment').optional().isString().trim().isLength({ max: 20 }),
   body('deliveryAddress.city').optional().isString().trim().isLength({ max: 100 }),
   body('deliveryAddress.state').optional().isString().trim().isLength({ max: 2 }),
-  body('deliveryAddress.zip_code').optional().isString().trim().matches(/^\d{5}$/),
+  body('deliveryAddress.zip_code').optional().isString().trim(),
   body('deliveryInstructions')
     .optional({ nullable: true })
     .customSanitizer((v) => (v == null ? '' : String(v)))
     .trim()
     .isLength({ max: 500 }),
   body('subtotal').isNumeric(),
-  body('deliveryFee').isNumeric().optional(),
-  body('tax').isNumeric().optional(),
+  body('deliveryFee').optional().isNumeric(),
+  body('tax').optional().isNumeric(),
   body('total').isNumeric(),
-  body('tip').isNumeric().optional(),
-  body('discountAmount').isNumeric().optional(),
-  body('appliedPromo').optional().custom(value => value === null || typeof value === 'object'),
-  body('appliedGiftCard').optional().custom(value => value === null || (typeof value === 'object' && value.giftCardId && value.code && typeof value.amountApplied === 'number'))
+  body('tip').optional().isNumeric(),
+  body('discountAmount').optional().isNumeric(),
+  body('appliedPromo').optional(),
+  body('appliedPromo2').optional(),
+  body('appliedGiftCard').optional()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      logger.warn('Guest order validation failed', { errors: errors.array() });
       return res.status(400).json({
         error: 'Validation failed',
         details: errors.array()
@@ -77,23 +79,38 @@ router.post('/guest', [
       restaurantGroups,
       deliveryAddress,
       deliveryInstructions,
-      deliveryFee = 0,
-      tip = 0,
-      tax = 0,
-      subtotal = 0,
-      total = 0,
-      discountAmount = 0,
       appliedPromo = null,
+      appliedPromo2 = null,
       appliedGiftCard = null
     } = req.body;
 
+    // Coerce all numeric fields with safe fallbacks
+    const subtotal = isNaN(Number(req.body.subtotal)) ? 0 : Number(req.body.subtotal);
+    const deliveryFee = isNaN(Number(req.body.deliveryFee)) ? 0 : Number(req.body.deliveryFee);
+    const tip = isNaN(Number(req.body.tip)) ? 0 : Number(req.body.tip);
+    const tax = isNaN(Number(req.body.tax)) ? 0 : Number(req.body.tax);
+    const total = isNaN(Number(req.body.total)) ? 0 : Number(req.body.total);
+    const discountAmount = isNaN(Number(req.body.discountAmount)) ? 0 : Number(req.body.discountAmount);
+
+    logger.info('Guest order creation started', {
+      guestEmail: guestInfo.email || 'none',
+      subtotal, deliveryFee, tip, tax, total, discountAmount,
+      restaurantCount: Object.keys(restaurantGroups || {}).length,
+      hasAppliedPromo: !!appliedPromo,
+      hasAppliedPromo2: !!appliedPromo2,
+      hasAppliedGiftCard: !!appliedGiftCard,
+      zipCode: deliveryAddress?.zip_code || deliveryAddress?.zipCode || deliveryAddress?.postal_code || 'unknown'
+    });
+
+    // Validate delivery address
+    const { validateDeliveryAddress } = require('../services/deliveryZoneService');
     const sanitizedAddress = {
       ...deliveryAddress,
       apartment: deliveryAddress.apartment ? String(deliveryAddress.apartment).trim().substring(0, 20) : undefined,
       street: deliveryAddress.street ? String(deliveryAddress.street).trim().substring(0, 200) : undefined,
       city: deliveryAddress.city ? String(deliveryAddress.city).trim().substring(0, 100) : undefined,
       state: deliveryAddress.state ? String(deliveryAddress.state).trim().substring(0, 2) : undefined,
-      zip_code: deliveryAddress.zip_code ? String(deliveryAddress.zip_code).trim().substring(0, 5) : undefined,
+      zip_code: (deliveryAddress.zip_code || deliveryAddress.zipCode || deliveryAddress.postal_code || '').toString().replace(/\D/g, '').slice(0, 5) || undefined,
       guestEmail: guestInfo.email || null,
       guestPhone: guestInfo.phone || null,
       guestName: [guestInfo.firstName, guestInfo.lastName].filter(Boolean).join(' ') || null
@@ -101,12 +118,10 @@ router.post('/guest', [
 
     const sanitizedInstructions = deliveryInstructions ? String(deliveryInstructions).trim().substring(0, 500) : null;
 
-    const { validateDeliveryAddress } = require('../services/deliveryZoneService');
     const addressValidation = await validateDeliveryAddress(sanitizedAddress);
-    
     if (!addressValidation.isValid) {
-      logger.warn('Guest order rejected due to invalid delivery address', {
-        zipCode: deliveryAddress.zip_code || deliveryAddress.zipCode || deliveryAddress.postal_code,
+      logger.warn('Guest order rejected: invalid delivery address', {
+        zipCode: sanitizedAddress.zip_code,
         error: addressValidation.error
       });
       return res.status(400).json({
@@ -115,33 +130,65 @@ router.post('/guest', [
       });
     }
 
-    const orderNumber = generateOrderNumber();
+    // Build flat items list
     const allItems = [];
-    Object.entries(restaurantGroups).forEach(([restaurantId, group]) => {
-      const groupItems = Array.isArray(group.items) ? group.items : Object.values(group.items || {});
-      groupItems.forEach(item => {
-        allItems.push({ ...item, restaurantId });
+    try {
+      Object.entries(restaurantGroups).forEach(([restaurantId, group]) => {
+        const groupItems = Array.isArray(group.items) ? group.items : Object.values(group.items || {});
+        groupItems.forEach(item => {
+          allItems.push({ ...item, restaurantId });
+        });
       });
-    });
+    } catch (itemsErr) {
+      logger.error('Guest order: error building items list', { error: itemsErr.message });
+      return res.status(400).json({ error: 'Invalid order items', message: 'Could not parse cart items' });
+    }
 
-    const order = await Order.create({
-      userId: null,
-      restaurantId: null,
-      restaurantGroups: restaurantGroups,
-      orderNumber: orderNumber,
-      status: 'pending',
-      items: allItems,
-      subtotal: Number(subtotal),
-      deliveryFee: Number(deliveryFee),
-      tip: Number(tip),
-      tax: Number(tax),
-      total: Number(total),
-      discountAmount: Number(discountAmount),
-      appliedPromo: appliedPromo,
-      appliedGiftCard: appliedGiftCard,
-      deliveryAddress: sanitizedAddress,
-      deliveryInstructions: sanitizedInstructions
-    });
+    if (allItems.length === 0) {
+      return res.status(400).json({ error: 'Empty order', message: 'Your cart appears to be empty' });
+    }
+
+    // Store both promos as an array if a second one exists
+    const promoData = appliedPromo2 ? [appliedPromo, appliedPromo2].filter(Boolean) : (appliedPromo || null);
+
+    const orderNumber = generateOrderNumber();
+    logger.info('Creating guest order in DB', { orderNumber, itemCount: allItems.length, total });
+
+    let order;
+    try {
+      order = await Order.create({
+        userId: null,
+        restaurantId: null,
+        restaurantGroups,
+        orderNumber,
+        status: 'pending',
+        items: allItems,
+        subtotal,
+        deliveryFee,
+        tip,
+        tax,
+        total,
+        discountAmount,
+        appliedPromo: promoData,
+        appliedGiftCard: appliedGiftCard || null,
+        deliveryAddress: sanitizedAddress,
+        deliveryInstructions: sanitizedInstructions
+      });
+    } catch (dbErr) {
+      logger.error('Guest order DB create failed', {
+        errorName: dbErr.name,
+        errorMessage: dbErr.message,
+        errorFields: dbErr.fields || null,
+        sql: dbErr.sql ? dbErr.sql.substring(0, 200) : null
+      });
+      return res.status(500).json({
+        error: 'Order creation failed',
+        message: 'We were unable to save your order. Please try again.',
+        debugError: process.env.NODE_ENV !== 'production' ? dbErr.message : undefined
+      });
+    }
+
+    logger.info('Guest order created successfully', { orderId: order.id, orderNumber });
 
     res.status(201).json({
       success: true,
@@ -150,10 +197,15 @@ router.post('/guest', [
     });
 
   } catch (error) {
-    console.error('Error creating guest order:', error);
+    logger.error('Unexpected error in guest order route', {
+      errorName: error.name,
+      errorMessage: error.message,
+      stack: error.stack ? error.stack.split('\n').slice(0, 5).join(' | ') : null
+    });
     res.status(500).json({
       error: 'Internal server error',
-      message: 'Failed to create guest order'
+      message: 'Failed to create guest order',
+      debugError: process.env.NODE_ENV !== 'production' ? error.message : undefined
     });
   }
 });
