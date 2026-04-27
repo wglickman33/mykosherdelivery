@@ -87,6 +87,7 @@ router.post('/validate', validateCodeBody, async (req, res) => {
         discountType: results.discount_type,
         discountValue: parseFloat(results.discount_value),
         applyToDelivery: Boolean(results.apply_to_delivery),
+        stackable: Boolean(results.stackable),
         expiresAt: results.expires_at
       },
       message: 'Promo code is valid'

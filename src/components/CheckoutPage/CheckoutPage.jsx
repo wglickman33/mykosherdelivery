@@ -31,6 +31,12 @@ const CheckoutPage = () => {
   const [isValidatingPromo, setIsValidatingPromo] = useState(false);
   const [promoErrorTimeout, setPromoErrorTimeout] = useState(null);
 
+  const [promoCode2, setPromoCode2] = useState("");
+  const [appliedPromo2, setAppliedPromo2] = useState(null);
+  const [promoError2, setPromoError2] = useState("");
+  const [isValidatingPromo2, setIsValidatingPromo2] = useState(false);
+  const [promoError2Timeout, setPromoError2Timeout] = useState(null);
+
   const [giftCardCode, setGiftCardCode] = useState("");
   const [appliedGiftCard, setAppliedGiftCard] = useState(null);
   const [giftCardError, setGiftCardError] = useState("");
@@ -45,6 +51,14 @@ const CheckoutPage = () => {
       }
     };
   }, [promoErrorTimeout]);
+
+  useEffect(() => {
+    return () => {
+      if (promoError2Timeout) {
+        clearTimeout(promoError2Timeout);
+      }
+    };
+  }, [promoError2Timeout]);
 
   const calculateTip = (subtotalAmount) => {
     if (customTip > 0) {
@@ -124,6 +138,65 @@ const CheckoutPage = () => {
     setAppliedPromo(null);
     setPromoCode("");
     setPromoError("");
+    setAppliedPromo2(null);
+    setPromoCode2("");
+    setPromoError2("");
+  };
+
+  const handleApplyPromo2 = async () => {
+    if (!promoCode2.trim()) {
+      setPromoError2("Please enter a promo code");
+      return;
+    }
+    if (promoCode2.trim().toUpperCase() === (appliedPromo?.code || '').toUpperCase()) {
+      setPromoError2("This code is already applied to your order");
+      return;
+    }
+
+    setIsValidatingPromo2(true);
+    setPromoError2("");
+
+    try {
+      const response = await apiClient.validatePromoCode(promoCode2.trim());
+      if (response.success) {
+        setAppliedPromo2(response.data);
+        setPromoError2("");
+        if (promoError2Timeout) {
+          clearTimeout(promoError2Timeout);
+          setPromoError2Timeout(null);
+        }
+      }
+    } catch (error) {
+      let friendlyMessage = "Invalid promo code";
+      if (error.message?.includes("Authentication")) {
+        friendlyMessage = "Please sign in to use promo codes";
+      } else if (error.message?.includes("not found") || error.message?.includes("404")) {
+        friendlyMessage = "This promo code doesn't exist";
+      } else if (error.message?.includes("expired")) {
+        friendlyMessage = "This promo code has expired";
+      } else if (error.message?.includes("deactivated")) {
+        friendlyMessage = "This promo code is no longer active";
+      } else if (error.message?.includes("limit")) {
+        friendlyMessage = "This promo code has reached its usage limit";
+      } else if (error.message?.includes("Server error")) {
+        friendlyMessage = "Unable to validate promo code right now. Please try again.";
+      } else if (error.message && !error.message.includes("Invalid promo code")) {
+        friendlyMessage = error.message;
+      }
+      setPromoError2(friendlyMessage);
+      setAppliedPromo2(null);
+      if (promoError2Timeout) clearTimeout(promoError2Timeout);
+      const timeout = setTimeout(() => setPromoError2(""), 2000);
+      setPromoError2Timeout(timeout);
+    } finally {
+      setIsValidatingPromo2(false);
+    }
+  };
+
+  const handleRemovePromo2 = () => {
+    setAppliedPromo2(null);
+    setPromoCode2("");
+    setPromoError2("");
   };
 
   const handleApplyGiftCard = async () => {
@@ -179,13 +252,15 @@ const CheckoutPage = () => {
           
           const rawFee = fee && fee > 0 ? fee : 5.99;
 
-          // Apply delivery promo inline so Stripe Tax gets the correct taxable fee
+          // Apply delivery promo(s) inline so Stripe Tax gets the correct taxable fee
           let feeForTax = rawFee;
-          if (appliedPromo?.applyToDelivery) {
-            const feeDiscount = appliedPromo.discountType === 'percentage'
-              ? (rawFee * appliedPromo.discountValue) / 100
-              : Math.min(appliedPromo.discountValue, rawFee);
-            feeForTax = Math.max(0, rawFee - feeDiscount);
+          for (const promo of [appliedPromo, appliedPromo2]) {
+            if (promo?.applyToDelivery) {
+              const feeDiscount = promo.discountType === 'percentage'
+                ? (feeForTax * promo.discountValue) / 100
+                : Math.min(promo.discountValue, feeForTax);
+              feeForTax = Math.max(0, feeForTax - feeDiscount);
+            }
           }
 
           const addressLine1 = selectedAddress.street || selectedAddress.address || '';
@@ -199,11 +274,15 @@ const CheckoutPage = () => {
               state: addressState,
               zipCode,
             });
-            const discountedSubtotal = (appliedPromo && !appliedPromo.applyToDelivery)
-              ? (appliedPromo.discountType === 'percentage'
-                  ? subtotal - (subtotal * appliedPromo.discountValue / 100)
-                  : subtotal - Math.min(appliedPromo.discountValue, subtotal))
-              : subtotal;
+            let discountedSubtotal = subtotal;
+            for (const promo of [appliedPromo, appliedPromo2]) {
+              if (promo && !promo.applyToDelivery) {
+                const d = promo.discountType === 'percentage'
+                  ? discountedSubtotal * promo.discountValue / 100
+                  : Math.min(promo.discountValue, discountedSubtotal);
+                discountedSubtotal = Math.max(0, discountedSubtotal - d);
+              }
+            }
             setTaxRate(0.0825);
             setTaxAmount(discountedSubtotal * 0.0825);
             return;
@@ -227,11 +306,15 @@ const CheckoutPage = () => {
 
           if (taxResult.success) {
             setTaxAmount(taxResult.taxAmount);
-            const discountedSubtotal = (appliedPromo && !appliedPromo.applyToDelivery)
-              ? (appliedPromo.discountType === 'percentage'
-                  ? subtotal - (subtotal * appliedPromo.discountValue / 100)
-                  : subtotal - Math.min(appliedPromo.discountValue, subtotal))
-              : subtotal;
+            let discountedSubtotal = subtotal;
+            for (const promo of [appliedPromo, appliedPromo2]) {
+              if (promo && !promo.applyToDelivery) {
+                const d = promo.discountType === 'percentage'
+                  ? discountedSubtotal * promo.discountValue / 100
+                  : Math.min(promo.discountValue, discountedSubtotal);
+                discountedSubtotal = Math.max(0, discountedSubtotal - d);
+              }
+            }
             const calculatedRate = discountedSubtotal > 0 
               ? taxResult.taxAmount / discountedSubtotal 
               : 0.0825;
@@ -255,26 +338,27 @@ const CheckoutPage = () => {
     };
     
     calculateFees();
-  }, [selectedAddress, cartItems, appliedPromo, appliedGiftCard, subtotal]);
+  }, [selectedAddress, cartItems, appliedPromo, appliedPromo2, appliedGiftCard, subtotal]);
   
   let discountAmount = 0;
   let deliveryFeeDiscount = 0;
   let discountedSubtotal = subtotal;
-  if (appliedPromo) {
-    if (appliedPromo.applyToDelivery) {
-      if (appliedPromo.discountType === 'percentage') {
-        deliveryFeeDiscount = (deliveryFee * appliedPromo.discountValue) / 100;
-      } else if (appliedPromo.discountType === 'fixed') {
-        deliveryFeeDiscount = Math.min(appliedPromo.discountValue, deliveryFee);
-      }
+  let remainingDeliveryFee = deliveryFee;
+  for (const promo of [appliedPromo, appliedPromo2]) {
+    if (!promo) continue;
+    if (promo.applyToDelivery) {
+      const d = promo.discountType === 'percentage'
+        ? (remainingDeliveryFee * promo.discountValue) / 100
+        : Math.min(promo.discountValue, remainingDeliveryFee);
+      deliveryFeeDiscount += d;
+      remainingDeliveryFee = Math.max(0, remainingDeliveryFee - d);
     } else {
-      if (appliedPromo.discountType === 'percentage') {
-        discountAmount = (subtotal * appliedPromo.discountValue) / 100;
-      } else if (appliedPromo.discountType === 'fixed') {
-        discountAmount = Math.min(appliedPromo.discountValue, subtotal);
-      }
+      const d = promo.discountType === 'percentage'
+        ? (discountedSubtotal * promo.discountValue) / 100
+        : Math.min(promo.discountValue, discountedSubtotal);
+      discountAmount += d;
+      discountedSubtotal = Math.max(0, discountedSubtotal - d);
     }
-    discountedSubtotal = subtotal - discountAmount;
   }
   const effectiveDeliveryFee = Math.max(0, deliveryFee - deliveryFeeDiscount);
   const giftCardAmount = appliedGiftCard
@@ -364,6 +448,7 @@ const CheckoutPage = () => {
         discountAmount,
         deliveryFeeDiscount,
         appliedPromo,
+        appliedPromo2,
         giftCardAmount: appliedGiftCard ? Math.min(parseFloat(appliedGiftCard.balance), discountedSubtotal) : 0,
         appliedGiftCard: appliedGiftCard ? { giftCardId: appliedGiftCard.giftCardId, code: appliedGiftCard.code, amountApplied: Math.min(parseFloat(appliedGiftCard.balance), discountedSubtotal) } : null,
         orderItems,
@@ -406,6 +491,7 @@ const CheckoutPage = () => {
               contactInfo,
               tip,
               appliedPromo,
+              appliedPromo2,
               discountAmount,
               appliedGiftCard: appliedGiftCard ? {
                 giftCardId: appliedGiftCard.giftCardId,
@@ -474,6 +560,13 @@ const CheckoutPage = () => {
                 isValidatingPromo={isValidatingPromo}
                 discountAmount={discountAmount}
                 deliveryFeeDiscount={deliveryFeeDiscount}
+                promoCode2={promoCode2}
+                onPromoCode2Change={setPromoCode2}
+                onApplyPromo2={handleApplyPromo2}
+                appliedPromo2={appliedPromo2}
+                onRemovePromo2={handleRemovePromo2}
+                promoError2={promoError2}
+                isValidatingPromo2={isValidatingPromo2}
                 giftCardCode={giftCardCode}
                 onGiftCardCodeChange={setGiftCardCode}
                 onApplyGiftCard={handleApplyGiftCard}
