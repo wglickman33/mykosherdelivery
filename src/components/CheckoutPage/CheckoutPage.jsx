@@ -135,12 +135,18 @@ const CheckoutPage = () => {
   };
 
   const handleRemovePromo = () => {
-    setAppliedPromo(null);
-    setPromoCode("");
+    if (appliedPromo2) {
+      // Promote the second promo to the first slot so it stays applied
+      setAppliedPromo(appliedPromo2);
+      setPromoCode(promoCode2);
+      setAppliedPromo2(null);
+      setPromoCode2("");
+      setPromoError2("");
+    } else {
+      setAppliedPromo(null);
+      setPromoCode("");
+    }
     setPromoError("");
-    setAppliedPromo2(null);
-    setPromoCode2("");
-    setPromoError2("");
   };
 
   const handleApplyPromo2 = async () => {
@@ -159,6 +165,14 @@ const CheckoutPage = () => {
     try {
       const response = await apiClient.validatePromoCode(promoCode2.trim());
       if (response.success) {
+        if (!response.data.stackable) {
+          setPromoError2("This promo code cannot be combined with other codes");
+          setAppliedPromo2(null);
+          if (promoError2Timeout) clearTimeout(promoError2Timeout);
+          const timeout = setTimeout(() => setPromoError2(""), 3000);
+          setPromoError2Timeout(timeout);
+          return;
+        }
         setAppliedPromo2(response.data);
         setPromoError2("");
         if (promoError2Timeout) {
