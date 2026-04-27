@@ -344,10 +344,30 @@ const AdminRestaurants = () => {
 
   const mapToApi = (data, isCreate = false) => {
     const inputLogo = data.logo_url || data.logoUrl || '';
-    const fname = String(inputLogo).split('/').pop()?.toLowerCase() || '';
-    const base = fname.replace(/\.[^.]+$/, '');
-    const logoFromAssets = (fname && assetsLogoByName[fname]) || (base && assetsLogoByBase[base]);
-    const storedLogo = logoFromAssets ? (fname || `${base}.png`) : inputLogo;
+
+    // 1. Reverse-lookup: if inputLogo is the current Vite built URL for a bundled
+    //    asset, store the stable lowercase filename instead so it survives re-deploys.
+    const bundledAssetKey =
+      Object.entries(assetsLogoByName).find(([, v]) => v === inputLogo)?.[0] ||
+      Object.entries(assetsLogoByBase).find(([, v]) => v === inputLogo)?.[0];
+
+    let storedLogo;
+    if (bundledAssetKey) {
+      storedLogo = bundledAssetKey; // e.g. 'fivefiftylogo.png'
+    } else {
+      // 2. Strip environment-specific absolute backend URLs to relative paths.
+      let normalized = inputLogo;
+      if (/^https?:\/\//i.test(inputLogo)) {
+        try {
+          const pathname = new URL(inputLogo).pathname;
+          if (pathname.startsWith('/images/')) normalized = pathname.slice(1);
+        } catch { /* keep as-is */ }
+      }
+      const fname = String(normalized).split('/').pop()?.toLowerCase() || '';
+      const base = fname.replace(/\.[^.]+$/, '');
+      const logoFromAssets = (fname && assetsLogoByName[fname]) || (base && assetsLogoByBase[base]);
+      storedLogo = logoFromAssets ? (fname || `${base}.png`) : normalized;
+    }
     const payload = {
       name: data.name || '',
       address: data.address || '',
@@ -777,13 +797,20 @@ const AdminRestaurants = () => {
                         const normalized = normalizeRestaurant(restaurant);
                         setSelectedRestaurant(normalized);
                         const fb = getFallbackByIdOrName(normalized) || {};
+                        // For restaurants with bundled assets (e.g. Five Fifty), use the current
+                        // Vite URL (fb.logo) if the stored logo is a stale asset hash URL or empty.
+                        const storedLogo = normalized.logo_url || '';
+                        const isStaleViteAsset = storedLogo.startsWith('/assets/');
+                        const logoForForm = isStaleViteAsset
+                          ? (fb.logo || resolveLogoUrl(storedLogo) || storedLogo)
+                          : (resolveLogoUrl(storedLogo) || fb.logo || '');
                         setFormData({
                           name: normalized.name || fb.name || '',
                           type_of_food: normalized.type_of_food || fb.typeOfFood || '',
                           featured: typeof normalized.featured === 'boolean' ? normalized.featured : !!fb.featured,
                           active: typeof normalized.active === 'boolean' ? normalized.active : fb.active !== false,
                           kosher_certification: normalized.kosher_certification || fb.kosherCertification || '',
-                          logo_url: normalized.logo_url || fb.logo || '',
+                          logo_url: logoForForm,
                           phone_number: normalized.phone_number || fb.phone || '',
                           address: normalized.address || fb.address || '',
                           description: normalized.description || ''

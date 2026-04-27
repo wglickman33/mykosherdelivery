@@ -3,14 +3,19 @@ import { buildImageUrl } from './imageService';
 
 
 export const normalizeMenuItem = (item) => {
-  const imageUrl = item.imageUrl || item.image;
-  const image = imageUrl ? buildImageUrl(imageUrl) : null;
+  // Keep imageUrl as the raw server value (relative path or absolute CDN URL).
+  // Only use buildImageUrl to produce a display-ready `image` field.
+  // This prevents storing environment-specific absolute URLs back to the DB
+  // when an edited item is re-saved without changing the image.
+  const rawImageUrl = item.imageUrl || item.image || null;
+  const image = rawImageUrl ? buildImageUrl(rawImageUrl) : null;
   
   return {
     ...item,
-    image: image,
-    imageUrl: image,
+    image,
+    imageUrl: rawImageUrl,
     price: typeof item.price === 'string' ? parseFloat(item.price) : item.price,
+    featured: item.featured === true,
     labels: Array.isArray(item.labels) ? item.labels : (() => { 
       try { 
         return JSON.parse(item.labels || '[]'); 
@@ -65,7 +70,8 @@ export const fetchRestaurantMenuItems = async (restaurantId, filters = {}) => {
 export const fetchMenuItem = async (restaurantId, itemId) => {
   try {
     const response = await apiClient.get(`/admin/restaurants/${restaurantId}/menu-items/${itemId}`);
-    return normalizeMenuItem(response);
+    const item = response?.data ?? response;
+    return { ...response, data: item ? normalizeMenuItem(item) : item };
   } catch (error) {
     console.error('Error fetching menu item:', error);
     throw error;
@@ -75,7 +81,9 @@ export const fetchMenuItem = async (restaurantId, itemId) => {
 export const createMenuItem = async (restaurantId, menuItemData) => {
   try {
     const response = await apiClient.post(`/admin/restaurants/${restaurantId}/menu-items`, menuItemData);
-    return normalizeMenuItem(response);
+    // response is { success, data: item, message } — normalize the item itself, not the wrapper
+    const item = response?.data ?? response;
+    return { ...response, data: item ? normalizeMenuItem(item) : item };
   } catch (error) {
     console.error('Error creating menu item:', error);
     throw error;
@@ -85,7 +93,8 @@ export const createMenuItem = async (restaurantId, menuItemData) => {
 export const updateMenuItem = async (restaurantId, itemId, updateData) => {
   try {
     const response = await apiClient.put(`/admin/restaurants/${restaurantId}/menu-items/${itemId}`, updateData);
-    return normalizeMenuItem(response);
+    const item = response?.data ?? response;
+    return { ...response, data: item ? normalizeMenuItem(item) : item };
   } catch (error) {
     console.error('Error updating menu item:', error);
     throw error;
@@ -105,8 +114,8 @@ export const deleteMenuItem = async (restaurantId, itemId) => {
 export const duplicateMenuItem = async (restaurantId, itemId) => {
   try {
     const response = await apiClient.post(`/admin/restaurants/${restaurantId}/menu-items/${itemId}/duplicate`);
-    const data = response?.data ?? response;
-    return data ? normalizeMenuItem(data) : response;
+    const item = response?.data ?? response;
+    return { ...response, data: item ? normalizeMenuItem(item) : item };
   } catch (error) {
     console.error('Error duplicating menu item:', error);
     throw error;
@@ -273,13 +282,29 @@ export const normalizeMenuItemData = (data) => {
     }
   }
 
+  // Strip absolute backend URLs back to relative paths so the DB stores a
+  // stable relative path rather than an environment-specific absolute URL.
+  let imageUrl = data.imageUrl?.trim() || null;
+  if (imageUrl) {
+    try {
+      const parsed = new URL(imageUrl);
+      const pathname = parsed.pathname;
+      if (pathname.startsWith('/images/')) {
+        imageUrl = pathname.slice(1); // 'images/...'
+      }
+    } catch {
+      // Not a URL – keep as-is (already a relative path or filename)
+    }
+  }
+
   const normalized = {
     name: data.name?.trim(),
     description: data.description?.trim() || null,
     price: parseFloat(data.price),
     category: data.category?.trim(),
-    imageUrl: data.imageUrl?.trim() || null,
+    imageUrl,
     available: data.available !== false,
+    featured: data.featured === true,
     itemType: data.itemType,
     options: data.options || null,
     labels: normalizedLabels
