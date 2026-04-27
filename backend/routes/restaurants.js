@@ -34,17 +34,29 @@ const normalizeMenuItem = (mi) => {
 
 const mapRestaurant = (req, restaurantInstance) => {
   const r = restaurantInstance.toJSON();
-  const storedFile = r.logo_url || null;
-  const extracted = (!storedFile && r.logoUrl) ? String(r.logoUrl).split('/').pop() : null;
-  const logoFile = storedFile || extracted || null;
   const withMenu = Array.isArray(r.menuItems)
     ? { menuItems: r.menuItems.map(normalizeMenuItem) }
     : {};
-  const logoUrl = logoFile ? buildLogoUrl(req, logoFile) : (r.logoUrl || null);
+
+  // r.logoUrl is the Sequelize attribute (field: logo_url).
+  // If it's already an absolute URL (Cloudinary / external CDN), use it as-is.
+  // If it's a plain filename or relative path, serve it from the backend static folder.
+  const raw = r.logoUrl || r.logo_url || null;
+  let logoUrl = null;
+  if (raw) {
+    if (/^https?:\/\//i.test(raw)) {
+      logoUrl = raw; // Cloudinary or other CDN URL — keep intact
+    } else {
+      // Legacy: bare filename stored in DB → serve from /static/restaurant-logos/
+      const filename = raw.split('/').pop();
+      logoUrl = buildLogoUrl(req, filename);
+    }
+  }
+
   return {
     ...r,
     ...withMenu,
-    logoFile,
+    logoFile: raw,
     logo: logoUrl,
     logoUrl: logoUrl,
   };
