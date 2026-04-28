@@ -33,9 +33,16 @@ const RestaurantLogoUploadZone = ({ logoUrl, onLogoChange }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
+  const [imageError, setImageError] = useState(false);
   const fileInputRef = useRef(null);
 
   const previewUrl = buildImageUrl(logoUrl);
+
+  // Reset image error state whenever the URL changes so a newly uploaded
+  // logo always gets a fresh load attempt.
+  useEffect(() => {
+    setImageError(false);
+  }, [logoUrl]);
 
   const handleFile = async (file) => {
     if (!file) return;
@@ -77,9 +84,14 @@ const RestaurantLogoUploadZone = ({ logoUrl, onLogoChange }) => {
         tabIndex={0}
         onKeyDown={(e) => e.key === 'Enter' && fileInputRef.current?.click()}
       >
-        {previewUrl ? (
+        {previewUrl && !imageError ? (
           <div className="admin-restaurants__logo-preview">
-            <img src={previewUrl} alt="Logo preview" className="admin-restaurants__logo-preview-img" />
+            <img
+              src={previewUrl}
+              alt="Logo preview"
+              className="admin-restaurants__logo-preview-img"
+              onError={() => setImageError(true)}
+            />
             <div className="admin-restaurants__logo-overlay">
               <span>{uploading ? 'Uploading…' : 'Click or drag to replace'}</span>
             </div>
@@ -492,7 +504,8 @@ const AdminRestaurants = () => {
       minimum_order: 25.00,
       phone_number: '',
       address: '',
-      description: ''
+      description: '',
+      logo_url: ''
     });
   };
 
@@ -797,13 +810,17 @@ const AdminRestaurants = () => {
                         const normalized = normalizeRestaurant(restaurant);
                         setSelectedRestaurant(normalized);
                         const fb = getFallbackByIdOrName(normalized) || {};
-                        // For restaurants with bundled assets (e.g. Five Fifty), use the current
-                        // Vite URL (fb.logo) if the stored logo is a stale asset hash URL or empty.
                         const storedLogo = normalized.logo_url || '';
+                        // If the DB has a stale Vite-hash URL (e.g. /assets/logo-ABC123.png from
+                        // an old build), resolve it via fb.logo which always has the current hash.
+                        // For all other cases — including an explicitly cleared logo (storedLogo='')
+                        // — trust resolveLogoUrl directly.  We intentionally do NOT fall back to
+                        // fb.logo when storedLogo is empty, because that would silently restore a
+                        // logo the admin just cleared.
                         const isStaleViteAsset = storedLogo.startsWith('/assets/');
                         const logoForForm = isStaleViteAsset
-                          ? (fb.logo || resolveLogoUrl(storedLogo) || storedLogo)
-                          : (resolveLogoUrl(storedLogo) || fb.logo || '');
+                          ? (resolveLogoUrl(storedLogo) || fb.logo || storedLogo)
+                          : resolveLogoUrl(storedLogo);
                         setFormData({
                           name: normalized.name || fb.name || '',
                           type_of_food: normalized.type_of_food || fb.typeOfFood || '',
@@ -1451,7 +1468,7 @@ const AdminRestaurants = () => {
                     <input
                       type="text"
                       value={formData.name || ''}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                       required
                     />
                   </div>
@@ -1460,7 +1477,7 @@ const AdminRestaurants = () => {
                     <input
                       type="text"
                       value={formData.type_of_food || ''}
-                      onChange={(e) => setFormData({ ...formData, type_of_food: e.target.value })}
+                      onChange={(e) => setFormData(prev => ({ ...prev, type_of_food: e.target.value }))}
                       required
                     />
                   </div>
@@ -1472,7 +1489,7 @@ const AdminRestaurants = () => {
                       onChange={(e) => {
                         const value = e.target.value.replace(/\D/g, '');
                         if (value.length <= 10) {
-                          setFormData({ ...formData, phone_number: value });
+                          setFormData(prev => ({ ...prev, phone_number: value }));
                         }
                       }}
                       placeholder="1234567890"
@@ -1483,7 +1500,7 @@ const AdminRestaurants = () => {
                     <input
                       type="text"
                       value={formData.address || ''}
-                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                      onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
                     />
                   </div>
                   <div className="admin-restaurants__form-group">
@@ -1491,7 +1508,7 @@ const AdminRestaurants = () => {
                     <input
                       type="text"
                       value={formData.kosher_certification || ''}
-                      onChange={(e) => setFormData({ ...formData, kosher_certification: e.target.value })}
+                      onChange={(e) => setFormData(prev => ({ ...prev, kosher_certification: e.target.value }))}
                       placeholder="e.g., OU, OK, Star-K"
                     />
                   </div>
@@ -1506,7 +1523,7 @@ const AdminRestaurants = () => {
                       <input
                         type="checkbox"
                         checked={formData.featured || false}
-                        onChange={(e) => setFormData({ ...formData, featured: e.target.checked })}
+                        onChange={(e) => setFormData(prev => ({ ...prev, featured: e.target.checked }))}
                       />
                       Featured Restaurant
                     </label>
@@ -1516,7 +1533,7 @@ const AdminRestaurants = () => {
                       <input
                         type="checkbox"
                         checked={formData.active !== false}
-                        onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
+                        onChange={(e) => setFormData(prev => ({ ...prev, active: e.target.checked }))}
                       />
                       Active Restaurant
                     </label>
@@ -1525,7 +1542,7 @@ const AdminRestaurants = () => {
                     <label>Description</label>
                     <textarea
                       value={formData.description || ''}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                       rows={3}
                     />
                   </div>
