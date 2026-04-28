@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import Footer from "../Footer/Footer";
 import { useCart } from "../../context/CartContext";
@@ -5,7 +6,13 @@ import navyMKDIcon from '../../assets/navyMKDIcon.png';
 import "./CartPage.scss";
 
 const CartPage = () => {
-  const { cartItems, getCartTotal, getRestaurantGroups, updateQuantity, removeFromCart } = useCart();
+  const { cartItems, getCartTotal, getRestaurantGroups, updateQuantity, removeFromCart, clearCart } = useCart();
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+
+  const handleClearCart = () => {
+    clearCart();
+    setShowClearConfirm(false);
+  };
 
   const formatCurrency = (amount) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 
@@ -41,7 +48,16 @@ const CartPage = () => {
       <>
         <div className="cart-main">
           <div className="cart-header">
-            <h1>Your Cart</h1>
+            <div className="cart-header__row">
+              <h1>Your Cart</h1>
+              <button
+                className="cart-header__clear-btn"
+                onClick={() => setShowClearConfirm(true)}
+                aria-label="Clear entire cart"
+              >
+                Clear Cart
+              </button>
+            </div>
           </div>
           <div className="cart-body">
             <div className="cart-items">
@@ -229,6 +245,30 @@ const CartPage = () => {
           {cartItems.length === 0 ? renderEmptyCart() : renderCartItems()}
         </div>
       </div>
+
+      {showClearConfirm && (
+        <div className="cart-clear-overlay" onClick={() => setShowClearConfirm(false)}>
+          <div className="cart-clear-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Clear your cart?</h3>
+            <p>All items will be removed. This cannot be undone.</p>
+            <div className="cart-clear-modal__actions">
+              <button
+                className="cart-clear-modal__btn cart-clear-modal__btn--cancel"
+                onClick={() => setShowClearConfirm(false)}
+              >
+                Keep Items
+              </button>
+              <button
+                className="cart-clear-modal__btn cart-clear-modal__btn--confirm"
+                onClick={handleClearCart}
+              >
+                Yes, Clear Cart
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Footer />
     </div>
   );

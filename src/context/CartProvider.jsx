@@ -50,16 +50,18 @@ export const CartProvider = ({ children }) => {
   }, [identitySuffix, CART_STORAGE_KEY, CART_TIMESTAMP_KEY]);
 
   useEffect(() => {
-    try {
-      if (cartItems.length > 0) {
+    // Only WRITE to localStorage here — never delete.
+    // Deletion happens only via clearCart() so we avoid a race condition where
+    // this effect fires with cartItems=[] on the initial render (before the load
+    // effect above has had a chance to restore the saved cart), wiping the stored
+    // cart before it can be loaded. This is what caused cart loss on new-tab open.
+    if (cartItems.length > 0) {
+      try {
         localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
         localStorage.setItem(CART_TIMESTAMP_KEY, Date.now().toString());
-      } else {
-        localStorage.removeItem(CART_STORAGE_KEY);
-        localStorage.removeItem(CART_TIMESTAMP_KEY);
+      } catch (error) {
+        logger.error('Error saving cart to localStorage:', error);
       }
-    } catch (error) {
-      logger.error('Error saving cart to localStorage:', error);
     }
   }, [cartItems, CART_STORAGE_KEY, CART_TIMESTAMP_KEY]);
 
