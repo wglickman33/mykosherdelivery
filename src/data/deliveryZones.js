@@ -138,6 +138,12 @@ export const DELIVERY_ZONES = {
     name: 'Union County',
     deliveryFee: 27.00,
     zipCodes: ['07081']
+  },
+
+  MONMOUTH_NJ: {
+    name: 'Monmouth County',
+    deliveryFee: 27.00,
+    zipCodes: ['07723']
   }
 };
 

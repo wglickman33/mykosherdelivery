@@ -13,7 +13,8 @@ const ZONES = [
   { city: 'The Hamptons', deliveryFee: 62.00, state: 'NY', zips: ['11046', '11703', '11901', '11932', '11933', '11937', '11941', '11942', '11944', '11949', '11959', '11960', '11962', '11963', '11968', '11969', '11972', '11976', '11977', '11978'] },
   { city: 'Essex County', deliveryFee: 27.00, state: 'NJ', zips: ['07039', '07052', '07042', '07043', '07028'] },
   { city: 'Bergen County', deliveryFee: 27.00, state: 'NJ', zips: ['07666', '07631', '07632', '07621', '07652', '07653', '07410', '07024'] },
-  { city: 'Union County', deliveryFee: 27.00, state: 'NJ', zips: ['07081'] }
+  { city: 'Union County', deliveryFee: 27.00, state: 'NJ', zips: ['07081'] },
+  { city: 'Monmouth County', deliveryFee: 27.00, state: 'NJ', zips: ['07723'] }
 ];
 
 const zipToZone = new Map();
