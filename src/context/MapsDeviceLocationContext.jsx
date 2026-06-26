@@ -1,4 +1,5 @@
 import { createContext, useContext, useState } from 'react';
+import PropTypes from 'prop-types';
 
 const MapsDeviceLocationContext = createContext(null);
 
@@ -11,6 +12,11 @@ export function MapsDeviceLocationProvider({ children }) {
   );
 }
 
+MapsDeviceLocationProvider.propTypes = {
+  children: PropTypes.node.isRequired,
+};
+
+// eslint-disable-next-line react-refresh/only-export-components -- hook colocated with provider
 export function useMapsDeviceLocation() {
   const ctx = useContext(MapsDeviceLocationContext);
   if (!ctx) {

@@ -1,6 +1,8 @@
 import apiClient from '../lib/api';
 import logger from '../utils/logger';
 
+/** Max rows for admin GET list calls when the UI filters or paginates client-side (must match backend cap). */
+export const ADMIN_API_MAX_LIST_LIMIT = 10000;
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -381,7 +383,8 @@ export const fetchAllUsers = async (filters = {}) => {
     const response = await apiClient.get('/admin/users', filters);
     const list = Array.isArray(response.data) ? response.data : (response.data?.data ?? []);
     const pagination = response.pagination ?? response.data?.pagination ?? {};
-    return { success: true, data: list, pagination };
+    const summary = response.summary ?? response.data?.summary ?? null;
+    return { success: true, data: list, pagination, summary };
   } catch (error) {
     logger.error('Error fetching users:', error);
     return { success: false, error: error.message };

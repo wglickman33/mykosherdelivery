@@ -228,6 +228,8 @@ const PaymentStep = ({
         tip: orderData.tip || 0,
         discountAmount: orderData.discountAmount || 0,
         appliedPromo: orderData.appliedPromo || null,
+        appliedPromo2: orderData.appliedPromo2 || null,
+        appliedPromo3: orderData.appliedPromo3 || null,
         appliedGiftCard: orderData.appliedGiftCard || null
       };
 
@@ -477,6 +479,8 @@ const PaymentStep = ({
         total: total,
         discountAmount: orderData.discountAmount || 0,
         appliedPromo: orderData.appliedPromo || null,
+        appliedPromo2: orderData.appliedPromo2 || null,
+        appliedPromo3: orderData.appliedPromo3 || null,
         appliedGiftCard: orderData.appliedGiftCard || null
       };
 

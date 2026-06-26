@@ -121,7 +121,7 @@ const HomePage = () => {
             <h1>Welcome to<br />My Kosher Delivery</h1>
             <p>Discover the finest kosher restaurants and get your favorite meals delivered fresh to your door.</p>
             <div className="hero-actions">
-              <Link to="/restaurants" className="primary-button">Order Now</Link>
+              <Link to="/kiddush" className="primary-button">Kiddush &amp; Shalom Zachor Options</Link>
               <Link to="/restaurants" className="secondary-button">Browse Restaurants</Link>
             </div>
           </div>

@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { RefreshCw } from 'lucide-react';
-import { fetchAllRestaurants, createRestaurant, updateRestaurant, deleteRestaurant, logAdminAction } from '../../services/adminServices';
+import { fetchAllRestaurants, createRestaurant, updateRestaurant, deleteRestaurant, logAdminAction, ADMIN_API_MAX_LIST_LIMIT } from '../../services/adminServices';
 import { uploadRestaurantLogo, buildImageUrl } from '../../services/imageService';
 import { useAuth } from '../../hooks/useAuth';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
@@ -14,6 +14,7 @@ import { restaurants as restaurantsData } from '../../data/restaurants';
 import { formatPhoneNumber, formatPhoneForInput } from '../../utils/phoneFormatter';
 import MenuItemModal from './MenuItemModal';
 import NursingHomeMenuItemModal from './NursingHomeMenuItemModal';
+import AdminKiddushMenu from './AdminKiddushMenu';
 import { fetchRestaurantMenuItems, deleteMenuItem, duplicateMenuItem } from '../../services/menuItemService';
 import { fetchNursingHomeMenu, createNursingHomeMenuItem, updateNursingHomeMenuItem, deleteNursingHomeMenuItem } from '../../services/nursingHomeMenuService';
 import apiClient from '../../lib/api';
@@ -148,11 +149,13 @@ const AdminRestaurants = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const pathname = location.pathname || '';
-  const activeTab = pathname.endsWith('/nursing-home-menus')
-    ? 'nursing-home-menu'
-    : pathname.endsWith('/menus')
-      ? 'menus'
-      : 'restaurants';
+  const activeTab = pathname.endsWith('/kiddush-menu')
+    ? 'kiddush-menu'
+    : pathname.endsWith('/nursing-home-menus')
+      ? 'nursing-home-menu'
+      : pathname.endsWith('/menus')
+        ? 'menus'
+        : 'restaurants';
   const [allRestaurants, setAllRestaurants] = useState([]);
   const [restaurants, setRestaurants] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -235,7 +238,7 @@ const AdminRestaurants = () => {
 
   const fetchRestaurants = async () => {
     setLoading(true);
-    const result = await fetchAllRestaurants({});
+    const result = await fetchAllRestaurants({ page: 1, limit: ADMIN_API_MAX_LIST_LIMIT });
     if (result.success) {
       const rows = Array.isArray(result.data) ? result.data : [];
       setAllRestaurants(rows.map(normalizeRestaurant));
@@ -694,6 +697,12 @@ const AdminRestaurants = () => {
           Menus
         </button>
         <button 
+          className={`admin-restaurants__tab ${activeTab === 'kiddush-menu' ? 'active' : ''}`} 
+          onClick={() => navigate('/admin/restaurants/kiddush-menu')}
+        >
+          Kiddush Menu
+        </button>
+        <button 
           className={`admin-restaurants__tab ${activeTab === 'nursing-home-menu' ? 'active' : ''}`} 
           onClick={() => navigate('/admin/restaurants/nursing-home-menus')}
         >
@@ -1144,6 +1153,10 @@ const AdminRestaurants = () => {
             )}
           </div>
         </div>
+      )}
+
+      {activeTab === 'kiddush-menu' && (
+        <AdminKiddushMenu showNotification={showNotification} />
       )}
 
       {activeTab === 'nursing-home-menu' && (

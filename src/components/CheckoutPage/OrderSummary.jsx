@@ -25,6 +25,13 @@ const OrderSummary = ({
   onRemovePromo2 = () => {},
   promoError2 = "",
   isValidatingPromo2 = false,
+  promoCode3 = "",
+  onPromoCode3Change = () => {},
+  onApplyPromo3 = () => {},
+  appliedPromo3 = null,
+  onRemovePromo3 = () => {},
+  promoError3 = "",
+  isValidatingPromo3 = false,
   giftCardCode = "",
   onGiftCardCodeChange = () => {},
   onApplyGiftCard = () => {},
@@ -165,6 +172,46 @@ const OrderSummary = ({
           </div>
         )}
 
+        {appliedPromo2?.stackable && (
+          <div className="promo-section" style={{ marginTop: '8px' }}>
+            {!appliedPromo3 ? (
+              <div className="promo-input-group">
+                <input
+                  className="promo-input"
+                  placeholder="Add a third promo code"
+                  value={promoCode3}
+                  onChange={(e) => onPromoCode3Change(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && onApplyPromo3()}
+                />
+                <button
+                  className="promo-button"
+                  onClick={onApplyPromo3}
+                  disabled={isValidatingPromo3 || !promoCode3.trim()}
+                >
+                  {isValidatingPromo3 ? "Validating..." : "Apply"}
+                </button>
+              </div>
+            ) : (
+              <div className="promo-applied">
+                <div className="promo-applied-info">
+                  <span className="promo-code-text">Code: {appliedPromo3.code}</span>
+                  <span className="promo-discount-text">
+                    -{appliedPromo3.discountType === 'percentage'
+                      ? `${appliedPromo3.discountValue}%`
+                      : `$${appliedPromo3.discountValue}`}
+                  </span>
+                </div>
+                <button className="promo-remove-button" onClick={onRemovePromo3}>
+                  Remove
+                </button>
+              </div>
+            )}
+            {promoError3 && (
+              <div className="promo-error">{promoError3}</div>
+            )}
+          </div>
+        )}
+
         <div className="promo-section" style={{ marginTop: '12px' }}>
           {!appliedGiftCard ? (
             <div className="promo-input-group">
@@ -287,6 +334,13 @@ OrderSummary.propTypes = {
   onRemovePromo2: PropTypes.func,
   promoError2: PropTypes.string,
   isValidatingPromo2: PropTypes.bool,
+  promoCode3: PropTypes.string,
+  onPromoCode3Change: PropTypes.func,
+  onApplyPromo3: PropTypes.func,
+  appliedPromo3: PropTypes.object,
+  onRemovePromo3: PropTypes.func,
+  promoError3: PropTypes.string,
+  isValidatingPromo3: PropTypes.bool,
   giftCardCode: PropTypes.string,
   onGiftCardCodeChange: PropTypes.func,
   onApplyGiftCard: PropTypes.func,

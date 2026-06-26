@@ -93,6 +93,7 @@ router.get('/users', requireAdmin, async (req, res) => {
 
     let total;
     let transformedUsers;
+    let summary = null;
 
     try {
       const whereClause = {};
@@ -109,6 +110,44 @@ router.get('/users', requireAdmin, async (req, res) => {
       }
 
       total = await Profile.count({ where: whereClause });
+
+      // Global summary stats — always unfiltered so stat cards never reflect
+      // the current role/search filter or pagination state.
+      try {
+        const [globalCountRows] = await sequelize.query(
+          `SELECT COUNT(*) AS total FROM profiles`,
+          { type: QueryTypes.SELECT }
+        );
+        const globalTotal = parseInt(globalCountRows?.total ?? 0, 10);
+
+        const roleRows = await sequelize.query(
+          `SELECT role, COUNT(*) AS cnt FROM profiles GROUP BY role`,
+          { type: QueryTypes.SELECT }
+        );
+        const byRole = {};
+        for (const row of roleRows) {
+          byRole[row.role] = parseInt(row.cnt, 10) || 0;
+        }
+
+        let activeIn30dCount = null;
+        try {
+          const [activeRow] = await sequelize.query(
+            `SELECT COUNT(DISTINCT p.id) AS cnt
+             FROM profiles p
+             INNER JOIN user_login_activities ula ON ula.user_id = p.id
+             WHERE ula.login_time >= NOW() - INTERVAL '30 days'`,
+            { type: QueryTypes.SELECT }
+          );
+          activeIn30dCount = parseInt(activeRow?.cnt ?? 0, 10);
+        } catch (activeErr) {
+          logger.warn('GET /admin/users activeIn30dCount failed', { err: activeErr.message });
+        }
+
+        summary = { total: globalTotal, byRole, activeIn30dCount };
+      } catch (summaryErr) {
+        logger.warn('GET /admin/users global summary failed', { err: summaryErr.message });
+        summary = { total: null, byRole: null, activeIn30dCount: null };
+      }
 
       const users = await Profile.findAll({
         where: whereClause,
@@ -166,6 +205,43 @@ router.get('/users', requireAdmin, async (req, res) => {
           countReplacements.searchPhone = `%${search.trim()}%`;
         }
         total = await countProfilesRaw(whereClause, countReplacements);
+
+        // Global summary stats — unfiltered
+        try {
+          const [globalCountRow] = await sequelize.query(
+            `SELECT COUNT(*) AS total FROM profiles`,
+            { type: QueryTypes.SELECT }
+          );
+          const globalTotal = parseInt(globalCountRow?.total ?? 0, 10);
+
+          const roleRows = await sequelize.query(
+            `SELECT role, COUNT(*) AS cnt FROM profiles GROUP BY role`,
+            { type: QueryTypes.SELECT }
+          );
+          const byRole = {};
+          for (const row of roleRows) {
+            byRole[row.role] = parseInt(row.cnt, 10) || 0;
+          }
+
+          let activeIn30dCount = null;
+          try {
+            const [activeRow] = await sequelize.query(
+              `SELECT COUNT(DISTINCT p.id) AS cnt
+               FROM profiles p
+               INNER JOIN user_login_activities ula ON ula.user_id = p.id
+               WHERE ula.login_time >= NOW() - INTERVAL '30 days'`,
+              { type: QueryTypes.SELECT }
+            );
+            activeIn30dCount = parseInt(activeRow?.cnt ?? 0, 10);
+          } catch (activeErr) {
+            logger.warn('GET /admin/users (fallback) activeIn30dCount failed', { err: activeErr.message });
+          }
+
+          summary = { total: globalTotal, byRole, activeIn30dCount };
+        } catch (summaryErr) {
+          logger.warn('GET /admin/users (fallback) global summary failed', { err: summaryErr.message });
+          summary = { total: null, byRole: null, activeIn30dCount: null };
+        }
       } else {
         throw dbErr;
       }
@@ -175,6 +251,7 @@ router.get('/users', requireAdmin, async (req, res) => {
 
     res.json({
       data: transformedUsers,
+      summary,
       pagination: {
         page: parseInt(page, 10) || 1,
         limit: limitNum,
@@ -2945,6 +3022,7 @@ router.get('/orders', requireAdmin, async (req, res) => {
       limit = 20 
     } = req.query;
 
+    const limitNum = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 25000);
     const whereClause = {};
     const include = [
       {
@@ -3011,12 +3089,13 @@ router.get('/orders', requireAdmin, async (req, res) => {
       ];
     }
 
-    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const offset = (pageNum - 1) * limitNum;
     const { count, rows } = await Order.findAndCountAll({
       where: whereClause,
       include,
       order: [['createdAt', 'DESC']],
-      limit: parseInt(limit),
+      limit: limitNum,
       offset
     });
 
@@ -3033,6 +3112,9 @@ const enhancedOrders = await Promise.all(rows.map(async (order) => {
         if (restaurantIds.includes('mkd-gift-cards') && !restaurants.some(r => r.id === 'mkd-gift-cards')) {
           orderData.restaurants.push({ id: 'mkd-gift-cards', name: 'Gift card purchase', address: null, phone: null });
         }
+        if (restaurantIds.includes('mkd-kiddush') && !restaurants.some(r => r.id === 'mkd-kiddush')) {
+          orderData.restaurants.push({ id: 'mkd-kiddush', name: 'Kiddush & Shalom Zachor', address: null, phone: null });
+        }
         orderData.isMultiRestaurant = restaurants.length > 1;
       } else if (orderData.restaurant) {
         orderData.restaurants = [orderData.restaurant];
@@ -3046,9 +3128,9 @@ const enhancedOrders = await Promise.all(rows.map(async (order) => {
       data: enhancedOrders,
       pagination: {
         total: count,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(count / parseInt(limit))
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(count / limitNum) || 1
       }
     });
 
@@ -3482,6 +3564,9 @@ router.get('/orders/:orderId', requireAdmin, async (req, res) => {
       orderData.restaurants = restaurants;
       if (restaurantIds.includes('mkd-gift-cards') && !restaurants.some(r => r.id === 'mkd-gift-cards')) {
         orderData.restaurants.push({ id: 'mkd-gift-cards', name: 'Gift card purchase', address: null, phone: null, logoUrl: null });
+      }
+      if (restaurantIds.includes('mkd-kiddush') && !restaurants.some(r => r.id === 'mkd-kiddush')) {
+        orderData.restaurants.push({ id: 'mkd-kiddush', name: 'Kiddush & Shalom Zachor', address: null, phone: null, logoUrl: null });
       }
       orderData.isMultiRestaurant = orderData.restaurants.length > 1;
     } else if (orderData.restaurant) {
@@ -4151,6 +4236,8 @@ router.get('/orders/:orderId/refunds', requireAdmin, async (req, res) => {
 router.get('/restaurants', requireAdmin, async (req, res) => {
   try {
     const { page = 1, limit = 20, search } = req.query;
+    const limitNum = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 25000);
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
     
     const whereClause = {};
     if (search) {
@@ -4160,11 +4247,11 @@ router.get('/restaurants', requireAdmin, async (req, res) => {
       ];
     }
 
-    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const offset = (pageNum - 1) * limitNum;
     const { count, rows } = await Restaurant.findAndCountAll({
       where: whereClause,
       order: [['name', 'ASC']],
-      limit: parseInt(limit),
+      limit: limitNum,
       offset
     });
 
@@ -4173,9 +4260,9 @@ router.get('/restaurants', requireAdmin, async (req, res) => {
       data: rows,
       pagination: {
         total: count,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(count / parseInt(limit))
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(count / limitNum) || 1
       }
     });
 

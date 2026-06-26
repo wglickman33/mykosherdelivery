@@ -8,7 +8,6 @@ const Pagination = ({
   page,
   totalPages,
   rowsPerPage,
-  total,
   onPageChange,
   onRowsPerPageChange,
   rowsPerPageOptions = DEFAULT_ROW_OPTIONS,

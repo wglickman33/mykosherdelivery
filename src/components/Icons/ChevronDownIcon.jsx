@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import './IconStyle.scss';
 
 /**
@@ -17,5 +18,10 @@ const ChevronDownIcon = ({ size = 24, className = '', ...props }) => (
     <path d="M6 8L1 3h10z" fill="currentColor" />
   </svg>
 );
+
+ChevronDownIcon.propTypes = {
+  size: PropTypes.number,
+  className: PropTypes.string,
+};
 
 export default ChevronDownIcon;

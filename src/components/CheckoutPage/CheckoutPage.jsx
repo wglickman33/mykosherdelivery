@@ -37,6 +37,12 @@ const CheckoutPage = () => {
   const [isValidatingPromo2, setIsValidatingPromo2] = useState(false);
   const [promoError2Timeout, setPromoError2Timeout] = useState(null);
 
+  const [promoCode3, setPromoCode3] = useState("");
+  const [appliedPromo3, setAppliedPromo3] = useState(null);
+  const [promoError3, setPromoError3] = useState("");
+  const [isValidatingPromo3, setIsValidatingPromo3] = useState(false);
+  const [promoError3Timeout, setPromoError3Timeout] = useState(null);
+
   const [giftCardCode, setGiftCardCode] = useState("");
   const [appliedGiftCard, setAppliedGiftCard] = useState(null);
   const [giftCardError, setGiftCardError] = useState("");
@@ -59,6 +65,14 @@ const CheckoutPage = () => {
       }
     };
   }, [promoError2Timeout]);
+
+  useEffect(() => {
+    return () => {
+      if (promoError3Timeout) {
+        clearTimeout(promoError3Timeout);
+      }
+    };
+  }, [promoError3Timeout]);
 
   const calculateTip = (subtotalAmount) => {
     if (customTip > 0) {
@@ -90,6 +104,13 @@ const CheckoutPage = () => {
     try {
       const response = await apiClient.validatePromoCode(promoCode.trim());
       if (response.success) {
+        if (!response.data.stackable && (appliedPromo2 || appliedPromo3)) {
+          setPromoError("This promo code cannot be combined with other codes");
+          if (promoErrorTimeout) clearTimeout(promoErrorTimeout);
+          const timeout = setTimeout(() => setPromoError(""), 3000);
+          setPromoErrorTimeout(timeout);
+          return;
+        }
         setAppliedPromo(response.data);
         setPromoError("");
         setGiftCardError("");
@@ -136,12 +157,20 @@ const CheckoutPage = () => {
 
   const handleRemovePromo = () => {
     if (appliedPromo2) {
-      // Promote the second promo to the first slot so it stays applied
+      // Shift slots down: 2→1, 3→2
       setAppliedPromo(appliedPromo2);
       setPromoCode(promoCode2);
-      setAppliedPromo2(null);
-      setPromoCode2("");
-      setPromoError2("");
+      if (appliedPromo3) {
+        setAppliedPromo2(appliedPromo3);
+        setPromoCode2(promoCode3);
+        setAppliedPromo3(null);
+        setPromoCode3("");
+        setPromoError3("");
+      } else {
+        setAppliedPromo2(null);
+        setPromoCode2("");
+        setPromoError2("");
+      }
     } else {
       setAppliedPromo(null);
       setPromoCode("");
@@ -208,9 +237,85 @@ const CheckoutPage = () => {
   };
 
   const handleRemovePromo2 = () => {
-    setAppliedPromo2(null);
-    setPromoCode2("");
+    if (appliedPromo3) {
+      // Promote the third promo to the second slot
+      setAppliedPromo2(appliedPromo3);
+      setPromoCode2(promoCode3);
+      setAppliedPromo3(null);
+      setPromoCode3("");
+      setPromoError3("");
+    } else {
+      setAppliedPromo2(null);
+      setPromoCode2("");
+    }
     setPromoError2("");
+  };
+
+  const handleApplyPromo3 = async () => {
+    if (!promoCode3.trim()) {
+      setPromoError3("Please enter a promo code");
+      return;
+    }
+    if (
+      promoCode3.trim().toUpperCase() === (appliedPromo?.code || '').toUpperCase() ||
+      promoCode3.trim().toUpperCase() === (appliedPromo2?.code || '').toUpperCase()
+    ) {
+      setPromoError3("This code is already applied to your order");
+      return;
+    }
+
+    setIsValidatingPromo3(true);
+    setPromoError3("");
+
+    try {
+      const response = await apiClient.validatePromoCode(promoCode3.trim());
+      if (response.success) {
+        if (!response.data.stackable) {
+          setPromoError3("This promo code cannot be combined with other codes");
+          setAppliedPromo3(null);
+          if (promoError3Timeout) clearTimeout(promoError3Timeout);
+          const timeout = setTimeout(() => setPromoError3(""), 3000);
+          setPromoError3Timeout(timeout);
+          return;
+        }
+        setAppliedPromo3(response.data);
+        setPromoError3("");
+        if (promoError3Timeout) {
+          clearTimeout(promoError3Timeout);
+          setPromoError3Timeout(null);
+        }
+      }
+    } catch (error) {
+      let friendlyMessage = "Invalid promo code";
+      if (error.message?.includes("Authentication")) {
+        friendlyMessage = "Please sign in to use promo codes";
+      } else if (error.message?.includes("not found") || error.message?.includes("404")) {
+        friendlyMessage = "This promo code doesn't exist";
+      } else if (error.message?.includes("expired")) {
+        friendlyMessage = "This promo code has expired";
+      } else if (error.message?.includes("deactivated")) {
+        friendlyMessage = "This promo code is no longer active";
+      } else if (error.message?.includes("limit")) {
+        friendlyMessage = "This promo code has reached its usage limit";
+      } else if (error.message?.includes("Server error")) {
+        friendlyMessage = "Unable to validate promo code right now. Please try again.";
+      } else if (error.message && !error.message.includes("Invalid promo code")) {
+        friendlyMessage = error.message;
+      }
+      setPromoError3(friendlyMessage);
+      setAppliedPromo3(null);
+      if (promoError3Timeout) clearTimeout(promoError3Timeout);
+      const timeout = setTimeout(() => setPromoError3(""), 2000);
+      setPromoError3Timeout(timeout);
+    } finally {
+      setIsValidatingPromo3(false);
+    }
+  };
+
+  const handleRemovePromo3 = () => {
+    setAppliedPromo3(null);
+    setPromoCode3("");
+    setPromoError3("");
   };
 
   const handleApplyGiftCard = async () => {
@@ -268,7 +373,7 @@ const CheckoutPage = () => {
 
           // Apply delivery promo(s) inline so Stripe Tax gets the correct taxable fee
           let feeForTax = rawFee;
-          for (const promo of [appliedPromo, appliedPromo2]) {
+          for (const promo of [appliedPromo, appliedPromo2, appliedPromo3]) {
             if (promo?.applyToDelivery) {
               const feeDiscount = promo.discountType === 'percentage'
                 ? (feeForTax * promo.discountValue) / 100
@@ -289,7 +394,7 @@ const CheckoutPage = () => {
               zipCode,
             });
             let discountedSubtotal = subtotal;
-            for (const promo of [appliedPromo, appliedPromo2]) {
+            for (const promo of [appliedPromo, appliedPromo2, appliedPromo3]) {
               if (promo && !promo.applyToDelivery) {
                 const d = promo.discountType === 'percentage'
                   ? discountedSubtotal * promo.discountValue / 100
@@ -321,7 +426,7 @@ const CheckoutPage = () => {
           if (taxResult.success) {
             setTaxAmount(taxResult.taxAmount);
             let discountedSubtotal = subtotal;
-            for (const promo of [appliedPromo, appliedPromo2]) {
+            for (const promo of [appliedPromo, appliedPromo2, appliedPromo3]) {
               if (promo && !promo.applyToDelivery) {
                 const d = promo.discountType === 'percentage'
                   ? discountedSubtotal * promo.discountValue / 100
@@ -352,13 +457,13 @@ const CheckoutPage = () => {
     };
     
     calculateFees();
-  }, [selectedAddress, cartItems, appliedPromo, appliedPromo2, appliedGiftCard, subtotal]);
+  }, [selectedAddress, cartItems, appliedPromo, appliedPromo2, appliedPromo3, appliedGiftCard, subtotal]);
   
   let discountAmount = 0;
   let deliveryFeeDiscount = 0;
   let discountedSubtotal = subtotal;
   let remainingDeliveryFee = deliveryFee;
-  for (const promo of [appliedPromo, appliedPromo2]) {
+  for (const promo of [appliedPromo, appliedPromo2, appliedPromo3]) {
     if (!promo) continue;
     if (promo.applyToDelivery) {
       const d = promo.discountType === 'percentage'
@@ -463,6 +568,7 @@ const CheckoutPage = () => {
         deliveryFeeDiscount,
         appliedPromo,
         appliedPromo2,
+        appliedPromo3,
         giftCardAmount: appliedGiftCard ? Math.min(parseFloat(appliedGiftCard.balance), discountedSubtotal) : 0,
         appliedGiftCard: appliedGiftCard ? { giftCardId: appliedGiftCard.giftCardId, code: appliedGiftCard.code, amountApplied: Math.min(parseFloat(appliedGiftCard.balance), discountedSubtotal) } : null,
         orderItems,
@@ -506,6 +612,7 @@ const CheckoutPage = () => {
               tip,
               appliedPromo,
               appliedPromo2,
+              appliedPromo3,
               discountAmount,
               appliedGiftCard: appliedGiftCard ? {
                 giftCardId: appliedGiftCard.giftCardId,
@@ -581,6 +688,13 @@ const CheckoutPage = () => {
                 onRemovePromo2={handleRemovePromo2}
                 promoError2={promoError2}
                 isValidatingPromo2={isValidatingPromo2}
+                promoCode3={promoCode3}
+                onPromoCode3Change={setPromoCode3}
+                onApplyPromo3={handleApplyPromo3}
+                appliedPromo3={appliedPromo3}
+                onRemovePromo3={handleRemovePromo3}
+                promoError3={promoError3}
+                isValidatingPromo3={isValidatingPromo3}
                 giftCardCode={giftCardCode}
                 onGiftCardCodeChange={setGiftCardCode}
                 onApplyGiftCard={handleApplyGiftCard}

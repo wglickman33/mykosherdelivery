@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import Footer from '../Footer/Footer';
 import { useCart } from '../../context/CartContext';
 import navyMKDIcon from '../../assets/navyMKDIcon.png';
+import { MKD_GIFT_CARDS_RESTAURANT_ID } from '../../constants/mkdCartSentinels';
 
 const giftCardOptions = [
   { id: 'gc-25', value: 25, label: '$25.00' },
@@ -32,7 +33,7 @@ export default function GiftCardPage() {
     };
 
     const giftCardRestaurant = {
-      id: 'mkd-gift-cards',
+      id: MKD_GIFT_CARDS_RESTAURANT_ID,
       name: 'My Kosher Delivery',
       logo: '/src/assets/navyMKDIcon.png'
     };

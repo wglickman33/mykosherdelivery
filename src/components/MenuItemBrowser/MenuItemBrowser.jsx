@@ -1,7 +1,7 @@
 import './MenuItemBrowser.scss';
 import { useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
-import { fetchAllRestaurants, fetchAllMenuItems } from '../../services/adminServices';
+import { fetchAllRestaurants, fetchAllMenuItems, ADMIN_API_MAX_LIST_LIMIT } from '../../services/adminServices';
 import { fetchRestaurantMenuItems } from '../../services/menuItemService';
 import { buildImageUrl } from '../../services/imageService';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
@@ -23,7 +23,7 @@ const MenuItemBrowser = ({ onItemSelect, onClose }) => {
     setRestaurantsLoading(true);
       setError(null);
     try {
-      const result = await fetchAllRestaurants();
+      const result = await fetchAllRestaurants({ page: 1, limit: ADMIN_API_MAX_LIST_LIMIT });
       
       if (result.success) {
         const restaurantsList = result.data || [];

@@ -1,7 +1,7 @@
 import './AdminOrderEdit.scss';
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { fetchOrderById, updateOrder, fetchAllRestaurants, processRefund, fetchOrderRefunds } from '../../services/adminServices';
+import { fetchOrderById, updateOrder, fetchAllRestaurants, processRefund, fetchOrderRefunds, ADMIN_API_MAX_LIST_LIMIT } from '../../services/adminServices';
 import { useNotification } from '../../hooks/useNotification';
 import NotificationToast from '../NotificationToast/NotificationToast';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
@@ -101,7 +101,7 @@ const AdminOrderEdit = () => {
 
   const fetchRestaurants = useCallback(async () => {
     try {
-      const result = await fetchAllRestaurants();
+      const result = await fetchAllRestaurants({ page: 1, limit: ADMIN_API_MAX_LIST_LIMIT });
       if (result.success) {
         setRestaurants(result.data || []);
       }

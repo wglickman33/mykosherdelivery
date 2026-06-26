@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
+import PropTypes from 'prop-types';
 
 const STORAGE_KEY = 'mkd-maps-theme';
 
@@ -19,7 +20,9 @@ export function MapsThemeProvider({ children }) {
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, theme);
-    } catch (_) {}
+    } catch {
+      /* localStorage may be unavailable (private mode, quota) */
+    }
   }, [theme]);
 
   const setTheme = (value) => setThemeState(value === 'dark' ? 'dark' : 'light');
@@ -31,6 +34,11 @@ export function MapsThemeProvider({ children }) {
   );
 }
 
+MapsThemeProvider.propTypes = {
+  children: PropTypes.node.isRequired,
+};
+
+// eslint-disable-next-line react-refresh/only-export-components -- hook colocated with provider
 export function useMapsTheme() {
   const ctx = useContext(MapsThemeContext);
   if (!ctx) throw new Error('useMapsTheme must be used within MapsThemeProvider');
@@ -45,3 +53,7 @@ export function MapsThemeRoot({ children }) {
     </div>
   );
 }
+
+MapsThemeRoot.propTypes = {
+  children: PropTypes.node.isRequired,
+};

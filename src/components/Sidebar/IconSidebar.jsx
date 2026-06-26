@@ -74,6 +74,27 @@ const IconSidebar = () => {
           </li>
           <li
             className={`icon-sidebar-menu-item ${
+              isActive("/kiddush") ? "active" : ""
+            }`}
+          >
+            <Link
+              to="/kiddush"
+              title="Kiddush & Shalom Zachor"
+              className="icon-sidebar-menu-link"
+              onClick={handleLinkClick}
+            >
+              <div className="icon-sidebar-icon">
+                <svg viewBox="0 0 24 24" width="24" height="24">
+                  <path
+                    fill="#061757"
+                    d="M12 3L2 9h3v10h6v-6h2v6h6V9h3L12 3zm0 2.2L17.5 8H15v8H9V8H6.5L12 5.2z"
+                  />
+                </svg>
+              </div>
+            </Link>
+          </li>
+          <li
+            className={`icon-sidebar-menu-item ${
               isActive("/gift-card") ? "active" : ""
             }`}
           >

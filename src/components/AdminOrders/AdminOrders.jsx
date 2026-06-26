@@ -1,7 +1,7 @@
 import './AdminOrders.scss';
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchAllOrders, updateOrderStatus, fetchAllRestaurants, deleteOrder } from '../../services/adminServices';
+import { fetchAllOrders, updateOrderStatus, fetchAllRestaurants, deleteOrder, ADMIN_API_MAX_LIST_LIMIT } from '../../services/adminServices';
 import apiClient from '../../lib/api';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import NotificationToast from '../NotificationToast/NotificationToast';
@@ -171,7 +171,7 @@ const AdminOrders = () => {
 
   const fetchOrders = async () => {
     setLoading(true);
-    const result = await fetchAllOrders({});
+    const result = await fetchAllOrders({ page: 1, limit: ADMIN_API_MAX_LIST_LIMIT });
     if (result.success) {
       setAllOrders(Array.isArray(result.data) ? result.data : []);
     }
@@ -180,7 +180,7 @@ const AdminOrders = () => {
 
   const fetchRestaurants = async () => {
     try {
-      const result = await fetchAllRestaurants();
+      const result = await fetchAllRestaurants({ page: 1, limit: ADMIN_API_MAX_LIST_LIMIT });
       if (result.success) {
         setRestaurants(result.data || []);
       }
@@ -471,7 +471,7 @@ const AdminOrders = () => {
           sent > 0 ? 'success' : 'error'
         );
         if (sent > 0) {
-          const result = await fetchAllOrders({});
+          const result = await fetchAllOrders({ page: 1, limit: ADMIN_API_MAX_LIST_LIMIT });
           if (result.success) setAllOrders(Array.isArray(result.data) ? result.data : []);
         }
       } else {

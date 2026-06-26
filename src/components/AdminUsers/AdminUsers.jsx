@@ -55,6 +55,7 @@ const AdminUsers = () => {
     limit: 20
   });
   const [pagination, setPagination] = useState({});
+  const [summary, setSummary] = useState(null);
   const [facilities, setFacilities] = useState([]);
   const [viewUserDetail, setViewUserDetail] = useState(null);
   const [loadingViewUser, setLoadingViewUser] = useState(false);
@@ -117,9 +118,11 @@ const AdminUsers = () => {
     if (result.success) {
       setUsers(Array.isArray(result.data) ? result.data : []);
       setPagination(result.pagination || {});
+      setSummary(result.summary ?? null);
     } else {
       setUsers([]);
       setPagination({});
+      setSummary(null);
     }
     setLoading(false);
   };
@@ -316,6 +319,22 @@ const AdminUsers = () => {
   const getRoleBadgeColor = (role) => ROLE_BADGE_COLORS[role] || '#6b7280';
   const getRoleLabel = (role) => ROLE_LABELS[role] || 'User';
 
+  const byRole = summary?.byRole;
+  const roleCount = (role) => {
+    const val = byRole?.[role];
+    return typeof val === 'number' ? val : '—';
+  };
+  const activeIn30dDisplay =
+    typeof summary?.activeIn30dCount === 'number'
+      ? summary.activeIn30dCount
+      : '—';
+  const totalUsersDisplay =
+    typeof summary?.total === 'number'
+      ? summary.total
+      : typeof pagination?.total === 'number'
+        ? pagination.total
+        : users.length;
+
   return (
     <div className="admin-users">
       <div className="users-header">
@@ -337,42 +356,42 @@ const AdminUsers = () => {
       <div className="stats-grid">
         <div className="stat-card">
           <span className="stat-label">Total Users</span>
-          <span className="stat-value">{users.length}</span>
+          <span className="stat-value">{totalUsersDisplay}</span>
         </div>
         <div className="stat-card">
-          <span className="stat-label">Active Users</span>
+          <span className="stat-label">Active (30d)</span>
           <span className="stat-value">
-            {users.filter(u => u.last_login && u.last_login !== 'Never').length}
+            {activeIn30dDisplay}
           </span>
         </div>
         <div className="stat-card">
           <span className="stat-label">Users</span>
           <span className="stat-value">
-            {users.filter(u => u.role === USER_ROLES.USER).length}
+            {roleCount(USER_ROLES.USER)}
           </span>
         </div>
         <div className="stat-card">
           <span className="stat-label">Admins</span>
           <span className="stat-value">
-            {users.filter(u => u.role === USER_ROLES.ADMIN).length}
+            {roleCount(USER_ROLES.ADMIN)}
           </span>
         </div>
         <div className="stat-card">
           <span className="stat-label">Restaurant Owners</span>
           <span className="stat-value">
-            {users.filter(u => u.role === USER_ROLES.RESTAURANT_OWNER).length}
+            {roleCount(USER_ROLES.RESTAURANT_OWNER)}
           </span>
         </div>
         <div className="stat-card">
           <span className="stat-label">Nursing Home Admins</span>
           <span className="stat-value">
-            {users.filter(u => u.role === USER_ROLES.NURSING_HOME_ADMIN).length}
+            {roleCount(USER_ROLES.NURSING_HOME_ADMIN)}
           </span>
         </div>
         <div className="stat-card">
           <span className="stat-label">Nursing Home Users</span>
           <span className="stat-value">
-            {users.filter(u => u.role === USER_ROLES.NURSING_HOME_USER).length}
+            {roleCount(USER_ROLES.NURSING_HOME_USER)}
           </span>
         </div>
       </div>

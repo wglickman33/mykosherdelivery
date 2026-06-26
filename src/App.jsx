@@ -19,6 +19,7 @@ import BlogPage from "./components/BlogPage/BlogPage";
 import TermsAndConditionsPage from "./components/TermsAndConditionsPage/TermsAndConditionsPage";
 import PrivacyPage from "./components/PrivacyPage/PrivacyPage";
 import GiftCardPage from "./components/GiftCardPage/GiftCardPage";
+import KiddushPage from "./components/KiddushPage/KiddushPage";
 import AccountPage from "./components/AccountPage/AccountPage";
 import CheckoutPage from "./components/CheckoutPage/CheckoutPage";
 import OrderConfirmationPage from "./components/OrderConfirmationPage/OrderConfirmationPage";
@@ -90,7 +91,7 @@ function NhRedirectToDashboard() {
 }
 
 const PUBLIC_ROUTES = ["/landing", "/signin", "/signup", "/forgot-password", "/reset-password", "/blog", "/faq", "/contact", "/partner", "/advertise", "/help", "/terms", "/privacy", "/admin", "/owner", "/nursing-homes/login", "/nursing-homes/admin", "/nursing-homes/admin/login"];
-const APP_ROUTES = ["/home", "/restaurants", "/restaurant", "/cart", "/checkout", "/order-confirmation", "/gift-card", "/subscriptions", "/account"];
+const APP_ROUTES = ["/home", "/restaurants", "/restaurant", "/cart", "/checkout", "/order-confirmation", "/gift-card", "/kiddush", "/subscriptions", "/account"];
 
 function AuthenticatedApp() {
   const { user, loading, tempAddress } = useAuth();
@@ -246,6 +247,7 @@ function AuthenticatedApp() {
             <Route path="restaurants" element={<AdminRestaurants />} />
             <Route path="restaurants/menus" element={<AdminRestaurants />} />
             <Route path="restaurants/nursing-home-menus" element={<AdminRestaurants />} />
+            <Route path="restaurants/kiddush-menu" element={<AdminRestaurants />} />
             <Route path="maps" element={<AdminMaps />} />
             <Route path="gift-cards" element={<AdminGiftCards />} />
             <Route path="analytics" element={<AdminAnalytics />} />
@@ -301,6 +303,7 @@ function AuthenticatedApp() {
             <Route path="/terms" element={<TermsAndConditionsPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/gift-card" element={<GiftCardPage />} />
+            <Route path="/kiddush" element={<KiddushPage />} />
             <Route path="/account" element={<AccountPage />} />
             <Route path="/signin" element={<AuthPage />} />
             <Route path="/signup" element={<AuthPage />} />
