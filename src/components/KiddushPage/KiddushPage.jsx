@@ -17,11 +17,24 @@ const SIZE_ORDER = ['8_12', '15_20', '25_plus'];
 const sizeTierLabel = (tier) => {
   switch (tier) {
     case '8_12':
-      return '8–12 guests';
+      return '8-12 guests';
     case '15_20':
-      return '15–20 guests';
+      return '15-20 guests';
     case '25_plus':
       return '25+ guests';
+    default:
+      return tier;
+  }
+};
+
+const sizeTierShort = (tier) => {
+  switch (tier) {
+    case '8_12':
+      return '8-12';
+    case '15_20':
+      return '15-20';
+    case '25_plus':
+      return '25+';
     default:
       return tier;
   }
@@ -32,6 +45,21 @@ const categoryTitle = (cat) =>
 
 const lineCategoryForPackage = (cat) =>
   cat === 'shalom_zachor' ? 'Shalom Zachor package' : 'Kiddush package';
+
+const cleanDisplayText = (text) => {
+  if (!text) return '';
+  return String(text).replace(/\u2014/g, ', ').replace(/\u2013/g, '-');
+};
+
+const isPlaceholderLine = (line) =>
+  typeof line === 'string' && /placeholder/i.test(line);
+
+const getIncludedItems = (items) => {
+  if (!Array.isArray(items)) return [];
+  return items
+    .map((line) => cleanDisplayText(line).trim())
+    .filter((line) => line && !isPlaceholderLine(line));
+};
 
 function sortBySizeTier(a, b) {
   const ia = SIZE_ORDER.indexOf(a.sizeTier);
@@ -72,6 +100,11 @@ export default function KiddushPage() {
       });
   }, [packages, category]);
 
+  const detailIncludedItems = useMemo(
+    () => (detailPkg ? getIncludedItems(detailPkg.includedItems) : []),
+    [detailPkg]
+  );
+
   const kiddushRestaurant = useMemo(
     () => ({
       id: MKD_KIDDUSH_RESTAURANT_ID,
@@ -81,16 +114,18 @@ export default function KiddushPage() {
     []
   );
 
+  const closeDetail = () => setDetailPkg(null);
+
   const handleAddToCart = (pkg) => {
     const desc =
       pkg.shortDescription ||
-      `${categoryTitle(pkg.category)} — ${sizeTierLabel(pkg.sizeTier)}`;
+      `${categoryTitle(pkg.category)}, ${sizeTierLabel(pkg.sizeTier)}`;
 
     const cartItem = {
       id: pkg.id,
-      name: pkg.name,
+      name: cleanDisplayText(pkg.name),
       price: Number(pkg.price),
-      description: desc,
+      description: cleanDisplayText(desc),
       itemType: 'simple',
       category: lineCategoryForPackage(pkg.category),
       image: pkg.imageUrl ? buildImageUrl(pkg.imageUrl) : navyMKDIcon,
@@ -148,7 +183,7 @@ export default function KiddushPage() {
 
         {loading ? (
           <div className="kiddush-loading">
-            <LoadingSpinner size="medium" text="Loading packages…" variant="primary" />
+            <LoadingSpinner size="medium" text="Loading packages..." variant="primary" />
           </div>
         ) : filtered.length === 0 ? (
           <p className="kiddush-empty">
@@ -169,13 +204,15 @@ export default function KiddushPage() {
                   className="kiddush-size-card"
                   onClick={() => setDetailPkg(pkg)}
                 >
-                  <span className="kiddush-size-card__tier">{sizeTierLabel(pkg.sizeTier)}</span>
-                  <span className="kiddush-size-card__name">{pkg.name}</span>
+                  <span className="kiddush-size-card__tier">{sizeTierShort(pkg.sizeTier)} guests</span>
+                  <span className="kiddush-size-card__name">{cleanDisplayText(pkg.name)}</span>
                   <span className="kiddush-size-card__price">
                     ${Number(pkg.price).toFixed(2)}
                   </span>
                   {pkg.shortDescription && (
-                    <span className="kiddush-size-card__hint">{pkg.shortDescription}</span>
+                    <span className="kiddush-size-card__hint">
+                      {cleanDisplayText(pkg.shortDescription)}
+                    </span>
                   )}
                   <span className="kiddush-size-card__cta">View details</span>
                 </button>
@@ -190,50 +227,86 @@ export default function KiddushPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="kiddush-modal-title"
-            onClick={() => setDetailPkg(null)}
+            onClick={closeDetail}
           >
             <div className="kiddush-modal" onClick={(e) => e.stopPropagation()}>
-              <button
-                type="button"
-                className="kiddush-modal__close"
-                aria-label="Close"
-                onClick={() => setDetailPkg(null)}
-              >
-                ×
-              </button>
-              <h2 id="kiddush-modal-title" className="kiddush-modal__title">
-                {detailPkg.name}
-              </h2>
-              <p className="kiddush-modal__meta">
-                {categoryTitle(detailPkg.category)} · {sizeTierLabel(detailPkg.sizeTier)}
-              </p>
-              <p className="kiddush-modal__price">${Number(detailPkg.price).toFixed(2)}</p>
-              {detailPkg.shortDescription && (
-                <p className="kiddush-modal__subtitle">{detailPkg.shortDescription}</p>
-              )}
-              <h3 className="kiddush-modal__includes-heading">Included</h3>
-              <ul className="kiddush-modal__list">
-                {(detailPkg.includedItems || []).map((line, i) => (
-                  <li key={i}>{line}</li>
-                ))}
-              </ul>
-              <div className="kiddush-modal__actions">
+              <div className="kiddush-modal__header">
+                <div className="kiddush-modal__header-text">
+                  <h2 id="kiddush-modal-title" className="kiddush-modal__title">
+                    {cleanDisplayText(detailPkg.name)}
+                  </h2>
+                  <p className="kiddush-modal__meta">
+                    {categoryTitle(detailPkg.category)} · {sizeTierLabel(detailPkg.sizeTier)}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="kiddush-modal__close"
+                  aria-label="Close"
+                  onClick={closeDetail}
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="kiddush-modal__body">
+                {detailPkg.imageUrl && (
+                  <div className="kiddush-modal__image">
+                    <img
+                      src={buildImageUrl(detailPkg.imageUrl)}
+                      alt={cleanDisplayText(detailPkg.name)}
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
+
+                <p className="kiddush-modal__price">${Number(detailPkg.price).toFixed(2)}</p>
+
+                {detailPkg.shortDescription && (
+                  <p className="kiddush-modal__subtitle">
+                    {cleanDisplayText(detailPkg.shortDescription)}
+                  </p>
+                )}
+
+                <div className="kiddush-modal__includes">
+                  <h3 className="kiddush-modal__includes-heading">Included</h3>
+                  {detailIncludedItems.length > 0 ? (
+                    <ul className="kiddush-modal__list">
+                      {detailIncludedItems.map((line, i) => (
+                        <li key={i}>
+                          <span className="kiddush-modal__list-icon" aria-hidden="true">✓</span>
+                          <span>{line}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="kiddush-modal__includes-empty">
+                      Full menu details for this package will be posted soon.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="kiddush-modal__footer">
                 <button
                   type="button"
                   className={`kiddush-add-btn ${showAdded ? 'is-added' : ''}`}
                   onClick={() => handleAddToCart(detailPkg)}
                   disabled={showAdded}
                 >
-                  {showAdded ? '✓ Added to cart' : 'Add to cart'}
+                  {showAdded ? 'Added to cart' : 'Add to cart'}
                 </button>
-              </div>
-              <div className="kiddush-modal__footer-links">
-                <Link to="/restaurants" onClick={() => setDetailPkg(null)}>
-                  Continue shopping
-                </Link>
-                <Link to="/checkout" onClick={() => setDetailPkg(null)}>
-                  Proceed to checkout
-                </Link>
+                <div className="kiddush-modal__footer-links">
+                  <Link to="/restaurants" onClick={closeDetail}>
+                    Continue shopping
+                  </Link>
+                  <span className="kiddush-modal__footer-divider" aria-hidden="true">·</span>
+                  <Link to="/checkout" onClick={closeDetail}>
+                    Proceed to checkout
+                  </Link>
+                </div>
               </div>
             </div>
           </div>

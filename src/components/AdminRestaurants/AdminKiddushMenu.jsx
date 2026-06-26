@@ -11,9 +11,20 @@ const CATEGORIES = [
 ];
 
 const SIZE_LABEL = {
-  '8_12': '8–12',
-  '15_20': '15–20',
+  '8_12': '8-12',
+  '15_20': '15-20',
   '25_plus': '25+'
+};
+
+const CATEGORY_LABEL = {
+  kiddush: 'Kiddush',
+  shalom_zachor: 'Shalom Zachor'
+};
+
+/** Strip em/en dashes from seeded or legacy names for display. */
+const cleanDisplayText = (text) => {
+  if (!text) return '';
+  return String(text).replace(/\u2014/g, ', ').replace(/\u2013/g, '-');
 };
 
 const emptyForm = () => ({
@@ -34,6 +45,8 @@ export default function AdminKiddushMenu({ showNotification }) {
   const [loading, setLoading] = useState(true);
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [modalOpen, setModalOpen] = useState(false);
+  const [deactivateTarget, setDeactivateTarget] = useState(null);
+  const [deactivating, setDeactivating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(emptyForm);
 
@@ -81,6 +94,11 @@ export default function AdminKiddushMenu({ showNotification }) {
     return s;
   }, [packages]);
 
+  const closeModal = () => {
+    if (saving) return;
+    setModalOpen(false);
+  };
+
   const openCreate = () => {
     setForm(emptyForm());
     setModalOpen(true);
@@ -94,7 +112,7 @@ export default function AdminKiddushMenu({ showNotification }) {
       id: row.id,
       category: row.category,
       sizeTier: row.sizeTier,
-      name: row.name || '',
+      name: cleanDisplayText(row.name || ''),
       price: row.price != null ? String(row.price) : '',
       shortDescription: row.shortDescription || '',
       includedLines: lines,
@@ -184,25 +202,29 @@ export default function AdminKiddushMenu({ showNotification }) {
     }
   };
 
-  const handleDeactivate = async (row) => {
-    if (!window.confirm(`Deactivate “${row.name}”? It will no longer appear on the storefront.`)) return;
+  const handleDeactivate = async () => {
+    if (!deactivateTarget) return;
+    setDeactivating(true);
     try {
-      const res = await apiClient.delete(`/admin/kiddush-packages/${row.id}`);
+      const res = await apiClient.delete(`/admin/kiddush-packages/${deactivateTarget.id}`);
       if (res?.success) {
         showNotification?.('Package deactivated', 'success');
+        setDeactivateTarget(null);
         load();
       } else {
         showNotification?.(res?.error || 'Deactivate failed', 'error');
       }
     } catch (e) {
       showNotification?.(e?.message || 'Deactivate failed', 'error');
+    } finally {
+      setDeactivating(false);
     }
   };
 
   return (
     <div className="admin-kiddush-menu">
-      <div className="admin-kiddush-menu__toolbar">
-        <div className="admin-kiddush-menu__filters">
+      <div className="admin-kiddush-menu__filters">
+        <div className="admin-kiddush-menu__filter-group">
           <label htmlFor="kiddush-cat-filter">Category</label>
           <select
             id="kiddush-cat-filter"
@@ -216,8 +238,8 @@ export default function AdminKiddushMenu({ showNotification }) {
             ))}
           </select>
         </div>
-        <div className="admin-kiddush-menu__actions">
-          <button type="button" className="admin-kiddush-menu__btn" onClick={() => load()}>
+        <div className="admin-kiddush-menu__filter-actions">
+          <button type="button" className="admin-kiddush-menu__btn admin-kiddush-menu__btn--secondary" onClick={() => load()}>
             Refresh
           </button>
           <button type="button" className="admin-kiddush-menu__btn admin-kiddush-menu__btn--primary" onClick={openCreate}>
@@ -226,53 +248,84 @@ export default function AdminKiddushMenu({ showNotification }) {
         </div>
       </div>
 
-      {loading ? (
-        <div className="admin-kiddush-menu__loading">
-          <LoadingSpinner size="medium" text="Loading packages…" variant="primary" />
-        </div>
-      ) : (
-        <div className="admin-kiddush-menu__table-wrap">
-          <table className="admin-kiddush-menu__table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Category</th>
-                <th>Size</th>
-                <th>Price</th>
-                <th>Order</th>
-                <th>Active</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((row) => (
-                <tr key={row.id}>
-                  <td>{row.name}</td>
-                  <td>{row.category === 'shalom_zachor' ? 'Shalom Zachor' : 'Kiddush'}</td>
-                  <td>{SIZE_LABEL[row.sizeTier] || row.sizeTier}</td>
-                  <td>${Number(row.price).toFixed(2)}</td>
-                  <td>{row.displayOrder ?? 0}</td>
-                  <td>{row.isActive ? 'Yes' : 'No'}</td>
-                  <td className="admin-kiddush-menu__row-actions">
-                    <button type="button" className="admin-kiddush-menu__linkish" onClick={() => openEdit(row)}>
-                      Edit
-                    </button>
-                    {row.isActive && (
+      <div className="admin-kiddush-menu__table-container">
+        {loading ? (
+          <div className="admin-kiddush-menu__loading">
+            <LoadingSpinner size="medium" text="Loading packages..." variant="primary" />
+          </div>
+        ) : sorted.length === 0 ? (
+          <div className="admin-kiddush-menu__empty">
+            <p>No packages found for this filter.</p>
+            <button type="button" className="admin-kiddush-menu__btn admin-kiddush-menu__btn--primary" onClick={openCreate}>
+              Add your first package
+            </button>
+          </div>
+        ) : (
+          <div className="admin-kiddush-menu__table-scroll">
+            <table className="admin-kiddush-menu__table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Category</th>
+                  <th>Size</th>
+                  <th>Price</th>
+                  <th
+                    title="Sort order on the storefront within each category. Lower numbers appear first (0 = smallest tier)."
+                  >
+                    Sort
+                  </th>
+                  <th>Active</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sorted.map((row) => (
+                  <tr
+                    key={row.id}
+                    className="admin-kiddush-menu__row"
+                    onClick={() => openEdit(row)}
+                  >
+                    <td className="admin-kiddush-menu__name">{cleanDisplayText(row.name)}</td>
+                    <td>{CATEGORY_LABEL[row.category] || row.category}</td>
+                    <td>{SIZE_LABEL[row.sizeTier] || row.sizeTier} guests</td>
+                    <td>${Number(row.price).toFixed(2)}</td>
+                    <td>{row.displayOrder ?? 0}</td>
+                    <td>
+                      <span className={`admin-kiddush-menu__status ${row.isActive ? 'is-active' : 'is-inactive'}`}>
+                        {row.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td className="admin-kiddush-menu__row-actions">
                       <button
                         type="button"
-                        className="admin-kiddush-menu__linkish admin-kiddush-menu__linkish--danger"
-                        onClick={() => handleDeactivate(row)}
+                        className="edit-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEdit(row);
+                        }}
                       >
-                        Deactivate
+                        Edit
                       </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+                      {row.isActive && (
+                        <button
+                          type="button"
+                          className="delete-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeactivateTarget(row);
+                          }}
+                        >
+                          Deactivate
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       {modalOpen && (
         <div
@@ -280,126 +333,200 @@ export default function AdminKiddushMenu({ showNotification }) {
           role="dialog"
           aria-modal="true"
           aria-labelledby="kiddush-edit-title"
-          onClick={() => !saving && setModalOpen(false)}
+          onClick={closeModal}
         >
           <div className="admin-kiddush-menu__modal" onClick={(e) => e.stopPropagation()}>
-            <h2 id="kiddush-edit-title">{form.id ? 'Edit package' : 'New package'}</h2>
-            {!form.id && (
-              <div className="admin-kiddush-menu__field-row">
-                <div className="admin-kiddush-menu__field">
-                  <label>Category</label>
-                  <select
-                    value={form.category}
-                    onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))}
-                  >
-                    <option value="kiddush">Kiddush</option>
-                    <option value="shalom_zachor">Shalom Zachor</option>
-                  </select>
-                </div>
-                <div className="admin-kiddush-menu__field">
-                  <label>Size tier</label>
-                  <select
-                    value={form.sizeTier}
-                    onChange={(e) => setForm((p) => ({ ...p, sizeTier: e.target.value }))}
-                  >
-                    <option value="8_12">8–12 guests</option>
-                    <option value="15_20">15–20 guests</option>
-                    <option value="25_plus">25+ guests</option>
-                  </select>
-                </div>
-              </div>
-            )}
-            {form.id && (
-              <p className="admin-kiddush-menu__readonly">
-                {form.category === 'shalom_zachor' ? 'Shalom Zachor' : 'Kiddush'} ·{' '}
-                {SIZE_LABEL[form.sizeTier] || form.sizeTier} guests
-              </p>
-            )}
-            <div className="admin-kiddush-menu__field">
-              <label>Name</label>
-              <input
-                type="text"
-                value={form.name}
-                onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-                maxLength={255}
-              />
-            </div>
-            <div className="admin-kiddush-menu__field-row">
-              <div className="admin-kiddush-menu__field">
-                <label>Price</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={form.price}
-                  onChange={(e) => setForm((p) => ({ ...p, price: e.target.value }))}
-                />
-              </div>
-              <div className="admin-kiddush-menu__field">
-                <label>Display order</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={form.displayOrder}
-                  onChange={(e) => setForm((p) => ({ ...p, displayOrder: e.target.value }))}
-                />
-              </div>
-            </div>
-            <div className="admin-kiddush-menu__field">
-              <label>Short description (optional)</label>
-              <textarea
-                rows={2}
-                value={form.shortDescription}
-                onChange={(e) => setForm((p) => ({ ...p, shortDescription: e.target.value }))}
-              />
-            </div>
-            <div className="admin-kiddush-menu__field">
-              <label>Image URL (optional)</label>
-              <input
-                type="text"
-                value={form.imageUrl}
-                onChange={(e) => setForm((p) => ({ ...p, imageUrl: e.target.value }))}
-              />
-            </div>
-            <div className="admin-kiddush-menu__field">
-              <label>Included items (one line each)</label>
-              {form.includedLines.map((line, i) => (
-                <div key={i} className="admin-kiddush-menu__line-row">
-                  <input
-                    type="text"
-                    value={line}
-                    onChange={(e) => setLine(i, e.target.value)}
-                    placeholder="e.g. Cholent tray (half)"
-                  />
-                  <button type="button" className="admin-kiddush-menu__icon-btn" onClick={() => removeLine(i)}>
-                    −
-                  </button>
-                </div>
-              ))}
-              <button type="button" className="admin-kiddush-menu__btn" onClick={addLine}>
-                Add line
-              </button>
-            </div>
-            <label className="admin-kiddush-menu__check">
-              <input
-                type="checkbox"
-                checked={form.isActive}
-                onChange={(e) => setForm((p) => ({ ...p, isActive: e.target.checked }))}
-              />
-              Active on storefront
-            </label>
-            <div className="admin-kiddush-menu__modal-actions">
-              <button type="button" className="admin-kiddush-menu__btn" disabled={saving} onClick={() => setModalOpen(false)}>
-                Cancel
-              </button>
+            <div className="admin-kiddush-menu__modal-header">
+              <h2 id="kiddush-edit-title">{form.id ? 'Edit package' : 'New package'}</h2>
               <button
                 type="button"
-                className="admin-kiddush-menu__btn admin-kiddush-menu__btn--primary"
+                className="admin-kiddush-menu__modal-close"
+                onClick={closeModal}
                 disabled={saving}
-                onClick={handleSave}
+                aria-label="Close"
               >
-                {saving ? 'Saving…' : 'Save'}
+                ×
               </button>
+            </div>
+            <div className="admin-kiddush-menu__modal-content">
+              {!form.id && (
+                <div className="admin-kiddush-menu__form-row">
+                  <div className="admin-kiddush-menu__form-group">
+                    <label htmlFor="kiddush-form-category">Category</label>
+                    <select
+                      id="kiddush-form-category"
+                      value={form.category}
+                      onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))}
+                    >
+                      <option value="kiddush">Kiddush</option>
+                      <option value="shalom_zachor">Shalom Zachor</option>
+                    </select>
+                  </div>
+                  <div className="admin-kiddush-menu__form-group">
+                    <label htmlFor="kiddush-form-size">Size tier</label>
+                    <select
+                      id="kiddush-form-size"
+                      value={form.sizeTier}
+                      onChange={(e) => setForm((p) => ({ ...p, sizeTier: e.target.value }))}
+                    >
+                      <option value="8_12">8-12 guests</option>
+                      <option value="15_20">15-20 guests</option>
+                      <option value="25_plus">25+ guests</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+              {form.id && (
+                <p className="admin-kiddush-menu__readonly">
+                  {CATEGORY_LABEL[form.category] || form.category},{' '}
+                  {SIZE_LABEL[form.sizeTier] || form.sizeTier} guests
+                </p>
+              )}
+              <div className="admin-kiddush-menu__form-group">
+                <label htmlFor="kiddush-form-name">Name</label>
+                <input
+                  id="kiddush-form-name"
+                  type="text"
+                  value={form.name}
+                  onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                  maxLength={255}
+                  placeholder="e.g. Kiddush, 8-12 guests"
+                />
+              </div>
+              <div className="admin-kiddush-menu__form-row">
+                <div className="admin-kiddush-menu__form-group">
+                  <label htmlFor="kiddush-form-price">Price</label>
+                  <input
+                    id="kiddush-form-price"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={form.price}
+                    onChange={(e) => setForm((p) => ({ ...p, price: e.target.value }))}
+                  />
+                </div>
+                <div className="admin-kiddush-menu__form-group">
+                  <label htmlFor="kiddush-form-sort">Sort order</label>
+                  <input
+                    id="kiddush-form-sort"
+                    type="number"
+                    min="0"
+                    value={form.displayOrder}
+                    onChange={(e) => setForm((p) => ({ ...p, displayOrder: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <div className="admin-kiddush-menu__form-group">
+                <label htmlFor="kiddush-form-desc">Short description (optional)</label>
+                <textarea
+                  id="kiddush-form-desc"
+                  rows={2}
+                  value={form.shortDescription}
+                  onChange={(e) => setForm((p) => ({ ...p, shortDescription: e.target.value }))}
+                />
+              </div>
+              <div className="admin-kiddush-menu__form-group">
+                <label htmlFor="kiddush-form-image">Image URL (optional)</label>
+                <input
+                  id="kiddush-form-image"
+                  type="text"
+                  value={form.imageUrl}
+                  onChange={(e) => setForm((p) => ({ ...p, imageUrl: e.target.value }))}
+                />
+              </div>
+              <div className="admin-kiddush-menu__form-group">
+                <label>Included items (one line each)</label>
+                {form.includedLines.map((line, i) => (
+                  <div key={i} className="admin-kiddush-menu__line-row">
+                    <input
+                      type="text"
+                      value={line}
+                      onChange={(e) => setLine(i, e.target.value)}
+                      placeholder="e.g. Cholent tray (half)"
+                    />
+                    <button
+                      type="button"
+                      className="admin-kiddush-menu__icon-btn"
+                      onClick={() => removeLine(i)}
+                      aria-label="Remove line"
+                    >
+                      −
+                    </button>
+                  </div>
+                ))}
+                <button type="button" className="admin-kiddush-menu__btn admin-kiddush-menu__btn--secondary admin-kiddush-menu__btn--inline" onClick={addLine}>
+                  Add line
+                </button>
+              </div>
+              <label className="admin-kiddush-menu__check">
+                <input
+                  type="checkbox"
+                  checked={form.isActive}
+                  onChange={(e) => setForm((p) => ({ ...p, isActive: e.target.checked }))}
+                />
+                Active on storefront
+              </label>
+              <div className="admin-kiddush-menu__modal-actions">
+                <button type="button" className="admin-kiddush-menu__btn admin-kiddush-menu__btn--secondary" disabled={saving} onClick={closeModal}>
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="admin-kiddush-menu__btn admin-kiddush-menu__btn--primary"
+                  disabled={saving}
+                  onClick={handleSave}
+                >
+                  {saving ? 'Saving...' : 'Save'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deactivateTarget && (
+        <div
+          className="admin-kiddush-menu__overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="kiddush-deactivate-title"
+          onClick={() => !deactivating && setDeactivateTarget(null)}
+        >
+          <div className="admin-kiddush-menu__modal admin-kiddush-menu__modal--confirm" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-kiddush-menu__modal-header">
+              <h2 id="kiddush-deactivate-title">Deactivate package</h2>
+              <button
+                type="button"
+                className="admin-kiddush-menu__modal-close"
+                onClick={() => !deactivating && setDeactivateTarget(null)}
+                disabled={deactivating}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <div className="admin-kiddush-menu__modal-content">
+              <p className="admin-kiddush-menu__confirm-text">
+                Deactivate <strong>{cleanDisplayText(deactivateTarget.name)}</strong>? It will no longer appear on the storefront.
+              </p>
+              <div className="admin-kiddush-menu__modal-actions">
+                <button
+                  type="button"
+                  className="admin-kiddush-menu__btn admin-kiddush-menu__btn--secondary"
+                  disabled={deactivating}
+                  onClick={() => setDeactivateTarget(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="admin-kiddush-menu__btn admin-kiddush-menu__btn--danger"
+                  disabled={deactivating}
+                  onClick={handleDeactivate}
+                >
+                  {deactivating ? 'Deactivating...' : 'Deactivate'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
