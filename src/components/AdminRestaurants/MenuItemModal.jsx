@@ -11,17 +11,24 @@ import {
   getItemTypeDisplayName,
   getDefaultOptions
 } from '../../services/menuItemService';
+import {
+  createKiddushMenuItem,
+  updateKiddushMenuItem
+} from '../../services/kiddushMenuItemService';
 import * as ownerService from '../../services/ownerService';
 import { uploadMenuItemImage, buildImageUrl } from '../../services/imageService';
 
 const MenuItemModal = ({ 
   isOpen, 
   onClose, 
-  restaurant, 
+  restaurant = null, 
+  kiddushPackage = null,
   menuItem = null, 
   onSave,
   useOwnerApi = false
 }) => {
+  const isKiddush = !!kiddushPackage;
+  const contextLabel = isKiddush ? kiddushPackage.name : restaurant?.name;
   const [step, setStep] = useState(1);
   const [itemType, setItemType] = useState(null);
   const [formData, setFormData] = useState({});
@@ -36,13 +43,14 @@ const MenuItemModal = ({
           name: menuItem.name || '',
           description: menuItem.description || '',
           price: parseFloat(menuItem.price) || 0,
-          category: menuItem.category || '',
+          category: menuItem.category || (isKiddush ? 'Included' : ''),
           imageUrl: menuItem.imageUrl || '',
           available: menuItem.available !== false,
           featured: menuItem.featured === true,
           itemType: menuItem.itemType,
           options: menuItem.options || getDefaultOptions(menuItem.itemType),
-          labels: menuItem.labels || []
+          labels: menuItem.labels || [],
+          displayOrder: menuItem.displayOrder ?? 0
         });
         setStep(2);
       } else {
@@ -51,19 +59,20 @@ const MenuItemModal = ({
           name: '',
           description: '',
           price: 0,
-          category: '',
+          category: isKiddush ? 'Included' : '',
           imageUrl: '',
           available: true,
           featured: false,
           itemType: null,
           options: null,
-          labels: []
+          labels: [],
+          displayOrder: 0
         });
         setStep(1);
       }
       setErrors([]);
     }
-  }, [isOpen, menuItem]);
+  }, [isOpen, menuItem, isKiddush]);
 
   const handleTypeSelection = (type) => {
     setItemType(type);
@@ -107,8 +116,17 @@ const MenuItemModal = ({
     setLoading(true);
     try {
       const normalizedData = normalizeMenuItemData(formData);
+      if (isKiddush && formData.displayOrder != null) {
+        normalizedData.displayOrder = parseInt(formData.displayOrder, 10) || 0;
+      }
       let result;
-      if (useOwnerApi) {
+      if (isKiddush) {
+        if (menuItem) {
+          result = await updateKiddushMenuItem(kiddushPackage.id, menuItem.id, normalizedData);
+        } else {
+          result = await createKiddushMenuItem(kiddushPackage.id, normalizedData);
+        }
+      } else if (useOwnerApi) {
         if (menuItem) {
           result = await ownerService.updateMenuItem(restaurant.id, menuItem.id, normalizedData);
         } else {
@@ -151,12 +169,16 @@ const MenuItemModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="menu-item-modal__overlay" onClick={onClose}>
+    <div
+      className={`menu-item-modal__overlay${isKiddush ? ' menu-item-modal--kiddush' : ''}`}
+      onClick={onClose}
+    >
       <div className="menu-item-modal__container" onClick={(e) => e.stopPropagation()}>
         <div className="menu-item-modal__header">
           <h2 className="menu-item-modal__header-title">
             {menuItem ? 'Edit Menu Item' : 'Add New Menu Item'}
-            {restaurant && ` - ${restaurant.name}`}
+            {contextLabel && ` - ${contextLabel}`}
+            {isKiddush && <span className="menu-item-modal__kiddush-badge">Kiddush</span>}
           </h2>
           <button className="menu-item-modal__close" onClick={onClose}>
             ×
@@ -197,6 +219,7 @@ const MenuItemModal = ({
             <TypeSelectionStep 
               onTypeSelect={handleTypeSelection}
               selectedType={itemType}
+              isKiddush={isKiddush}
             />
           )}
 
@@ -210,6 +233,7 @@ const MenuItemModal = ({
               onNext={validateAndProceed}
               onBack={handleBack}
               isEditing={!!menuItem}
+              isKiddush={isKiddush}
             />
           )}
 
@@ -230,28 +254,38 @@ const MenuItemModal = ({
   );
 };
 
-const TypeSelectionStep = ({ onTypeSelect, selectedType }) => {
+const TypeSelectionStep = ({ onTypeSelect, selectedType, isKiddush = false }) => {
   const types = [
     {
       id: 'simple',
       name: 'Regular Item',
-      description: 'Simple menu item with fixed price and no customization',
+      description: isKiddush
+        ? 'Fixed package component with a set price'
+        : 'Simple menu item with fixed price and no customization',
       icon: '•',
-      example: 'Caesar Salad - $12.99'
+      example: isKiddush ? 'Cholent tray (half) - $24.99' : 'Caesar Salad - $12.99'
     },
     {
       id: 'variety',
       name: 'Variable Item',
-      description: 'Item with multiple variants (different options, prices, images)',
+      description: isKiddush
+        ? 'Component with multiple variants (sizes, styles, etc.)'
+        : 'Item with multiple variants (different options, prices, images)',
       icon: '•',
-      example: 'Bagel - Everything ($3.99), Sesame ($3.99), Cinnamon Raisin ($4.49)'
+      example: isKiddush
+        ? 'Kugel - Potato ($18), Yerushalmi ($20), Noodle ($19)'
+        : 'Bagel - Everything ($3.99), Sesame ($3.99), Cinnamon Raisin ($4.49)'
     },
     {
       id: 'builder',
       name: 'Configurable Item',
-      description: 'Buildable item where customers choose components',
+      description: isKiddush
+        ? 'Let customers choose components when building their package'
+        : 'Buildable item where customers choose components',
       icon: '•',
-      example: 'Custom Sandwich - Choose bread, protein, toppings with price modifiers'
+      example: isKiddush
+        ? 'Custom platter - Choose fish, sides, and extras with price modifiers'
+        : 'Custom Sandwich - Choose bread, protein, toppings with price modifiers'
     }
   ];
 
@@ -397,7 +431,8 @@ const DetailsFormStep = ({
   onOptionsChange, 
   onNext, 
   onBack,
-  isEditing 
+  isEditing,
+  isKiddush = false
 }) => {
   return (
     <div className="menu-item-modal__details-form">
@@ -430,15 +465,28 @@ const DetailsFormStep = ({
           </div>
 
           <div className="menu-item-modal__form-group">
-            <label>Category *</label>
+            <label>{isKiddush ? 'Section *' : 'Category *'}</label>
             <input
               type="text"
               value={formData.category}
               onChange={(e) => onInputChange('category', e.target.value)}
-              placeholder="e.g., Salads, Sandwiches, Appetizers"
+              placeholder={isKiddush ? 'e.g., Mains, Sides, Beverages' : 'e.g., Salads, Sandwiches, Appetizers'}
               required
             />
           </div>
+
+          {isKiddush && (
+            <div className="menu-item-modal__form-group">
+              <label>Sort order</label>
+              <input
+                type="number"
+                min="0"
+                value={formData.displayOrder ?? 0}
+                onChange={(e) => onInputChange('displayOrder', parseInt(e.target.value, 10) || 0)}
+                placeholder="0"
+              />
+            </div>
+          )}
 
           <div className="menu-item-modal__form-group">
             <label>Base Price *</label>
@@ -478,7 +526,11 @@ const DetailsFormStep = ({
                 onChange={(e) => onInputChange('featured', e.target.checked)}
               />
               <span className="menu-item-modal__featured-title">Featured item</span>
-              <span className="menu-item-modal__featured-hint">Appears in the Featured section at the top of the menu</span>
+              <span className="menu-item-modal__featured-hint">
+                {isKiddush
+                  ? 'Highlighted prominently when customers configure this package'
+                  : 'Appears in the Featured section at the top of the menu'}
+              </span>
             </label>
           </div>
         </div>
@@ -877,7 +929,11 @@ MenuItemModal.propTypes = {
   restaurant: PropTypes.shape({
     id: PropTypes.string.isRequired,
     name: PropTypes.string.isRequired
-  }).isRequired,
+  }),
+  kiddushPackage: PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    name: PropTypes.string.isRequired
+  }),
   menuItem: PropTypes.shape({
     id: PropTypes.string,
     name: PropTypes.string,
@@ -886,9 +942,11 @@ MenuItemModal.propTypes = {
     category: PropTypes.string,
     imageUrl: PropTypes.string,
     available: PropTypes.bool,
+    featured: PropTypes.bool,
     itemType: PropTypes.string,
     options: PropTypes.object,
-    labels: PropTypes.array
+    labels: PropTypes.array,
+    displayOrder: PropTypes.number
   }),
   onSave: PropTypes.func.isRequired,
   useOwnerApi: PropTypes.bool
@@ -896,7 +954,8 @@ MenuItemModal.propTypes = {
 
 TypeSelectionStep.propTypes = {
   onTypeSelect: PropTypes.func.isRequired,
-  selectedType: PropTypes.string
+  selectedType: PropTypes.string,
+  isKiddush: PropTypes.bool
 };
 
 DetailsFormStep.propTypes = {
@@ -910,14 +969,16 @@ DetailsFormStep.propTypes = {
     featured: PropTypes.bool,
     itemType: PropTypes.string,
     options: PropTypes.object,
-    labels: PropTypes.array
+    labels: PropTypes.array,
+    displayOrder: PropTypes.number
   }).isRequired,
   itemType: PropTypes.string.isRequired,
   onInputChange: PropTypes.func.isRequired,
   onOptionsChange: PropTypes.func.isRequired,
   onNext: PropTypes.func.isRequired,
   onBack: PropTypes.func.isRequired,
-  isEditing: PropTypes.bool.isRequired
+  isEditing: PropTypes.bool.isRequired,
+  isKiddush: PropTypes.bool
 };
 
 PreviewStep.propTypes = {
@@ -931,7 +992,8 @@ PreviewStep.propTypes = {
     featured: PropTypes.bool,
     itemType: PropTypes.string,
     options: PropTypes.object,
-    labels: PropTypes.array
+    labels: PropTypes.array,
+    displayOrder: PropTypes.number
   }).isRequired,
   itemType: PropTypes.string.isRequired,
   onSave: PropTypes.func.isRequired,

@@ -33,9 +33,14 @@ const CartPage = () => {
           </div>
           <h2>Your cart is empty</h2>
           <p>Add some delicious kosher food to get started!</p>
-          <Link to="/restaurants" className="browse-button">
-            Browse Restaurants
-          </Link>
+          <div className="empty-cart__actions">
+            <Link to="/restaurants" className="browse-button">
+              Browse Restaurants
+            </Link>
+            <Link to="/kiddush" className="browse-button browse-button--secondary">
+              Kiddush &amp; Shalom Zachor
+            </Link>
+          </div>
         </div>
       </div>
     </div>
@@ -229,6 +234,9 @@ const CartPage = () => {
                 <span className="total-amount">{formatCurrency(getCartTotal() + (getCartTotal() * 0.0825))}</span>
               </div>
             </div>
+            <Link to="/restaurants" className="continue-shopping-btn">
+              Continue Shopping
+            </Link>
             <Link to="/checkout" className="checkout-btn">
               Proceed to Checkout
             </Link>

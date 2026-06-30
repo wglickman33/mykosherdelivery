@@ -1005,3 +1005,49 @@
     font-weight: 600;
   }
 }
+
+.menu-item-modal--kiddush {
+  .menu-item-modal__header {
+    background: linear-gradient(135deg, #f5f3ff 0%, #eff6ff 100%);
+    border-bottom-color: #c4b5fd;
+  }
+
+  .menu-item-modal__kiddush-badge {
+    display: inline-block;
+    margin-left: 10px;
+    padding: 2px 10px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #5b21b6;
+    background: #ede9fe;
+    border: 1px solid #c4b5fd;
+    border-radius: 999px;
+    vertical-align: middle;
+  }
+
+  .menu-item-modal__step.active .menu-item-modal__step-number {
+    background: #7c3aed;
+    border-color: #7c3aed;
+  }
+
+  .menu-item-modal__step.active .menu-item-modal__step-label {
+    color: #5b21b6;
+  }
+
+  .menu-item-modal__type-option.selected {
+    border-color: #7c3aed;
+    background: #faf5ff;
+  }
+
+  .menu-item-modal__btn--primary {
+    background: #7c3aed;
+    border-color: #7c3aed;
+
+    &:hover:not(:disabled) {
+      background: #6d28d9;
+      border-color: #6d28d9;
+    }
+  }
+}

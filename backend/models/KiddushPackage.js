@@ -69,5 +69,12 @@ module.exports = (sequelize, DataTypes) => {
     ]
   });
 
+  KiddushPackage.associate = function (models) {
+    KiddushPackage.hasMany(models.KiddushMenuItem, {
+      foreignKey: 'kiddushPackageId',
+      as: 'menuItems'
+    });
+  };
+
   return KiddushPackage;
 };
