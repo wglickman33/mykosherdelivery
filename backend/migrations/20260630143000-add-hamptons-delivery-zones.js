@@ -1,6 +1,7 @@
 'use strict';
 
 const { v4: uuidv4 } = require('uuid');
+const { Op } = require('sequelize');
 const { ZONES } = require('../data/deliveryZones');
 
 /** Additive: The Hamptons, NY — zips were only in static fallback, not in DB. */
@@ -10,13 +11,17 @@ module.exports = {
   async up(queryInterface) {
     if (!HAMPTONS) return;
 
-    const [existingRows] = await queryInterface.sequelize.query(
-      'SELECT zip_code FROM delivery_zones WHERE zip_code = ANY(:zips)',
-      { replacements: { zips: HAMPTONS.zips } }
-    );
-    const existingZips = new Set(
-      (Array.isArray(existingRows) ? existingRows : []).map((r) => r.zip_code)
-    );
+    let existingZips = new Set();
+    try {
+      const [rows] = await queryInterface.sequelize.query(
+        'SELECT zip_code FROM delivery_zones'
+      );
+      if (Array.isArray(rows)) {
+        existingZips = new Set(rows.map((r) => r.zip_code));
+      }
+    } catch {
+      // Table may not exist yet in fresh environments
+    }
 
     const rows = HAMPTONS.zips
       .filter((zip) => !existingZips.has(zip))
@@ -38,7 +43,7 @@ module.exports = {
   async down(queryInterface) {
     if (!HAMPTONS) return;
     await queryInterface.bulkDelete('delivery_zones', {
-      zip_code: HAMPTONS.zips
+      zip_code: { [Op.in]: HAMPTONS.zips }
     });
   }
 };
