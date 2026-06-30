@@ -50,7 +50,7 @@ const allowedOrigins = [
   'https://mykosherdelivery.com',
   'https://www.mykosherdelivery.com',
   'https://mykosherdelivery.netlify.app',
-  'https://mykosherdelivery.herokuapp.com'
+  'https://mykosherdelivery-659274a65452.herokuapp.com'
 ];
 app.use(cors({
   origin: (origin, cb) => {

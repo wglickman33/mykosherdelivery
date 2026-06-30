@@ -112,7 +112,8 @@ fi
 
 mkd_header "Deploy complete" "${ELAPSED}s elapsed"
 mkd_success "Backend live on Heroku"
-mkd_kv "App URL" "https://${HEROKU_APP}.herokuapp.com"
+WEB_URL=$(heroku apps:info --app "$HEROKU_APP" -j 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin).get('app',{}).get('web_url','').rstrip('/'))" 2>/dev/null || true)
+mkd_kv "App URL" "${WEB_URL:-https://${HEROKU_APP}.herokuapp.com}"
 mkd_kv "Release" "Check output above for version (Released v...)"
 mkd_kv "Branch pushed" "$DEPLOY_BRANCH → main"
 
