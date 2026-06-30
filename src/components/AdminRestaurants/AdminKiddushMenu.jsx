@@ -376,6 +376,7 @@ export default function AdminKiddushMenu({ showNotification }) {
                       <th>Category</th>
                       <th>Size</th>
                       <th>Price</th>
+                      <th>Items</th>
                       <th title="Sort order on the storefront within each category">Sort</th>
                       <th>Active</th>
                       <th>Actions</th>
@@ -388,6 +389,7 @@ export default function AdminKiddushMenu({ showNotification }) {
                         <td>{CATEGORY_LABEL[row.category] || row.category}</td>
                         <td>{SIZE_LABEL[row.sizeTier] || row.sizeTier} guests</td>
                         <td>${Number(row.price).toFixed(2)}</td>
+                        <td>{row.menuItemCount ?? 0}</td>
                         <td>{row.displayOrder ?? 0}</td>
                         <td>
                           <span className={`admin-kiddush-menu__status ${row.isActive ? 'is-active' : 'is-inactive'}`}>

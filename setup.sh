@@ -35,13 +35,13 @@ print_error() {
 # Check if Node.js is installed
 check_node() {
     if ! command -v node &> /dev/null; then
-        print_error "Node.js is not installed. Please install Node.js 18+ and try again."
+        print_error "Node.js is not installed. Please install Node.js 24 LTS (see .nvmrc) and try again."
         exit 1
     fi
     
     NODE_VERSION=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
-    if [ "$NODE_VERSION" -lt 18 ]; then
-        print_error "Node.js version 18+ is required. Current version: $(node -v)"
+    if [ "$NODE_VERSION" -lt 20 ]; then
+        print_error "Node.js 20+ is required (24 LTS recommended). Current version: $(node -v)"
         exit 1
     fi
     

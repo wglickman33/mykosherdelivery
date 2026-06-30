@@ -33,7 +33,6 @@ const toPublicJson = (row) => {
     name: j.name,
     price: parseFloat(j.price),
     shortDescription: j.shortDescription ?? j.short_description ?? null,
-    includedItems: Array.isArray(j.includedItems) ? j.includedItems : (j.included_items || []),
     imageUrl: j.imageUrl ?? j.image_url ?? null,
     displayOrder: j.displayOrder ?? j.display_order ?? 0,
     menuItems

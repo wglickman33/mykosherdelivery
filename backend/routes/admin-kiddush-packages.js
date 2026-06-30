@@ -1,7 +1,7 @@
 const express = require('express');
 const { body, param, query, validationResult } = require('express-validator');
 const { Op } = require('sequelize');
-const { KiddushPackage } = require('../models');
+const { KiddushPackage, KiddushMenuItem } = require('../models');
 const { requireAdmin } = require('../middleware/auth');
 const logger = require('../utils/logger');
 const { logAdminAction } = require('../utils/auditLog');
@@ -13,6 +13,7 @@ const SIZE_TIERS = ['8_12', '15_20', '25_plus'];
 
 const toAdminJson = (row) => {
   const j = row.toJSON ? row.toJSON() : row;
+  const menuItemCount = Array.isArray(j.menuItems) ? j.menuItems.length : 0;
   return {
     id: j.id,
     category: j.category,
@@ -24,6 +25,7 @@ const toAdminJson = (row) => {
     imageUrl: j.imageUrl ?? j.image_url ?? null,
     isActive: j.isActive ?? j.is_active,
     displayOrder: j.displayOrder ?? j.display_order ?? 0,
+    menuItemCount,
     createdAt: j.createdAt ?? j.created_at,
     updatedAt: j.updatedAt ?? j.updated_at
   };
@@ -55,6 +57,12 @@ router.get('/', requireAdmin, [
     const where = includeInactive ? {} : { isActive: true };
     const rows = await KiddushPackage.findAll({
       where,
+      include: [{
+        model: KiddushMenuItem,
+        as: 'menuItems',
+        attributes: ['id'],
+        required: false
+      }],
       order: [
         ['category', 'ASC'],
         ['displayOrder', 'ASC'],

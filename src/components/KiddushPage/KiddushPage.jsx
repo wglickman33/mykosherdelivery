@@ -54,14 +54,33 @@ const cleanDisplayText = (text) => {
   return String(text).replace(/\u2014/g, ', ').replace(/\u2013/g, '-');
 };
 
-const isPlaceholderLine = (line) =>
-  typeof line === 'string' && /placeholder/i.test(line);
+const getItemTypeLabel = (itemType) => {
+  switch (itemType) {
+    case 'variety':
+      return 'Variable item';
+    case 'builder':
+      return 'Configurable item';
+    default:
+      return null;
+  }
+};
 
-const getIncludedItems = (items) => {
-  if (!Array.isArray(items)) return [];
-  return items
-    .map((line) => cleanDisplayText(line).trim())
-    .filter((line) => line && !isPlaceholderLine(line));
+/** Package menu items from admin (preferred). */
+const getPackageMenuItems = (pkg) => {
+  if (!pkg || !Array.isArray(pkg.menuItems)) return [];
+  return pkg.menuItems.filter((item) => item.available !== false);
+};
+
+/** Rows for the "What's included" builder UI. Uses menuItems only. */
+const getIncludedDisplayRows = (pkg) => {
+  const menuItems = getPackageMenuItems(pkg);
+  return menuItems.map((item) => ({
+    key: item.id,
+    name: cleanDisplayText(item.name),
+    subtitle: item.description ? cleanDisplayText(item.description) : null,
+    typeLabel: getItemTypeLabel(item.itemType),
+    section: item.category ? cleanDisplayText(item.category) : null
+  }));
 };
 
 function sortBySizeTier(a, b) {
@@ -104,9 +123,14 @@ export default function KiddushPage() {
       });
   }, [packages, category]);
 
-  const detailIncludedItems = useMemo(
-    () => (detailPkg ? getIncludedItems(detailPkg.includedItems) : []),
+  const detailIncludedRows = useMemo(
+    () => (detailPkg ? getIncludedDisplayRows(detailPkg) : []),
     [detailPkg]
+  );
+
+  const menuItemCountFor = useCallback(
+    (pkg) => getPackageMenuItems(pkg).length,
+    []
   );
 
   const kiddushRestaurant = useMemo(
@@ -242,7 +266,12 @@ export default function KiddushPage() {
                   <span className="kiddush-size-card__price">
                     ${Number(pkg.price).toFixed(2)}
                   </span>
-                  {pkg.shortDescription && (
+                  {menuItemCountFor(pkg) > 0 && (
+                    <span className="kiddush-size-card__hint">
+                      {menuItemCountFor(pkg)} included item{menuItemCountFor(pkg) === 1 ? '' : 's'}
+                    </span>
+                  )}
+                  {!menuItemCountFor(pkg) && pkg.shortDescription && (
                     <span className="kiddush-size-card__hint">
                       {cleanDisplayText(pkg.shortDescription)}
                     </span>
@@ -314,15 +343,25 @@ export default function KiddushPage() {
                   <div className="kiddush-modal__builder-header">
                     <h3 className="kiddush-modal__builder-title">What&apos;s included</h3>
                     <span className="kiddush-modal__builder-count">
-                      {detailIncludedItems.length} item{detailIncludedItems.length === 1 ? '' : 's'}
+                      {detailIncludedRows.length} item{detailIncludedRows.length === 1 ? '' : 's'}
                     </span>
                   </div>
-                  {detailIncludedItems.length > 0 ? (
+                  {detailIncludedRows.length > 0 ? (
                     <div className="kiddush-modal__options">
-                      {detailIncludedItems.map((line, i) => (
-                        <div key={i} className="kiddush-modal__option">
-                          <span className="kiddush-modal__option-name">{line}</span>
-                          <span className="kiddush-modal__option-tag">Included</span>
+                      {detailIncludedRows.map((row) => (
+                        <div key={row.key} className="kiddush-modal__option">
+                          <div className="kiddush-modal__option-text">
+                            {row.section && (
+                              <span className="kiddush-modal__option-section">{row.section}</span>
+                            )}
+                            <span className="kiddush-modal__option-name">{row.name}</span>
+                            {row.subtitle && (
+                              <span className="kiddush-modal__option-desc">{row.subtitle}</span>
+                            )}
+                          </div>
+                          <span className="kiddush-modal__option-tag">
+                            {row.typeLabel || 'Included'}
+                          </span>
                         </div>
                       ))}
                     </div>

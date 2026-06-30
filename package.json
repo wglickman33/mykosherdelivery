@@ -4,19 +4,23 @@
   "description": "MyKosherDelivery - Kosher Food Delivery Platform",
   "type": "module",
   "engines": {
-    "node": ">=18",
-    "npm": ">=9"
+    "node": "24.x",
+    "npm": "11.x"
   },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "start": "cd backend && npm start",
-    "heroku-postbuild": "cd backend && npm install",
+    "heroku-postbuild": "cd backend && npm ci --omit=dev",
     "migrate": "cd backend && npm run migrate",
     "migrate:prod": "cd backend && NODE_ENV=production npm run migrate",
     "seed": "cd backend && npm run seed",
-    "seed:nh-menu": "cd backend && npm run seed:nh-menu"
+    "seed:nh-menu": "cd backend && npm run seed:nh-menu",
+    "deploy": "bash scripts/deploy-heroku.sh",
+    "deploy:migrate": "bash scripts/deploy-heroku.sh --migrate",
+    "migrate:heroku": "bash scripts/migrate-heroku.sh",
+    "logs:heroku": "bash scripts/logs-heroku.sh"
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
@@ -37,6 +41,9 @@
     "recharts": "^3.6.0",
     "suncalc": "^1.9.0",
     "exceljs": "^4.4.0"
+  },
+  "overrides": {
+    "uuid": "^11.1.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",

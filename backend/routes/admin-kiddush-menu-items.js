@@ -9,6 +9,16 @@ const { validateMenuItemData, normalizeMenuItemData } = require('../utils/menuIt
 
 const router = express.Router({ mergeParams: true });
 
+router.use([
+  param('packageId').isUUID().withMessage('Valid package ID is required'),
+], (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ error: 'Validation failed', details: errors.array() });
+  }
+  next();
+});
+
 const toJson = (row) => {
   const j = row.toJSON ? row.toJSON() : row;
   return {

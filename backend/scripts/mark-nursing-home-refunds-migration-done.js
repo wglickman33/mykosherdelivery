@@ -7,7 +7,7 @@
  *   heroku run "cd backend && node scripts/mark-nursing-home-refunds-migration-done.js" -a mykosherdelivery
  *
  * Then run migrate again:
- *   heroku run "cd backend && npm run migrate" -a mykosherdelivery
+ *   heroku run npm run migrate --app mykosherdelivery
  */
 require('dotenv').config();
 const { sequelize } = require('../models');
