@@ -1,4 +1,5 @@
 import './KiddushPage.scss';
+import '../MenuItemModal/MenuItemModal.scss';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import Footer from '../Footer/Footer';
@@ -471,19 +472,19 @@ export default function KiddushPage() {
             <div className="kiddush-modal" onClick={(e) => e.stopPropagation()}>
               <button
                 type="button"
-                className="kiddush-modal__close"
+                className="menu-item-close-button"
                 aria-label="Close"
                 onClick={closeDetail}
               >
-                <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
                   <path
-                    fill="currentColor"
+                    fill="#6c757d"
                     d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
                   />
                 </svg>
               </button>
 
-              <div className="kiddush-modal__image">
+              <div className="modal-image">
                 <img
                   src={
                     detailPkg.imageUrl
@@ -491,10 +492,10 @@ export default function KiddushPage() {
                       : navyMKDIcon
                   }
                   alt={`${categoryLabel(detailPkg.category)} package, ${sizeTierLabel(detailPkg.sizeTier)}`}
-                  className={!detailPkg.imageUrl ? 'kiddush-modal__image--placeholder' : ''}
+                  className={!detailPkg.imageUrl ? 'placeholder-image' : ''}
                   onError={(e) => {
                     e.target.src = navyMKDIcon;
-                    e.target.classList.add('kiddush-modal__image--placeholder');
+                    e.target.classList.add('placeholder-image');
                   }}
                 />
               </div>

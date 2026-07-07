@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext, useMemo } from 'react';
+import { useState, useEffect, useContext, useMemo, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { CartContext } from './CartContext';
 import logger from '../utils/logger';
@@ -11,6 +11,7 @@ const CART_SESSION_DURATION = 7 * 24 * 60 * 60 * 1000;
 export const CartProvider = ({ children }) => {
   const { user, isGuest } = useContext(AuthContext);
   const [cartItems, setCartItems] = useState([]);
+  const [cartHydrated, setCartHydrated] = useState(false);
 
   const identitySuffix = useMemo(() => 
     user?.id ? `user_${user.id}` : (isGuest ? 'guest' : 'anonymous'),
@@ -19,7 +20,34 @@ export const CartProvider = ({ children }) => {
   const CART_STORAGE_KEY = useMemo(() => `${CART_STORAGE_KEY_BASE}_${identitySuffix}`, [identitySuffix]);
   const CART_TIMESTAMP_KEY = useMemo(() => `${CART_TIMESTAMP_KEY_BASE}_${identitySuffix}`, [identitySuffix]);
 
+  const normalizeCartItems = useCallback((items) => {
+    if (!Array.isArray(items)) return [];
+    return items.map((item, index) => ({
+      ...item,
+      cartItemId:
+        item.cartItemId ||
+        `${item.id}-${item.restaurantId || 'unknown'}-${index}`
+    }));
+  }, []);
+
+  const persistCart = useCallback((items) => {
+    try {
+      if (items.length > 0) {
+        localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+        localStorage.setItem(CART_TIMESTAMP_KEY, Date.now().toString());
+      } else {
+        localStorage.removeItem(CART_STORAGE_KEY);
+        localStorage.removeItem(CART_TIMESTAMP_KEY);
+      }
+    } catch (error) {
+      logger.error('Error saving cart to localStorage:', error);
+    }
+  }, [CART_STORAGE_KEY, CART_TIMESTAMP_KEY]);
+
   useEffect(() => {
+    setCartHydrated(false);
+    let nextItems = [];
+
     try {
       const savedCart = localStorage.getItem(CART_STORAGE_KEY);
       const savedTimestamp = localStorage.getItem(CART_TIMESTAMP_KEY);
@@ -29,41 +57,28 @@ export const CartProvider = ({ children }) => {
         const now = Date.now();
 
         if (now - timestamp < CART_SESSION_DURATION) {
-          const parsedCart = JSON.parse(savedCart);
-          setCartItems(Array.isArray(parsedCart) ? parsedCart : []);
-          logger.debug('Cart restored from localStorage for identity:', identitySuffix, 'items:', Array.isArray(parsedCart) ? parsedCart.length : 0);
+          nextItems = normalizeCartItems(JSON.parse(savedCart));
+          logger.debug('Cart restored from localStorage for identity:', identitySuffix, 'items:', nextItems.length);
         } else {
           localStorage.removeItem(CART_STORAGE_KEY);
           localStorage.removeItem(CART_TIMESTAMP_KEY);
-          setCartItems([]);
           logger.debug('Cart expired, cleared from localStorage for identity:', identitySuffix);
         }
-      } else {
-        setCartItems([]);
       }
     } catch (error) {
       logger.error('Error loading cart from localStorage:', error);
       localStorage.removeItem(CART_STORAGE_KEY);
       localStorage.removeItem(CART_TIMESTAMP_KEY);
-      setCartItems([]);
     }
-  }, [identitySuffix, CART_STORAGE_KEY, CART_TIMESTAMP_KEY]);
+
+    setCartItems(nextItems);
+    setCartHydrated(true);
+  }, [identitySuffix, CART_STORAGE_KEY, CART_TIMESTAMP_KEY, normalizeCartItems]);
 
   useEffect(() => {
-    // Only WRITE to localStorage here — never delete.
-    // Deletion happens only via clearCart() so we avoid a race condition where
-    // this effect fires with cartItems=[] on the initial render (before the load
-    // effect above has had a chance to restore the saved cart), wiping the stored
-    // cart before it can be loaded. This is what caused cart loss on new-tab open.
-    if (cartItems.length > 0) {
-      try {
-        localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
-        localStorage.setItem(CART_TIMESTAMP_KEY, Date.now().toString());
-      } catch (error) {
-        logger.error('Error saving cart to localStorage:', error);
-      }
-    }
-  }, [cartItems, CART_STORAGE_KEY, CART_TIMESTAMP_KEY]);
+    if (!cartHydrated) return;
+    persistCart(cartItems);
+  }, [cartItems, cartHydrated, persistCart]);
 
   useEffect(() => {
     const handleUserActivity = () => {
@@ -124,7 +139,7 @@ export const CartProvider = ({ children }) => {
   };
 
   const removeFromCart = (cartItemId) => {
-    setCartItems(prevItems => prevItems.filter(item => item.cartItemId !== cartItemId));
+    setCartItems((prevItems) => prevItems.filter((item) => item.cartItemId !== cartItemId));
   };
 
   const updateQuantity = (cartItemId, newQuantity) => {
@@ -133,8 +148,8 @@ export const CartProvider = ({ children }) => {
       return;
     }
 
-    setCartItems(prevItems =>
-      prevItems.map(item =>
+    setCartItems((prevItems) =>
+      prevItems.map((item) =>
         item.cartItemId === cartItemId
           ? { ...item, quantity: newQuantity }
           : item
@@ -144,12 +159,7 @@ export const CartProvider = ({ children }) => {
 
   const clearCart = () => {
     setCartItems([]);
-    try {
-      localStorage.removeItem(CART_STORAGE_KEY);
-      localStorage.removeItem(CART_TIMESTAMP_KEY);
-    } catch (error) {
-      logger.error('Error clearing cart from localStorage:', error);
-    }
+    persistCart([]);
   };
 
   const getCartTotal = () => {

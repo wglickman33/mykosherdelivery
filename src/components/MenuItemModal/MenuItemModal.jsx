@@ -226,7 +226,10 @@ const MenuItemModal = ({ item, restaurant, isOpen, onClose, onAdd }) => {
           
           {item.itemType === 'variety' && item.options?.variants && item.options.variants.length > 0 && (
             <div className="modal-variants">
-              <h4 className="variants-title">Choose Your Option:</h4>
+              <div className="section-header">
+                <h4 className="variants-title">Choose Your Option</h4>
+                <span className="selection-badge selection-badge--required">Required</span>
+              </div>
               <div className="variants-list">
                 {item.options.variants.map((variant, index) => (
                   <div 
@@ -259,7 +262,11 @@ const MenuItemModal = ({ item, restaurant, isOpen, onClose, onAdd }) => {
                   <div className="category-header">
                     <h5 className="category-title">
                       {config.category}
-                      {config.required && <span className="required-indicator">*</span>}
+                      <span
+                        className={`selection-badge ${config.required ? 'selection-badge--required' : 'selection-badge--optional'}`}
+                      >
+                        {config.required ? 'Required' : 'Optional'}
+                      </span>
                     </h5>
                     <span className="category-limit">
                       {(selectedConfigurations[`category_${categoryIndex}`]?.length || 0)} / {config.maxSelections} selected

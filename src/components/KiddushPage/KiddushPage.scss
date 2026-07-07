@@ -334,57 +334,11 @@ $secondary-text: #6c757d;
   @media (max-width: 640px) {
     max-width: 95vw;
     max-height: calc(100vh - 70px);
-  }
-}
-
-.kiddush-modal__close {
-  position: absolute;
-  top: 0.85rem;
-  right: 0.85rem;
-  z-index: 2;
-  background: rgba(255, 255, 255, 0.95);
-  border: none;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: #6b7280;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
-
-  &:hover {
-    background: $white;
-    color: $navy-color;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
-  }
-
-  &:focus-visible {
-    outline: 2px solid $primary-color;
-    outline-offset: 2px;
-  }
-}
-
-.kiddush-modal__image {
-  width: 100%;
-  aspect-ratio: 4 / 2.5;
-  overflow: hidden;
-  border-radius: 18px 18px 0 0;
-  background: $light-gray;
-  border-bottom: 4px solid $primary-color;
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-
-    &.kiddush-modal__image--placeholder {
-      object-fit: contain;
-      padding: 2.5rem;
-      background: $light-gray;
-    }
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
   }
 }
 
@@ -402,7 +356,6 @@ $secondary-text: #6c757d;
   font-weight: 800;
   color: $navy-color;
   line-height: 1.2;
-  padding-right: 2rem;
 
   @media (max-width: 640px) {
     font-size: 1.4rem;
