@@ -1,4 +1,3 @@
-import '../MenuItemModal/MenuItemModal.scss';
 import './KiddushPage.scss';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
@@ -462,13 +461,13 @@ export default function KiddushPage() {
 
         {detailPkg && (
           <div
-            className="kiddush-modal-overlay"
+            className="menu-item-modal-overlay"
             role="dialog"
             aria-modal="true"
             aria-labelledby="kiddush-modal-title"
             onClick={closeDetail}
           >
-            <div className="kiddush-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="menu-item-modal" onClick={(e) => e.stopPropagation()}>
               <button
                 type="button"
                 className="menu-item-close-button"
@@ -499,19 +498,19 @@ export default function KiddushPage() {
                 />
               </div>
 
-              <div className="kiddush-modal__content">
-                <h2 id="kiddush-modal-title" className="kiddush-modal__title">
+              <div className="modal-content">
+                <h2 id="kiddush-modal-title" className="modal-title">
                   {categoryLabel(detailPkg.category)},{' '}
                   {sizeTierShort(detailPkg.sizeTier)} guests
                 </h2>
 
-                <div className="kiddush-modal__badges">
-                  <span className="kiddush-modal__badge">{categoryTitle(detailPkg.category)}</span>
-                  <span className="kiddush-modal__badge">{sizeTierLabel(detailPkg.sizeTier)}</span>
+                <div className="modal-labels">
+                  <span className="modal-label">{categoryTitle(detailPkg.category)}</span>
+                  <span className="modal-label">{sizeTierLabel(detailPkg.sizeTier)}</span>
                 </div>
 
                 {detailPkg.shortDescription && (
-                  <p className="kiddush-modal__description">
+                  <p className="modal-description">
                     {cleanDisplayText(detailPkg.shortDescription)}
                   </p>
                 )}
@@ -568,27 +567,27 @@ export default function KiddushPage() {
                   )}
                 </div>
 
-                <div className="kiddush-modal__price-row">
-                  <span className="kiddush-modal__price-label">Price</span>
-                  <span className="kiddush-modal__price-value">${detailUnitPrice.toFixed(2)}</span>
+                <div className="modal-price">
+                  <span className="price-label">Price:</span>
+                  <span className="price-value">${detailUnitPrice.toFixed(2)}</span>
                 </div>
 
-                <div className="kiddush-modal__quantity">
-                  <span className="kiddush-modal__quantity-label">Quantity</span>
-                  <div className="kiddush-modal__quantity-controls">
+                <div className="quantity-section">
+                  <label className="quantity-label">Quantity:</label>
+                  <div className="quantity-controls">
                     <button
                       type="button"
-                      className="kiddush-modal__quantity-btn"
+                      className="quantity-btn"
                       onClick={() => handleQuantityChange(-1)}
                       disabled={quantity <= 1 || isAdded}
                       aria-label="Decrease quantity"
                     >
-                      −
+                      -
                     </button>
-                    <span className="kiddush-modal__quantity-display">{quantity}</span>
+                    <span className="quantity-display">{quantity}</span>
                     <button
                       type="button"
-                      className="kiddush-modal__quantity-btn"
+                      className="quantity-btn"
                       onClick={() => handleQuantityChange(1)}
                       disabled={isAdded}
                       aria-label="Increase quantity"
@@ -598,14 +597,14 @@ export default function KiddushPage() {
                   </div>
                 </div>
 
-                <div className="kiddush-modal__total">
-                  <span className="kiddush-modal__total-label">Total</span>
-                  <span className="kiddush-modal__total-value">${detailTotalPrice}</span>
+                <div className="total-price">
+                  <span className="total-label">Total:</span>
+                  <span className="total-value">${detailTotalPrice}</span>
                 </div>
 
                 <button
                   type="button"
-                  className={`kiddush-modal__add-btn ${isAdded ? 'is-added' : ''}`}
+                  className={`add-to-cart-btn ${isAdded ? 'added' : ''}`}
                   onClick={handleAddToCart}
                   disabled={isAdded || !canAddPackageToCart}
                 >
