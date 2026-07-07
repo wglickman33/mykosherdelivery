@@ -1,5 +1,5 @@
-import './KiddushPage.scss';
 import '../MenuItemModal/MenuItemModal.scss';
+import './KiddushPage.scss';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import Footer from '../Footer/Footer';
@@ -444,16 +444,15 @@ export default function KiddushPage() {
                   <span className="kiddush-size-card__price">
                     ${Number(pkg.price).toFixed(2)}
                   </span>
-                  {menuItemCountFor(pkg) > 0 && (
-                    <span className="kiddush-size-card__hint">
-                      {menuItemCountFor(pkg)} menu item{menuItemCountFor(pkg) === 1 ? '' : 's'}
-                    </span>
-                  )}
-                  {!menuItemCountFor(pkg) && pkg.shortDescription && (
+                  {pkg.shortDescription ? (
                     <span className="kiddush-size-card__hint">
                       {cleanDisplayText(pkg.shortDescription)}
                     </span>
-                  )}
+                  ) : menuItemCountFor(pkg) > 0 ? (
+                    <span className="kiddush-size-card__hint">
+                      {menuItemCountFor(pkg)} menu item{menuItemCountFor(pkg) === 1 ? '' : 's'}
+                    </span>
+                  ) : null}
                   <span className="kiddush-size-card__cta">Customize Package</span>
                 </button>
               ))}

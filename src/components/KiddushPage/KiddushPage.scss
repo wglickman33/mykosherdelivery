@@ -331,6 +331,30 @@ $secondary-text: #6c757d;
   box-shadow: 0 8px 32px rgba(6, 23, 87, 0.2);
   border: 1px solid rgba(6, 23, 87, 0.08);
 
+  > .modal-image {
+    aspect-ratio: 5 / 2;
+    max-height: 130px;
+    min-height: 0;
+    flex-shrink: 0;
+
+    img.placeholder-image {
+      object-fit: contain;
+      padding: 1.25rem 2rem;
+      background: #f8f9fa;
+      min-height: 0;
+      max-height: 130px;
+    }
+
+    @media (max-width: 640px) {
+      max-height: 110px;
+
+      img.placeholder-image {
+        padding: 1rem 1.5rem;
+        max-height: 110px;
+      }
+    }
+  }
+
   @media (max-width: 640px) {
     max-width: 95vw;
     max-height: calc(100vh - 70px);
