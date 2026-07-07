@@ -64,6 +64,7 @@ const MenuItemModal = ({ item, restaurant, isOpen, onClose, onAdd }) => {
   };
 
   const handleAddToCart = () => {
+    if (isAdded) return;
     let itemToAdd = item;
     const basePrice = item.price;
     let finalPrice = item.price;
@@ -383,7 +384,12 @@ const MenuItemModal = ({ item, restaurant, isOpen, onClose, onAdd }) => {
             {isAdded ? 'Added!' : 
              item.itemType === 'variety' && !selectedVariant ? 'Please select an option' :
              item.itemType === 'builder' && !isBuilderConfigurationValid() ? 'Please complete required selections' :
-             `Add to Cart - ${totalPrice}`}
+             onAdd
+               ? item.itemType === 'variety'
+                 ? 'Save option'
+                 : 'Save selection'
+               :
+             `Add to Cart - $${totalPrice}`}
           </button>
         </div>
       </div>

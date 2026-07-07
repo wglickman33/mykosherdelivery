@@ -79,7 +79,7 @@ const IconSidebar = () => {
           >
             <Link
               to="/kiddush"
-              title="Kiddush & Shalom Zachor"
+              title="Kiddush"
               className="icon-sidebar-menu-link"
               onClick={handleLinkClick}
             >

@@ -91,9 +91,17 @@ export const CartProvider = ({ children }) => {
 
   const addToCart = (item, quantity = 1, restaurantInfo = null) => {
     setCartItems(prevItems => {
-      const existingItemIndex = prevItems.findIndex(
-        cartItem => cartItem.id === item.id && cartItem.restaurantId === (restaurantInfo?.id)
-      );
+      const restaurantId = restaurantInfo?.id;
+      const existingItemIndex = prevItems.findIndex((cartItem) => {
+        if (
+          item.configurationSignature &&
+          cartItem.configurationSignature === item.configurationSignature &&
+          cartItem.restaurantId === restaurantId
+        ) {
+          return true;
+        }
+        return cartItem.id === item.id && cartItem.restaurantId === restaurantId;
+      });
 
       if (existingItemIndex >= 0) {
         const updatedItems = [...prevItems];
@@ -102,15 +110,16 @@ export const CartProvider = ({ children }) => {
           quantity: updatedItems[existingItemIndex].quantity + quantity
         };
         return updatedItems;
-      } else {
-        return [...prevItems, {
-          ...item,
-          quantity,
-          restaurantId: restaurantInfo?.id,
-          restaurantName: restaurantInfo?.name,
-          cartItemId: `${item.id}-${restaurantInfo?.id}-${Date.now()}`
-        }];
       }
+
+      const cartItemId = item.cartItemId || `${item.id}-${restaurantId}-${Date.now()}`;
+      return [...prevItems, {
+        ...item,
+        quantity,
+        restaurantId,
+        restaurantName: restaurantInfo?.name,
+        cartItemId
+      }];
     });
   };
 

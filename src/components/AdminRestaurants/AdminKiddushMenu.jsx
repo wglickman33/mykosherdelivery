@@ -1,5 +1,5 @@
 import './AdminKiddushMenu.scss';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import apiClient from '../../lib/api';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
@@ -68,28 +68,34 @@ export default function AdminKiddushMenu({ showNotification }) {
   const [deactivating, setDeactivating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(emptyForm);
+  const showNotificationRef = useRef(showNotification);
+  showNotificationRef.current = showNotification;
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const notify = useCallback((message, type) => {
+    showNotificationRef.current?.(message, type);
+  }, []);
+
+  const load = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
     try {
       const res = await apiClient.get('/admin/kiddush-packages', { includeInactive: 'true' });
       if (res?.success && Array.isArray(res.data)) {
         setPackages(res.data);
       } else {
         setPackages([]);
-        showNotification?.(res?.error || 'Failed to load Kiddush packages', 'error');
+        notify(res?.error || 'Failed to load Kiddush packages', 'error');
       }
     } catch (e) {
       setPackages([]);
-      showNotification?.(e?.message || 'Failed to load Kiddush packages', 'error');
+      notify(e?.message || 'Failed to load Kiddush packages', 'error');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  }, [showNotification]);
+  }, [notify]);
 
-  const loadMenuItems = useCallback(async (packageId, search = itemSearch) => {
+  const loadMenuItems = useCallback(async (packageId, search = '', { silent = false } = {}) => {
     if (!packageId) return;
-    setMenuItemsLoading(true);
+    if (!silent) setMenuItemsLoading(true);
     try {
       const res = await fetchKiddushMenuItems(packageId, {
         search: search.trim() || undefined,
@@ -99,15 +105,15 @@ export default function AdminKiddushMenu({ showNotification }) {
         setMenuItems(Array.isArray(res.data) ? res.data : []);
       } else {
         setMenuItems([]);
-        showNotification?.(res?.error || 'Failed to load package items', 'error');
+        notify(res?.error || 'Failed to load package items', 'error');
       }
     } catch (e) {
       setMenuItems([]);
-      showNotification?.(e?.message || 'Failed to load package items', 'error');
+      notify(e?.message || 'Failed to load package items', 'error');
     } finally {
-      setMenuItemsLoading(false);
+      if (!silent) setMenuItemsLoading(false);
     }
-  }, [itemSearch, showNotification]);
+  }, [notify]);
 
   useEffect(() => {
     load();
@@ -117,7 +123,9 @@ export default function AdminKiddushMenu({ showNotification }) {
     if (view === 'items' && selectedPackage?.id) {
       loadMenuItems(selectedPackage.id);
     }
-  }, [view, selectedPackage?.id, loadMenuItems]);
+    // Only reload items when entering a package view, not after every parent re-render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, selectedPackage?.id]);
 
   const filtered = useMemo(() => {
     if (categoryFilter === 'all') return packages;
@@ -205,14 +213,16 @@ export default function AdminKiddushMenu({ showNotification }) {
       if (form.id) {
         const res = await apiClient.put(`/admin/kiddush-packages/${form.id}`, payload);
         if (res?.success) {
-          showNotification?.('Package updated', 'success');
+          notify('Package updated', 'success');
           setModalOpen(false);
-          await load();
+          setPackages((prev) =>
+            prev.map((p) => (p.id === form.id ? { ...p, ...res.data } : p))
+          );
           if (selectedPackage?.id === form.id) {
             setSelectedPackage((prev) => ({ ...prev, ...res.data }));
           }
         } else {
-          showNotification?.(res?.error || 'Update failed', 'error');
+          notify(res?.error || 'Update failed', 'error');
         }
       } else {
         const combo = `${form.category}:${form.sizeTier}`;
@@ -228,11 +238,11 @@ export default function AdminKiddushMenu({ showNotification }) {
           includedItems: []
         });
         if (res?.success) {
-          showNotification?.('Package created', 'success');
+          notify('Package created', 'success');
           setModalOpen(false);
-          load();
+          setPackages((prev) => [...prev, res.data]);
         } else {
-          showNotification?.(res?.error || 'Create failed', 'error');
+          notify(res?.error || 'Create failed', 'error');
         }
       }
     } catch (e) {
@@ -248,14 +258,18 @@ export default function AdminKiddushMenu({ showNotification }) {
     try {
       const res = await apiClient.delete(`/admin/kiddush-packages/${deactivateTarget.id}`);
       if (res?.success) {
-        showNotification?.('Package deactivated', 'success');
+        notify('Package deactivated', 'success');
         setDeactivateTarget(null);
         if (selectedPackage?.id === deactivateTarget.id) {
           backToPackages();
         }
-        load();
+        setPackages((prev) =>
+          prev.map((p) =>
+            p.id === deactivateTarget.id ? { ...p, isActive: false } : p
+          )
+        );
       } else {
-        showNotification?.(res?.error || 'Deactivate failed', 'error');
+        notify(res?.error || 'Deactivate failed', 'error');
       }
     } catch (e) {
       showNotification?.(e?.message || 'Deactivate failed', 'error');

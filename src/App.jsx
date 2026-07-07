@@ -303,6 +303,7 @@ function AuthenticatedApp() {
             <Route path="/terms" element={<TermsAndConditionsPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/gift-card" element={<GiftCardPage />} />
+            <Route path="/kiddush/shalom-zachor" element={<KiddushPage />} />
             <Route path="/kiddush" element={<KiddushPage />} />
             <Route path="/account" element={<AccountPage />} />
             <Route path="/signin" element={<AuthPage />} />

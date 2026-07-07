@@ -1,6 +1,6 @@
 import './KiddushPage.scss';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import Footer from '../Footer/Footer';
 import { useCart } from '../../context/CartContext';
 import navyMKDIcon from '../../assets/navyMKDIcon.png';
@@ -11,6 +11,7 @@ import {
 } from '../../constants/mkdCartSentinels';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import { buildImageUrl } from '../../services/imageService';
+import MenuItemModal from '../MenuItemModal/MenuItemModal';
 
 const SIZE_ORDER = ['8_12', '15_20', '25_plus'];
 
@@ -49,6 +50,37 @@ const categoryLabel = (cat) =>
 const lineCategoryForPackage = (cat) =>
   cat === 'shalom_zachor' ? 'Shalom Zachor package' : 'Kiddush package';
 
+const KIDDUSH_ROUTES = {
+  kiddush: '/kiddush',
+  shalom_zachor: '/kiddush/shalom-zachor'
+};
+
+const categoryFromPath = (pathname) =>
+  pathname.startsWith(KIDDUSH_ROUTES.shalom_zachor) ? 'shalom_zachor' : 'kiddush';
+
+const PAGE_COPY = {
+  kiddush: {
+    title: 'Kiddush',
+    subtitle:
+      'Configure a Kiddush package for your Shabbat gathering. Pick a guest count, review what\u2019s included, customize your selections, and add it to your cart alongside restaurant orders for one checkout and delivery.',
+    howItWorks: [
+      'Pick a guest count tier for your Kiddush.',
+      'Customize your package and add it to your cart alongside meals from our restaurants.',
+      'One checkout. Delivery follows our usual Friday schedule.'
+    ]
+  },
+  shalom_zachor: {
+    title: 'Shalom Zachor',
+    subtitle:
+      'Configure a Shalom Zachor package to welcome your new arrival. Pick a guest count, review what\u2019s included, customize your selections, and add it to your cart alongside restaurant orders for one checkout and delivery.',
+    howItWorks: [
+      'Pick a guest count tier for your Shalom Zachor.',
+      'Customize your package and add it to your cart alongside meals from our restaurants.',
+      'One checkout. Delivery follows our usual Friday schedule.'
+    ]
+  }
+};
+
 const cleanDisplayText = (text) => {
   if (!text) return '';
   return String(text).replace(/\u2014/g, ', ').replace(/\u2013/g, '-');
@@ -65,21 +97,106 @@ const getItemTypeLabel = (itemType) => {
   }
 };
 
+const itemRequiresConfiguration = (item) =>
+  item?.itemType === 'variety' || item?.itemType === 'builder';
+
+const getCustomizeActionLabel = (item, configured) => {
+  if (item.itemType === 'variety') {
+    return configured ? 'Edit option' : 'Choose option';
+  }
+  if (item.itemType === 'builder') {
+    return configured ? 'Edit selection' : 'Customize';
+  }
+  return configured ? 'Edit' : 'Customize';
+};
+
+const normalizeMenuItemForModal = (item) => ({
+  ...item,
+  image: item.imageUrl ? buildImageUrl(item.imageUrl) : navyMKDIcon,
+  options: item.options || null,
+  itemType: item.itemType || 'simple'
+});
+
+const isItemConfigured = (item, configuredItems) => {
+  if (!itemRequiresConfiguration(item)) return true;
+  const configured = configuredItems[item.id];
+  if (!configured) return false;
+  if (item.itemType === 'variety') return !!configured.selectedVariant;
+  if (item.itemType === 'builder') {
+    if (!item.options?.configurations?.length) return true;
+    return item.options.configurations.every((config) => {
+      if (!config.required) return true;
+      const selections = configured.selectedConfigurations || [];
+      return selections.some((sel) => sel.category === config.category);
+    });
+  }
+  return true;
+};
+
+const getMenuItemPriceAdjustment = (item, configuredItems) => {
+  const configured = configuredItems[item.id];
+  if (!configured) return 0;
+  return Number(configured.price ?? item.price) - Number(item.price ?? 0);
+};
+
+const buildPackageConfigurationSignature = (packageId, configuredItems) => {
+  const parts = Object.keys(configuredItems)
+    .sort()
+    .map((itemId) => {
+      const configured = configuredItems[itemId];
+      if (configured.selectedVariant) {
+        const variantId = configured.selectedVariant.id || configured.selectedVariant.name;
+        return `${itemId}:v:${variantId}`;
+      }
+      if (configured.selectedConfigurations?.length) {
+        const options = configured.selectedConfigurations.map((sel) => sel.option).join(',');
+        return `${itemId}:b:${options}`;
+      }
+      return `${itemId}:s`;
+    });
+  return `kiddush-${packageId}-${parts.join('|')}`;
+};
+
+const serializeConfiguredMenuItems = (menuItems, configuredItems) =>
+  menuItems.map((item) => {
+    const configured = configuredItems[item.id];
+    if (!configured) {
+      return {
+        menuItemId: item.id,
+        name: item.name,
+        itemType: item.itemType || 'simple',
+        category: item.category,
+        included: true
+      };
+    }
+    return {
+      menuItemId: item.id,
+      name: configured.name || item.name,
+      itemType: item.itemType || 'simple',
+      category: item.category,
+      price: Number(configured.price ?? item.price),
+      selectedVariant: configured.selectedVariant || null,
+      selectedConfigurations: configured.selectedConfigurations || null
+    };
+  });
+
 /** Package menu items from admin (preferred). */
 const getPackageMenuItems = (pkg) => {
   if (!pkg || !Array.isArray(pkg.menuItems)) return [];
   return pkg.menuItems.filter((item) => item.available !== false);
 };
 
-/** Rows for the "What's included" builder UI. Uses menuItems only. */
-const getIncludedDisplayRows = (pkg) => {
+/** Rows for the package builder UI. */
+const getPackageBuilderRows = (pkg) => {
   const menuItems = getPackageMenuItems(pkg);
   return menuItems.map((item) => ({
     key: item.id,
+    item,
     name: cleanDisplayText(item.name),
     subtitle: item.description ? cleanDisplayText(item.description) : null,
     typeLabel: getItemTypeLabel(item.itemType),
-    section: item.category ? cleanDisplayText(item.category) : null
+    section: item.category ? cleanDisplayText(item.category) : null,
+    requiresConfiguration: itemRequiresConfiguration(item)
   }));
 };
 
@@ -93,12 +210,18 @@ function sortBySizeTier(a, b) {
 }
 
 export default function KiddushPage() {
+  const location = useLocation();
+  const category = categoryFromPath(location.pathname);
+  const pageCopy = PAGE_COPY[category];
+
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [category, setCategory] = useState('kiddush');
   const [detailPkg, setDetailPkg] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [isAdded, setIsAdded] = useState(false);
+  const [configuredItems, setConfiguredItems] = useState({});
+  const [configuringItem, setConfiguringItem] = useState(null);
+  const isAddingRef = useRef(false);
   const { addToCart } = useCart();
 
   const load = useCallback(async () => {
@@ -112,6 +235,15 @@ export default function KiddushPage() {
     load();
   }, [load]);
 
+  useEffect(() => {
+    setDetailPkg(null);
+    setQuantity(1);
+    setIsAdded(false);
+    setConfiguredItems({});
+    setConfiguringItem(null);
+    isAddingRef.current = false;
+  }, [category]);
+
   const filtered = useMemo(() => {
     return packages
       .filter((p) => p.category === category)
@@ -123,10 +255,29 @@ export default function KiddushPage() {
       });
   }, [packages, category]);
 
-  const detailIncludedRows = useMemo(
-    () => (detailPkg ? getIncludedDisplayRows(detailPkg) : []),
+  const detailBuilderRows = useMemo(
+    () => (detailPkg ? getPackageBuilderRows(detailPkg) : []),
     [detailPkg]
   );
+
+  const detailMenuItems = useMemo(
+    () => (detailPkg ? getPackageMenuItems(detailPkg) : []),
+    [detailPkg]
+  );
+
+  const configurableMenuItems = useMemo(
+    () => detailMenuItems.filter((item) => itemRequiresConfiguration(item)),
+    [detailMenuItems]
+  );
+
+  const hasConfigurableItems = configurableMenuItems.length > 0;
+
+  const allConfigurableItemsConfigured = useMemo(
+    () => configurableMenuItems.every((item) => isItemConfigured(item, configuredItems)),
+    [configurableMenuItems, configuredItems]
+  );
+
+  const canAddPackageToCart = !hasConfigurableItems || allConfigurableItemsConfigured;
 
   const menuItemCountFor = useCallback(
     (pkg) => getPackageMenuItems(pkg).length,
@@ -146,52 +297,84 @@ export default function KiddushPage() {
     if (detailPkg) {
       setQuantity(1);
       setIsAdded(false);
+      setConfiguredItems({});
+      setConfiguringItem(null);
+      isAddingRef.current = false;
     }
   }, [detailPkg]);
 
-  const detailUnitPrice = detailPkg ? Number(detailPkg.price) : 0;
+  const detailUnitPrice = detailPkg
+    ? detailMenuItems.reduce(
+        (sum, item) => sum + getMenuItemPriceAdjustment(item, configuredItems),
+        Number(detailPkg.price)
+      )
+    : 0;
   const detailTotalPrice = (detailUnitPrice * quantity).toFixed(2);
 
   const closeDetail = () => {
-    if (isAdded) return;
+    if (isAdded || isAddingRef.current) return;
     setDetailPkg(null);
     setQuantity(1);
+    setConfiguredItems({});
+    setConfiguringItem(null);
   };
 
   const handleQuantityChange = (change) => {
     setQuantity((prev) => Math.max(1, prev + change));
   };
 
+  const handleConfiguredMenuItem = (configuredItem) => {
+    if (!configuringItem) return;
+    setConfiguredItems((prev) => ({
+      ...prev,
+      [configuringItem.id]: configuredItem
+    }));
+    setConfiguringItem(null);
+  };
+
   const handleAddToCart = () => {
-    if (!detailPkg || isAdded) return;
+    if (!detailPkg || isAdded || isAddingRef.current || !canAddPackageToCart) return;
+
+    isAddingRef.current = true;
+    setIsAdded(true);
 
     const desc =
       detailPkg.shortDescription ||
       `${categoryTitle(detailPkg.category)}, ${sizeTierLabel(detailPkg.sizeTier)}`;
+
+    const configurationSignature = buildPackageConfigurationSignature(
+      detailPkg.id,
+      configuredItems
+    );
 
     const cartItem = {
       id: detailPkg.id,
       name: cleanDisplayText(detailPkg.name),
       price: detailUnitPrice,
       description: cleanDisplayText(desc),
-      itemType: 'simple',
+      itemType: 'kiddush_package',
       category: lineCategoryForPackage(detailPkg.category),
       image: detailPkg.imageUrl ? buildImageUrl(detailPkg.imageUrl) : navyMKDIcon,
       kiddushPackageId: detailPkg.id,
+      configurationSignature,
       metadata: {
         kiddushPackageId: detailPkg.id,
         category: detailPkg.category,
-        sizeTier: detailPkg.sizeTier
+        sizeTier: detailPkg.sizeTier,
+        basePackagePrice: Number(detailPkg.price),
+        configuredMenuItems: serializeConfiguredMenuItems(detailMenuItems, configuredItems)
       }
     };
 
     addToCart(cartItem, quantity, kiddushRestaurant);
-    setIsAdded(true);
 
     setTimeout(() => {
+      isAddingRef.current = false;
       setIsAdded(false);
       setDetailPkg(null);
       setQuantity(1);
+      setConfiguredItems({});
+      setConfiguringItem(null);
     }, 1500);
   };
 
@@ -207,33 +390,27 @@ export default function KiddushPage() {
               <img src={navyMKDIcon} alt="My Kosher Delivery logo" />
             </div>
             <div className="kiddush-hero__text">
-              <h1 className="kiddush-title">Kiddush &amp; Shalom Zachor</h1>
-              <p className="kiddush-subtitle">
-                Configure a package for your Shabbat gathering. Choose Kiddush or
-                Shalom Zachor, pick a guest count, review what&apos;s included, and
-                add it to your cart alongside restaurant orders for one checkout
-                and delivery.
-              </p>
+              <h1 className="kiddush-title">{pageCopy.title}</h1>
+              <p className="kiddush-subtitle">{pageCopy.subtitle}</p>
             </div>
           </div>
         </div>
 
-        <section className="kiddush-category-tabs" aria-label="Package type">
-          <button
-            type="button"
-            className={`kiddush-tab ${category === 'kiddush' ? 'is-active' : ''}`}
-            onClick={() => setCategory('kiddush')}
+        <nav className="kiddush-category-tabs" aria-label="Package type">
+          <NavLink
+            to={KIDDUSH_ROUTES.kiddush}
+            end
+            className={({ isActive }) => `kiddush-tab${isActive ? ' is-active' : ''}`}
           >
             Kiddush Options
-          </button>
-          <button
-            type="button"
-            className={`kiddush-tab ${category === 'shalom_zachor' ? 'is-active' : ''}`}
-            onClick={() => setCategory('shalom_zachor')}
+          </NavLink>
+          <NavLink
+            to={KIDDUSH_ROUTES.shalom_zachor}
+            className={({ isActive }) => `kiddush-tab${isActive ? ' is-active' : ''}`}
           >
             Shalom Zachor Options
-          </button>
-        </section>
+          </NavLink>
+        </nav>
 
         {loading ? (
           <div className="kiddush-loading">
@@ -268,7 +445,7 @@ export default function KiddushPage() {
                   </span>
                   {menuItemCountFor(pkg) > 0 && (
                     <span className="kiddush-size-card__hint">
-                      {menuItemCountFor(pkg)} included item{menuItemCountFor(pkg) === 1 ? '' : 's'}
+                      {menuItemCountFor(pkg)} menu item{menuItemCountFor(pkg) === 1 ? '' : 's'}
                     </span>
                   )}
                   {!menuItemCountFor(pkg) && pkg.shortDescription && (
@@ -276,7 +453,7 @@ export default function KiddushPage() {
                       {cleanDisplayText(pkg.shortDescription)}
                     </span>
                   )}
-                  <span className="kiddush-size-card__cta">View details</span>
+                  <span className="kiddush-size-card__cta">Customize Package</span>
                 </button>
               ))}
             </div>
@@ -341,33 +518,52 @@ export default function KiddushPage() {
 
                 <div className="kiddush-modal__builder">
                   <div className="kiddush-modal__builder-header">
-                    <h3 className="kiddush-modal__builder-title">What&apos;s included</h3>
+                    <h3 className="kiddush-modal__builder-title">Build your package</h3>
                     <span className="kiddush-modal__builder-count">
-                      {detailIncludedRows.length} item{detailIncludedRows.length === 1 ? '' : 's'}
+                      {detailBuilderRows.length} item{detailBuilderRows.length === 1 ? '' : 's'}
                     </span>
                   </div>
-                  {detailIncludedRows.length > 0 ? (
+                  {detailBuilderRows.length > 0 ? (
                     <div className="kiddush-modal__options">
-                      {detailIncludedRows.map((row) => (
-                        <div key={row.key} className="kiddush-modal__option">
-                          <div className="kiddush-modal__option-text">
-                            {row.section && (
-                              <span className="kiddush-modal__option-section">{row.section}</span>
-                            )}
-                            <span className="kiddush-modal__option-name">{row.name}</span>
-                            {row.subtitle && (
-                              <span className="kiddush-modal__option-desc">{row.subtitle}</span>
+                      {detailBuilderRows.map((row) => {
+                        const configured = isItemConfigured(row.item, configuredItems);
+                        return (
+                          <div key={row.key} className="kiddush-modal__option">
+                            <div className="kiddush-modal__option-text">
+                              {row.section && (
+                                <span className="kiddush-modal__option-section">{row.section}</span>
+                              )}
+                              <span className="kiddush-modal__option-name">{row.name}</span>
+                              {row.subtitle && (
+                                <span className="kiddush-modal__option-desc">{row.subtitle}</span>
+                              )}
+                              {row.typeLabel && (
+                                <span className="kiddush-modal__option-type">{row.typeLabel}</span>
+                              )}
+                            </div>
+                            {row.requiresConfiguration ? (
+                              <button
+                                type="button"
+                                className={`kiddush-modal__option-action ${configured ? 'is-complete' : ''}`}
+                                onClick={() => setConfiguringItem(row.item)}
+                              >
+                                {getCustomizeActionLabel(row.item, configured)}
+                              </button>
+                            ) : (
+                              <span className="kiddush-modal__option-tag">Included</span>
                             )}
                           </div>
-                          <span className="kiddush-modal__option-tag">
-                            {row.typeLabel || 'Included'}
-                          </span>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
                     <p className="kiddush-modal__builder-empty">
                       Menu details for this package will be posted soon.
+                    </p>
+                  )}
+                  {hasConfigurableItems && !allConfigurableItemsConfigured && (
+                    <p className="kiddush-modal__builder-hint">
+                      Choose an option for each variable item and customize each configurable item before adding the package to cart.
                     </p>
                   )}
                 </div>
@@ -411,30 +607,38 @@ export default function KiddushPage() {
                   type="button"
                   className={`kiddush-modal__add-btn ${isAdded ? 'is-added' : ''}`}
                   onClick={handleAddToCart}
-                  disabled={isAdded}
+                  disabled={isAdded || !canAddPackageToCart}
                 >
-                  {isAdded ? 'Added!' : `Add to Cart - $${detailTotalPrice}`}
+                  {isAdded
+                    ? 'Added!'
+                    : !canAddPackageToCart
+                      ? 'Complete item selections to continue'
+                      : `Add to Cart - $${detailTotalPrice}`}
                 </button>
               </div>
             </div>
           </div>
         )}
 
+        {configuringItem && (
+          <MenuItemModal
+            item={normalizeMenuItemForModal(configuringItem)}
+            restaurant={kiddushRestaurant}
+            isOpen={!!configuringItem}
+            onClose={() => setConfiguringItem(null)}
+            onAdd={handleConfiguredMenuItem}
+          />
+        )}
+
         <section className="kiddush-info" aria-labelledby="kiddush-how-heading">
           <h3 id="kiddush-how-heading">How it works</h3>
           <ol className="kiddush-info__steps">
-            <li className="kiddush-info__step">
-              <span className="kiddush-info__step-num" aria-hidden="true">1</span>
-              <p>Choose Kiddush or Shalom Zachor, then pick a guest count tier.</p>
-            </li>
-            <li className="kiddush-info__step">
-              <span className="kiddush-info__step-num" aria-hidden="true">2</span>
-              <p>Add packages to your cart alongside meals from our restaurants.</p>
-            </li>
-            <li className="kiddush-info__step">
-              <span className="kiddush-info__step-num" aria-hidden="true">3</span>
-              <p>One checkout. Delivery follows our usual Friday schedule.</p>
-            </li>
+            {pageCopy.howItWorks.map((step, index) => (
+              <li key={step} className="kiddush-info__step">
+                <span className="kiddush-info__step-num" aria-hidden="true">{index + 1}</span>
+                <p>{step}</p>
+              </li>
+            ))}
           </ol>
         </section>
       </div>
