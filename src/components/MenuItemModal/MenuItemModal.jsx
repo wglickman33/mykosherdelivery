@@ -9,7 +9,7 @@ import { AVAILABLE_LABELS } from '../../data/labels';
 
 const labelMap = AVAILABLE_LABELS;
 
-const MenuItemModal = ({ item, restaurant, isOpen, onClose, onAdd }) => {
+const MenuItemModal = ({ item, restaurant, isOpen, onClose, onAdd, initialSelections }) => {
   const [quantity, setQuantity] = useState(1);
   const [isAdded, setIsAdded] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState(null);
@@ -22,10 +22,10 @@ const MenuItemModal = ({ item, restaurant, isOpen, onClose, onAdd }) => {
     if (isOpen) {
       setQuantity(1);
       setIsAdded(false);
-      setSelectedVariant(null);
-      setSelectedConfigurations({});
+      setSelectedVariant(initialSelections?.selectedVariant ?? null);
+      setSelectedConfigurations(initialSelections?.selectedConfigurations ?? {});
     }
-  }, [isOpen, item]);
+  }, [isOpen, item, initialSelections]);
 
   if (!isOpen || !item) return null;
 
@@ -234,7 +234,12 @@ const MenuItemModal = ({ item, restaurant, isOpen, onClose, onAdd }) => {
                 {item.options.variants.map((variant, index) => (
                   <div 
                     key={variant.id || index}
-                    className={`variant-option ${selectedVariant?.id === variant.id ? 'selected' : ''}`}
+                    className={`variant-option ${
+                      (selectedVariant?.id != null && selectedVariant.id === variant.id) ||
+                      selectedVariant?.name === variant.name
+                        ? 'selected'
+                        : ''
+                    }`}
                     onClick={() => setSelectedVariant(variant)}
                   >
                     <div className="variant-info">
@@ -409,7 +414,11 @@ MenuItemModal.propTypes = {
   restaurant: PropTypes.object,
   isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
-  onAdd: PropTypes.func
+  onAdd: PropTypes.func,
+  initialSelections: PropTypes.shape({
+    selectedVariant: PropTypes.object,
+    selectedConfigurations: PropTypes.object
+  })
 };
 
 export default MenuItemModal; 

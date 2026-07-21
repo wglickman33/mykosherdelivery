@@ -117,6 +117,55 @@ const normalizeMenuItemForModal = (item) => ({
   itemType: item.itemType || 'simple'
 });
 
+/** Restore MenuItemModal state when editing an already-configured package item. */
+const buildInitialSelectionsForModal = (item, configured) => {
+  if (!item || !configured) return null;
+
+  if (item.itemType === 'variety' && configured.selectedVariant) {
+    const saved = configured.selectedVariant;
+    const variant =
+      item.options?.variants?.find(
+        (v) =>
+          (saved.id != null && v.id === saved.id) ||
+          v.name === saved.name
+      ) || saved;
+
+    return {
+      selectedVariant: variant,
+      selectedConfigurations: {}
+    };
+  }
+
+  if (item.itemType === 'builder' && configured.selectedConfigurations?.length) {
+    const selectedConfigurations = {};
+
+    item.options?.configurations?.forEach((config, categoryIndex) => {
+      const categoryKey = `category_${categoryIndex}`;
+      const indices = [];
+
+      configured.selectedConfigurations
+        .filter((sel) => sel.category === config.category)
+        .forEach((sel) => {
+          const optionIndex = config.options.findIndex((opt) => opt.name === sel.option);
+          if (optionIndex !== -1) {
+            indices.push(optionIndex);
+          }
+        });
+
+      if (indices.length > 0) {
+        selectedConfigurations[categoryKey] = indices;
+      }
+    });
+
+    return {
+      selectedVariant: null,
+      selectedConfigurations
+    };
+  }
+
+  return null;
+};
+
 const isItemConfigured = (item, configuredItems) => {
   if (!itemRequiresConfiguration(item)) return true;
   const configured = configuredItems[item.id];
@@ -292,6 +341,14 @@ export default function KiddushPage() {
     }),
     []
   );
+
+  const configuringItemInitialSelections = useMemo(() => {
+    if (!configuringItem) return null;
+    return buildInitialSelectionsForModal(
+      configuringItem,
+      configuredItems[configuringItem.id]
+    );
+  }, [configuringItem, configuredItems]);
 
   useEffect(() => {
     if (detailPkg) {
@@ -626,6 +683,7 @@ export default function KiddushPage() {
             isOpen={!!configuringItem}
             onClose={() => setConfiguringItem(null)}
             onAdd={handleConfiguredMenuItem}
+            initialSelections={configuringItemInitialSelections}
           />
         )}
 
