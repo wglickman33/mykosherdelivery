@@ -645,9 +645,39 @@ router.post(
       logger.error("Stripe webhook received but Stripe is not configured");
       return res.status(503).send("Payment provider not configured");
     }
+
+    // constructEvent requires the raw request body (string or Buffer).
+    // If middleware parsed JSON first, signature verification cannot run.
+    const rawBody = Buffer.isBuffer(req.body)
+      ? req.body
+      : typeof req.body === "string"
+        ? req.body
+        : null;
+
+    if (!rawBody) {
+      logger.error("Stripe webhook body was parsed before signature verification", {
+        bodyType: req.body === null ? "null" : typeof req.body,
+        isBuffer: Buffer.isBuffer(req.body),
+        contentType: req.headers["content-type"],
+      });
+      return res.status(400).send(
+        "Webhook Error: Webhook payload must be provided as a string or a Buffer"
+      );
+    }
+
+    if (!sig) {
+      logger.error("Stripe webhook missing stripe-signature header");
+      return res.status(400).send("Webhook Error: Missing stripe-signature header");
+    }
+
+    if (!process.env.STRIPE_WEBHOOK_SECRET) {
+      logger.error("STRIPE_WEBHOOK_SECRET is not configured");
+      return res.status(503).send("Webhook secret not configured");
+    }
+
     try {
       event = client.webhooks.constructEvent(
-        req.body,
+        rawBody,
         sig,
         process.env.STRIPE_WEBHOOK_SECRET
       );

@@ -72,7 +72,13 @@ const isStripeWebhookRequest = (req) => {
   return url.startsWith('/api/payments/webhook') || path.startsWith('/api/payments/webhook');
 };
 
-app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
+// Stripe webhooks need the exact raw body for signature verification.
+// Match any JSON content-type (incl. charset) and skip all parsers that would
+// turn the payload into a JS object before constructEvent runs.
+app.use(
+  '/api/payments/webhook',
+  express.raw({ type: '*/*', limit: '1mb' })
+);
 
 // For all non-webhook routes, use JSON body parser
 app.use((req, res, next) => {
@@ -90,7 +96,12 @@ app.use((req, res, next) => {
   express.urlencoded({ extended: true, limit: '10mb' })(req, res, next);
 });
 
-app.use(sanitizeInput);
+app.use((req, res, next) => {
+  if (isStripeWebhookRequest(req)) {
+    return next();
+  }
+  return sanitizeInput(req, res, next);
+});
 
 app.use('/static', (req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');

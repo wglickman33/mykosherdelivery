@@ -158,6 +158,15 @@ const validationRules = {
 };
 
 const sanitizeInput = (req, res, next) => {
+  const url = req.originalUrl || req.url || '';
+  if (
+    Buffer.isBuffer(req.body) ||
+    url.startsWith('/api/payments/webhook') ||
+    req.path === '/webhook'
+  ) {
+    return next();
+  }
+
   const sanitizeString = (str) => {
     if (typeof str !== 'string') return str;
     
@@ -170,6 +179,7 @@ const sanitizeInput = (req, res, next) => {
 
   const sanitizeObject = (obj) => {
     if (typeof obj !== 'object' || obj === null) return obj;
+    if (Buffer.isBuffer(obj)) return obj;
     
     if (Array.isArray(obj)) {
       return obj.map(item => {
