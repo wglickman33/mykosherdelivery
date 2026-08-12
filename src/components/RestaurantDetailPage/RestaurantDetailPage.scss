@@ -267,6 +267,8 @@
 }
 
 .menu-section {
+  overflow: visible;
+
   .menu-title {
     font-size: 2rem;
     font-weight: 700;
@@ -407,6 +409,7 @@
     gap: 2.5rem;
     margin-bottom: 40px;
     justify-content: center;
+    overflow: visible;
 
     @media (max-width: 811px) {
       grid-template-columns: 1fr;
@@ -420,17 +423,18 @@
   background: #fff;
   border-radius: 18px;
   box-shadow: 0 4px 24px rgba(6, 23, 87, 0.10);
-  overflow: hidden;
+  overflow: visible;
   display: flex;
   flex-direction: column;
   border: 1px solid #e8e8e8;
   position: relative;
-  transition: all 0.3s ease;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
   max-width: 455px;
+  z-index: 1;
 
   &:hover {
     box-shadow: 0 8px 32px rgba(6, 23, 87, 0.18);
-    transform: translateY(-2px);
+    z-index: 20;
   }
 
   &__clickable {
@@ -438,7 +442,9 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    transition: all 0.3s ease;
+    transition: background-color 0.3s ease;
+    border-radius: 18px 18px 0 0;
+    overflow: visible;
   }
 
   &__image-wrapper {
@@ -449,6 +455,7 @@
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    border-radius: 18px 18px 0 0;
   }
 
   &__image {
@@ -494,6 +501,9 @@
     gap: 0.6rem;
     margin-bottom: 1.1rem;
     flex-wrap: wrap;
+    position: relative;
+    z-index: 5;
+    overflow: visible;
   }
 
   &__label {
@@ -507,7 +517,8 @@
     display: inline-block;
     position: relative;
     cursor: default;
-    transition: all 0.3s ease;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    z-index: 1;
 
     &[title*="Meat"],
     &[title*="meat"] {
@@ -583,17 +594,26 @@
     &:hover::after {
       content: attr(title);
       position: absolute;
-      left: 50%;
-      bottom: 120%;
-      transform: translateX(-50%);
+      left: 0;
+      right: 0;
+      bottom: calc(100% + 8px);
+      width: max-content;
+      max-width: min(280px, 70vw);
+      margin-left: auto;
+      margin-right: auto;
       color: #fff;
       padding: 0.45rem 1rem;
       border-radius: 8px;
       font-size: 0.95rem;
       font-weight: 500;
       white-space: nowrap;
-      box-shadow: 0 2px 8px rgba(6, 23, 87, 0.12);
-      z-index: 10;
+      box-shadow: 0 4px 14px rgba(6, 23, 87, 0.18);
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    &:hover {
+      z-index: 1000;
     }
   }
 

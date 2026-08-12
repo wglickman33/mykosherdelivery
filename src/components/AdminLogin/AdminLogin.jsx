@@ -18,7 +18,7 @@ const AdminLogin = () => {
       allowedRoles={[USER_ROLES.ADMIN, USER_ROLES.NURSING_HOME_ADMIN, USER_ROLES.NURSING_HOME_USER]}
       redirectPath={getRedirectPath}
       errorMessage="Access denied. Admin or nursing home credentials required."
-      footerText="© 2025 MyKosherDelivery. Admin Portal v1.0"
+      footerText={`© ${new Date().getFullYear()} MyKosherDelivery. Admin Portal v1.0`}
       className="admin-login"
     />
   );
