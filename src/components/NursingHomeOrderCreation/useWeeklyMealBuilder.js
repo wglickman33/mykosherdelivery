@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { NH_CONFIG } from '../config/constants';
+import { NH_CONFIG } from '../../config/constants';
 import {
   copyDayToDays,
   getDayProgress,
@@ -11,7 +11,7 @@ import {
   isNoneMeal,
   mealHasItems,
   NH_MEAL_TYPES
-} from '../utils/nursingHomeOrderUtils';
+} from '../../utils/nursingHomeOrderUtils';
 
 const DAYS_OF_WEEK = NH_CONFIG.MEALS.DAYS;
 
