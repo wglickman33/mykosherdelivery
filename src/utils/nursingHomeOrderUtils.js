@@ -12,11 +12,91 @@ export const NH_TAX_RATE = 0.08875;
 const normCat = (c) => String(c || '').toLowerCase();
 
 export const isNoneMeal = (meal) =>
-  !meal || meal.none === true || meal.skipped === true ||
-  (Array.isArray(meal.items) && meal.items.some((i) => i?.id === 'none' || i?.name === 'None'));
+  Boolean(meal) && (
+    meal.none === true ||
+    meal.skipped === true ||
+    (Array.isArray(meal.items) && meal.items.some((i) => i?.id === 'none' || i?.name === 'None'))
+  );
 
 export const mealHasItems = (meal) =>
   meal && !isNoneMeal(meal) && Array.isArray(meal.items) && meal.items.length > 0;
+
+export const isMealSlotComplete = (meal) => mealHasItems(meal) || isNoneMeal(meal);
+
+export const isDayComplete = (mealsMap, day) =>
+  ['breakfast', 'lunch', 'dinner'].every((mealType) =>
+    isMealSlotComplete(mealsMap?.[`${day}-${mealType}`])
+  );
+
+export const NH_MEAL_TYPES = ['breakfast', 'lunch', 'dinner'];
+
+export const getMealKey = (day, mealType) => `${day}-${mealType}`;
+
+/** How many of breakfast/lunch/dinner are confirmed for a day. */
+export const getDayProgress = (mealsMap, day) => {
+  const filled = NH_MEAL_TYPES.filter((mealType) =>
+    isMealSlotComplete(mealsMap?.[getMealKey(day, mealType)])
+  ).length;
+  return { filled, total: NH_MEAL_TYPES.length, complete: filled === NH_MEAL_TYPES.length };
+};
+
+export const cloneMealForDay = (meal, targetDay) => {
+  if (!meal) return null;
+  const none = isNoneMeal(meal);
+  return {
+    day: targetDay,
+    mealType: meal.mealType,
+    items: none
+      ? []
+      : (meal.items || []).map((item) => ({ ...item })),
+    bagelType: none ? null : (meal.bagelType || null),
+    none
+  };
+};
+
+/**
+ * Copy confirmed meals from sourceDay onto each target day (overwrites those slots).
+ * Returns a new meals map.
+ */
+export const copyDayToDays = (mealsMap, sourceDay, targetDays = []) => {
+  const next = { ...(mealsMap || {}) };
+  const targets = (targetDays || []).filter((d) => d && d !== sourceDay);
+
+  NH_MEAL_TYPES.forEach((mealType) => {
+    const source = mealsMap?.[getMealKey(sourceDay, mealType)];
+    if (!isMealSlotComplete(source)) return;
+    targets.forEach((day) => {
+      next[getMealKey(day, mealType)] = cloneMealForDay(source, day);
+    });
+  });
+
+  return next;
+};
+
+export const getNextMealNavLabel = (
+  day,
+  mealType,
+  days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+  mealTypes = NH_MEAL_TYPES
+) => {
+  const mealIndex = mealTypes.indexOf(mealType);
+  if (mealIndex >= 0 && mealIndex < mealTypes.length - 1) {
+    const next = mealTypes[mealIndex + 1];
+    return `Next: ${next.charAt(0).toUpperCase() + next.slice(1)}`;
+  }
+  const dayIndex = days.indexOf(day);
+  if (dayIndex >= 0 && dayIndex < days.length - 1) {
+    return `Next Day: ${days[dayIndex + 1]}`;
+  }
+  return 'Review order';
+};
+
+export const isLastMealSlot = (
+  day,
+  mealType,
+  days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+  mealTypes = NH_MEAL_TYPES
+) => day === days[days.length - 1] && mealType === mealTypes[mealTypes.length - 1];
 
 const itemNeedsBagelType = (item) => {
   if (item?.requiresBagelType === true) return true;
@@ -25,6 +105,40 @@ const itemNeedsBagelType = (item) => {
 };
 
 const mainsExcludeSide = (mains) => mains.some((i) => i.excludesSide === true);
+
+/** Soft validation hints while selecting (before Next). */
+export const getMealSelectionHints = (mealType, meal) => {
+  if (!meal || isNoneMeal(meal)) return [];
+  const items = meal.items || [];
+  if (items.length === 0) return [];
+
+  const hints = [];
+  const mains = items.filter((i) => ['main', 'entree'].includes(normCat(i.category)));
+  const sides = items.filter((i) => normCat(i.category) === 'side');
+  const skipSide = mainsExcludeSide(mains);
+  const needsBagel = mains.some(itemNeedsBagelType);
+
+  if (mealType === 'breakfast' || mealType === 'lunch') {
+    const mainLabel = mealType === 'breakfast' ? 'main' : 'entree';
+    if (mains.length === 0) hints.push({ category: 'main', message: `Choose a ${mainLabel}` });
+    if (!skipSide && mains.length > 0 && sides.length === 0) {
+      hints.push({ category: 'side', message: 'Choose a side' });
+    }
+  }
+
+  if (mealType === 'dinner') {
+    if (mains.length === 0) hints.push({ category: 'main', message: 'Choose an entree' });
+    if (!skipSide && mains.length > 0 && sides.length === 0) {
+      hints.push({ category: 'side', message: 'Choose a side' });
+    }
+  }
+
+  if (needsBagel && !meal.bagelType) {
+    hints.push({ category: 'bagel', message: 'Choose a bagel type' });
+  }
+
+  return hints;
+};
 
 export const validateMealSelection = (mealType, meal) => {
   if (!meal || isNoneMeal(meal)) return null;
@@ -130,26 +244,30 @@ const getPartsInTz = (date, timeZone) => {
   };
 };
 
-/** Next Sunday 12:00 America/New_York as a Date (approx wall time). */
+/** Next Sunday 12:00 America/New_York as a Date. */
 export const getNhOrderDeadline = (timeZone = 'America/New_York') => {
   const now = new Date();
   const cur = getPartsInTz(now, timeZone);
   let daysUntilSunday = (7 - cur.weekday) % 7;
-  if (daysUntilSunday === 0 && (cur.hour > 12 || (cur.hour === 12 && cur.minute >= 0))) {
-    // If it's Sunday after/at noon, deadline was today - still show today's noon for display;
-    // submit will be blocked by backend. If past noon, next week's Sunday.
-    if (cur.hour > 12 || (cur.hour === 12 && cur.minute > 0)) {
-      daysUntilSunday = 7;
-    }
+  if (daysUntilSunday === 0 && (cur.hour > 12 || (cur.hour === 12 && cur.minute > 0))) {
+    daysUntilSunday = 7;
   }
   const target = new Date(now.getTime() + daysUntilSunday * 24 * 60 * 60 * 1000);
-  // Build a Date representing that calendar day at 12:00 ET approximately
   const targetParts = getPartsInTz(target, timeZone);
-  // Use noon ET via ISO-ish construction: treat as local noon adjusted - good enough for display
-  const display = new Date(
-    Date.UTC(targetParts.year, targetParts.month - 1, targetParts.day, 17, 0, 0)
-  ); // 12:00 ET ≈ 17:00 UTC (EST) - DST may shift; UI uses toLocaleString with timeZone
-  return display;
+  const y = targetParts.year;
+  const m = targetParts.month;
+  const d = targetParts.day;
+
+  // Find the UTC instant that is exactly 12:00 in America/New_York (handles EST/EDT)
+  for (let utcHour = 14; utcHour <= 18; utcHour += 1) {
+    const candidate = new Date(Date.UTC(y, m - 1, d, utcHour, 0, 0));
+    const parts = getPartsInTz(candidate, timeZone);
+    if (parts.year === y && parts.month === m && parts.day === d && parts.hour === 12 && parts.minute === 0) {
+      return candidate;
+    }
+  }
+
+  return new Date(Date.UTC(y, m - 1, d, 16, 0, 0));
 };
 
 export const formatNhDeadline = (date = getNhOrderDeadline()) =>

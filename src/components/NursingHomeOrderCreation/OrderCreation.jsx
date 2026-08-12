@@ -11,14 +11,12 @@ import {
 } from '../../services/nursingHomeService';
 import { useNursingHomeFacility } from '../../context/NursingHomeFacilityContext';
 import { useAuth } from '../../hooks/useAuth';
-import { NH_CONFIG } from '../../config/constants';
 import {
   getNextMondayDateString,
   addDaysToDateString,
   formatNhDeadline,
   validateWeeklyMeals,
   mealHasItems,
-  isNoneMeal,
   isStaffPlacedOrder,
   formatAssignedStaffContact,
   ADMIN_ALREADY_ORDERED_MESSAGE
@@ -28,9 +26,8 @@ import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import NhAdminOrderedModal from '../NursingHomeShared/NhAdminOrderedModal';
 import MealForm from './MealForm';
 import OrderSummary from './OrderSummary';
+import useWeeklyMealBuilder from './useWeeklyMealBuilder';
 import './OrderCreation.scss';
-
-const DAYS_OF_WEEK = NH_CONFIG.MEALS.DAYS;
 
 const OrderCreation = () => {
   const { residentId, facilitySlug: slugParam } = useParams();
@@ -47,9 +44,39 @@ const OrderCreation = () => {
   const [saving, setSaving] = useState(false);
   const [adminConflict, setAdminConflict] = useState(null);
 
-  const [selectedDay, setSelectedDay] = useState('Monday');
-  const [selectedMealType, setSelectedMealType] = useState('breakfast');
-  const [meals, setMeals] = useState({});
+  const mealBuilder = useWeeklyMealBuilder();
+  const {
+    DAYS_OF_WEEK,
+    MEAL_TYPES,
+    meals,
+    selectedDay,
+    setSelectedDay,
+    selectedMealType,
+    setSelectedMealType,
+    markClean,
+    initialMealForForm,
+    committedMeal,
+    handleDraftChange,
+    handleMealCommit,
+    handleMealClear,
+    advanceToNextSlot,
+    jumpToMeal,
+    nextLabel,
+    isLastSlot,
+    mealSlotFilled,
+    totalMeals,
+    buildMealArray,
+    dayProgress,
+    sourceDayCopyable,
+    copyOpen,
+    setCopyOpen,
+    copyTargets,
+    setCopyTargets,
+    openCopyPanel,
+    applyCopyDay,
+    confirmLeave,
+    highlightSummary
+  } = mealBuilder;
 
   const facilitySlug = slugParam || facility?.slug || contextFacility?.slug;
   const weekStart = getNextMondayDateString();
@@ -111,25 +138,6 @@ const OrderCreation = () => {
     loadData();
   }, [loadData]);
 
-  const getMealKey = (day, mealType) => `${day}-${mealType}`;
-
-  const handleMealUpdate = (day, mealType, items, bagelType = null, none = false) => {
-    const key = getMealKey(day, mealType);
-    setMeals((prev) => ({
-      ...prev,
-      [key]: {
-        day,
-        mealType,
-        items: none ? [] : items,
-        bagelType: none ? null : bagelType,
-        none: !!none
-      }
-    }));
-  };
-
-  const buildMealArray = () =>
-    Object.values(meals).filter((meal) => mealHasItems(meal) || isNoneMeal(meal));
-
   const buildOrderPayload = () => {
     const weekStartDate = weekStart;
     const weekEndDate = addDaysToDateString(weekStartDate, 6);
@@ -168,6 +176,11 @@ const OrderCreation = () => {
     setError(message);
   };
 
+  const goBack = () => {
+    if (!confirmLeave()) return;
+    navigate(nhPath(facilitySlug, 'dashboard'));
+  };
+
   const handleSaveDraft = async () => {
     try {
       setSaving(true);
@@ -188,6 +201,7 @@ const OrderCreation = () => {
 
       const created = await createResidentOrder(buildOrderPayload());
       if (created?.id) {
+        markClean();
         navigate(nhPath(facilitySlug, `orders/${created.id}`));
       } else {
         setError('Failed to create order');
@@ -226,6 +240,7 @@ const OrderCreation = () => {
 
       const submitted = await submitResidentOrder(created.id);
       const orderId = submitted?.id || created.id;
+      markClean();
       navigate(nhPath(facilitySlug, `orders/${orderId}/confirmation`));
     } catch (err) {
       console.error('Error submitting order:', err);
@@ -233,20 +248,6 @@ const OrderCreation = () => {
     } finally {
       setSaving(false);
     }
-  };
-
-  const getTotalMeals = () =>
-    Object.values(meals).filter((meal) => mealHasItems(meal)).length;
-
-  const dayHasMeals = (day) =>
-    Object.values(meals).some((m) => m.day === day && (mealHasItems(m) || isNoneMeal(m)));
-
-  const dayMealCount = (day) =>
-    Object.values(meals).filter((m) => m.day === day && (mealHasItems(m) || isNoneMeal(m))).length;
-
-  const mealSlotFilled = (day, mealType) => {
-    const meal = meals[getMealKey(day, mealType)];
-    return mealHasItems(meal) || isNoneMeal(meal);
   };
 
   if (loading) {
@@ -268,24 +269,18 @@ const OrderCreation = () => {
     );
   }
 
-  const currentMeal = meals[getMealKey(selectedDay, selectedMealType)];
-
   return (
     <div className="order-creation">
       <div className="order-header">
         <div className="header-content">
-          <button
-            type="button"
-            className="back-btn"
-            onClick={() => navigate(nhPath(facilitySlug, 'dashboard'))}
-          >
+          <button type="button" className="back-btn" onClick={goBack}>
             ← Back
           </button>
           <div className="header-info">
             <h1>{isNhUser ? 'Create My Weekly Order' : 'Create Weekly Order'}</h1>
             <p className="resident-name">
-              {resident?.name}
-              {resident?.roomNumber && ` - Room ${resident.roomNumber}`}
+              {isNhUser ? 'Your order' : `Ordering for ${resident?.name || 'resident'}`}
+              {resident?.roomNumber && ` · Room ${resident.roomNumber}`}
             </p>
           </div>
         </div>
@@ -297,36 +292,107 @@ const OrderCreation = () => {
 
       {error && <div className="error-banner">{error}</div>}
       {!resident?.paymentMethodId && (
-        <div className="error-banner" style={{ background: '#fffbeb', color: '#92400e', borderColor: '#fcd34d' }}>
-          No card on file for this resident. Orders submit for monthly billing - ask staff to save a card if needed.
+        <div className="info-banner info-banner--card">
+          <strong>No card on file.</strong>
+          {' '}
+          Orders still submit for monthly billing
+          {isNhUser ? ' - ask staff to save a card if needed.' : '. Save a card on the resident profile when ready.'}
         </div>
       )}
 
       <div className="order-content">
         <div className="meal-selector">
           <div className="day-selector">
-            <h3>Select Day</h3>
-            <div className="day-buttons">
-              {DAYS_OF_WEEK.map((day) => (
-                <button
-                  key={day}
-                  type="button"
-                  className={`day-btn ${selectedDay === day ? 'active' : ''}`}
-                  onClick={() => setSelectedDay(day)}
-                >
-                  {day}
-                  {dayHasMeals(day) && (
-                    <span className="meal-count">{dayMealCount(day)}</span>
-                  )}
-                </button>
-              ))}
+            <div className="section-heading-row">
+              <h3>Select Day</h3>
+              <button
+                type="button"
+                className="copy-day-btn"
+                onClick={openCopyPanel}
+                disabled={!sourceDayCopyable}
+                title={sourceDayCopyable ? `Copy ${selectedDay} to other days` : `Finish all three meals on ${selectedDay} first`}
+              >
+                Copy {selectedDay}…
+              </button>
             </div>
+            <div className="day-buttons">
+              {DAYS_OF_WEEK.map((day) => {
+                const progress = dayProgress(day);
+                const complete = progress.complete;
+                const partial = progress.filled > 0 && !complete;
+                return (
+                  <button
+                    key={day}
+                    type="button"
+                    className={[
+                      'day-btn',
+                      selectedDay === day ? 'active' : '',
+                      complete ? 'complete' : '',
+                      partial ? 'partial' : ''
+                    ].filter(Boolean).join(' ')}
+                    onClick={() => setSelectedDay(day)}
+                    aria-label={
+                      complete
+                        ? `${day}, complete`
+                        : partial
+                          ? `${day}, ${progress.filled} of ${progress.total} meals`
+                          : day
+                    }
+                  >
+                    <span className="day-btn__label">{day}</span>
+                    {partial && (
+                      <span className="day-progress-frac" aria-hidden="true">
+                        {progress.filled}/{progress.total}
+                      </span>
+                    )}
+                    {complete && (
+                      <span className="day-complete-check" aria-hidden="true">✓</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {copyOpen && (
+              <div className="copy-day-panel" role="region" aria-label="Copy day">
+                <p className="copy-day-panel__title">
+                  Apply <strong>{selectedDay}</strong> meals to:
+                </p>
+                <div className="copy-day-panel__targets">
+                  {DAYS_OF_WEEK.filter((d) => d !== selectedDay).map((day) => {
+                    const checked = copyTargets.includes(day);
+                    return (
+                      <label key={day} className="copy-day-check">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => {
+                            setCopyTargets((prev) => (
+                              checked ? prev.filter((d) => d !== day) : [...prev, day]
+                            ));
+                          }}
+                        />
+                        {day}
+                      </label>
+                    );
+                  })}
+                </div>
+                <div className="copy-day-panel__actions">
+                  <button type="button" className="copy-day-apply" onClick={applyCopyDay} disabled={copyTargets.length === 0}>
+                    Apply
+                  </button>
+                  <button type="button" className="copy-day-cancel" onClick={() => setCopyOpen(false)}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="meal-type-selector">
             <h3>Select Meal</h3>
             <div className="meal-type-buttons">
-              {['breakfast', 'lunch', 'dinner'].map((type) => (
+              {MEAL_TYPES.map((type) => (
                 <button
                   key={type}
                   type="button"
@@ -343,11 +409,18 @@ const OrderCreation = () => {
           </div>
 
           <MealForm
+            key={`${selectedDay}-${selectedMealType}`}
             day={selectedDay}
             mealType={selectedMealType}
             menuItems={menuItems[selectedMealType]}
-            currentMeal={currentMeal}
-            onUpdate={handleMealUpdate}
+            initialMeal={initialMealForForm}
+            isCommitted={Boolean(committedMeal)}
+            onDraftChange={handleDraftChange}
+            onCommit={handleMealCommit}
+            onClear={handleMealClear}
+            onAdvance={advanceToNextSlot}
+            nextLabel={nextLabel}
+            isLastSlot={isLastSlot}
             resident={resident}
           />
         </div>
@@ -358,7 +431,9 @@ const OrderCreation = () => {
           onSaveDraft={handleSaveDraft}
           onSubmit={handleSubmit}
           saving={saving || Boolean(adminConflict)}
-          totalMeals={getTotalMeals()}
+          totalMeals={totalMeals}
+          onJumpToMeal={jumpToMeal}
+          highlight={highlightSummary}
         />
       </div>
 

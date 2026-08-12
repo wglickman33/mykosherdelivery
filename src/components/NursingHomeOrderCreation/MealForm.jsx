@@ -1,42 +1,81 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { NH_CONFIG } from '../../config/constants';
-import { isNoneMeal } from '../../utils/nursingHomeOrderUtils';
+import {
+  getMealSelectionHints,
+  isNoneMeal,
+  validateMealSelection
+} from '../../utils/nursingHomeOrderUtils';
 
 const normCat = (c) => String(c || '').toLowerCase();
 
-const MealForm = ({ day, mealType, menuItems, currentMeal, onUpdate, resident }) => {
-  const [selectedItems, setSelectedItems] = useState([]);
-  const [bagelType, setBagelType] = useState('');
-  const [isNone, setIsNone] = useState(false);
+const itemNeedsBagelType = (item) => {
+  if (item?.requiresBagelType === true) return true;
+  const name = item?.name != null ? String(item.name) : '';
+  return /bagel/i.test(name) && !/type/i.test(name);
+};
+
+const hydrateFromMeal = (meal) => {
+  if (!meal) {
+    return { isNone: false, selectedItems: [], bagelType: '' };
+  }
+  const none = isNoneMeal(meal);
+  return {
+    isNone: none,
+    selectedItems: none ? [] : (meal.items || []),
+    bagelType: none ? '' : (meal.bagelType || '')
+  };
+};
+
+const MealForm = ({
+  day,
+  mealType,
+  menuItems,
+  initialMeal,
+  isCommitted,
+  onDraftChange,
+  onCommit,
+  onClear,
+  onAdvance,
+  nextLabel,
+  isLastSlot,
+  resident
+}) => {
+  const hydrated = hydrateFromMeal(initialMeal);
+  const [selectedItems, setSelectedItems] = useState(hydrated.selectedItems);
+  const [bagelType, setBagelType] = useState(hydrated.bagelType);
+  const [isNone, setIsNone] = useState(hydrated.isNone);
   const [searchTerm, setSearchTerm] = useState('');
+  const [localError, setLocalError] = useState(null);
+  const nextBtnRef = useRef(null);
+  const skipDraftEcho = useRef(true);
 
   const mealPrice = NH_CONFIG.MEALS.PRICES[mealType] ?? 0;
+  const mealLabel = mealType.charAt(0).toUpperCase() + mealType.slice(1);
 
   useEffect(() => {
-    if (currentMeal) {
-      const none = isNoneMeal(currentMeal);
-      setIsNone(none);
-      setSelectedItems(none ? [] : (currentMeal.items || []));
-      setBagelType(none ? '' : (currentMeal.bagelType || ''));
-    } else {
-      setIsNone(false);
-      setSelectedItems([]);
-      setBagelType('');
+    if (skipDraftEcho.current) {
+      skipDraftEcho.current = false;
+      return;
     }
-  }, [currentMeal, day, mealType]);
+    onDraftChange?.(day, mealType, {
+      items: isNone ? [] : selectedItems,
+      bagelType: isNone ? null : (bagelType || null),
+      none: isNone
+    });
+  }, [selectedItems, bagelType, isNone, day, mealType, onDraftChange]);
 
-  const emitUpdate = (items, bagel, none) => {
-    onUpdate(day, mealType, none ? [] : items, none ? null : (bagel || null), !!none);
-  };
-
-  const handleSelectNone = () => {
-    setIsNone(true);
-    setSelectedItems([]);
-    setBagelType('');
-    setSearchTerm('');
-    emitUpdate([], null, true);
-  };
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if (!(event.metaKey || event.ctrlKey) || event.key !== 'Enter') return;
+      const tag = event.target?.tagName;
+      if (tag === 'TEXTAREA') return;
+      event.preventDefault();
+      nextBtnRef.current?.click();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   const replaceByCategory = (items, incoming) => {
     const cat = normCat(incoming.category);
@@ -59,7 +98,6 @@ const MealForm = ({ day, mealType, menuItems, currentMeal, onUpdate, resident })
       return true;
     });
 
-    // Breakfast/lunch: only main/entree + side
     if (mealType === 'breakfast' || mealType === 'lunch') {
       if (isSoup || isDessert) return items;
       next = next.filter((i) => {
@@ -68,7 +106,6 @@ const MealForm = ({ day, mealType, menuItems, currentMeal, onUpdate, resident })
       });
     }
 
-    // Dinner: one each of entree, side, optional soup/dessert
     if (mealType === 'dinner' && !isMainLike && !isSide && !isSoup && !isDessert) {
       return items;
     }
@@ -89,10 +126,22 @@ const MealForm = ({ day, mealType, menuItems, currentMeal, onUpdate, resident })
     return next;
   };
 
-  const handleItemToggle = (item) => {
+  const handleSelectNone = () => {
     if (isNone) {
       setIsNone(false);
+      setLocalError(null);
+      return;
     }
+    setIsNone(true);
+    setSelectedItems([]);
+    setBagelType('');
+    setSearchTerm('');
+    setLocalError(null);
+  };
+
+  const handleItemToggle = (item) => {
+    setIsNone(false);
+    setLocalError(null);
 
     const isSelected = selectedItems.some((i) => i.id === item.id);
     let newItems;
@@ -103,30 +152,53 @@ const MealForm = ({ day, mealType, menuItems, currentMeal, onUpdate, resident })
     }
 
     setSelectedItems(newItems);
-    const nextBagel = newItems.some((i) =>
-      i.requiresBagelType === true ||
-      (i.name.toLowerCase().includes('bagel') && !i.name.toLowerCase().includes('type'))
-    ) ? bagelType : '';
-    if (!nextBagel) setBagelType('');
-    emitUpdate(newItems, nextBagel || null, false);
+    const stillNeedsBagel = newItems.some(itemNeedsBagelType);
+    if (!stillNeedsBagel) setBagelType('');
   };
 
   const handleBagelTypeChange = (type) => {
     setBagelType(type);
-    emitUpdate(selectedItems, type, false);
+    setLocalError(null);
   };
 
   const handleClearMeal = () => {
     setIsNone(false);
     setSelectedItems([]);
     setBagelType('');
-    emitUpdate([], null, false);
+    setSearchTerm('');
+    setLocalError(null);
+    onClear(day, mealType);
   };
 
-  const needsBagelType = !isNone && selectedItems.some((item) =>
-    item.requiresBagelType === true ||
-    (item.name.toLowerCase().includes('bagel') && !item.name.toLowerCase().includes('type'))
-  );
+  const draftMeal = {
+    day,
+    mealType,
+    items: isNone ? [] : selectedItems,
+    bagelType: isNone ? null : (bagelType || null),
+    none: isNone
+  };
+
+  const hints = getMealSelectionHints(mealType, draftMeal);
+  const canContinue = isNone || selectedItems.length > 0;
+
+  const handleNext = () => {
+    if (!canContinue) {
+      setLocalError('Select items for this meal, or skip it.');
+      return;
+    }
+
+    if (!isNone) {
+      const err = validateMealSelection(mealType, draftMeal);
+      if (err) {
+        setLocalError(err);
+        return;
+      }
+    }
+
+    setLocalError(null);
+    onCommit(day, mealType, isNone ? [] : selectedItems, isNone ? null : (bagelType || null), isNone);
+    onAdvance();
+  };
 
   const sideExcluded = selectedItems.some((i) =>
     ['main', 'entree'].includes(normCat(i.category)) && i.excludesSide === true
@@ -159,23 +231,37 @@ const MealForm = ({ day, mealType, menuItems, currentMeal, onUpdate, resident })
     return allowedCategories.includes(n);
   });
 
+  const hasSelection = selectedItems.length > 0 || isNone;
+  const hintForCategory = (cat) => {
+    const n = normCat(cat);
+    if (n === 'main' || n === 'entree') return hints.find((h) => h.category === 'main');
+    return hints.find((h) => h.category === n);
+  };
+
   return (
     <div className="meal-form">
       <div className="meal-form-header">
-        <h3>
-          {day} - {mealType.charAt(0).toUpperCase() + mealType.slice(1)}
-          <span className="meal-price"> ${mealPrice.toFixed(2)}</span>
-        </h3>
-        {(selectedItems.length > 0 || isNone) && (
+        <div>
+          <h3>
+            {day} · {mealLabel}
+            <span className="meal-price">${mealPrice.toFixed(2)}</span>
+          </h3>
+          <p className="meal-form-hint">
+            {isCommitted
+              ? 'Already saved in your summary. Change items and hit Next to update.'
+              : 'Choose your items, then continue to lock this meal into your order summary.'}
+          </p>
+        </div>
+        {hasSelection && (
           <button type="button" className="clear-btn" onClick={handleClearMeal}>
-            Clear Selection
+            Clear this meal
           </button>
         )}
       </div>
 
       {resident?.dietaryRestrictions && (
         <div className="dietary-info">
-          <strong>Dietary Restrictions:</strong> {resident.dietaryRestrictions}
+          <strong>Dietary restrictions:</strong> {resident.dietaryRestrictions}
         </div>
       )}
 
@@ -185,122 +271,167 @@ const MealForm = ({ day, mealType, menuItems, currentMeal, onUpdate, resident })
         </div>
       )}
 
-      <div className="none-option">
-        <button
-          type="button"
-          className={`menu-item none-item ${isNone ? 'selected' : ''}`}
-          onClick={handleSelectNone}
-        >
-          <div className="item-info">
-            <span className="item-name">None</span>
-            <span className="item-description">Skip this meal (no charge)</span>
-          </div>
-          <div className="item-price">$0.00</div>
-          {isNone && <div className="checkmark">✓</div>}
-        </button>
-      </div>
+      <button
+        type="button"
+        className={`skip-meal-toggle ${isNone ? 'active' : ''}`}
+        onClick={handleSelectNone}
+        aria-pressed={isNone}
+      >
+        <span className="skip-meal-toggle__radio" aria-hidden="true">
+          {isNone ? '✓' : ''}
+        </span>
+        <span className="skip-meal-toggle__copy">
+          <span className="skip-meal-toggle__title">Skip this meal</span>
+          <span className="skip-meal-toggle__sub">No charge · marked as None</span>
+        </span>
+      </button>
 
       {isNone ? (
-        <div className="selected-items-summary">
-          <strong>Selected:</strong>
-          <div className="selected-items-list">
-            <span className="selected-item-tag">None</span>
-          </div>
+        <div className="skip-meal-confirmed">
+          <p>
+            {day} {mealLabel} will be skipped. Continue when you&apos;re ready.
+          </p>
         </div>
       ) : (
         <>
           <div className="search-box">
             <input
-              type="text"
+              type="search"
               placeholder="Search menu items..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              aria-label="Search menu items"
             />
           </div>
 
-          <div className="selected-items-summary">
-            <strong>Selected ({selectedItems.length}):</strong>
-            {selectedItems.length === 0 ? (
-              <span className="no-selection"> No items selected</span>
-            ) : (
+          {selectedItems.length > 0 && (
+            <div className="selected-items-summary">
+              <strong>Selected</strong>
               <div className="selected-items-list">
                 {selectedItems.map((item) => (
                   <span key={item.id} className="selected-item-tag">
                     {item.name}
+                    {itemNeedsBagelType(item) && bagelType ? ` (${bagelType})` : ''}
                   </span>
                 ))}
               </div>
-            )}
-            {sideExcluded && (
-              <p className="no-selection" style={{ marginTop: '0.5rem' }}>
-                This main does not include a side.
-              </p>
-            )}
-          </div>
-
-          {needsBagelType && (
-            <div className="bagel-type-selector">
-              <label>Select Bagel Type:</label>
-              <div className="bagel-types">
-                {NH_CONFIG.BAGEL_TYPES.map((type) => (
-                  <button
-                    key={type}
-                    type="button"
-                    className={`bagel-type-btn ${bagelType === type ? 'selected' : ''}`}
-                    onClick={() => handleBagelTypeChange(type)}
-                  >
-                    {type}
-                  </button>
-                ))}
-              </div>
+              {sideExcluded && (
+                <p className="no-selection" style={{ marginTop: '0.5rem' }}>
+                  This main does not include a side.
+                </p>
+              )}
             </div>
           )}
 
+          {hints.length > 0 && (
+            <ul className="meal-inline-hints">
+              {hints.map((hint) => (
+                <li key={hint.category}>{hint.message}</li>
+              ))}
+            </ul>
+          )}
+
           <div className="menu-items-grid">
-            {visibleCategories.map((category) => (
-              <div key={category} className="category-section">
-                <h4 className="category-title">
-                  {category.charAt(0).toUpperCase() + category.slice(1)}
-                  {(normCat(category) === 'main' || normCat(category) === 'entree' || normCat(category) === 'side') && (
-                    <span className="category-hint"> (choose one)</span>
-                  )}
-                  {(normCat(category) === 'soup' || normCat(category) === 'dessert') && (
-                    <span className="category-hint"> (optional)</span>
-                  )}
-                </h4>
-                <div className="items-list">
-                  {groupedItems[category].map((item) => {
-                    const isSelected = selectedItems.some((i) => i.id === item.id);
-                    return (
-                      <div
-                        key={item.id}
-                        className={`menu-item ${isSelected ? 'selected' : ''}`}
-                        onClick={() => handleItemToggle(item)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            handleItemToggle(item);
-                          }
-                        }}
-                        role="button"
-                        tabIndex={0}
-                      >
-                        <div className="item-info">
-                          <span className="item-name">{item.name}</span>
-                          {item.description && (
-                            <span className="item-description">{item.description}</span>
+            {visibleCategories.map((category) => {
+              const categoryHint = hintForCategory(category);
+              return (
+                <div
+                  key={category}
+                  className={`category-section ${categoryHint ? 'category-section--needs' : ''}`}
+                >
+                  <h4 className="category-title">
+                    {category.charAt(0).toUpperCase() + category.slice(1)}
+                    {(normCat(category) === 'main' || normCat(category) === 'entree' || normCat(category) === 'side') && (
+                      <span className="category-hint"> (choose one)</span>
+                    )}
+                    {(normCat(category) === 'soup' || normCat(category) === 'dessert') && (
+                      <span className="category-hint"> (optional)</span>
+                    )}
+                    {categoryHint && (
+                      <span className="category-needs">{categoryHint.message}</span>
+                    )}
+                  </h4>
+                  <div className="items-list">
+                    {groupedItems[category].map((item) => {
+                      const isSelected = selectedItems.some((i) => i.id === item.id);
+                      const showBagelPicker = isSelected && itemNeedsBagelType(item);
+                      return (
+                        <div key={item.id} className={`menu-item-block ${isSelected ? 'selected' : ''}`}>
+                          <div
+                            className={`menu-item ${isSelected ? 'selected' : ''}`}
+                            onClick={() => handleItemToggle(item)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                handleItemToggle(item);
+                              }
+                            }}
+                            role="button"
+                            tabIndex={0}
+                            aria-pressed={isSelected}
+                          >
+                            <div className="item-info">
+                              <span className="item-name">{item.name}</span>
+                              {item.description && (
+                                <span className="item-description">{item.description}</span>
+                              )}
+                              {showBagelPicker && !bagelType && (
+                                <span className="item-inline-hint">Choose a bagel type below</span>
+                              )}
+                            </div>
+                            {isSelected && <div className="checkmark">✓</div>}
+                          </div>
+
+                          {showBagelPicker && (
+                            <div className="inline-option-picker" role="group" aria-label="Bagel type">
+                              <p className="inline-option-picker__label">Bagel type</p>
+                              <div className="inline-option-picker__options">
+                                {NH_CONFIG.BAGEL_TYPES.map((type) => (
+                                  <button
+                                    key={type}
+                                    type="button"
+                                    className={`inline-option-btn ${bagelType === type ? 'selected' : ''}`}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleBagelTypeChange(type);
+                                    }}
+                                  >
+                                    {type}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
                           )}
                         </div>
-                        {isSelected && <div className="checkmark">✓</div>}
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </>
       )}
+
+      {localError && <div className="meal-form-error" role="alert">{localError}</div>}
+
+      <div className="meal-form-footer">
+        <button
+          ref={nextBtnRef}
+          type="button"
+          className="meal-next-btn"
+          onClick={handleNext}
+          disabled={!canContinue}
+        >
+          {nextLabel}
+          {!isLastSlot && <span aria-hidden="true"> →</span>}
+        </button>
+        {!canContinue ? (
+          <p className="meal-form-footer-hint">Select a meal or skip to continue</p>
+        ) : (
+          <p className="meal-form-footer-hint">Tip: Ctrl/⌘ + Enter also continues</p>
+        )}
+      </div>
     </div>
   );
 };
@@ -309,8 +440,14 @@ MealForm.propTypes = {
   day: PropTypes.string.isRequired,
   mealType: PropTypes.string.isRequired,
   menuItems: PropTypes.array.isRequired,
-  currentMeal: PropTypes.object,
-  onUpdate: PropTypes.func.isRequired,
+  initialMeal: PropTypes.object,
+  isCommitted: PropTypes.bool,
+  onDraftChange: PropTypes.func,
+  onCommit: PropTypes.func.isRequired,
+  onClear: PropTypes.func.isRequired,
+  onAdvance: PropTypes.func.isRequired,
+  nextLabel: PropTypes.string.isRequired,
+  isLastSlot: PropTypes.bool,
   resident: PropTypes.object
 };
 

@@ -8,12 +8,12 @@ import {
   nhPath
 } from '../../services/nursingHomeService';
 import { useNursingHomeFacility } from '../../context/NursingHomeFacilityContext';
-import { NH_CONFIG } from '../../config/constants';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import NhAdminOrderedModal from '../NursingHomeShared/NhAdminOrderedModal';
 import MealForm from './MealForm';
 import OrderSummary from './OrderSummary';
+import useWeeklyMealBuilder from './useWeeklyMealBuilder';
 import './OrderCreation.scss';
 import { useAuth } from '../../hooks/useAuth';
 import {
@@ -21,16 +21,11 @@ import {
   validateWeeklyMeals,
   mealHasItems,
   isNoneMeal,
+  getMealKey,
   isStaffPlacedOrder,
   formatAssignedStaffContact,
   ADMIN_ALREADY_ORDERED_MESSAGE
 } from '../../utils/nursingHomeOrderUtils';
-
-const DAYS_OF_WEEK = NH_CONFIG.MEALS.DAYS;
-
-function getMealKey(day, mealType) {
-  return `${day}-${mealType}`;
-}
 
 const OrderEdit = () => {
   const { orderId, facilitySlug: slugParam } = useParams();
@@ -48,9 +43,40 @@ const OrderEdit = () => {
   const [saving, setSaving] = useState(false);
   const [adminConflict, setAdminConflict] = useState(null);
 
-  const [selectedDay, setSelectedDay] = useState('Monday');
-  const [selectedMealType, setSelectedMealType] = useState('breakfast');
-  const [meals, setMeals] = useState({});
+  const mealBuilder = useWeeklyMealBuilder();
+  const {
+    DAYS_OF_WEEK,
+    MEAL_TYPES,
+    meals,
+    selectedDay,
+    setSelectedDay,
+    selectedMealType,
+    setSelectedMealType,
+    markClean,
+    replaceMeals,
+    initialMealForForm,
+    committedMeal,
+    handleDraftChange,
+    handleMealCommit,
+    handleMealClear,
+    advanceToNextSlot,
+    jumpToMeal,
+    nextLabel,
+    isLastSlot,
+    mealSlotFilled,
+    totalMeals,
+    buildMealArray,
+    dayProgress,
+    sourceDayCopyable,
+    copyOpen,
+    setCopyOpen,
+    copyTargets,
+    setCopyTargets,
+    openCopyPanel,
+    applyCopyDay,
+    confirmLeave,
+    highlightSummary
+  } = mealBuilder;
 
   const loadData = useCallback(async () => {
     if (!orderId) return;
@@ -123,14 +149,14 @@ const OrderEdit = () => {
           none
         };
       });
-      setMeals(initialMeals);
+      replaceMeals(initialMeals, { markDirty: false });
     } catch (err) {
       console.error('Error loading order for edit:', err);
       setError(err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to load order');
     } finally {
       setLoading(false);
     }
-  }, [orderId, isNhUser, user?.id]);
+  }, [orderId, isNhUser, user?.id, replaceMeals]);
 
   useEffect(() => {
     loadData();
@@ -151,22 +177,10 @@ const OrderEdit = () => {
     setError(message);
   };
 
-  const handleMealUpdate = (day, mealType, items, bagelType = null, none = false) => {
-    const key = getMealKey(day, mealType);
-    setMeals((prev) => ({
-      ...prev,
-      [key]: {
-        day,
-        mealType,
-        items: none ? [] : items,
-        bagelType: none ? null : bagelType,
-        none: !!none
-      }
-    }));
+  const goBack = () => {
+    if (!confirmLeave()) return;
+    navigate(nhPath(facilitySlug, `orders/${orderId}`));
   };
-
-  const buildMealArray = () =>
-    Object.values(meals).filter((meal) => mealHasItems(meal) || isNoneMeal(meal));
 
   const handleSaveDraft = async () => {
     try {
@@ -192,6 +206,7 @@ const OrderEdit = () => {
       });
 
       if (updated?.id) {
+        markClean();
         navigate(nhPath(facilitySlug, `orders/${orderId}`));
       } else {
         setError('Failed to update order');
@@ -234,6 +249,7 @@ const OrderEdit = () => {
 
       const submitted = await submitResidentOrder(orderId);
       const id = submitted?.id || orderId;
+      markClean();
       navigate(nhPath(facilitySlug, `orders/${id}/confirmation`));
     } catch (err) {
       console.error('Error submitting order:', err);
@@ -241,20 +257,6 @@ const OrderEdit = () => {
     } finally {
       setSaving(false);
     }
-  };
-
-  const getTotalMeals = () =>
-    Object.values(meals).filter((meal) => mealHasItems(meal)).length;
-
-  const dayHasMeals = (day) =>
-    Object.values(meals).some((m) => m.day === day && (mealHasItems(m) || isNoneMeal(m)));
-
-  const dayMealCount = (day) =>
-    Object.values(meals).filter((m) => m.day === day && (mealHasItems(m) || isNoneMeal(m))).length;
-
-  const mealSlotFilled = (day, mealType) => {
-    const meal = meals[getMealKey(day, mealType)];
-    return mealHasItems(meal) || isNoneMeal(meal);
   };
 
   if (loading) {
@@ -280,24 +282,18 @@ const OrderEdit = () => {
     );
   }
 
-  const currentMeal = meals[getMealKey(selectedDay, selectedMealType)];
-
   return (
     <div className="order-creation">
       <div className="order-header">
         <div className="header-content">
-          <button
-            type="button"
-            className="back-btn"
-            onClick={() => navigate(nhPath(facilitySlug, `orders/${orderId}`))}
-          >
+          <button type="button" className="back-btn" onClick={goBack}>
             ← Back to Order
           </button>
           <div className="header-info">
-            <h1>Edit Weekly Order</h1>
+            <h1>{isNhUser ? 'Edit My Weekly Order' : 'Edit Weekly Order'}</h1>
             <p className="resident-name">
-              {resident?.name}
-              {resident?.roomNumber && ` - Room ${resident.roomNumber}`}
+              {isNhUser ? 'Your order' : `Editing for ${resident?.name || 'resident'}`}
+              {resident?.roomNumber && ` · Room ${resident.roomNumber}`}
             </p>
           </div>
         </div>
@@ -312,28 +308,96 @@ const OrderEdit = () => {
       <div className="order-content">
         <div className="meal-selector">
           <div className="day-selector">
-            <h3>Select Day</h3>
-            <div className="day-buttons">
-              {DAYS_OF_WEEK.map((day) => (
-                <button
-                  key={day}
-                  type="button"
-                  className={`day-btn ${selectedDay === day ? 'active' : ''}`}
-                  onClick={() => setSelectedDay(day)}
-                >
-                  {day}
-                  {dayHasMeals(day) && (
-                    <span className="meal-count">{dayMealCount(day)}</span>
-                  )}
-                </button>
-              ))}
+            <div className="section-heading-row">
+              <h3>Select Day</h3>
+              <button
+                type="button"
+                className="copy-day-btn"
+                onClick={openCopyPanel}
+                disabled={!sourceDayCopyable}
+                title={sourceDayCopyable ? `Copy ${selectedDay} to other days` : `Finish all three meals on ${selectedDay} first`}
+              >
+                Copy {selectedDay}…
+              </button>
             </div>
+            <div className="day-buttons">
+              {DAYS_OF_WEEK.map((day) => {
+                const progress = dayProgress(day);
+                const complete = progress.complete;
+                const partial = progress.filled > 0 && !complete;
+                return (
+                  <button
+                    key={day}
+                    type="button"
+                    className={[
+                      'day-btn',
+                      selectedDay === day ? 'active' : '',
+                      complete ? 'complete' : '',
+                      partial ? 'partial' : ''
+                    ].filter(Boolean).join(' ')}
+                    onClick={() => setSelectedDay(day)}
+                    aria-label={
+                      complete
+                        ? `${day}, complete`
+                        : partial
+                          ? `${day}, ${progress.filled} of ${progress.total} meals`
+                          : day
+                    }
+                  >
+                    <span className="day-btn__label">{day}</span>
+                    {partial && (
+                      <span className="day-progress-frac" aria-hidden="true">
+                        {progress.filled}/{progress.total}
+                      </span>
+                    )}
+                    {complete && (
+                      <span className="day-complete-check" aria-hidden="true">✓</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {copyOpen && (
+              <div className="copy-day-panel" role="region" aria-label="Copy day">
+                <p className="copy-day-panel__title">
+                  Apply <strong>{selectedDay}</strong> meals to:
+                </p>
+                <div className="copy-day-panel__targets">
+                  {DAYS_OF_WEEK.filter((d) => d !== selectedDay).map((day) => {
+                    const checked = copyTargets.includes(day);
+                    return (
+                      <label key={day} className="copy-day-check">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => {
+                            setCopyTargets((prev) => (
+                              checked ? prev.filter((d) => d !== day) : [...prev, day]
+                            ));
+                          }}
+                        />
+                        {day}
+                      </label>
+                    );
+                  })}
+                </div>
+                <div className="copy-day-panel__actions">
+                  <button type="button" className="copy-day-apply" onClick={applyCopyDay} disabled={copyTargets.length === 0}>
+                    Apply
+                  </button>
+                  <button type="button" className="copy-day-cancel" onClick={() => setCopyOpen(false)}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="meal-type-selector">
             <h3>Select Meal</h3>
             <div className="meal-type-buttons">
-              {['breakfast', 'lunch', 'dinner'].map((type) => (
+              {MEAL_TYPES.map((type) => (
                 <button
                   key={type}
                   type="button"
@@ -348,11 +412,18 @@ const OrderEdit = () => {
           </div>
 
           <MealForm
+            key={`${selectedDay}-${selectedMealType}`}
             day={selectedDay}
             mealType={selectedMealType}
             menuItems={menuItems[selectedMealType]}
-            currentMeal={currentMeal}
-            onUpdate={handleMealUpdate}
+            initialMeal={initialMealForForm}
+            isCommitted={Boolean(committedMeal)}
+            onDraftChange={handleDraftChange}
+            onCommit={handleMealCommit}
+            onClear={handleMealClear}
+            onAdvance={advanceToNextSlot}
+            nextLabel={nextLabel}
+            isLastSlot={isLastSlot}
             resident={resident}
           />
         </div>
@@ -362,8 +433,10 @@ const OrderEdit = () => {
           resident={resident}
           onSaveDraft={handleSaveDraft}
           onSubmit={handleSubmit}
-          saving={saving}
-          totalMeals={getTotalMeals()}
+          saving={saving || Boolean(adminConflict)}
+          totalMeals={totalMeals}
+          onJumpToMeal={jumpToMeal}
+          highlight={highlightSummary}
         />
       </div>
 
