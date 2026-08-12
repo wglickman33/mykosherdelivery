@@ -176,11 +176,6 @@ export default function useWeeklyMealBuilder(initialMeals = {}) {
     setCopyOpen(false);
   }, [copyTargets, selectedDay, sourceDayCopyable]);
 
-  const confirmLeave = useCallback(() => {
-    if (!isDirty) return true;
-    return window.confirm('You have unsaved meal changes. Leave this page anyway?');
-  }, [isDirty]);
-
   useEffect(() => {
     const onBeforeUnload = (event) => {
       if (!isDirty) return;
@@ -230,7 +225,6 @@ export default function useWeeklyMealBuilder(initialMeals = {}) {
     setCopyTargets,
     openCopyPanel,
     applyCopyDay,
-    confirmLeave,
     highlightSummary
   };
 }

@@ -1005,6 +1005,18 @@
         }
       }
 
+      .facility-btn-menu {
+        background: #f1f5f9;
+        color: #334155;
+        border: 1px solid #e2e8f0;
+
+        &:hover {
+          background: #475569;
+          color: #fff;
+          border-color: #475569;
+        }
+      }
+
       .facility-btn-edit {
         background: #f1f5f9;
         color: #475569;

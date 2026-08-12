@@ -11,6 +11,7 @@ import { useNursingHomeFacility } from '../../context/NursingHomeFacilityContext
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import NhAdminOrderedModal from '../NursingHomeShared/NhAdminOrderedModal';
+import NhConfirmModal from '../NursingHomeShared/NhConfirmModal';
 import MealForm from './MealForm';
 import OrderSummary from './OrderSummary';
 import useWeeklyMealBuilder from './useWeeklyMealBuilder';
@@ -42,6 +43,7 @@ const OrderEdit = () => {
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [adminConflict, setAdminConflict] = useState(null);
+  const [leaveModalOpen, setLeaveModalOpen] = useState(false);
 
   const mealBuilder = useWeeklyMealBuilder();
   const {
@@ -74,7 +76,7 @@ const OrderEdit = () => {
     setCopyTargets,
     openCopyPanel,
     applyCopyDay,
-    confirmLeave,
+    isDirty,
     highlightSummary
   } = mealBuilder;
 
@@ -178,7 +180,16 @@ const OrderEdit = () => {
   };
 
   const goBack = () => {
-    if (!confirmLeave()) return;
+    if (isDirty) {
+      setLeaveModalOpen(true);
+      return;
+    }
+    navigate(nhPath(facilitySlug, `orders/${orderId}`));
+  };
+
+  const confirmLeavePage = () => {
+    setLeaveModalOpen(false);
+    markClean();
     navigate(nhPath(facilitySlug, `orders/${orderId}`));
   };
 
@@ -439,6 +450,17 @@ const OrderEdit = () => {
           highlight={highlightSummary}
         />
       </div>
+
+      <NhConfirmModal
+        open={leaveModalOpen}
+        title="Leave without saving?"
+        message="You have unsaved meal changes. If you leave now, those changes will be lost."
+        confirmLabel="Leave"
+        cancelLabel="Stay"
+        danger
+        onCancel={() => setLeaveModalOpen(false)}
+        onConfirm={confirmLeavePage}
+      />
 
       <NhAdminOrderedModal
         open={Boolean(adminConflict)}

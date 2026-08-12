@@ -81,7 +81,7 @@ const NhFacilityRedirect = ({ suffix = 'dashboard' }) => {
           <div className="nh-facility-blocked__actions">
             {(isPlatformAdmin || isNhAdmin) && (
               <Link to="/admin/nursing-homes" className="nh-facility-blocked__btn nh-facility-blocked__btn--primary">
-                Go to Nursing Home Admin
+                Manage facilities &amp; residents
               </Link>
             )}
             <button
