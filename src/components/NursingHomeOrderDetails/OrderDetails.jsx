@@ -1,28 +1,41 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { fetchResidentOrder, exportResidentOrder } from '../../services/nursingHomeService';
+import {
+  fetchResidentOrder,
+  exportResidentOrder,
+  submitResidentOrder,
+  nhPath
+} from '../../services/nursingHomeService';
+import { useNursingHomeFacility } from '../../context/NursingHomeFacilityContext';
 import { NH_CONFIG } from '../../config/constants';
+import { isNoneMeal, mealHasItems } from '../../utils/nursingHomeOrderUtils';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import './OrderDetails.scss';
 
 const OrderDetails = () => {
-  const { orderId } = useParams();
+  const { orderId, facilitySlug: slugParam } = useParams();
   const navigate = useNavigate();
+  const { facility: contextFacility } = useNursingHomeFacility();
+  const facilitySlug = slugParam || contextFacility?.slug;
+
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [exporting, setExporting] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const ordersListPath = nhPath(facilitySlug, 'orders');
 
   const loadOrder = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetchResidentOrder(orderId);
-      const data = response?.data;
+      const data = await fetchResidentOrder(orderId);
       setOrder(data || null);
+      if (!data) setError('Order not found');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load order');
+      setError(err.response?.data?.message || err.message || 'Failed to load order');
     } finally {
       setLoading(false);
     }
@@ -44,9 +57,24 @@ const OrderDetails = () => {
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      setError(err.response?.data?.message || 'Export failed');
+      setError(err.response?.data?.message || err.message || 'Export failed');
     } finally {
       setExporting(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!order?.id) return;
+    try {
+      setSubmitting(true);
+      setError(null);
+      const submitted = await submitResidentOrder(order.id);
+      const id = submitted?.id || order.id;
+      navigate(nhPath(facilitySlug, `orders/${id}/confirmation`));
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Failed to submit order');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -71,7 +99,9 @@ const OrderDetails = () => {
     return (
       <div className="nursing-home-order-details">
         <ErrorMessage message={error} type="error" />
-        <button className="back-btn" onClick={() => navigate('/nursing-homes/orders')}>Back to Orders</button>
+        <button type="button" className="back-btn" onClick={() => navigate(ordersListPath)}>
+          Back to Orders
+        </button>
       </div>
     );
   }
@@ -79,7 +109,7 @@ const OrderDetails = () => {
   return (
     <div className="nursing-home-order-details">
       <header className="details-header">
-        <button className="back-btn" onClick={() => navigate('/nursing-homes/orders')}>
+        <button type="button" className="back-btn" onClick={() => navigate(ordersListPath)}>
           ← Orders
         </button>
         <div className="header-row">
@@ -98,16 +128,17 @@ const OrderDetails = () => {
                 <button
                   type="button"
                   className="btn-secondary"
-                  onClick={() => navigate(`/nursing-homes/orders/${order.id}/edit`)}
+                  onClick={() => navigate(nhPath(facilitySlug, `orders/${order.id}/edit`))}
                 >
                   Edit Order
                 </button>
                 <button
                   type="button"
                   className="btn-primary"
-                  onClick={() => navigate(`/nursing-homes/order/${order.id}/payment`)}
+                  onClick={handleSubmit}
+                  disabled={submitting}
                 >
-                  Pay Now
+                  {submitting ? 'Submitting…' : 'Submit Order'}
                 </button>
               </>
             )}
@@ -159,7 +190,7 @@ const OrderDetails = () => {
 
       <section className="details-card">
         <h2>Meals by day</h2>
-        {NH_CONFIG.MEALS.DAYS.map(day => {
+        {NH_CONFIG.MEALS.DAYS.map((day) => {
           const meals = mealsByDay[day];
           if (!meals?.length) return null;
           return (
@@ -168,7 +199,13 @@ const OrderDetails = () => {
               {meals.map((meal, i) => (
                 <div key={i} className="meal-row">
                   <span className="meal-type">{meal.mealType}</span>
-                  <span>{meal.items?.length ?? 0} items</span>
+                  <span>
+                    {isNoneMeal(meal)
+                      ? 'None'
+                      : mealHasItems(meal)
+                        ? `${meal.items.length} items`
+                        : '—'}
+                  </span>
                 </div>
               ))}
             </div>
@@ -180,7 +217,12 @@ const OrderDetails = () => {
         <section className="details-card">
           <h2>Delivery</h2>
           <p className="address">
-            {[order.deliveryAddress.street, order.deliveryAddress.city, order.deliveryAddress.state, order.deliveryAddress.zip_code].filter(Boolean).join(', ')}
+            {[
+              order.deliveryAddress.street,
+              order.deliveryAddress.city,
+              order.deliveryAddress.state,
+              order.deliveryAddress.zip_code
+            ].filter(Boolean).join(', ')}
           </p>
         </section>
       )}

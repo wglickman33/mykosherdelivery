@@ -69,6 +69,7 @@ import NursingHomeLogin from "./components/NursingHomeLogin/NursingHomeLogin";
 import NursingHomeAdminLogin from "./components/NursingHomeAdminLogin/NursingHomeAdminLogin";
 import NursingHomeAdminGate from "./components/NursingHomeAdminGate/NursingHomeAdminGate";
 import NursingHomeLayout from "./components/NursingHomeLayout/NursingHomeLayout";
+import NhFacilityRedirect from "./components/NursingHomeLayout/NhFacilityRedirect";
 import NursingHomeDashboard from "./components/NursingHomeDashboard/NursingHomeDashboard";
 import NursingHomeOrderCreation from "./components/NursingHomeOrderCreation/OrderCreation";
 import NursingHomeOrderEdit from "./components/NursingHomeOrderCreation/OrderEdit";
@@ -85,10 +86,8 @@ import OwnerDashboard from "./components/OwnerDashboard/OwnerDashboard";
 import OwnerMenu from "./components/OwnerMenu/OwnerMenu";
 import OwnerOrders from "./components/OwnerOrders/OwnerOrders";
 
-function NhRedirectToDashboard() {
-  const location = useLocation();
-  return <Navigate to={`/nursing-homes/dashboard${location.search}`} replace />;
-}
+const isNursingHomeRole = (role) =>
+  role === "nursing_home_user" || role === "nursing_home_admin";
 
 const PUBLIC_ROUTES = ["/landing", "/signin", "/signup", "/forgot-password", "/reset-password", "/blog", "/faq", "/contact", "/partner", "/advertise", "/help", "/terms", "/privacy", "/admin", "/owner", "/nursing-homes/login", "/nursing-homes/admin", "/nursing-homes/admin/login"];
 const APP_ROUTES = ["/home", "/restaurants", "/restaurant", "/cart", "/checkout", "/order-confirmation", "/gift-card", "/kiddush", "/subscriptions", "/account"];
@@ -139,6 +138,10 @@ function AuthenticatedApp() {
         logger.debug('App.jsx - Restaurant owner, redirecting to /owner');
         return <Navigate to="/owner" replace />;
       }
+      if (isNursingHomeRole(user.role)) {
+        logger.debug('App.jsx - Nursing home role, redirecting to /nursing-homes');
+        return <Navigate to="/nursing-homes" replace />;
+      }
       logger.debug('App.jsx - Authenticated user, redirecting to /home');
       return <Navigate to="/home" replace />;
     } else if (tempAddress) {
@@ -155,6 +158,10 @@ function AuthenticatedApp() {
       if (user.role === 'restaurant_owner') {
         logger.debug('App.jsx - Restaurant owner on landing/auth, redirecting to /owner');
         return <Navigate to="/owner" replace />;
+      }
+      if (isNursingHomeRole(user.role)) {
+        logger.debug('App.jsx - Nursing home role on landing/auth, redirecting to /nursing-homes');
+        return <Navigate to="/nursing-homes" replace />;
       }
       logger.debug('App.jsx - Authenticated user on landing/auth, redirecting to /home');
       return <Navigate to="/home" replace />;
@@ -217,7 +224,35 @@ function AuthenticatedApp() {
           <Route path="/nursing-homes/login" element={<NursingHomeLogin />} />
           <Route path="/nursing-homes/admin/login" element={<NursingHomeAdminLogin />} />
           <Route path="/nursing-homes/admin" element={<NursingHomeAdminGate />} />
-          <Route path="/nursing-homes" element={<NursingHomeLayout />}>
+
+          {/* Legacy flat paths → resolve facility slug */}
+          <Route path="/nursing-homes/dashboard" element={<NhFacilityRedirect suffix="dashboard" />} />
+          <Route path="/nursing-homes/menu" element={<NhFacilityRedirect suffix="menu" />} />
+          <Route path="/nursing-homes/orders" element={<NhFacilityRedirect suffix="orders" />} />
+          <Route
+            path="/nursing-homes/orders/:orderId"
+            element={<NhFacilityRedirect suffix={(p) => `orders/${p.orderId}`} />}
+          />
+          <Route
+            path="/nursing-homes/orders/:orderId/confirmation"
+            element={<NhFacilityRedirect suffix={(p) => `orders/${p.orderId}/confirmation`} />}
+          />
+          <Route
+            path="/nursing-homes/orders/:orderId/edit"
+            element={<NhFacilityRedirect suffix={(p) => `orders/${p.orderId}/edit`} />}
+          />
+          <Route
+            path="/nursing-homes/order/new/:residentId"
+            element={<NhFacilityRedirect suffix={(p) => `order/new/${p.residentId}`} />}
+          />
+          <Route
+            path="/nursing-homes/order/:orderId/payment"
+            element={<NhFacilityRedirect suffix={(p) => `order/${p.orderId}/payment`} />}
+          />
+
+          <Route path="/nursing-homes" element={<NhFacilityRedirect suffix="dashboard" />} />
+          <Route path="/nursing-homes/:facilitySlug" element={<NursingHomeLayout />}>
+            <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<NursingHomeDashboard />} />
             <Route path="menu" element={<NursingHomeMenu showInstructions={true} showEditLink={true} />} />
             <Route path="orders" element={<NursingHomeOrders />} />
@@ -226,7 +261,6 @@ function AuthenticatedApp() {
             <Route path="orders/:orderId/edit" element={<NursingHomeOrderEdit />} />
             <Route path="order/new/:residentId" element={<NursingHomeOrderCreation />} />
             <Route path="order/:orderId/payment" element={<NursingHomeOrderPayment />} />
-            <Route index element={<NhRedirectToDashboard />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
           <Route path="/nursing-homes/*" element={<NotFoundPage />} />

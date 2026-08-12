@@ -1,7 +1,23 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { fetchResident, fetchMenuItems, createResidentOrder, fetchFacility } from '../../services/nursingHomeService';
+import {
+  fetchResident,
+  fetchMenuItems,
+  createResidentOrder,
+  submitResidentOrder,
+  fetchFacility,
+  nhPath
+} from '../../services/nursingHomeService';
+import { useNursingHomeFacility } from '../../context/NursingHomeFacilityContext';
 import { NH_CONFIG } from '../../config/constants';
+import {
+  getNextMondayDateString,
+  addDaysToDateString,
+  formatNhDeadline,
+  validateWeeklyMeals,
+  mealHasItems,
+  isNoneMeal
+} from '../../utils/nursingHomeOrderUtils';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import MealForm from './MealForm';
@@ -11,57 +27,56 @@ import './OrderCreation.scss';
 const DAYS_OF_WEEK = NH_CONFIG.MEALS.DAYS;
 
 const OrderCreation = () => {
-  const { residentId } = useParams();
+  const { residentId, facilitySlug: slugParam } = useParams();
   const navigate = useNavigate();
-  
+  const { facility: contextFacility } = useNursingHomeFacility();
+
   const [resident, setResident] = useState(null);
-  const [facility, setFacility] = useState(null);
+  const [facility, setFacility] = useState(contextFacility || null);
   const [menuItems, setMenuItems] = useState({ breakfast: [], lunch: [], dinner: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
-  
+
   const [selectedDay, setSelectedDay] = useState('Monday');
   const [selectedMealType, setSelectedMealType] = useState('breakfast');
   const [meals, setMeals] = useState({});
+
+  const facilitySlug = slugParam || facility?.slug || contextFacility?.slug;
 
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const [residentRes, breakfastRes, lunchRes, dinnerRes] = await Promise.all([
+      const [residentData, breakfastRes, lunchRes, dinnerRes] = await Promise.all([
         fetchResident(residentId),
         fetchMenuItems({ mealType: 'breakfast', isActive: true }),
         fetchMenuItems({ mealType: 'lunch', isActive: true }),
         fetchMenuItems({ mealType: 'dinner', isActive: true })
       ]);
 
-      const residentData = residentRes?.data ?? null;
-      setResident(residentData);
+      setResident(residentData || null);
 
-      if (residentData?.facilityId) {
-        const facilityRes = await fetchFacility(residentData.facilityId);
-        const facilityData = facilityRes?.data ?? null;
-        setFacility(facilityData);
+      if (contextFacility) {
+        setFacility(contextFacility);
+      } else if (residentData?.facilityId) {
+        const facilityData = await fetchFacility(residentData.facilityId);
+        setFacility(facilityData || null);
       }
 
-      const bItems = breakfastRes?.data?.items ?? [];
-      const lItems = lunchRes?.data?.items ?? [];
-      const dItems = dinnerRes?.data?.items ?? [];
-
       setMenuItems({
-        breakfast: Array.isArray(bItems) ? bItems : [],
-        lunch: Array.isArray(lItems) ? lItems : [],
-        dinner: Array.isArray(dItems) ? dItems : []
+        breakfast: Array.isArray(breakfastRes?.items) ? breakfastRes.items : [],
+        lunch: Array.isArray(lunchRes?.items) ? lunchRes.items : [],
+        dinner: Array.isArray(dinnerRes?.items) ? dinnerRes.items : []
       });
     } catch (err) {
       console.error('Error loading data:', err);
-      setError(err.response?.data?.message || 'Failed to load data');
+      setError(err.response?.data?.message || err.message || 'Failed to load data');
     } finally {
       setLoading(false);
     }
-  }, [residentId]);
+  }, [residentId, contextFacility]);
 
   useEffect(() => {
     loadData();
@@ -69,12 +84,40 @@ const OrderCreation = () => {
 
   const getMealKey = (day, mealType) => `${day}-${mealType}`;
 
-  const handleMealUpdate = (day, mealType, items, bagelType = null) => {
+  const handleMealUpdate = (day, mealType, items, bagelType = null, none = false) => {
     const key = getMealKey(day, mealType);
-    setMeals(prev => ({
+    setMeals((prev) => ({
       ...prev,
-      [key]: { day, mealType, items, bagelType }
+      [key]: {
+        day,
+        mealType,
+        items: none ? [] : items,
+        bagelType: none ? null : bagelType,
+        none: !!none
+      }
     }));
+  };
+
+  const buildMealArray = () =>
+    Object.values(meals).filter((meal) => mealHasItems(meal) || isNoneMeal(meal));
+
+  const buildOrderPayload = () => {
+    const weekStartDate = getNextMondayDateString();
+    const weekEndDate = addDaysToDateString(weekStartDate, 6);
+    return {
+      residentId,
+      weekStartDate,
+      weekEndDate,
+      meals: buildMealArray(),
+      deliveryAddress: facility?.address || {
+        street: '',
+        city: '',
+        state: 'NY',
+        zip_code: ''
+      },
+      billingEmail: resident?.billingEmail,
+      billingName: resident?.billingName
+    };
   };
 
   const handleSaveDraft = async () => {
@@ -82,74 +125,78 @@ const OrderCreation = () => {
       setSaving(true);
       setError(null);
 
-      const mealArray = Object.values(meals).filter(meal => meal.items && meal.items.length > 0);
-
+      const mealArray = buildMealArray();
       if (mealArray.length === 0) {
-        setError('Please add at least one meal before saving');
+        setError('Please add at least one meal (or mark as None) before saving');
         return;
       }
 
-      const nextMonday = getNextMonday();
-      const nextSunday = getNextSunday(nextMonday);
+      const validationErrors = validateWeeklyMeals(meals);
+      if (validationErrors.length > 0) {
+        setError(validationErrors[0]);
+        return;
+      }
 
-      const orderData = {
-        residentId,
-        weekStartDate: nextMonday.toISOString().split('T')[0],
-        weekEndDate: nextSunday.toISOString().split('T')[0],
-        meals: mealArray,
-        deliveryAddress: facility?.address || {
-          street: '',
-          city: '',
-          state: 'NY',
-          zip_code: ''
-        },
-        billingEmail: resident?.billingEmail,
-        billingName: resident?.billingName
-      };
-
-      const response = await createResidentOrder(orderData);
-      const created = response?.data;
-
-      if (response?.success && created?.id) {
-        navigate(`/nursing-homes/order/${created.id}/payment`);
+      const created = await createResidentOrder(buildOrderPayload());
+      if (created?.id) {
+        navigate(nhPath(facilitySlug, `orders/${created.id}`));
       } else {
-        setError(response?.error || response?.message || 'Failed to create order');
+        setError('Failed to create order');
       }
     } catch (err) {
       console.error('Error saving order:', err);
-      setError(err.response?.data?.message || 'Failed to save order');
+      setError(err.response?.data?.message || err.message || 'Failed to save order');
     } finally {
       setSaving(false);
     }
   };
 
-  const getNextMonday = () => {
-    const today = new Date();
-    const dayOfWeek = today.getDay();
-    const daysUntilNextMonday = dayOfWeek === 0 ? 1 : 8 - dayOfWeek;
-    const nextMonday = new Date(today);
-    nextMonday.setDate(today.getDate() + daysUntilNextMonday);
-    return nextMonday;
+  const handleSubmit = async () => {
+    try {
+      setSaving(true);
+      setError(null);
+
+      const mealArray = buildMealArray();
+      if (!mealArray.some((m) => mealHasItems(m))) {
+        setError('Please add at least one meal before submitting');
+        return;
+      }
+
+      const validationErrors = validateWeeklyMeals(meals);
+      if (validationErrors.length > 0) {
+        setError(validationErrors[0]);
+        return;
+      }
+
+      const created = await createResidentOrder(buildOrderPayload());
+      if (!created?.id) {
+        setError('Failed to create order');
+        return;
+      }
+
+      const submitted = await submitResidentOrder(created.id);
+      const orderId = submitted?.id || created.id;
+      navigate(nhPath(facilitySlug, `orders/${orderId}/confirmation`));
+    } catch (err) {
+      console.error('Error submitting order:', err);
+      setError(err.response?.data?.message || err.message || 'Failed to submit order');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const getNextSunday = (monday) => {
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-    return sunday;
-  };
+  const getTotalMeals = () =>
+    Object.values(meals).filter((meal) => mealHasItems(meal)).length;
 
-  const getDeadline = () => {
-    const today = new Date();
-    const dayOfWeek = today.getDay();
-    const daysUntilSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
-    const nextSunday = new Date(today);
-    nextSunday.setDate(today.getDate() + daysUntilSunday);
-    nextSunday.setHours(12, 0, 0, 0);
-    return nextSunday;
-  };
+  const dayHasMeals = (day) =>
+    Object.values(meals).some((m) => m.day === day && (mealHasItems(m) || isNoneMeal(m)));
 
-  const getTotalMeals = () => {
-    return Object.values(meals).filter(meal => meal.items && meal.items.length > 0).length;
+  const dayMealCount = (day) =>
+    Object.values(meals).filter((m) => m.day === day && (mealHasItems(m) || isNoneMeal(m))).length;
+
+  const mealSlotFilled = (day, mealType) => {
+    const meal = meals[getMealKey(day, mealType)];
+    return mealHasItems(meal) || isNoneMeal(meal);
   };
 
   if (loading) {
@@ -164,7 +211,9 @@ const OrderCreation = () => {
     return (
       <div className="order-creation">
         <ErrorMessage message={error} type="error" />
-        <button onClick={() => navigate('/nursing-homes/dashboard')}>Back to Dashboard</button>
+        <button type="button" onClick={() => navigate(nhPath(facilitySlug, 'dashboard'))}>
+          Back to Dashboard
+        </button>
       </div>
     );
   }
@@ -175,17 +224,24 @@ const OrderCreation = () => {
     <div className="order-creation">
       <div className="order-header">
         <div className="header-content">
-          <button className="back-btn" onClick={() => navigate('/nursing-homes/dashboard')}>
+          <button
+            type="button"
+            className="back-btn"
+            onClick={() => navigate(nhPath(facilitySlug, 'dashboard'))}
+          >
             ← Back
           </button>
           <div className="header-info">
             <h1>Create Weekly Order</h1>
-            <p className="resident-name">{resident?.name} {resident?.roomNumber && `- Room ${resident.roomNumber}`}</p>
+            <p className="resident-name">
+              {resident?.name}
+              {resident?.roomNumber && ` — Room ${resident.roomNumber}`}
+            </p>
           </div>
         </div>
         <div className="deadline-warning">
           <span className="deadline-label">Deadline:</span>
-          <span className="deadline-time">{getDeadline().toLocaleString()}</span>
+          <span className="deadline-time">{formatNhDeadline()}</span>
         </div>
       </div>
 
@@ -196,17 +252,16 @@ const OrderCreation = () => {
           <div className="day-selector">
             <h3>Select Day</h3>
             <div className="day-buttons">
-              {DAYS_OF_WEEK.map(day => (
+              {DAYS_OF_WEEK.map((day) => (
                 <button
                   key={day}
+                  type="button"
                   className={`day-btn ${selectedDay === day ? 'active' : ''}`}
                   onClick={() => setSelectedDay(day)}
                 >
                   {day}
-                  {Object.values(meals).filter(m => m.day === day && m.items?.length > 0).length > 0 && (
-                    <span className="meal-count">
-                      {Object.values(meals).filter(m => m.day === day && m.items?.length > 0).length}
-                    </span>
+                  {dayHasMeals(day) && (
+                    <span className="meal-count">{dayMealCount(day)}</span>
                   )}
                 </button>
               ))}
@@ -216,33 +271,19 @@ const OrderCreation = () => {
           <div className="meal-type-selector">
             <h3>Select Meal</h3>
             <div className="meal-type-buttons">
-              <button
-                className={`meal-type-btn breakfast ${selectedMealType === 'breakfast' ? 'active' : ''}`}
-                onClick={() => setSelectedMealType('breakfast')}
-              >
-                Breakfast
-                {meals[getMealKey(selectedDay, 'breakfast')]?.items?.length > 0 && (
-                  <span className="checkmark">✓</span>
-                )}
-              </button>
-              <button
-                className={`meal-type-btn lunch ${selectedMealType === 'lunch' ? 'active' : ''}`}
-                onClick={() => setSelectedMealType('lunch')}
-              >
-                Lunch
-                {meals[getMealKey(selectedDay, 'lunch')]?.items?.length > 0 && (
-                  <span className="checkmark">✓</span>
-                )}
-              </button>
-              <button
-                className={`meal-type-btn dinner ${selectedMealType === 'dinner' ? 'active' : ''}`}
-                onClick={() => setSelectedMealType('dinner')}
-              >
-                Dinner
-                {meals[getMealKey(selectedDay, 'dinner')]?.items?.length > 0 && (
-                  <span className="checkmark">✓</span>
-                )}
-              </button>
+              {['breakfast', 'lunch', 'dinner'].map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  className={`meal-type-btn ${type} ${selectedMealType === type ? 'active' : ''}`}
+                  onClick={() => setSelectedMealType(type)}
+                >
+                  {type.charAt(0).toUpperCase() + type.slice(1)}
+                  {mealSlotFilled(selectedDay, type) && (
+                    <span className="checkmark">✓</span>
+                  )}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -259,7 +300,8 @@ const OrderCreation = () => {
         <OrderSummary
           meals={meals}
           resident={resident}
-          onSave={handleSaveDraft}
+          onSaveDraft={handleSaveDraft}
+          onSubmit={handleSubmit}
           saving={saving}
           totalMeals={getTotalMeals()}
         />

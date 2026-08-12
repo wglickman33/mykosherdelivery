@@ -789,7 +789,8 @@ router.post('/users', requireAdmin, [
       last_login: null,
       address: userData.address,
       addresses: userData.addresses,
-      primary_address_index: userData.primaryAddressIndex
+      primary_address_index: userData.primaryAddressIndex,
+      nursing_home_facility_id: userData.nursingHomeFacilityId ?? nursingHomeFacilityId ?? null
     };
 
     res.status(201).json({

@@ -1,4 +1,6 @@
 export const TAX_RATE = 0.0825;
+/** NYC combined sales tax used for nursing-home meal orders */
+export const NH_TAX_RATE = 0.08875;
 export const DEFAULT_DELIVERY_FEE = 5.99;
 
 export const NH_CONFIG = {
@@ -14,7 +16,12 @@ export const NH_CONFIG = {
     DAYS: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
     MAX_ITEMS_PER_MEAL: 10,
     MAX_MEALS_PER_WEEK: 21,
-    MIN_ITEMS_PER_MEAL: 1
+    MIN_ITEMS_PER_MEAL: 1,
+    PRICES: {
+      breakfast: 15,
+      lunch: 21,
+      dinner: 23
+    }
   },
   
   BAGEL_TYPES: ['Plain', 'Sesame', 'Everything', 'Whole Wheat', 'Poppy Seed', 'Onion'],
@@ -31,6 +38,7 @@ export const NH_CONFIG = {
   
   PAYMENT_STATUSES: {
     PENDING: 'pending',
+    PENDING_MONTHLY: 'pending_monthly',
     PAID: 'paid',
     FAILED: 'failed',
     REFUNDED: 'refunded'
@@ -38,7 +46,7 @@ export const NH_CONFIG = {
   
   BILLING: {
     FREQUENCY: ['weekly', 'monthly'],
-    TAX_RATE: TAX_RATE
+    TAX_RATE: NH_TAX_RATE
   }
 };
 

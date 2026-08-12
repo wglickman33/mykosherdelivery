@@ -33,6 +33,7 @@ const FacilitiesTab = () => {
   const [limit, setLimit] = useState(20);
   const [form, setForm] = useState({
     name: '',
+    slug: '',
     address: { ...defaultAddress },
     contactEmail: '',
     contactPhone: '',
@@ -52,9 +53,6 @@ const FacilitiesTab = () => {
       const res = await fetchFacilitiesList({ limit: 500 });
       const list = res?.data;
       setFacilities(Array.isArray(list) ? list : []);
-      if (res && res.success === false) {
-        setError('Failed to load facilities');
-      }
     } catch (err) {
       setFacilities([]);
       setError(err.response?.data?.message || 'Failed to load facilities');
@@ -71,6 +69,7 @@ const FacilitiesTab = () => {
     setEditingFacility(null);
     setForm({
       name: '',
+      slug: '',
       address: { ...defaultAddress },
       contactEmail: '',
       contactPhone: '',
@@ -84,6 +83,7 @@ const FacilitiesTab = () => {
     setEditingFacility(f);
     setForm({
       name: f.name || '',
+      slug: f.slug || '',
       address: f.address ? { ...defaultAddress, ...f.address } : { ...defaultAddress },
       contactEmail: f.contactEmail || '',
       contactPhone: f.contactPhone || '',
@@ -141,6 +141,9 @@ const FacilitiesTab = () => {
         contactPhone: form.contactPhone.trim() || undefined,
         logoUrl: form.logoUrl.trim() || undefined
       };
+      if (form.slug.trim()) {
+        payload.slug = form.slug.trim();
+      }
       if (editingFacility) {
         await updateFacility(editingFacility.id, payload);
       } else {
@@ -203,6 +206,7 @@ const FacilitiesTab = () => {
             <table className="facilities-table" role="grid">
               <colgroup>
                 <col className="col-name" />
+                <col className="col-slug" />
                 <col className="col-address" />
                 <col className="col-email" />
                 <col className="col-phone" />
@@ -211,6 +215,7 @@ const FacilitiesTab = () => {
               <thead>
                 <tr>
                   <th>Name</th>
+                  <th>Slug</th>
                   <th>Address</th>
                   <th>Email</th>
                   <th>Phone</th>
@@ -231,6 +236,9 @@ const FacilitiesTab = () => {
                       )}
                       <span>{f.name}</span>
                     </div>
+                  </td>
+                  <td>
+                    <code className="facility-slug-cell">{f.slug || '—'}</code>
                   </td>
                   <td>{addressLine(f)}</td>
                   <td>{f.contactEmail || '—'}</td>
@@ -321,6 +329,18 @@ const FacilitiesTab = () => {
                       placeholder="e.g. Sunrise Senior Living"
                       required
                     />
+                  </div>
+                  <div className="admin-nursing-homes__form-group admin-nursing-homes__form-group--full">
+                    <label>Slug {editingFacility && !editingFacility.slug ? '(missing — set one)' : '(optional override)'}</label>
+                    <input
+                      type="text"
+                      value={form.slug}
+                      onChange={(e) => handleChange('slug', e.target.value)}
+                      placeholder="e.g. sunrise-senior-living"
+                    />
+                    <span className="admin-nursing-homes__form-hint">
+                      Used in portal URLs. Leave blank to auto-generate from the name.
+                    </span>
                   </div>
                   <div className="admin-nursing-homes__form-group admin-nursing-homes__form-group--full">
                     <label>Street *</label>

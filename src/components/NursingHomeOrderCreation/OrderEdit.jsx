@@ -1,7 +1,20 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { fetchResidentOrder, fetchMenuItems, updateResidentOrder } from '../../services/nursingHomeService';
+import {
+  fetchResidentOrder,
+  fetchMenuItems,
+  updateResidentOrder,
+  submitResidentOrder,
+  nhPath
+} from '../../services/nursingHomeService';
+import { useNursingHomeFacility } from '../../context/NursingHomeFacilityContext';
 import { NH_CONFIG } from '../../config/constants';
+import {
+  formatNhDeadline,
+  validateWeeklyMeals,
+  mealHasItems,
+  isNoneMeal
+} from '../../utils/nursingHomeOrderUtils';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import MealForm from './MealForm';
@@ -15,8 +28,10 @@ function getMealKey(day, mealType) {
 }
 
 const OrderEdit = () => {
-  const { orderId } = useParams();
+  const { orderId, facilitySlug: slugParam } = useParams();
   const navigate = useNavigate();
+  const { facility: contextFacility } = useNursingHomeFacility();
+  const facilitySlug = slugParam || contextFacility?.slug;
 
   const [order, setOrder] = useState(null);
   const [resident, setResident] = useState(null);
@@ -35,8 +50,7 @@ const OrderEdit = () => {
       setLoading(true);
       setError(null);
 
-      const orderRes = await fetchResidentOrder(orderId);
-      const orderData = orderRes?.data ?? null;
+      const orderData = await fetchResidentOrder(orderId);
 
       if (!orderData) {
         setError('Order not found');
@@ -51,7 +65,11 @@ const OrderEdit = () => {
       }
 
       setOrder(orderData);
-      const residentData = orderData.resident || { id: orderData.residentId, name: orderData.residentName, roomNumber: orderData.roomNumber };
+      const residentData = orderData.resident || {
+        id: orderData.residentId,
+        name: orderData.residentName,
+        roomNumber: orderData.roomNumber
+      };
       setResident(residentData);
 
       const [breakfastRes, lunchRes, dinnerRes] = await Promise.all([
@@ -60,35 +78,37 @@ const OrderEdit = () => {
         fetchMenuItems({ mealType: 'dinner', isActive: true })
       ]);
 
-      const bItems = breakfastRes?.data?.items ?? [];
-      const lItems = lunchRes?.data?.items ?? [];
-      const dItems = dinnerRes?.data?.items ?? [];
-
       setMenuItems({
-        breakfast: Array.isArray(bItems) ? bItems : [],
-        lunch: Array.isArray(lItems) ? lItems : [],
-        dinner: Array.isArray(dItems) ? dItems : []
+        breakfast: Array.isArray(breakfastRes?.items) ? breakfastRes.items : [],
+        lunch: Array.isArray(lunchRes?.items) ? lunchRes.items : [],
+        dinner: Array.isArray(dinnerRes?.items) ? dinnerRes.items : []
       });
 
       const initialMeals = {};
       (orderData.meals || []).forEach((meal) => {
         const key = getMealKey(meal.day, meal.mealType);
+        const none = isNoneMeal(meal);
         initialMeals[key] = {
           day: meal.day,
           mealType: meal.mealType,
-          items: Array.isArray(meal.items) ? meal.items.map((i) => ({
-            id: i.id,
-            name: i.name || '',
-            category: i.category || 'main',
-            price: i.price != null ? i.price : 0
-          })) : [],
-          bagelType: meal.bagelType || null
+          items: none
+            ? []
+            : (Array.isArray(meal.items)
+              ? meal.items.map((i) => ({
+                  id: i.id,
+                  name: i.name || '',
+                  category: i.category || 'main',
+                  price: i.price != null ? i.price : 0
+                }))
+              : []),
+          bagelType: none ? null : (meal.bagelType || null),
+          none
         };
       });
       setMeals(initialMeals);
     } catch (err) {
       console.error('Error loading order for edit:', err);
-      setError(err.response?.data?.message || err.response?.data?.error || 'Failed to load order');
+      setError(err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to load order');
     } finally {
       setLoading(false);
     }
@@ -98,50 +118,110 @@ const OrderEdit = () => {
     loadData();
   }, [loadData]);
 
-  const handleMealUpdate = (day, mealType, items, bagelType = null) => {
+  const handleMealUpdate = (day, mealType, items, bagelType = null, none = false) => {
     const key = getMealKey(day, mealType);
     setMeals((prev) => ({
       ...prev,
-      [key]: { day, mealType, items, bagelType }
+      [key]: {
+        day,
+        mealType,
+        items: none ? [] : items,
+        bagelType: none ? null : bagelType,
+        none: !!none
+      }
     }));
   };
 
-  const handleSave = async () => {
+  const buildMealArray = () =>
+    Object.values(meals).filter((meal) => mealHasItems(meal) || isNoneMeal(meal));
+
+  const handleSaveDraft = async () => {
     try {
       setSaving(true);
       setError(null);
 
-      const mealArray = Object.values(meals).filter((meal) => meal.items && meal.items.length > 0);
-
+      const mealArray = buildMealArray();
       if (mealArray.length === 0) {
-        setError('Please add at least one meal before saving');
-        setSaving(false);
+        setError('Please add at least one meal (or mark as None) before saving');
         return;
       }
 
-      const payload = {
+      const validationErrors = validateWeeklyMeals(meals);
+      if (validationErrors.length > 0) {
+        setError(validationErrors[0]);
+        return;
+      }
+
+      const updated = await updateResidentOrder(orderId, {
         meals: mealArray,
         billingEmail: order?.billingEmail,
         billingName: order?.billingName
-      };
+      });
 
-      const response = await updateResidentOrder(orderId, payload);
-
-      if (response?.success) {
-        navigate(`/nursing-homes/order/${orderId}/payment`, { replace: true });
+      if (updated?.id) {
+        navigate(nhPath(facilitySlug, `orders/${orderId}`));
       } else {
-        setError(response?.error || response?.message || 'Failed to update order');
+        setError('Failed to update order');
       }
     } catch (err) {
       console.error('Error updating order:', err);
-      setError(err.response?.data?.message || err.response?.data?.error || 'Failed to update order');
+      setError(err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to update order');
     } finally {
       setSaving(false);
     }
   };
 
-  const getTotalMeals = () => {
-    return Object.values(meals).filter((meal) => meal.items && meal.items.length > 0).length;
+  const handleSubmit = async () => {
+    try {
+      setSaving(true);
+      setError(null);
+
+      const mealArray = buildMealArray();
+      if (!mealArray.some((m) => mealHasItems(m))) {
+        setError('Please add at least one meal before submitting');
+        return;
+      }
+
+      const validationErrors = validateWeeklyMeals(meals);
+      if (validationErrors.length > 0) {
+        setError(validationErrors[0]);
+        return;
+      }
+
+      const updated = await updateResidentOrder(orderId, {
+        meals: mealArray,
+        billingEmail: order?.billingEmail,
+        billingName: order?.billingName
+      });
+
+      if (!updated?.id) {
+        setError('Failed to update order');
+        return;
+      }
+
+      const submitted = await submitResidentOrder(orderId);
+      const id = submitted?.id || orderId;
+      navigate(nhPath(facilitySlug, `orders/${id}/confirmation`));
+    } catch (err) {
+      console.error('Error submitting order:', err);
+      setError(err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to submit order');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const getTotalMeals = () =>
+    Object.values(meals).filter((meal) => mealHasItems(meal)).length;
+
+  const dayHasMeals = (day) =>
+    Object.values(meals).some((m) => m.day === day && (mealHasItems(m) || isNoneMeal(m)));
+
+  const dayMealCount = (day) =>
+    Object.values(meals).filter((m) => m.day === day && (mealHasItems(m) || isNoneMeal(m))).length;
+
+  const mealSlotFilled = (day, mealType) => {
+    const meal = meals[getMealKey(day, mealType)];
+    return mealHasItems(meal) || isNoneMeal(meal);
   };
 
   if (loading) {
@@ -156,7 +236,11 @@ const OrderEdit = () => {
     return (
       <div className="order-creation">
         <ErrorMessage message={error} type="error" />
-        <button type="button" className="back-btn" onClick={() => navigate('/nursing-homes/orders')}>
+        <button
+          type="button"
+          className="back-btn"
+          onClick={() => navigate(nhPath(facilitySlug, 'orders'))}
+        >
           Back to Orders
         </button>
       </div>
@@ -169,18 +253,24 @@ const OrderEdit = () => {
     <div className="order-creation">
       <div className="order-header">
         <div className="header-content">
-          <button type="button" className="back-btn" onClick={() => navigate(`/nursing-homes/orders/${orderId}`)}>
+          <button
+            type="button"
+            className="back-btn"
+            onClick={() => navigate(nhPath(facilitySlug, `orders/${orderId}`))}
+          >
             ← Back to Order
           </button>
           <div className="header-info">
             <h1>Edit Weekly Order</h1>
             <p className="resident-name">
-              {resident?.name} {resident?.roomNumber && `- Room ${resident.roomNumber}`}
+              {resident?.name}
+              {resident?.roomNumber && ` — Room ${resident.roomNumber}`}
             </p>
           </div>
         </div>
         <div className="deadline-warning">
           <span className="deadline-label">Order #{order?.orderNumber}</span>
+          <span className="deadline-time">Deadline: {formatNhDeadline()}</span>
         </div>
       </div>
 
@@ -199,10 +289,8 @@ const OrderEdit = () => {
                   onClick={() => setSelectedDay(day)}
                 >
                   {day}
-                  {Object.values(meals).filter((m) => m.day === day && m.items?.length > 0).length > 0 && (
-                    <span className="meal-count">
-                      {Object.values(meals).filter((m) => m.day === day && m.items?.length > 0).length}
-                    </span>
+                  {dayHasMeals(day) && (
+                    <span className="meal-count">{dayMealCount(day)}</span>
                   )}
                 </button>
               ))}
@@ -212,30 +300,17 @@ const OrderEdit = () => {
           <div className="meal-type-selector">
             <h3>Select Meal</h3>
             <div className="meal-type-buttons">
-              <button
-                type="button"
-                className={`meal-type-btn breakfast ${selectedMealType === 'breakfast' ? 'active' : ''}`}
-                onClick={() => setSelectedMealType('breakfast')}
-              >
-                Breakfast
-                {meals[getMealKey(selectedDay, 'breakfast')]?.items?.length > 0 && <span className="checkmark">✓</span>}
-              </button>
-              <button
-                type="button"
-                className={`meal-type-btn lunch ${selectedMealType === 'lunch' ? 'active' : ''}`}
-                onClick={() => setSelectedMealType('lunch')}
-              >
-                Lunch
-                {meals[getMealKey(selectedDay, 'lunch')]?.items?.length > 0 && <span className="checkmark">✓</span>}
-              </button>
-              <button
-                type="button"
-                className={`meal-type-btn dinner ${selectedMealType === 'dinner' ? 'active' : ''}`}
-                onClick={() => setSelectedMealType('dinner')}
-              >
-                Dinner
-                {meals[getMealKey(selectedDay, 'dinner')]?.items?.length > 0 && <span className="checkmark">✓</span>}
-              </button>
+              {['breakfast', 'lunch', 'dinner'].map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  className={`meal-type-btn ${type} ${selectedMealType === type ? 'active' : ''}`}
+                  onClick={() => setSelectedMealType(type)}
+                >
+                  {type.charAt(0).toUpperCase() + type.slice(1)}
+                  {mealSlotFilled(selectedDay, type) && <span className="checkmark">✓</span>}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -252,7 +327,8 @@ const OrderEdit = () => {
         <OrderSummary
           meals={meals}
           resident={resident}
-          onSave={handleSave}
+          onSaveDraft={handleSaveDraft}
+          onSubmit={handleSubmit}
           saving={saving}
           totalMeals={getTotalMeals()}
         />

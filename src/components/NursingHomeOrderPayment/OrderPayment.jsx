@@ -1,142 +1,85 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import PropTypes from 'prop-types';
-import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { stripePromise, createPaymentMethod } from '../../services/paymentServices';
-import { fetchResidentOrder, submitAndPayOrder } from '../../services/nursingHomeService';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import {
+  fetchResidentOrder,
+  submitResidentOrder,
+  nhPath
+} from '../../services/nursingHomeService';
+import { useNursingHomeFacility } from '../../context/NursingHomeFacilityContext';
 import { NH_CONFIG } from '../../config/constants';
+import { isNoneMeal, mealHasItems } from '../../utils/nursingHomeOrderUtils';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import './OrderPayment.scss';
 
-const cardElementOptions = {
-  style: {
-    base: { fontSize: '16px', color: '#1e293b', '::placeholder': { color: '#94a3b8' } },
-    invalid: { color: '#dc2626' }
-  }
-};
-
-function PaymentFormInner({ order, billingInfo, onSuccess, onError }) {
-  const stripe = useStripe();
-  const elements = useElements();
-  const [isProcessing, setIsProcessing] = useState(false);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!stripe || !elements || !order) return;
-
-    setIsProcessing(true);
-    onError(null);
-
-    try {
-      const cardEl = elements.getElement(CardElement);
-      const pmResult = await createPaymentMethod(cardEl, {
-        name: billingInfo?.name || order.billingName,
-        email: billingInfo?.email || order.billingEmail,
-        phone: billingInfo?.phone || order.billingPhone
-      });
-      if (!pmResult?.success || !pmResult?.paymentMethod) {
-        onError(pmResult?.error || 'Could not create payment method');
-        return;
-      }
-
-      // submitAndPayOrder returns API body { success, data?, error?, message? }; backend confirms payment server-side
-      const result = await submitAndPayOrder(order.id, {
-        paymentMethodId: pmResult.paymentMethod.id,
-        billingEmail: billingInfo?.email || order.billingEmail,
-        billingName: billingInfo?.name || order.billingName,
-        billingPhone: billingInfo?.phone || order.billingPhone
-      });
-
-      if (result?.success) {
-        onSuccess();
-      } else {
-        onError(result?.error || result?.message || 'Payment failed');
-      }
-    } catch (err) {
-      const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'Payment failed';
-      onError(msg);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="payment-form-inner">
-      <div className="payment-form-inner__card">
-        <label className="payment-form-inner__label">Card</label>
-        <CardElement options={cardElementOptions} />
-      </div>
-      <button type="submit" className="payment-form-inner__submit" disabled={!stripe || isProcessing}>
-        {isProcessing ? 'Processing…' : `Pay $${parseFloat(order?.total || 0).toFixed(2)}`}
-      </button>
-    </form>
-  );
-}
-
-PaymentFormInner.propTypes = {
-  order: PropTypes.object,
-  billingInfo: PropTypes.object,
-  onSuccess: PropTypes.func.isRequired,
-  onError: PropTypes.func.isRequired
-};
-
+/**
+ * Legacy payment route — staff no longer charge cards at checkout.
+ * Draft orders are submitted via submitResidentOrder; billing is monthly to the resident card.
+ */
 const OrderPayment = () => {
-  const { orderId } = useParams();
+  const { orderId, facilitySlug: slugParam } = useParams();
   const navigate = useNavigate();
+  const { facility: contextFacility } = useNursingHomeFacility();
+  const facilitySlug = slugParam || contextFacility?.slug;
 
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
-  const [paymentError, setPaymentError] = useState(null);
-  const [billingInfo, setBillingInfo] = useState({ email: '', name: '', phone: '' });
+
+  const detailsPath = nhPath(facilitySlug, `orders/${orderId}`);
+  const dashboardPath = nhPath(facilitySlug, 'dashboard');
+
+  const isAlreadySubmitted = (data) => {
+    if (!data) return false;
+    if (data.status === 'draft') return false;
+    return ['submitted', 'confirmed', 'paid', 'in_progress', 'completed'].includes(data.status)
+      || ['paid', 'pending_monthly'].includes(data.paymentStatus);
+  };
 
   const loadOrder = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetchResidentOrder(orderId);
-      const data = response?.data;
+      const data = await fetchResidentOrder(orderId);
 
       if (!data) {
         setError('Order not found');
         return;
       }
 
-      if (data.status !== 'draft' && data.paymentStatus !== 'pending') {
-        navigate(`/nursing-homes/orders/${orderId}`, { replace: true });
-        return;
-      }
-
       setOrder(data);
-      setBillingInfo({
-        email: data.billingEmail || '',
-        name: data.billingName || '',
-        phone: data.billingPhone || ''
-      });
     } catch (err) {
-      setError(err.response?.data?.error || err.response?.data?.message || 'Failed to load order');
+      setError(err.response?.data?.error || err.response?.data?.message || err.message || 'Failed to load order');
     } finally {
       setLoading(false);
     }
-  }, [orderId, navigate]);
+  }, [orderId]);
 
   useEffect(() => {
     loadOrder();
   }, [loadOrder]);
 
-  const handlePaymentSuccess = () => {
-    navigate(`/nursing-homes/orders/${order.id}/confirmation`, { replace: true });
+  const handleSubmit = async () => {
+    if (!order?.id) return;
+    try {
+      setSubmitting(true);
+      setError(null);
+      const submitted = await submitResidentOrder(order.id);
+      const id = submitted?.id || order.id;
+      navigate(nhPath(facilitySlug, `orders/${id}/confirmation`), { replace: true });
+    } catch (err) {
+      setError(err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to submit order');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const getMealsByDay = () => {
     if (!order?.meals) return {};
-    
     const byDay = {};
-    order.meals.forEach(meal => {
-      if (!byDay[meal.day]) {
-        byDay[meal.day] = [];
-      }
+    order.meals.forEach((meal) => {
+      if (!byDay[meal.day]) byDay[meal.day] = [];
       byDay[meal.day].push(meal);
     });
     return byDay;
@@ -150,13 +93,38 @@ const OrderPayment = () => {
     );
   }
 
-  if (error) {
+  if (error && !order) {
     return (
       <div className="order-payment">
         <ErrorMessage message={error} type="error" />
-        <button onClick={() => navigate('/nursing-homes/dashboard')}>
+        <button type="button" onClick={() => navigate(dashboardPath)}>
           Back to Dashboard
         </button>
+      </div>
+    );
+  }
+
+  if (isAlreadySubmitted(order)) {
+    return (
+      <div className="order-payment">
+        <div className="payment-header">
+          <h1>Order Already Submitted</h1>
+          <p className="order-number">Order #{order?.orderNumber}</p>
+        </div>
+        <div className="payment-content">
+          <div className="order-review">
+            <p>
+              This order has already been submitted. Billing is handled monthly on the resident&apos;s card —
+              no staff payment is needed at checkout.
+            </p>
+            <p>
+              <Link to={detailsPath}>View order details</Link>
+            </p>
+            <button type="button" className="back-btn" onClick={() => navigate(dashboardPath)}>
+              Back to Dashboard
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -167,17 +135,17 @@ const OrderPayment = () => {
   return (
     <div className="order-payment">
       <div className="payment-header">
-        <button className="back-btn" onClick={() => navigate(-1)}>
+        <button type="button" className="back-btn" onClick={() => navigate(-1)}>
           ← Back
         </button>
-        <h1>Complete Your Order</h1>
+        <h1>Submit Order</h1>
         <p className="order-number">Order #{order?.orderNumber}</p>
       </div>
 
       <div className="payment-content">
         <div className="order-review">
           <h2>Order Review</h2>
-          
+
           <div className="resident-info">
             <h3>{order?.residentName ?? order?.resident?.name}</h3>
             {(order?.roomNumber ?? order?.resident?.roomNumber) && (
@@ -198,7 +166,7 @@ const OrderPayment = () => {
 
           <div className="meals-summary">
             <h4>Meals by Day</h4>
-            {days.map(day => {
+            {days.map((day) => {
               const dayMeals = mealsByDay[day];
               if (!dayMeals || dayMeals.length === 0) return null;
 
@@ -208,7 +176,13 @@ const OrderPayment = () => {
                   {dayMeals.map((meal, idx) => (
                     <div key={idx} className="meal-item">
                       <span className="meal-type">{meal.mealType}</span>
-                      <span className="meal-count">{meal.items?.length || 0} items</span>
+                      <span className="meal-count">
+                        {isNoneMeal(meal)
+                          ? 'None'
+                          : mealHasItems(meal)
+                            ? `${meal.items.length} items`
+                            : '—'}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -230,62 +204,33 @@ const OrderPayment = () => {
               <span>${parseFloat(order?.total || 0).toFixed(2)}</span>
             </div>
           </div>
-
         </div>
 
         <div className="payment-section">
-          <h2>Billing &amp; Payment</h2>
+          <h2>Submit for Monthly Billing</h2>
+          <p>
+            Staff do not pay at checkout. Charges are billed monthly to the resident&apos;s card on file.
+          </p>
 
-          <div className="billing-fields">
-            <label className="billing-field">
-              <span>Email (receipt)</span>
-              <input
-                type="email"
-                value={billingInfo.email}
-                onChange={(e) => setBillingInfo((p) => ({ ...p, email: e.target.value }))}
-                placeholder="billing@example.com"
-              />
-            </label>
-            <label className="billing-field">
-              <span>Name</span>
-              <input
-                type="text"
-                value={billingInfo.name}
-                onChange={(e) => setBillingInfo((p) => ({ ...p, name: e.target.value }))}
-                placeholder="Billing name"
-              />
-            </label>
-            <label className="billing-field">
-              <span>Phone</span>
-              <input
-                type="tel"
-                value={billingInfo.phone}
-                onChange={(e) => setBillingInfo((p) => ({ ...p, phone: e.target.value }))}
-                placeholder="555-1234"
-              />
-            </label>
-          </div>
-
-          {paymentError && (
-            <ErrorMessage message={paymentError} type="error" onDismiss={() => setPaymentError(null)} />
+          {error && (
+            <ErrorMessage message={error} type="error" onDismiss={() => setError(null)} />
           )}
 
-          <Elements stripe={stripePromise}>
-            <PaymentFormInner
-              order={order}
-              billingInfo={billingInfo}
-              onSuccess={handlePaymentSuccess}
-              onError={setPaymentError}
-            />
-          </Elements>
+          <button
+            type="button"
+            className="submit-payment-btn"
+            onClick={handleSubmit}
+            disabled={submitting || order?.status !== 'draft'}
+          >
+            {submitting ? 'Submitting…' : 'Submit Order'}
+          </button>
 
           <div className="payment-info">
             <h4>Important Information</h4>
             <ul>
-              <li>Payment will be charged immediately</li>
-              <li>Receipt will be emailed to the billing address</li>
-              <li>Orders can be modified until Sunday 12:00 PM</li>
-              <li>Refunds available before the deadline</li>
+              <li>No card charge is taken here — billing is monthly to the resident</li>
+              <li>Orders can be modified until Sunday 12:00 PM ET</li>
+              <li>A confirmation is shown after submit</li>
             </ul>
           </div>
         </div>

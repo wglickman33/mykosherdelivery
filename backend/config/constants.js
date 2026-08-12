@@ -31,6 +31,7 @@ const NH_CONFIG = {
   
   PAYMENT_STATUSES: {
     PENDING: 'pending',
+    PENDING_MONTHLY: 'pending_monthly',
     PAID: 'paid',
     FAILED: 'failed',
     REFUNDED: 'refunded'
@@ -38,7 +39,7 @@ const NH_CONFIG = {
   
   BILLING: {
     FREQUENCY: ['weekly', 'monthly'],
-    TAX_RATE: TAX_RATE
+    TAX_RATE: 0.08875
   }
 };
 

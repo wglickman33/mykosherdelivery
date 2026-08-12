@@ -254,6 +254,126 @@ export const sendOrderConfirmationEmail = async (orderData) => {
   }
 };
 
+const money = (n) => `$${parseFloat(n || 0).toFixed(2)}`;
+
+/** Build line-item HTML for NH monthly billing EmailJS template ({{{order_items_html}}}). */
+export const buildNhBillingItemsHtml = (weeks = []) => {
+  if (!Array.isArray(weeks) || weeks.length === 0) {
+    return '<p style="margin:0;color:#666;">Meal orders billed for this period.</p>';
+  }
+  return weeks
+    .map((week, index) => {
+      const label = week.orderNumber || 'Order';
+      const range =
+        week.weekStartDate && week.weekEndDate
+          ? `${week.weekStartDate} – ${week.weekEndDate}`
+          : 'Weekly meals';
+      const meals =
+        week.mealCount != null ? `${week.mealCount} meal${week.mealCount === 1 ? '' : 's'}` : '';
+      const border =
+        index === weeks.length - 1 ? 'none' : '1px solid #e5e7eb';
+      return `
+        <div style="padding: 10px 0; border-bottom: ${border};">
+          <table style="width:100%; border-collapse:collapse;">
+            <tr>
+              <td style="vertical-align:top;">
+                <strong style="color:#061757;">${label}</strong>
+                <div style="color:#666; font-size:13px; margin-top:4px;">${range}${meals ? ` · ${meals}` : ''}</div>
+              </td>
+              <td style="vertical-align:top; text-align:right; font-weight:600; white-space:nowrap; color:#333;">${money(week.total)}</td>
+            </tr>
+          </table>
+        </div>`;
+    })
+    .join('');
+};
+
+/**
+ * Nursing-home monthly billing receipt via EmailJS template_q1irb2l (MKD-styled).
+ * Env: VITE_EMAILJS_NH_BILLING_TEMPLATE_ID (defaults to template_q1irb2l).
+ */
+export const sendNhMonthlyBillingEmail = async (billingData = {}) => {
+  try {
+    const emailjsConfig = {
+      publicKey: import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'YOUR_EMAILJS_PUBLIC_KEY',
+      serviceId: import.meta.env.VITE_EMAILJS_SERVICE_ID || 'YOUR_EMAILJS_SERVICE_ID',
+      templateId:
+        import.meta.env.VITE_EMAILJS_NH_BILLING_TEMPLATE_ID ||
+        'template_q1irb2l'
+    };
+
+    const toEmail = billingData.billingEmail || billingData.toEmail || billingData.customerEmail;
+    if (!toEmail) {
+      return { success: false, error: 'Missing billing email' };
+    }
+
+    const toName =
+      billingData.billingName ||
+      billingData.residentName ||
+      billingData.customerName ||
+      'Resident';
+    const orderIds = billingData.orderNumbers?.length
+      ? billingData.orderNumbers
+      : billingData.orderIds || [];
+    const billingPeriod =
+      billingData.billingPeriod ||
+      new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+    const orderDate = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    const templateParams = {
+      to_name: toName,
+      customer_full_name: toName,
+      to_email: toEmail,
+      email: toEmail,
+      order_ids: Array.isArray(orderIds) ? orderIds.join(', ') : String(orderIds || 'N/A'),
+      order_id: Array.isArray(orderIds) ? orderIds.join(', ') : String(orderIds || 'N/A'),
+      order_date: orderDate,
+      billing_period: billingPeriod,
+      facility_name: billingData.facilityName || 'Nursing Home',
+      delivery_address: billingData.facilityName
+        ? `${billingData.facilityName} (facility meal delivery)`
+        : 'Nursing home facility delivery',
+      order_count: String(billingData.orderCount ?? orderIds.length ?? 0),
+      order_items_html:
+        billingData.orderItemsHtml || buildNhBillingItemsHtml(billingData.weeks || []),
+      subtotal: money(billingData.subtotal ?? billingData.amount),
+      tax: money(billingData.tax ?? 0),
+      total_amount: money(billingData.amount ?? billingData.total),
+      // Keep cost.* aliases for stock EmailJS commerce templates
+      'cost.shipping': money(0),
+      'cost.tax': money(billingData.tax ?? 0),
+      'cost.total': money(billingData.amount ?? billingData.total)
+    };
+
+    if (emailjsConfig.publicKey === 'YOUR_EMAILJS_PUBLIC_KEY') {
+      console.warn('⚠️ EmailJS not configured - skipping NH billing email');
+      console.log('📧 NH billing email would send:', templateParams);
+      return { success: true, note: 'Email simulated - configure EmailJS for real emails' };
+    }
+
+    const { default: emailjs } = await import('@emailjs/browser');
+    const response = await emailjs.send(
+      emailjsConfig.serviceId,
+      emailjsConfig.templateId,
+      templateParams,
+      emailjsConfig.publicKey
+    );
+
+    return { success: true, emailId: response.text };
+  } catch (error) {
+    console.error('❌ Error sending NH monthly billing email:', error);
+    return {
+      success: false,
+      error: error.message,
+      note: 'Email failed - check EmailJS NH billing template configuration'
+    };
+  }
+};
+
 
 export const createGuestOrder = async (orderData) => {
   try {

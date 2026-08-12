@@ -1,7 +1,16 @@
 const express = require('express');
 const { query } = require('express-validator');
-const { sequelize, NursingHomeFacility, NursingHomeResident, NursingHomeMenuItem, NursingHomeInvoice, NursingHomeOrder, Profile } = require('../models');
-const { QueryTypes } = require('sequelize');
+const {
+  sequelize,
+  NursingHomeFacility,
+  NursingHomeResident,
+  NursingHomeResidentOrder,
+  NursingHomeMenuItem,
+  NursingHomeInvoice,
+  NursingHomeOrder,
+  Profile
+} = require('../models');
+const { QueryTypes, Op } = require('sequelize');
 const { requireAdmin, requireNursingHomeAdmin, requireNursingHomeUser } = require('../middleware/auth');
 const { body, validationResult } = require('express-validator');
 const logger = require('../utils/logger');
@@ -9,6 +18,41 @@ const { createAdminNotification } = require('../utils/adminNotifications');
 const { logAdminAction } = require('../utils/auditLog');
 
 const router = express.Router();
+
+function getStripe() {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key || typeof key !== 'string' || key.includes('placeholder')) return null;
+  return require('stripe')(key);
+}
+let stripeClient = null;
+function stripe() {
+  if (stripeClient === null) stripeClient = getStripe();
+  return stripeClient;
+}
+
+function slugifyFacilityName(name) {
+  if (!name || typeof name !== 'string') return 'facility';
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '') || 'facility';
+}
+
+async function ensureUniqueFacilitySlug(baseSlug, excludeId = null) {
+  let slug = baseSlug || 'facility';
+  let suffix = 2;
+  for (;;) {
+    const where = { slug };
+    if (excludeId) {
+      where.id = { [Op.ne]: excludeId };
+    }
+    const existing = await NursingHomeFacility.findOne({ where, attributes: ['id'] });
+    if (!existing) return slug;
+    slug = `${baseSlug}-${suffix}`;
+    suffix += 1;
+  }
+}
 
 const menuQueryValidation = [
   query('mealType').optional().isIn(['breakfast', 'lunch', 'dinner']),
@@ -76,11 +120,16 @@ router.get('/facilities/current', requireNursingHomeUser, async (req, res) => {
     } else if (req.user.role === 'nursing_home_admin' && req.user.nursingHomeFacilityId) {
       facility = await NursingHomeFacility.findByPk(req.user.nursingHomeFacilityId);
     } else if (req.user.role === 'nursing_home_user') {
-      const resident = await NursingHomeResident.findOne({
-        where: { assignedUserId: req.user.id },
-        include: [{ model: NursingHomeFacility, as: 'facility' }]
-      });
-      facility = resident?.facility || null;
+      if (req.user.nursingHomeFacilityId) {
+        facility = await NursingHomeFacility.findByPk(req.user.nursingHomeFacilityId);
+      }
+      if (!facility) {
+        const resident = await NursingHomeResident.findOne({
+          where: { assignedUserId: req.user.id },
+          include: [{ model: NursingHomeFacility, as: 'facility' }]
+        });
+        facility = resident?.facility || null;
+      }
     }
 
     if (!facility) {
@@ -96,6 +145,44 @@ router.get('/facilities/current', requireNursingHomeUser, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching current facility:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch facility',
+      message: error.message
+    });
+  }
+});
+
+router.get('/facilities/by-slug/:slug', requireNursingHomeUser, async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const facility = await NursingHomeFacility.findOne({ where: { slug } });
+
+    if (!facility) {
+      return res.status(404).json({
+        success: false,
+        error: 'Facility not found'
+      });
+    }
+
+    if (req.user.role !== 'admin') {
+      if (
+        (req.user.role === 'nursing_home_admin' || req.user.role === 'nursing_home_user') &&
+        req.user.nursingHomeFacilityId !== facility.id
+      ) {
+        return res.status(403).json({
+          success: false,
+          error: 'Access denied'
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      data: facility
+    });
+  } catch (error) {
+    logger.error('Error fetching facility by slug:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch facility',
@@ -144,7 +231,7 @@ router.get('/facilities/:id', requireNursingHomeAdmin, async (req, res) => {
     const { id } = req.params;
 
     const rows = await sequelize.query(
-      `SELECT id, name, address, contact_email AS "contactEmail", contact_phone AS "contactPhone",
+      `SELECT id, name, slug, address, contact_email AS "contactEmail", contact_phone AS "contactPhone",
               logo_url AS "logoUrl", billing_frequency AS "billingFrequency", is_active AS "isActive",
               created_at AS "createdAt", updated_at AS "updatedAt"
        FROM nursing_home_facilities WHERE id = :id`,
@@ -166,7 +253,24 @@ router.get('/facilities/:id', requireNursingHomeAdmin, async (req, res) => {
       });
     }
 
-    facility.staff = [];
+    let staff = [];
+    try {
+      const staffRows = await sequelize.query(
+        `SELECT id, email, first_name AS "firstName", last_name AS "lastName", role, phone, created_at AS "createdAt"
+         FROM profiles
+         WHERE nursing_home_facility_id = :facilityId
+         ORDER BY last_name, first_name`,
+        { replacements: { facilityId: id }, type: QueryTypes.SELECT }
+      );
+      staff = staffRows || [];
+    } catch (dbErr) {
+      const msg = (dbErr.message || '') + (dbErr.original?.message || '');
+      if (!/nursing_home_facility_id|column.*does not exist/i.test(msg)) {
+        throw dbErr;
+      }
+    }
+
+    facility.staff = staff;
     res.json({
       success: true,
       data: facility
@@ -203,10 +307,14 @@ router.post('/facilities', requireAdmin, [
       });
     }
 
-    const { name, address, contactEmail, contactPhone, billingFrequency, logoUrl } = req.body;
+    const { name, address, contactEmail, contactPhone, billingFrequency, logoUrl, slug: providedSlug } = req.body;
+
+    const baseSlug = providedSlug ? slugifyFacilityName(providedSlug) : slugifyFacilityName(name);
+    const slug = await ensureUniqueFacilitySlug(baseSlug);
 
     const facility = await NursingHomeFacility.create({
       name,
+      slug,
       address,
       contactEmail,
       contactPhone,
@@ -270,6 +378,12 @@ router.put('/facilities/:id', requireAdmin, [
         success: false,
         error: 'Facility not found'
       });
+    }
+
+    if (updateData.slug) {
+      updateData.slug = await ensureUniqueFacilitySlug(slugifyFacilityName(updateData.slug), id);
+    } else if (updateData.name && !req.body.slug) {
+      updateData.slug = await ensureUniqueFacilitySlug(slugifyFacilityName(updateData.name), id);
     }
 
     const facilityOldValues = facility.toJSON();
@@ -557,17 +671,15 @@ router.get('/residents', requireNursingHomeUser, async (req, res) => {
       if (facilityId) {
         where.facilityId = facilityId;
       }
-    } else if (req.user.role === 'nursing_home_admin') {
+    } else if (req.user.role === 'nursing_home_admin' || req.user.role === 'nursing_home_user') {
+      // Facility-scoped for both roles; assignment is an optional list filter only
       where.facilityId = req.user.nursingHomeFacilityId;
-    } else if (req.user.role === 'nursing_home_user') {
-      where.facilityId = req.user.nursingHomeFacilityId;
-      where.assignedUserId = req.user.id;
     }
 
-    if (req.user.role !== 'admin' && req.user.role !== 'nursing_home_user' && assignedUserId) {
-      where.assignedUserId = assignedUserId;
-    } else if (req.user.role === 'admin' && assignedUserId) {
-      where.assignedUserId = assignedUserId;
+    if (assignedUserId === 'me' && req.user.role === 'nursing_home_user') {
+      where.assignedUserId = req.user.id;
+    } else if (assignedUserId && ['admin', 'nursing_home_admin', 'nursing_home_user'].includes(req.user.role)) {
+      where.assignedUserId = assignedUserId === 'me' ? req.user.id : assignedUserId;
     }
 
     if (search) {
@@ -642,14 +754,7 @@ router.get('/residents/:id', requireNursingHomeUser, async (req, res) => {
       });
     }
 
-    if (req.user.role === 'nursing_home_user') {
-      if (resident.assignedUserId !== req.user.id) {
-        return res.status(403).json({
-          success: false,
-          error: 'Access denied'
-        });
-      }
-    } else if (req.user.role === 'nursing_home_admin') {
+    if (req.user.role === 'nursing_home_user' || req.user.role === 'nursing_home_admin') {
       if (resident.facilityId !== req.user.nursingHomeFacilityId) {
         return res.status(403).json({
           success: false,
@@ -684,6 +789,9 @@ router.post('/residents', requireNursingHomeAdmin, [
   body('dietaryRestrictions').optional().trim(),
   body('allergies').optional().trim(),
   body('notes').optional().trim(),
+  body('billingEmail').optional().isEmail().normalizeEmail(),
+  body('billingName').optional().isString().trim().isLength({ min: 1, max: 200 }),
+  body('billingPhone').optional().isString().trim(),
   body('assignedUserId').optional().isUUID()
 ], async (req, res) => {
   try {
@@ -696,7 +804,18 @@ router.post('/residents', requireNursingHomeAdmin, [
       });
     }
 
-    const { facilityId, name, roomNumber, dietaryRestrictions, allergies, notes, assignedUserId } = req.body;
+    const {
+      facilityId,
+      name,
+      roomNumber,
+      dietaryRestrictions,
+      allergies,
+      notes,
+      billingEmail,
+      billingName,
+      billingPhone,
+      assignedUserId
+    } = req.body;
 
     if (req.user.role !== 'admin' && req.user.nursingHomeFacilityId !== facilityId) {
       return res.status(403).json({
@@ -730,6 +849,9 @@ router.post('/residents', requireNursingHomeAdmin, [
       dietaryRestrictions,
       allergies,
       notes,
+      billingEmail: billingEmail || null,
+      billingName: billingName || null,
+      billingPhone: billingPhone || null,
       assignedUserId,
       isActive: true
     });
@@ -766,6 +888,9 @@ router.put('/residents/:id', requireNursingHomeAdmin, [
   body('dietaryRestrictions').optional().trim(),
   body('allergies').optional().trim(),
   body('notes').optional().trim(),
+  body('billingEmail').optional({ nullable: true }).isEmail().normalizeEmail(),
+  body('billingName').optional({ nullable: true }).isString().trim().isLength({ max: 200 }),
+  body('billingPhone').optional({ nullable: true }).isString().trim(),
   body('assignedUserId').optional().isUUID(),
   body('isActive').optional().isBoolean()
 ], async (req, res) => {
@@ -941,6 +1066,269 @@ router.delete('/residents/:id', requireNursingHomeAdmin, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to deactivate resident',
+      message: error.message
+    });
+  }
+});
+
+router.post('/residents/:id/payment-method', requireAdminOrNursingHomeAdmin, [
+  body('paymentMethodId').notEmpty().isString().trim(),
+  body('billingEmail').optional().isEmail().normalizeEmail(),
+  body('billingName').optional().isString().trim().isLength({ min: 1, max: 200 }),
+  body('billingPhone').optional().isString().trim()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    const { id } = req.params;
+    const { paymentMethodId, billingEmail, billingName, billingPhone } = req.body;
+
+    const resident = await NursingHomeResident.findByPk(id);
+    if (!resident) {
+      return res.status(404).json({ success: false, error: 'Resident not found' });
+    }
+
+    if (req.user.role !== 'admin' && resident.facilityId !== req.user.nursingHomeFacilityId) {
+      return res.status(403).json({ success: false, error: 'Access denied' });
+    }
+
+    const client = stripe();
+    if (!client) {
+      return res.status(503).json({
+        success: false,
+        error: 'Payment provider not configured',
+        message: 'Stripe is not configured. Set STRIPE_SECRET_KEY in environment.'
+      });
+    }
+
+    const stripePaymentMethod = await client.paymentMethods.retrieve(paymentMethodId);
+
+    let customerId = resident.stripeCustomerId;
+    if (!stripePaymentMethod.customer) {
+      let customer;
+      if (customerId) {
+        customer = await client.customers.retrieve(customerId);
+      } else {
+        customer = await client.customers.create({
+          email: billingEmail || resident.billingEmail || undefined,
+          name: billingName || resident.billingName || resident.name,
+          phone: billingPhone || resident.billingPhone || undefined,
+          metadata: {
+            residentId: resident.id,
+            facilityId: resident.facilityId,
+            type: 'nursing_home_resident'
+          }
+        });
+        customerId = customer.id;
+      }
+
+      await client.paymentMethods.attach(paymentMethodId, {
+        customer: customerId
+      });
+    } else {
+      customerId = stripePaymentMethod.customer;
+    }
+
+    const updatePayload = {
+      paymentMethodId,
+      stripeCustomerId: customerId
+    };
+    if (billingEmail !== undefined) updatePayload.billingEmail = billingEmail;
+    if (billingName !== undefined) updatePayload.billingName = billingName;
+    if (billingPhone !== undefined) updatePayload.billingPhone = billingPhone;
+
+    const oldValues = resident.toJSON();
+    await resident.update(updatePayload);
+    await logAdminAction(req.user.id, 'UPDATE', 'nh_residents', resident.id, oldValues, resident.toJSON(), req);
+
+    logger.info('Resident payment method saved', {
+      residentId: resident.id,
+      paymentMethodId,
+      stripeCustomerId: customerId,
+      updatedBy: req.user.id
+    });
+
+    res.json({
+      success: true,
+      data: resident,
+      message: 'Payment method saved'
+    });
+  } catch (error) {
+    logger.error('Error saving resident payment method:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to save payment method',
+      message: error.message
+    });
+  }
+});
+
+router.post('/facilities/:id/billing/run-monthly', requireNursingHomeAdmin, async (req, res) => {
+  try {
+    const { id: facilityId } = req.params;
+
+    if (req.user.role !== 'admin' && req.user.nursingHomeFacilityId !== facilityId) {
+      return res.status(403).json({ success: false, error: 'Access denied' });
+    }
+
+    const facility = await NursingHomeFacility.findByPk(facilityId);
+    if (!facility) {
+      return res.status(404).json({ success: false, error: 'Facility not found' });
+    }
+
+    const client = stripe();
+    if (!client) {
+      return res.status(503).json({
+        success: false,
+        error: 'Payment provider not configured',
+        message: 'Stripe is not configured. Set STRIPE_SECRET_KEY in environment.'
+      });
+    }
+
+    const pendingOrders = await NursingHomeResidentOrder.findAll({
+      where: {
+        facilityId,
+        status: { [Op.in]: ['submitted', 'confirmed'] },
+        paymentStatus: { [Op.in]: ['pending', 'pending_monthly'] }
+      },
+      include: [{ model: NursingHomeResident, as: 'resident' }],
+      order: [['createdAt', 'ASC']]
+    });
+
+    const ordersByResident = new Map();
+    for (const order of pendingOrders) {
+      const key = order.residentId;
+      if (!ordersByResident.has(key)) ordersByResident.set(key, []);
+      ordersByResident.get(key).push(order);
+    }
+
+    const summary = {
+      facilityId,
+      residentsCharged: 0,
+      residentsSkipped: 0,
+      ordersPaid: 0,
+      totalCharged: 0,
+      charged: [],
+      skipped: [],
+      failed: []
+    };
+
+    for (const [residentId, orders] of ordersByResident.entries()) {
+      const resident = orders[0].resident || await NursingHomeResident.findByPk(residentId);
+      const amount = orders.reduce((sum, o) => sum + parseFloat(o.total || 0), 0);
+
+      if (!resident?.paymentMethodId || amount <= 0) {
+        summary.residentsSkipped += 1;
+        summary.skipped.push({
+          residentId,
+          residentName: resident?.name || orders[0].residentName,
+          reason: !resident?.paymentMethodId ? 'no_payment_method' : 'zero_amount',
+          orderCount: orders.length,
+          amount
+        });
+        continue;
+      }
+
+      try {
+        const paymentIntent = await client.paymentIntents.create({
+          amount: Math.round(amount * 100),
+          currency: 'usd',
+          customer: resident.stripeCustomerId || undefined,
+          payment_method: resident.paymentMethodId,
+          confirm: true,
+          off_session: true,
+          description: `Monthly meal billing - ${resident.name} - ${facility.name}`,
+          metadata: {
+            facilityId,
+            residentId,
+            orderIds: orders.map((o) => o.id).join(','),
+            type: 'nh_monthly_billing'
+          },
+          receipt_email: resident.billingEmail || undefined,
+          statement_descriptor: 'MKD MEALS'
+        });
+
+        for (const order of orders) {
+          await order.update({
+            status: order.status === 'submitted' || order.status === 'confirmed' ? 'paid' : order.status,
+            paymentStatus: 'paid',
+            paymentMethod: 'stripe',
+            paymentIntentId: paymentIntent.id,
+            paidAt: new Date()
+          });
+        }
+
+        summary.residentsCharged += 1;
+        summary.ordersPaid += orders.length;
+        summary.totalCharged += amount;
+        const subtotal = orders.reduce((sum, o) => sum + parseFloat(o.subtotal || 0), 0);
+        const tax = orders.reduce((sum, o) => sum + parseFloat(o.tax || 0), 0);
+        summary.charged.push({
+          residentId,
+          residentName: resident.name,
+          billingEmail: resident.billingEmail || null,
+          billingName: resident.billingName || resident.name,
+          facilityName: facility.name,
+          amount: parseFloat(amount.toFixed(2)),
+          subtotal: parseFloat(subtotal.toFixed(2)),
+          tax: parseFloat(tax.toFixed(2)),
+          orderCount: orders.length,
+          paymentIntentId: paymentIntent.id,
+          orderIds: orders.map((o) => o.id),
+          orderNumbers: orders.map((o) => o.orderNumber).filter(Boolean),
+          weeks: orders.map((o) => ({
+            orderNumber: o.orderNumber,
+            weekStartDate: o.weekStartDate,
+            weekEndDate: o.weekEndDate,
+            total: parseFloat(o.total || 0),
+            mealCount: Array.isArray(o.meals)
+              ? o.meals.filter((m) => m && !m.none && Array.isArray(m.items) && m.items.length > 0).length
+              : 0
+          }))
+        });
+      } catch (stripeError) {
+        logger.error('Monthly billing charge failed:', stripeError, { residentId, facilityId });
+        for (const order of orders) {
+          await order.update({ paymentStatus: 'failed' });
+        }
+        summary.failed.push({
+          residentId,
+          residentName: resident.name,
+          amount: parseFloat(amount.toFixed(2)),
+          orderCount: orders.length,
+          error: stripeError.message
+        });
+      }
+    }
+
+    summary.totalCharged = parseFloat(summary.totalCharged.toFixed(2));
+
+    await logAdminAction(req.user.id, 'CREATE', 'nh_monthly_billing', facilityId, null, summary, req);
+    logger.info('Monthly billing run completed', {
+      facilityId,
+      chargedBy: req.user.id,
+      residentsCharged: summary.residentsCharged,
+      ordersPaid: summary.ordersPaid,
+      totalCharged: summary.totalCharged
+    });
+
+    res.json({
+      success: true,
+      data: summary,
+      message: 'Monthly billing run completed'
+    });
+  } catch (error) {
+    logger.error('Error running monthly billing:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to run monthly billing',
       message: error.message
     });
   }

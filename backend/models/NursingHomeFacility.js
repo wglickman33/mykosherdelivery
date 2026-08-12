@@ -9,6 +9,11 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: false
     },
+    slug: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      unique: true
+    },
     address: {
       type: DataTypes.JSONB,
       allowNull: false,

@@ -3,6 +3,7 @@ import { useAuth } from '../../hooks/useAuth';
 import {
   fetchFacilitiesList,
   fetchCurrentFacility,
+  fetchStaffForFacility,
   createStaff,
   updateStaff,
   deleteStaff,
@@ -48,7 +49,7 @@ const StaffTab = () => {
     }
   }, [isAdmin]);
 
-  const loadFacility = useCallback(async (id) => {
+  const loadFacility = useCallback(async (id, facilityMeta = null) => {
     if (!id) {
       setFacility(null);
       setLoading(false);
@@ -57,11 +58,18 @@ const StaffTab = () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetchCurrentFacility(id);
-      const data = res?.data ?? res;
-      setFacility(data ? { ...data, staff: data.staff || [] } : null);
+      const [facilityRes, staffList] = await Promise.all([
+        fetchCurrentFacility(id).catch(() => null),
+        fetchStaffForFacility(id)
+      ]);
+      const facilityData = facilityRes?.data ?? facilityRes ?? facilityMeta;
+      setFacility(
+        facilityData
+          ? { ...facilityData, staff: Array.isArray(staffList) ? staffList : [] }
+          : { id, staff: Array.isArray(staffList) ? staffList : [] }
+      );
     } catch (err) {
-      setError(err.response?.data?.message || err.response?.data?.error || 'Failed to load facility');
+      setError(err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to load facility');
       setFacility(null);
     } finally {
       setLoading(false);
@@ -87,10 +95,8 @@ const StaffTab = () => {
         setLoading(false);
         return;
       }
-      const fromList = facilities.find((f) => f.id === selectedFacilityId);
-      setFacility(fromList ? { ...fromList, staff: [] } : null);
-      setLoading(false);
-      setError(null);
+      const fromList = facilities.find((f) => f.id === selectedFacilityId) || null;
+      loadFacility(selectedFacilityId, fromList);
     } else {
       loadFacility(user?.nursingHomeFacilityId);
     }

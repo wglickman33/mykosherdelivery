@@ -5,7 +5,8 @@ import {
   fetchFacilitiesList,
   fetchStaffForFacility,
   assignResidentToStaff,
-  updateResident
+  updateResident,
+  unwrapList
 } from '../../services/nursingHomeService';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
@@ -48,11 +49,10 @@ const StaffAssignmentTab = () => {
         fetchResidents({ facilityId, limit: 200, isActive: 'true' }),
         fetchStaffForFacility(facilityId)
       ]);
-      const body = resRes?.data;
-      setResidents(Array.isArray(body?.data) ? body.data : []);
-      setStaff(Array.isArray(staffRes?.data) ? staffRes.data : []);
+      setResidents(unwrapList(resRes));
+      setStaff(Array.isArray(staffRes) ? staffRes : unwrapList(staffRes));
     } catch (err) {
-      setError(err.response?.data?.message || err.response?.data?.error || 'Failed to load data');
+      setError(err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to load data');
       setResidents([]);
       setStaff([]);
     } finally {

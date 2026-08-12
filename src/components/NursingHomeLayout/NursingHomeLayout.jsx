@@ -1,7 +1,11 @@
-import { useState, useEffect } from 'react';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { Outlet, useNavigate, useLocation, useParams, Navigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { fetchCurrentFacility } from '../../services/nursingHomeService';
+import {
+  fetchCurrentFacility,
+  fetchFacilityBySlug,
+  nhPath
+} from '../../services/nursingHomeService';
 import { buildImageUrl } from '../../services/imageService';
 import { NursingHomeFacilityContext } from '../../context/NursingHomeFacilityContext';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
@@ -23,11 +27,6 @@ const Icons = {
   orders: (
     <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
       <path d="M19 7h-3V6a4 4 0 0 0-8 0v1H5a1 1 0 0 0-1 1v11a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V8a1 1 0 0 0-1-1zM10 6a2 2 0 0 1 4 0v1h-4V6zm8 13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V9h2v1a1 1 0 0 0 2 0V9h4v1a1 1 0 0 0 2 0V9h2v10z" />
-    </svg>
-  ),
-  admin: (
-    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-      <path d="M12 3L4 9v12h16V9l-8-6zm6 16h-3v-3h-2v3H10v-5H8v5H5V10l7-5 7 5v9z" />
     </svg>
   ),
   user: (
@@ -53,18 +52,18 @@ const Icons = {
 };
 
 const ALLOWED_ROLES = ['nursing_home_user', 'nursing_home_admin', 'admin'];
+const RESERVED_SLUGS = new Set(['login', 'admin', 'dashboard', 'menu', 'orders', 'order']);
 
 const NursingHomeLayout = () => {
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { facilitySlug } = useParams();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [facility, setFacility] = useState(null);
   const [facilityLoading, setFacilityLoading] = useState(true);
-
-  const search = location.search || '';
-  const facilityIdParam = new URLSearchParams(search).get('facilityId');
+  const [accessDenied, setAccessDenied] = useState(false);
 
   useEffect(() => {
     if (loading) return;
@@ -76,7 +75,7 @@ const NursingHomeLayout = () => {
   useEffect(() => {
     const applyResponsive = () => {
       const w = window.innerWidth;
-      if (w <= 768 || w <= 1280) setSidebarCollapsed(true);
+      if (w <= 1280) setSidebarCollapsed(true);
       else setSidebarCollapsed(false);
     };
     applyResponsive();
@@ -88,44 +87,66 @@ const NursingHomeLayout = () => {
     setMobileSidebarOpen(false);
   }, [location.pathname]);
 
-  useEffect(() => {
-    if (!user || !ALLOWED_ROLES.includes(user.role)) return;
-    const isAdminNoFacility = user.role === 'admin' && !facilityIdParam;
-    if (isAdminNoFacility) {
-      setFacility(null);
+  const loadFacility = useCallback(async () => {
+    if (!user || !ALLOWED_ROLES.includes(user.role) || !facilitySlug) return;
+    if (RESERVED_SLUGS.has(facilitySlug)) {
+      setAccessDenied(true);
       setFacilityLoading(false);
       return;
     }
-    let cancelled = false;
+
     setFacilityLoading(true);
-    (async () => {
-      try {
-        const res = await fetchCurrentFacility(user.role === 'admin' ? facilityIdParam : undefined);
-        if (cancelled) return;
-        const facilityData = res?.data ?? (res?.id && res?.name ? res : null);
-        setFacility(facilityData || null);
-      } catch {
-        if (!cancelled) setFacility(null);
-      } finally {
-        if (!cancelled) setFacilityLoading(false);
+    setAccessDenied(false);
+    try {
+      const bySlug = await fetchFacilityBySlug(facilitySlug);
+      if (!bySlug?.id) {
+        setFacility(null);
+        setAccessDenied(true);
+        return;
       }
-    })();
-    return () => { cancelled = true; };
-  }, [user, facilityIdParam]);
+
+      if (user.role === 'admin') {
+        setFacility(bySlug);
+        return;
+      }
+
+      const current = await fetchCurrentFacility();
+      if (current?.id && current.id !== bySlug.id) {
+        setFacility(null);
+        setAccessDenied(true);
+        return;
+      }
+      if (current?.slug && current.slug !== facilitySlug) {
+        setFacility(null);
+        setAccessDenied(true);
+        return;
+      }
+      setFacility(bySlug);
+    } catch {
+      setFacility(null);
+      setAccessDenied(true);
+    } finally {
+      setFacilityLoading(false);
+    }
+  }, [user, facilitySlug]);
+
+  useEffect(() => {
+    loadFacility();
+  }, [loadFacility]);
 
   const handleSignOut = async () => {
     await signOut(() => navigate('/nursing-homes/login', { replace: true }));
   };
 
   const navTo = (path) => {
-    navigate({ pathname: path, search });
+    navigate(path);
     setMobileSidebarOpen(false);
   };
 
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', path: '/nursing-homes/dashboard', icon: Icons.dashboard },
-    { id: 'menu', label: 'Menu', path: '/nursing-homes/menu', icon: Icons.menuPage },
-    { id: 'orders', label: 'Orders', path: '/nursing-homes/orders', icon: Icons.orders }
+    { id: 'dashboard', label: 'Dashboard', path: nhPath(facilitySlug, 'dashboard'), icon: Icons.dashboard },
+    { id: 'menu', label: 'Menu', path: nhPath(facilitySlug, 'menu'), icon: Icons.menuPage },
+    { id: 'orders', label: 'Orders', path: nhPath(facilitySlug, 'orders'), icon: Icons.orders }
   ];
 
   const facilityDisplayName = facility?.name || 'Nursing Home';
@@ -134,7 +155,7 @@ const NursingHomeLayout = () => {
     ? (facility.name.slice(0, 2).toUpperCase().replace(/\s/g, '') || 'NH')
     : 'NH';
 
-  if (loading) {
+  if (loading || facilityLoading) {
     return (
       <div className="nh-auth-loading">
         <LoadingSpinner size="large" />
@@ -147,6 +168,20 @@ const NursingHomeLayout = () => {
     return null;
   }
 
+  if (accessDenied || !facility) {
+    if (user.role === 'nursing_home_user' || user.role === 'nursing_home_admin') {
+      return <Navigate to="/nursing-homes" replace />;
+    }
+    return (
+      <div className="nh-auth-loading">
+        <p>Facility not found or access denied.</p>
+        <button type="button" onClick={() => navigate('/admin/nursing-homes')}>
+          Back to Admin
+        </button>
+      </div>
+    );
+  }
+
   const roleLabel =
     user.role === 'admin'
       ? 'Super Admin'
@@ -155,6 +190,8 @@ const NursingHomeLayout = () => {
         : user.role === 'nursing_home_user'
           ? 'NH User'
           : user.role;
+
+  const showAdminBack = user.role === 'admin' || user.role === 'nursing_home_admin';
 
   return (
     <div className="nh-layout">
@@ -185,7 +222,9 @@ const NursingHomeLayout = () => {
 
         <nav className="admin-sidebar__nav">
           {navItems.map((item) => {
-            const isActive = location.pathname === item.path;
+            const isActive =
+              location.pathname === item.path ||
+              (item.id === 'orders' && location.pathname.includes('/orders'));
             return (
               <button
                 key={item.id}
@@ -202,7 +241,7 @@ const NursingHomeLayout = () => {
 
         <div className="admin-sidebar__footer">
           <div className="admin-sidebar__community">
-            {user.role === 'admin' && (
+            {showAdminBack && (
               <button
                 type="button"
                 className="admin-sidebar__community-back"
@@ -256,7 +295,7 @@ const NursingHomeLayout = () => {
       <main className="nh-main">
         <header className="nh-header">
           <div className="nh-header__title">
-            <h1>{facilityLoading ? 'Loading...' : facilityDisplayName}</h1>
+            <h1>{facilityDisplayName}</h1>
             <p>Resident meals &amp; orders</p>
           </div>
           <button
@@ -270,7 +309,9 @@ const NursingHomeLayout = () => {
         </header>
 
         <div className="nh-content">
-          <NursingHomeFacilityContext.Provider value={{ facility, facilityLoading }}>
+          <NursingHomeFacilityContext.Provider
+            value={{ facility, facilityLoading: false, facilitySlug }}
+          >
             <Outlet />
           </NursingHomeFacilityContext.Provider>
         </div>

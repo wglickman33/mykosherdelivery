@@ -1,13 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { fetchResidentOrder } from '../../services/nursingHomeService';
+import { fetchResidentOrder, nhPath } from '../../services/nursingHomeService';
+import { useNursingHomeFacility } from '../../context/NursingHomeFacilityContext';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import './OrderConfirmation.scss';
 
 const OrderConfirmation = () => {
-  const { orderId } = useParams();
+  const { orderId, facilitySlug: slugParam } = useParams();
   const navigate = useNavigate();
+  const { facility: contextFacility } = useNursingHomeFacility();
+  const facilitySlug = slugParam || contextFacility?.slug;
+
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -16,11 +20,11 @@ const OrderConfirmation = () => {
     let cancelled = false;
     (async () => {
       try {
-        const response = await fetchResidentOrder(orderId);
-        const data = response?.data;
+        const data = await fetchResidentOrder(orderId);
         if (!cancelled) setOrder(data || null);
+        if (!cancelled && !data) setError('Order not found');
       } catch (err) {
-        if (!cancelled) setError(err.response?.data?.message || 'Failed to load order');
+        if (!cancelled) setError(err.response?.data?.message || err.message || 'Failed to load order');
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -40,7 +44,11 @@ const OrderConfirmation = () => {
     return (
       <div className="nursing-home-order-confirmation">
         <ErrorMessage message={error || 'Order not found'} type="error" />
-        <button className="btn-primary" onClick={() => navigate('/nursing-homes/dashboard')}>
+        <button
+          type="button"
+          className="btn-primary"
+          onClick={() => navigate(nhPath(facilitySlug, 'dashboard'))}
+        >
           Back to Dashboard
         </button>
       </div>
@@ -50,17 +58,26 @@ const OrderConfirmation = () => {
   return (
     <div className="nursing-home-order-confirmation">
       <div className="confirmation-card">
-        <h1>Order confirmed</h1>
+        <h1>Order submitted</h1>
         <p className="order-number">Order #{order.orderNumber}</p>
         <p className="total">Total: ${parseFloat(order.total || 0).toFixed(2)}</p>
         <p className="receipt-note">
-          A receipt has been sent to {order.billingEmail || 'your billing email'}.
+          This order will be billed monthly to the resident&apos;s card on file
+          {order.billingEmail ? ` (${order.billingEmail})` : ''}.
         </p>
         <div className="confirmation-actions">
-          <button className="btn-primary" onClick={() => navigate(`/nursing-homes/orders/${order.id}`)}>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => navigate(nhPath(facilitySlug, `orders/${order.id}`))}
+          >
             View order
           </button>
-          <button className="btn-secondary" onClick={() => navigate('/nursing-homes/dashboard')}>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => navigate(nhPath(facilitySlug, 'dashboard'))}
+          >
             Dashboard
           </button>
         </div>

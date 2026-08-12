@@ -35,10 +35,11 @@ const LoginForm = ({
         const userRole = result.user?.role;
         
         if (allowedRoles.includes(userRole)) {
-          const path = typeof redirectPath === 'function' 
-            ? redirectPath(userRole) 
+          const pathOrPromise = typeof redirectPath === 'function'
+            ? redirectPath(userRole, result.user)
             : redirectPath;
-          navigate(path);
+          const path = await Promise.resolve(pathOrPromise);
+          navigate(path || '/nursing-homes');
         } else {
           setError(errorMessage);
         }

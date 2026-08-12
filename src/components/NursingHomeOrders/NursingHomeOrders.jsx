@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { fetchResidentOrders, fetchResidents } from '../../services/nursingHomeService';
+import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
+import { fetchResidentOrders, fetchResidents, nhPath } from '../../services/nursingHomeService';
+import { useNursingHomeFacility } from '../../context/NursingHomeFacilityContext';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import Pagination from '../Pagination/Pagination';
@@ -9,6 +10,9 @@ import './NursingHomeOrders.scss';
 const NursingHomeOrders = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { facilitySlug: slugParam } = useParams();
+  const { facility, facilitySlug: ctxSlug } = useNursingHomeFacility();
+  const facilitySlug = slugParam || ctxSlug || facility?.slug;
   const residentIdParam = searchParams.get('residentId');
 
   const [orders, setOrders] = useState([]);
@@ -18,36 +22,35 @@ const NursingHomeOrders = () => {
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 0 });
   const [filterResidentId, setFilterResidentId] = useState(residentIdParam || '');
 
-  const facilityId = searchParams.get('facilityId');
-
   const load = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       const params = { page: pagination.page, limit: pagination.limit };
       if (filterResidentId) params.residentId = filterResidentId;
-      if (facilityId) params.facilityId = facilityId;
+      if (facility?.id) params.facilityId = facility.id;
 
       const [ordersRes, residentsRes] = await Promise.all([
         fetchResidentOrders(params),
-        residents.length === 0 ? fetchResidents() : Promise.resolve(null)
+        residents.length === 0
+          ? fetchResidents(facility?.id ? { facilityId: facility.id, limit: 200 } : { limit: 200 })
+          : Promise.resolve(null)
       ]);
 
-      const ordersList = ordersRes?.data?.data ?? [];
-      setOrders(Array.isArray(ordersList) ? ordersList : []);
-      if (ordersRes?.data?.pagination) {
-        setPagination(prev => ({ ...prev, ...ordersRes.data.pagination }));
+      setOrders(Array.isArray(ordersRes?.data) ? ordersRes.data : []);
+      if (ordersRes?.pagination) {
+        setPagination((prev) => ({ ...prev, ...ordersRes.pagination }));
       }
 
-      if (residentsRes && Array.isArray(residentsRes?.data?.data)) {
-        setResidents(residentsRes.data.data);
+      if (residentsRes && Array.isArray(residentsRes?.data)) {
+        setResidents(residentsRes.data);
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load orders');
     } finally {
       setLoading(false);
     }
-  }, [pagination.page, pagination.limit, filterResidentId, facilityId, residents.length]);
+  }, [pagination.page, pagination.limit, filterResidentId, facility?.id, residents.length]);
 
   useEffect(() => {
     load();
@@ -58,8 +61,7 @@ const NursingHomeOrders = () => {
   }, [residentIdParam, filterResidentId]);
 
   const handleFilter = () => {
-    setPagination(p => ({ ...p, page: 1 }));
-    load();
+    setPagination((p) => ({ ...p, page: 1 }));
   };
 
   if (loading && orders.length === 0) {
@@ -70,7 +72,7 @@ const NursingHomeOrders = () => {
     );
   }
 
-  const dashboardPath = `/nursing-homes/dashboard${facilityId ? `?facilityId=${facilityId}` : ''}`;
+  const dashboardPath = nhPath(facilitySlug, 'dashboard');
 
   return (
     <div className="nursing-home-orders">
@@ -79,11 +81,16 @@ const NursingHomeOrders = () => {
           ← Dashboard
         </button>
         <h1>Order History</h1>
+        <button
+          type="button"
+          className="btn-primary"
+          onClick={() => navigate(dashboardPath)}
+        >
+          New order
+        </button>
       </header>
 
-      {error && (
-        <ErrorMessage message={error} type="error" />
-      )}
+      {error && <ErrorMessage message={error} type="error" />}
 
       <div className="orders-filters">
         <select
@@ -92,11 +99,16 @@ const NursingHomeOrders = () => {
           aria-label="Filter by resident"
         >
           <option value="">All residents</option>
-          {residents.map(r => (
-            <option key={r.id} value={r.id}>{r.name}{r.roomNumber ? ` (${r.roomNumber})` : ''}</option>
+          {residents.map((r) => (
+            <option key={r.id} value={r.id}>
+              {r.name}
+              {r.roomNumber ? ` (${r.roomNumber})` : ''}
+            </option>
           ))}
         </select>
-        <button type="button" className="btn-primary" onClick={handleFilter}>Apply</button>
+        <button type="button" className="btn-primary" onClick={handleFilter}>
+          Apply
+        </button>
       </div>
 
       <section className="orders-table-wrap">
@@ -116,23 +128,34 @@ const NursingHomeOrders = () => {
             {orders.length === 0 ? (
               <tr>
                 <td colSpan={7} className="orders-table-empty">
-                  No orders found. <button type="button" className="link-btn" onClick={() => navigate(dashboardPath)}>Back to Dashboard</button>
+                  No orders found.{' '}
+                  <button type="button" className="link-btn" onClick={() => navigate(dashboardPath)}>
+                    Create from Dashboard
+                  </button>
                 </td>
               </tr>
             ) : (
-              orders.map(order => (
+              orders.map((order) => (
                 <tr key={order.id}>
                   <td>{order.orderNumber}</td>
                   <td>{order.resident?.name ?? order.residentName ?? '—'}</td>
-                  <td>{order.weekStartDate} – {order.weekEndDate}</td>
-                  <td><span className={`status-badge status-${order.status}`}>{order.status}</span></td>
-                  <td><span className={`status-badge status-${order.paymentStatus}`}>{order.paymentStatus}</span></td>
+                  <td>
+                    {order.weekStartDate} – {order.weekEndDate}
+                  </td>
+                  <td>
+                    <span className={`status-badge status-${order.status}`}>{order.status}</span>
+                  </td>
+                  <td>
+                    <span className={`status-badge status-${order.paymentStatus}`}>
+                      {order.paymentStatus}
+                    </span>
+                  </td>
                   <td>${parseFloat(order.total || 0).toFixed(2)}</td>
                   <td>
                     <button
                       type="button"
                       className="link-btn"
-                      onClick={() => navigate(`/nursing-homes/orders/${order.id}`)}
+                      onClick={() => navigate(nhPath(facilitySlug, `orders/${order.id}`))}
                     >
                       View
                     </button>
@@ -140,7 +163,7 @@ const NursingHomeOrders = () => {
                       <button
                         type="button"
                         className="link-btn"
-                        onClick={() => navigate(`/nursing-homes/orders/${order.id}/edit`)}
+                        onClick={() => navigate(nhPath(facilitySlug, `orders/${order.id}/edit`))}
                       >
                         Edit
                       </button>
@@ -157,8 +180,8 @@ const NursingHomeOrders = () => {
             totalPages={Math.max(1, pagination.totalPages)}
             rowsPerPage={pagination.limit}
             total={pagination.total}
-            onPageChange={(p) => setPagination(prev => ({ ...prev, page: p }))}
-            onRowsPerPageChange={(n) => setPagination(prev => ({ ...prev, limit: n, page: 1 }))}
+            onPageChange={(p) => setPagination((prev) => ({ ...prev, page: p }))}
+            onRowsPerPageChange={(n) => setPagination((prev) => ({ ...prev, limit: n, page: 1 }))}
             rowsPerPageOptions={[10, 20, 30, 40, 50]}
           />
         </div>

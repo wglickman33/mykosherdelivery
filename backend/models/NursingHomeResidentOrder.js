@@ -57,7 +57,7 @@ module.exports = (sequelize, DataTypes) => {
       comment: 'Array of {day, mealType, items: [{id, name, category, price}], bagelType}'
     },
     status: {
-      type: DataTypes.ENUM('draft', 'submitted', 'paid', 'in_progress', 'completed', 'cancelled'),
+      type: DataTypes.ENUM('draft', 'submitted', 'confirmed', 'paid', 'in_progress', 'completed', 'cancelled'),
       allowNull: false,
       defaultValue: 'draft'
     },
@@ -83,7 +83,7 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: 0
     },
     paymentStatus: {
-      type: DataTypes.ENUM('pending', 'paid', 'failed', 'refunded'),
+      type: DataTypes.ENUM('pending', 'pending_monthly', 'paid', 'failed', 'refunded'),
       allowNull: false,
       defaultValue: 'pending',
       field: 'payment_status'

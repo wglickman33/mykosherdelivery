@@ -1,15 +1,94 @@
 import { useState, useEffect, useCallback } from 'react';
+import PropTypes from 'prop-types';
+import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { useAuth } from '../../hooks/useAuth';
 import {
   fetchResidents,
   fetchFacilitiesList,
   createResident,
   updateResident,
-  deleteResident
+  deleteResident,
+  saveResidentPaymentMethod,
+  unwrapList
 } from '../../services/nursingHomeService';
+import { stripePromise, createPaymentMethod } from '../../services/paymentServices';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import './AdminNursingHomes.scss';
+
+const cardElementOptions = {
+  style: {
+    base: { fontSize: '16px', color: '#1e293b', '::placeholder': { color: '#94a3b8' } },
+    invalid: { color: '#dc2626' }
+  }
+};
+
+const emptyForm = {
+  facilityId: '',
+  name: '',
+  roomNumber: '',
+  dietaryRestrictions: '',
+  allergies: '',
+  notes: '',
+  billingEmail: '',
+  billingName: '',
+  billingPhone: ''
+};
+
+function SaveCardForm({ billingInfo, onSuccess, onError, disabled }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!stripe || !elements || disabled) return;
+
+    setIsProcessing(true);
+    onError(null);
+
+    try {
+      const cardEl = elements.getElement(CardElement);
+      const pmResult = await createPaymentMethod(cardEl, {
+        name: billingInfo?.billingName || undefined,
+        email: billingInfo?.billingEmail || undefined,
+        phone: billingInfo?.billingPhone || undefined
+      });
+      if (!pmResult?.success || !pmResult?.paymentMethod) {
+        onError(pmResult?.error || 'Could not create payment method');
+        return;
+      }
+      await onSuccess(pmResult.paymentMethod.id);
+    } catch (err) {
+      onError(err.message || 'Could not create payment method');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="residents-tab__save-card-form">
+      <div className="residents-tab__card-element">
+        <label>Card</label>
+        <CardElement options={cardElementOptions} />
+      </div>
+      <button
+        type="submit"
+        className="btn-primary btn-sm"
+        disabled={!stripe || isProcessing || disabled}
+      >
+        {isProcessing ? 'Saving…' : 'Save card on file'}
+      </button>
+    </form>
+  );
+}
+
+SaveCardForm.propTypes = {
+  billingInfo: PropTypes.object,
+  onSuccess: PropTypes.func.isRequired,
+  onError: PropTypes.func.isRequired,
+  disabled: PropTypes.bool
+};
 
 const ResidentsTab = () => {
   const { user } = useAuth();
@@ -24,14 +103,10 @@ const ResidentsTab = () => {
   const [editingResident, setEditingResident] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({
-    facilityId: '',
-    name: '',
-    roomNumber: '',
-    dietaryRestrictions: '',
-    allergies: '',
-    notes: ''
-  });
+  const [cardSaving, setCardSaving] = useState(false);
+  const [cardError, setCardError] = useState(null);
+  const [cardSuccess, setCardSuccess] = useState(null);
+  const [form, setForm] = useState({ ...emptyForm });
 
   const loadFacilities = useCallback(async () => {
     if (!isAdmin) return;
@@ -51,11 +126,9 @@ const ResidentsTab = () => {
       if (isAdmin && facilityFilter) params.facilityId = facilityFilter;
       if (search.trim()) params.search = search.trim();
       const res = await fetchResidents(params);
-      const body = res?.data;
-      const list = body?.data;
-      setResidents(Array.isArray(list) ? list : []);
+      setResidents(unwrapList(res));
     } catch (err) {
-      setError(err.response?.data?.message || err.response?.data?.error || 'Failed to load residents');
+      setError(err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to load residents');
       setResidents([]);
     } finally {
       setLoading(false);
@@ -73,13 +146,11 @@ const ResidentsTab = () => {
   const handleOpenAdd = () => {
     setEditingResident(null);
     setForm({
-      facilityId: isAdmin ? (facilityFilter || (facilities[0]?.id || '')) : user?.nursingHomeFacilityId || '',
-      name: '',
-      roomNumber: '',
-      dietaryRestrictions: '',
-      allergies: '',
-      notes: ''
+      ...emptyForm,
+      facilityId: isAdmin ? (facilityFilter || (facilities[0]?.id || '')) : user?.nursingHomeFacilityId || ''
     });
+    setCardError(null);
+    setCardSuccess(null);
     setError(null);
     setModalOpen(true);
   };
@@ -92,8 +163,13 @@ const ResidentsTab = () => {
       roomNumber: r.roomNumber || '',
       dietaryRestrictions: r.dietaryRestrictions || '',
       allergies: r.allergies || '',
-      notes: r.notes || ''
+      notes: r.notes || '',
+      billingEmail: r.billingEmail || '',
+      billingName: r.billingName || '',
+      billingPhone: r.billingPhone || ''
     });
+    setCardError(null);
+    setCardSuccess(null);
     setError(null);
     setModalOpen(true);
   };
@@ -126,7 +202,10 @@ const ResidentsTab = () => {
         roomNumber: form.roomNumber.trim() || undefined,
         dietaryRestrictions: form.dietaryRestrictions.trim() || undefined,
         allergies: form.allergies.trim() || undefined,
-        notes: form.notes.trim() || undefined
+        notes: form.notes.trim() || undefined,
+        billingEmail: form.billingEmail.trim() || null,
+        billingName: form.billingName.trim() || null,
+        billingPhone: form.billingPhone.trim() || null
       };
       if (editingResident) {
         await updateResident(editingResident.id, payload);
@@ -140,6 +219,29 @@ const ResidentsTab = () => {
       setError(err.response?.data?.message || err.response?.data?.error || 'Failed to save resident');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleSaveCard = async (paymentMethodId) => {
+    if (!editingResident?.id) return;
+    setCardSaving(true);
+    setCardError(null);
+    setCardSuccess(null);
+    try {
+      const updated = await saveResidentPaymentMethod(editingResident.id, {
+        paymentMethodId,
+        billingEmail: form.billingEmail.trim() || undefined,
+        billingName: form.billingName.trim() || undefined,
+        billingPhone: form.billingPhone.trim() || undefined
+      });
+      const next = updated || { ...editingResident, paymentMethodId };
+      setEditingResident(next);
+      setCardSuccess('Card saved on file');
+      loadResidents();
+    } catch (err) {
+      setCardError(err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to save card');
+    } finally {
+      setCardSaving(false);
     }
   };
 
@@ -218,6 +320,7 @@ const ResidentsTab = () => {
                 <th>Name</th>
                 <th>Room</th>
                 <th>Dietary / Allergies</th>
+                <th>Card</th>
                 <th aria-label="Actions" />
               </tr>
             </thead>
@@ -230,6 +333,7 @@ const ResidentsTab = () => {
                   <td>
                     {[r.dietaryRestrictions, r.allergies].filter(Boolean).join(' · ') || '—'}
                   </td>
+                  <td>{r.paymentMethodId ? 'On file' : '—'}</td>
                   <td>
                     <div className="row-actions">
                       <button type="button" className="btn-secondary btn-sm" onClick={() => handleOpenEdit(r)}>
@@ -270,11 +374,18 @@ const ResidentsTab = () => {
       )}
 
       {modalOpen && (
-        <div className="admin-nursing-homes__overlay" onClick={() => !submitting && setModalOpen(false)}>
+        <div className="admin-nursing-homes__overlay" onClick={() => !submitting && !cardSaving && setModalOpen(false)}>
           <div className="admin-nursing-homes__modal admin-nursing-homes__modal--form" onClick={(e) => e.stopPropagation()}>
             <div className="admin-nursing-homes__modal-header">
               <h2>{editingResident ? 'Edit Resident' : 'Add Resident'}</h2>
-              <button type="button" className="admin-nursing-homes__modal-close" onClick={() => !submitting && setModalOpen(false)} aria-label="Close">×</button>
+              <button
+                type="button"
+                className="admin-nursing-homes__modal-close"
+                onClick={() => !submitting && !cardSaving && setModalOpen(false)}
+                aria-label="Close"
+              >
+                ×
+              </button>
             </div>
             <div className="admin-nursing-homes__modal-content">
               {error && <ErrorMessage message={error} type="error" onDismiss={() => setError(null)} />}
@@ -342,14 +453,66 @@ const ResidentsTab = () => {
                       rows={2}
                     />
                   </div>
+                  <div className="admin-nursing-homes__form-group admin-nursing-homes__form-group--full">
+                    <label>Billing Email</label>
+                    <input
+                      type="email"
+                      value={form.billingEmail}
+                      onChange={(e) => setForm(prev => ({ ...prev, billingEmail: e.target.value }))}
+                      placeholder="billing@example.com"
+                    />
+                  </div>
+                  <div className="admin-nursing-homes__form-group">
+                    <label>Billing Name</label>
+                    <input
+                      type="text"
+                      value={form.billingName}
+                      onChange={(e) => setForm(prev => ({ ...prev, billingName: e.target.value }))}
+                      placeholder="Person responsible for payment"
+                    />
+                  </div>
+                  <div className="admin-nursing-homes__form-group">
+                    <label>Billing Phone</label>
+                    <input
+                      type="tel"
+                      value={form.billingPhone}
+                      onChange={(e) => setForm(prev => ({ ...prev, billingPhone: e.target.value }))}
+                      placeholder="555-123-4567"
+                    />
+                  </div>
                 </div>
                 <div className="admin-nursing-homes__form-actions">
-                  <button type="button" onClick={() => !submitting && setModalOpen(false)} disabled={submitting}>Cancel</button>
-                  <button type="submit" className="btn-primary" disabled={submitting}>
+                  <button type="button" onClick={() => !submitting && !cardSaving && setModalOpen(false)} disabled={submitting || cardSaving}>Cancel</button>
+                  <button type="submit" className="btn-primary" disabled={submitting || cardSaving}>
                     {submitting ? 'Saving…' : (editingResident ? 'Save' : 'Create Resident')}
                   </button>
                 </div>
               </form>
+
+              {editingResident && (
+                <section className="residents-tab__save-card">
+                  <h3>Save card on file</h3>
+                  <p className="residents-tab__card-status">
+                    {editingResident.paymentMethodId
+                      ? `Card on file (${editingResident.paymentMethodId.slice(0, 14)}…)`
+                      : 'No payment method on file'}
+                  </p>
+                  {cardError && (
+                    <ErrorMessage message={cardError} type="error" onDismiss={() => setCardError(null)} />
+                  )}
+                  {cardSuccess && (
+                    <ErrorMessage message={cardSuccess} type="success" onDismiss={() => setCardSuccess(null)} />
+                  )}
+                  <Elements stripe={stripePromise}>
+                    <SaveCardForm
+                      billingInfo={form}
+                      onSuccess={handleSaveCard}
+                      onError={setCardError}
+                      disabled={cardSaving || submitting}
+                    />
+                  </Elements>
+                </section>
+              )}
             </div>
           </div>
         </div>

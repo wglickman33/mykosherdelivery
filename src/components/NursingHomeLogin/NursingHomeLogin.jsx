@@ -1,9 +1,20 @@
 import LoginForm from '../LoginForm/LoginForm';
 import { USER_ROLES } from '../../config/constants';
+import { fetchCurrentFacility, nhPath } from '../../services/nursingHomeService';
 import './NursingHomeLogin.scss';
 
 const NursingHomeLogin = () => {
-  const getRedirectPath = () => '/nursing-homes/dashboard';
+  const getRedirectPath = async () => {
+    try {
+      const facility = await fetchCurrentFacility();
+      if (facility?.slug) {
+        return nhPath(facility.slug, 'dashboard');
+      }
+    } catch {
+      /* fall through */
+    }
+    return '/nursing-homes';
+  };
 
   return (
     <LoginForm

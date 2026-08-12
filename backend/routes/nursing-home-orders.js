@@ -43,13 +43,10 @@ router.get('/residents', requireNursingHomeUser, async (req, res) => {
 
     if (req.user.role === 'admin') {
       if (facilityId) where.facilityId = facilityId;
-    } else if (req.user.role === 'nursing_home_admin') {
+    } else if (req.user.role === 'nursing_home_admin' || req.user.role === 'nursing_home_user') {
       where.facilityId = req.user.nursingHomeFacilityId;
-    } else {
-      where.facilityId = req.user.nursingHomeFacilityId;
-      where.assignedUserId = req.user.id;
     }
-    if (assignedUserId && (req.user.role === 'admin' || req.user.role === 'nursing_home_user')) {
+    if (assignedUserId && (req.user.role === 'admin' || req.user.role === 'nursing_home_admin')) {
       where.assignedUserId = assignedUserId;
     }
     if (search) {
@@ -98,10 +95,7 @@ router.get('/residents/:id', requireNursingHomeUser, async (req, res) => {
     if (!resident) {
       return res.status(404).json({ success: false, error: 'Resident not found' });
     }
-    if (req.user.role === 'nursing_home_user' && resident.assignedUserId !== req.user.id) {
-      return res.status(403).json({ success: false, error: 'Access denied' });
-    }
-    if (req.user.role === 'nursing_home_admin' && resident.facilityId !== req.user.nursingHomeFacilityId) {
+    if (!canAccessFacilityResident(req.user, resident)) {
       return res.status(403).json({ success: false, error: 'Access denied' });
     }
     res.json({ success: true, data: resident });
@@ -193,8 +187,9 @@ const validateResidentOrder = [
   body('meals').isArray({ min: NH_CONFIG.MEALS.MIN_ITEMS_PER_MEAL, max: NH_CONFIG.MEALS.MAX_MEALS_PER_WEEK }),
   body('meals.*.day').isIn(NH_CONFIG.MEALS.DAYS),
   body('meals.*.mealType').isIn(NH_CONFIG.MEALS.TYPES),
-  body('meals.*.items').isArray({ min: NH_CONFIG.MEALS.MIN_ITEMS_PER_MEAL, max: NH_CONFIG.MEALS.MAX_ITEMS_PER_MEAL }),
-  body('meals.*.items.*.id').isUUID(),
+  body('meals.*.items').optional().isArray({ min: 0, max: NH_CONFIG.MEALS.MAX_ITEMS_PER_MEAL }),
+  body('meals.*.items.*.id').optional().isUUID(),
+  body('meals.*.none').optional().isBoolean(),
   body('deliveryAddress').isObject(),
   body('deliveryAddress.street').isString().trim().isLength({ min: 1, max: 200 }),
   body('deliveryAddress.city').isString().trim().isLength({ min: 1, max: 100 }),
@@ -208,8 +203,9 @@ const validateOrderUpdate = [
   body('meals').optional().isArray({ min: NH_CONFIG.MEALS.MIN_ITEMS_PER_MEAL, max: NH_CONFIG.MEALS.MAX_MEALS_PER_WEEK }),
   body('meals.*.day').optional().isIn(NH_CONFIG.MEALS.DAYS),
   body('meals.*.mealType').optional().isIn(NH_CONFIG.MEALS.TYPES),
-  body('meals.*.items').optional().isArray({ min: NH_CONFIG.MEALS.MIN_ITEMS_PER_MEAL, max: NH_CONFIG.MEALS.MAX_ITEMS_PER_MEAL }),
+  body('meals.*.items').optional().isArray({ min: 0, max: NH_CONFIG.MEALS.MAX_ITEMS_PER_MEAL }),
   body('meals.*.items.*.id').optional().isUUID(),
+  body('meals.*.none').optional().isBoolean(),
   body('billingEmail').optional().isEmail().normalizeEmail(),
   body('billingName').optional().isString().trim().isLength({ min: 1, max: 200 }),
   body('notes').optional().isString().trim().isLength({ max: 1000 })
@@ -223,12 +219,47 @@ const validateBulkOrder = [
   body('deliveryAddress').isObject()
 ];
 
+const MEAL_PRICES = {
+  breakfast: 15.00,
+  lunch: 21.00,
+  dinner: 23.00
+};
+
 function calculateDeadline(weekStartDate) {
-  const startDate = new Date(weekStartDate);
-  const sunday = new Date(startDate);
-  sunday.setDate(startDate.getDate() - 1);
-  sunday.setHours(NH_CONFIG.DEADLINE.HOUR, NH_CONFIG.DEADLINE.MINUTE, 0, 0);
-  return sunday;
+  // Orders for a week starting Monday are due the previous Sunday at 12:00 America/New_York
+  const start = new Date(`${weekStartDate}T12:00:00Z`);
+  const sundayUtcGuess = new Date(start);
+  sundayUtcGuess.setUTCDate(start.getUTCDate() - 1);
+
+  const timeZone = NH_CONFIG.DEADLINE.TIMEZONE || 'America/New_York';
+  const hour = NH_CONFIG.DEADLINE.HOUR ?? 12;
+  const minute = NH_CONFIG.DEADLINE.MINUTE ?? 0;
+
+  // Walk a few candidate UTC instants around noon ET on that calendar Sunday
+  const y = sundayUtcGuess.getUTCFullYear();
+  const m = sundayUtcGuess.getUTCMonth();
+  const d = sundayUtcGuess.getUTCDate();
+
+  for (let utcHour = 14; utcHour <= 18; utcHour++) {
+    const candidate = new Date(Date.UTC(y, m, d, utcHour, minute, 0));
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      weekday: 'short',
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: false
+    }).formatToParts(candidate);
+    const get = (type) => parts.find((p) => p.type === type)?.value;
+    const weekday = get('weekday');
+    const h = parseInt(get('hour'), 10) % 24;
+    const min = parseInt(get('minute'), 10);
+    if (weekday === 'Sun' && h === hour && min === minute) {
+      return candidate;
+    }
+  }
+
+  // Fallback: previous calendar day at 17:00 UTC (~12:00 EST)
+  return new Date(Date.UTC(y, m, d, 17, minute, 0));
 }
 
 function generateOrderNumber() {
@@ -239,33 +270,71 @@ function generateBulkOrderNumber() {
   return generateBaseOrderNumber(ORDER_CONFIG.NUMBER_PREFIX.NURSING_HOME_BULK);
 }
 
+function isNoneMeal(meal) {
+  if (!meal) return true;
+  if (meal.none === true || meal.isNone === true || meal.skipped === true) return true;
+  if (typeof meal.selection === 'string' && meal.selection.toLowerCase() === 'none') return true;
+  if (!meal.items || !Array.isArray(meal.items) || meal.items.length === 0) return true;
+  return meal.items.every((item) => {
+    if (!item) return true;
+    if (item.none === true) return true;
+    const id = item.id != null ? String(item.id).toLowerCase() : '';
+    const name = item.name != null ? String(item.name).toLowerCase() : '';
+    return id === 'none' || name === 'none';
+  });
+}
+
+function canAccessFacilityResident(user, resident) {
+  if (!resident) return false;
+  if (user.role === 'admin') return true;
+  if (user.role === 'nursing_home_admin' || user.role === 'nursing_home_user') {
+    return resident.facilityId === user.nursingHomeFacilityId;
+  }
+  return false;
+}
+
+function assertFacilityOrderAccess(user, order) {
+  if (user.role === 'admin') return true;
+  if (user.role === 'nursing_home_admin' || user.role === 'nursing_home_user') {
+    return order.facilityId === user.nursingHomeFacilityId;
+  }
+  return false;
+}
+
 async function calculateOrderTotalsFromDB(meals) {
   let totalMeals = 0;
   let subtotal = 0;
 
   for (const meal of meals) {
+    if (isNoneMeal(meal)) {
+      continue;
+    }
+
     if (!meal.items || !Array.isArray(meal.items)) {
       throw new Error('Invalid meal structure');
     }
 
-    totalMeals++;
-    
     for (const item of meal.items) {
+      if (!item?.id || String(item.id).toLowerCase() === 'none') continue;
       const menuItem = await NursingHomeMenuItem.findByPk(item.id);
-      
+
       if (!menuItem) {
         throw new Error(`Menu item not found: ${item.id}`);
       }
-      
+
       if (!menuItem.isActive) {
         throw new Error(`Menu item is not available: ${menuItem.name}`);
       }
-      
-      subtotal += parseFloat(menuItem.price);
+    }
+
+    const mealPrice = MEAL_PRICES[meal.mealType] || 0;
+    if (mealPrice > 0) {
+      totalMeals++;
+      subtotal += mealPrice;
     }
   }
 
-  const tax = subtotal * 0.08875;
+  const tax = subtotal * NH_CONFIG.BILLING.TAX_RATE;
   const total = subtotal + tax;
 
   return {
@@ -280,20 +349,15 @@ function calculateBulkOrderTotals(residentMeals) {
   let totalMeals = 0;
   let subtotal = 0;
 
-  const mealPrices = {
-    breakfast: 15.00,
-    lunch: 21.00,
-    dinner: 23.00
-  };
-
   residentMeals.forEach(resident => {
     resident.meals.forEach(meal => {
+      if (isNoneMeal(meal)) return;
       totalMeals++;
-      subtotal += mealPrices[meal.mealType] || 0;
+      subtotal += MEAL_PRICES[meal.mealType] || 0;
     });
   });
 
-  const tax = subtotal * 0.08875;
+  const tax = subtotal * NH_CONFIG.BILLING.TAX_RATE;
   const total = subtotal + tax;
 
   return {
@@ -325,9 +389,9 @@ router.get('/resident-orders', requireNursingHomeUser, validateQueryParams, asyn
     if (residentId) {
       where.residentId = residentId;
       
-      if (req.user.role === 'nursing_home_user') {
+      if (req.user.role === 'nursing_home_user' || req.user.role === 'nursing_home_admin') {
         const resident = await NursingHomeResident.findByPk(residentId);
-        if (!resident || resident.assignedUserId !== req.user.id) {
+        if (!resident || !canAccessFacilityResident(req.user, resident)) {
           return res.status(403).json({
             success: false,
             error: 'Access denied'
@@ -335,11 +399,7 @@ router.get('/resident-orders', requireNursingHomeUser, validateQueryParams, asyn
         }
       }
     } else if (req.user.role === 'nursing_home_user') {
-      const residents = await NursingHomeResident.findAll({
-        where: { assignedUserId: req.user.id },
-        attributes: ['id']
-      });
-      where.residentId = residents.map(r => r.id);
+      where.facilityId = req.user.nursingHomeFacilityId;
     }
 
     if (req.user.role === 'nursing_home_admin') {
@@ -431,21 +491,7 @@ router.post('/resident-orders', requireNursingHomeUser, validateResidentOrder, a
       });
     }
 
-    if (req.user.role === 'nursing_home_user') {
-      if (resident.assignedUserId !== req.user.id) {
-        return res.status(403).json({
-          success: false,
-          error: 'Access denied'
-        });
-      }
-    } else if (req.user.role === 'nursing_home_admin') {
-      if (resident.facilityId !== req.user.nursingHomeFacilityId) {
-        return res.status(403).json({
-          success: false,
-          error: 'Access denied'
-        });
-      }
-    } else if (req.user.role !== 'admin') {
+    if (!canAccessFacilityResident(req.user, resident)) {
       return res.status(403).json({
         success: false,
         error: 'Access denied'
@@ -518,13 +564,11 @@ router.put('/resident-orders/:id', requireNursingHomeUser, validateOrderUpdate, 
       });
     }
 
-    if (req.user.role === 'nursing_home_user') {
-      if (order.resident.assignedUserId !== req.user.id) {
-        return res.status(403).json({
-          success: false,
-          error: 'Access denied'
-        });
-      }
+    if (!assertFacilityOrderAccess(req.user, order)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied'
+      });
     }
 
     if (order.status !== 'draft') {
@@ -596,14 +640,7 @@ router.get('/resident-orders/:id', requireNursingHomeUser, async (req, res) => {
       return res.status(404).json({ success: false, error: 'Order not found' });
     }
 
-    if (req.user.role === 'nursing_home_user') {
-      const resident = order.resident || await NursingHomeResident.findByPk(order.residentId);
-      if (!resident || resident.assignedUserId !== req.user.id) {
-        return res.status(403).json({ success: false, error: 'Access denied' });
-      }
-    } else if (req.user.role === 'nursing_home_admin' && order.facilityId !== req.user.nursingHomeFacilityId) {
-      return res.status(403).json({ success: false, error: 'Access denied' });
-    } else if (req.user.role !== 'admin' && req.user.role !== 'nursing_home_admin' && req.user.role !== 'nursing_home_user') {
+    if (!assertFacilityOrderAccess(req.user, order)) {
       return res.status(403).json({ success: false, error: 'Access denied' });
     }
 
@@ -611,6 +648,86 @@ router.get('/resident-orders/:id', requireNursingHomeUser, async (req, res) => {
   } catch (error) {
     logger.error('Error fetching resident order:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch order', message: error.message });
+  }
+});
+
+router.post('/resident-orders/:id/submit', requireNursingHomeUser, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const order = await NursingHomeResidentOrder.findByPk(id, {
+      include: [{
+        model: NursingHomeResident,
+        as: 'resident'
+      }]
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        error: 'Order not found'
+      });
+    }
+
+    if (!assertFacilityOrderAccess(req.user, order)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied'
+      });
+    }
+
+    if (order.status === 'submitted' || order.status === 'paid') {
+      return res.status(400).json({
+        success: false,
+        error: 'Order already submitted'
+      });
+    }
+
+    const now = new Date();
+    if (now > order.deadline) {
+      return res.status(403).json({
+        success: false,
+        error: 'Cannot submit order after deadline',
+        message: 'Orders must be submitted by Sunday 12:00 PM. Contact admin for assistance.'
+      });
+    }
+
+    const oldValues = order.toJSON();
+    const nextPaymentStatus =
+      !order.paymentStatus || order.paymentStatus === 'pending'
+        ? 'pending_monthly'
+        : order.paymentStatus;
+    await order.update({
+      status: 'submitted',
+      paymentStatus: nextPaymentStatus,
+      submittedAt: new Date()
+    });
+    await createAdminNotification({
+      type: 'nh.order.submitted',
+      title: 'Nursing home: Resident order submitted',
+      message: `Order ${order.orderNumber} (${order.residentName}) submitted for monthly billing`,
+      ref: { kind: 'nh_resident_order', id: order.id, orderNumber: order.orderNumber, facilityId: order.facilityId }
+    });
+    await logAdminAction(req.user.id, 'UPDATE', 'nh_resident_orders', order.id, oldValues, order.toJSON(), req);
+
+    logger.info('Resident order submitted without payment', {
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      submittedBy: req.user.id
+    });
+
+    res.json({
+      success: true,
+      data: order,
+      message: 'Order submitted successfully'
+    });
+  } catch (error) {
+    logger.error('Error submitting resident order:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to submit order',
+      message: error.message
+    });
   }
 });
 
@@ -638,13 +755,11 @@ router.post('/resident-orders/:id/submit-and-pay', paymentLimiter, requireNursin
       });
     }
 
-    if (req.user.role === 'nursing_home_user') {
-      if (order.resident.assignedUserId !== req.user.id) {
-        return res.status(403).json({
-          success: false,
-          error: 'Access denied'
-        });
-      }
+    if (!assertFacilityOrderAccess(req.user, order)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied'
+      });
     }
 
     if (order.status === 'submitted' || order.status === 'paid') {
@@ -780,13 +895,18 @@ router.get('/resident-orders/:id/export', requireNursingHomeUser, async (req, re
       });
     }
 
-    if (req.user.role === 'nursing_home_user') {
-      if (order.resident.assignedUserId !== req.user.id) {
+    if (req.user.role === 'nursing_home_user' || req.user.role === 'nursing_home_admin') {
+      if (!assertFacilityOrderAccess(req.user, order)) {
         return res.status(403).json({
           success: false,
           error: 'Access denied'
         });
       }
+    } else if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied'
+      });
     }
 
     const workbook = new ExcelJS.Workbook();

@@ -4,8 +4,10 @@ import {
   fetchResidentOrders,
   fetchFacilitiesList,
   fetchResidentOrderRefunds,
-  processResidentOrderRefund
+  processResidentOrderRefund,
+  runMonthlyBilling
 } from '../../services/nursingHomeService';
+import { sendNhMonthlyBillingEmail } from '../../services/paymentServices';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import Pagination from '../Pagination/Pagination';
@@ -45,6 +47,14 @@ const OrdersTab = () => {
   const [processingRefund, setProcessingRefund] = useState(false);
   const [refundError, setRefundError] = useState(null);
 
+  const [billingRunning, setBillingRunning] = useState(false);
+  const [billingResult, setBillingResult] = useState(null);
+  const [billingError, setBillingError] = useState(null);
+
+  const selectedFacilityId = isAdmin
+    ? facilityFilter
+    : (user?.nursingHomeFacilityId || '');
+
   const loadFacilities = useCallback(async () => {
     if (!isAdmin) return;
     try {
@@ -63,9 +73,8 @@ const OrdersTab = () => {
       if (isAdmin && facilityFilter) params.facilityId = facilityFilter;
       if (statusFilter) params.status = statusFilter;
       const res = await fetchResidentOrders(params);
-      const body = res?.data;
-      setOrders(Array.isArray(body?.data) ? body.data : []);
-      setPagination(body?.pagination || { page, total: 0, totalPages: 0 });
+      setOrders(Array.isArray(res?.data) ? res.data : []);
+      setPagination(res?.pagination || { page, total: 0, totalPages: 0 });
     } catch (err) {
       setError(err.response?.data?.message || err.response?.data?.error || 'Failed to load orders');
       setOrders([]);
@@ -86,8 +95,8 @@ const OrdersTab = () => {
     if (!orderId) return;
     setRefundsLoading(true);
     try {
-      const res = await fetchResidentOrderRefunds(orderId);
-      setRefunds(Array.isArray(res?.data) ? res.data : []);
+      const list = await fetchResidentOrderRefunds(orderId);
+      setRefunds(Array.isArray(list) ? list : []);
     } catch {
       setRefunds([]);
     } finally {
@@ -149,17 +158,16 @@ const OrdersTab = () => {
         reason: refundReason.trim(),
         refundType
       });
-      if (res?.success) {
-        setRefundModalOpen(false);
-        setRefundReason('');
-        setRefundAmount(0);
-        loadRefunds(selectedOrder.id);
-        loadOrders();
-        if (res?.data?.refund) {
-          setRefunds((prev) => [res.data.refund, ...prev]);
-        }
-      } else {
-        setRefundError(res?.message || res?.error || 'Refund failed');
+      setRefundModalOpen(false);
+      setRefundReason('');
+      setRefundAmount(0);
+      await loadRefunds(selectedOrder.id);
+      loadOrders();
+      if (res?.refund) {
+        setRefunds((prev) => {
+          if (prev.some((r) => r.id === res.refund.id)) return prev;
+          return [res.refund, ...prev];
+        });
       }
     } catch (err) {
       setRefundError(err.response?.data?.message || err.response?.data?.error || err.message || 'Refund failed');
@@ -168,10 +176,59 @@ const OrdersTab = () => {
     }
   };
 
+  const handleRunMonthlyBilling = async () => {
+    if (!selectedFacilityId) return;
+    setBillingRunning(true);
+    setBillingError(null);
+    setBillingResult(null);
+    try {
+      const summary = await runMonthlyBilling(selectedFacilityId);
+      const charged = Array.isArray(summary?.charged) ? summary.charged : [];
+      for (const row of charged) {
+        if (!row.billingEmail) continue;
+        try {
+          await sendNhMonthlyBillingEmail({
+            billingEmail: row.billingEmail,
+            billingName: row.billingName || row.residentName,
+            residentName: row.residentName,
+            facilityName: row.facilityName,
+            orderIds: row.orderIds || [],
+            orderNumbers: row.orderNumbers || [],
+            orderCount: row.orderCount,
+            amount: row.amount,
+            subtotal: row.subtotal,
+            tax: row.tax,
+            weeks: row.weeks || []
+          });
+        } catch {
+          /* EmailJS failure should not block billing summary */
+        }
+      }
+      setBillingResult(summary);
+      loadOrders();
+    } catch (err) {
+      setBillingError(
+        err.response?.data?.message || err.response?.data?.error || err.message || 'Monthly billing failed'
+      );
+    } finally {
+      setBillingRunning(false);
+    }
+  };
+
   return (
     <div className="orders-tab">
       <div className="tab-header">
         <h2>Nursing Home Orders</h2>
+        {selectedFacilityId && (
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={handleRunMonthlyBilling}
+            disabled={billingRunning}
+          >
+            {billingRunning ? 'Running…' : 'Run monthly billing'}
+          </button>
+        )}
       </div>
 
       {isAdmin && facilities.length > 0 && (
@@ -197,6 +254,28 @@ const OrdersTab = () => {
               <option value="cancelled">Cancelled</option>
             </select>
           </label>
+        </div>
+      )}
+
+      {billingError && (
+        <ErrorMessage message={billingError} type="error" onDismiss={() => setBillingError(null)} />
+      )}
+
+      {billingResult && (
+        <div className="orders-tab__billing-summary" role="status">
+          <strong>Monthly billing complete</strong>
+          <span>
+            Charged: {billingResult.residentsCharged ?? billingResult.charged?.length ?? 0}
+            {billingResult.ordersPaid != null ? ` (${billingResult.ordersPaid} orders)` : ''}
+          </span>
+          <span>Skipped: {billingResult.residentsSkipped ?? billingResult.skipped?.length ?? 0}</span>
+          <span>Errors: {billingResult.failed?.length ?? 0}</span>
+          {billingResult.totalCharged != null && (
+            <span>Total: {formatCurrency(billingResult.totalCharged)}</span>
+          )}
+          <button type="button" className="link-btn" onClick={() => setBillingResult(null)}>
+            Dismiss
+          </button>
         </div>
       )}
 

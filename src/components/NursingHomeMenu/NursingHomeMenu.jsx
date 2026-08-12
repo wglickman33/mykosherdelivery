@@ -2,12 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { fetchNursingHomeMenu } from '../../services/nursingHomeMenuService';
+import { fetchMenuItems } from '../../services/nursingHomeService';
+import { NH_CONFIG } from '../../config/constants';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import './NursingHomeMenu.scss';
 
 const MEAL_LABELS = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner' };
-const MEAL_PRICES = { breakfast: 15, lunch: 21, dinner: 23 };
+const MEAL_PRICES = NH_CONFIG.MEALS.PRICES;
 const CATEGORY_LABELS = { main: 'Mains', side: 'Sides', entree: 'Entrees', soup: 'Soups', dessert: 'Desserts' };
 
 const NursingHomeMenu = ({ showInstructions = true, showEditLink = false }) => {
@@ -21,16 +22,18 @@ const NursingHomeMenu = ({ showInstructions = true, showEditLink = false }) => {
   const loadMenu = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const result = await fetchNursingHomeMenu({ isActive: true });
-    if (result.success && result.data) {
+    try {
+      // fetchMenuItems returns { items, grouped } directly (unwrapped)
+      const result = await fetchMenuItems({ isActive: true });
       setMenu({
-        items: result.data.items || [],
-        grouped: result.data.grouped || {}
+        items: Array.isArray(result?.items) ? result.items : [],
+        grouped: result?.grouped && typeof result.grouped === 'object' ? result.grouped : {}
       });
-    } else {
-      setError(result.error || 'Failed to load menu');
+    } catch (err) {
+      setError(err?.message || err?.response?.data?.error || 'Failed to load menu');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -39,7 +42,7 @@ const NursingHomeMenu = ({ showInstructions = true, showEditLink = false }) => {
 
   const grouped = menu.grouped || {};
   const items = menu.items || [];
-  const filteredItems = activeMeal === 'all' ? items : items.filter(i => i.mealType === activeMeal);
+  const filteredItems = activeMeal === 'all' ? items : items.filter((i) => i.mealType === activeMeal);
 
   if (loading) {
     return (
@@ -69,10 +72,10 @@ const NursingHomeMenu = ({ showInstructions = true, showEditLink = false }) => {
         <div className="nh-menu-instructions">
           <h2>How to Use This Menu</h2>
           <ul>
-            <li><strong>Breakfast</strong> ($15/meal): Choose one main and one side. Some mains (e.g. bagels) require specifying bagel type.</li>
-            <li><strong>Lunch</strong> ($21/meal): Choose one entree and one side.</li>
-            <li><strong>Dinner</strong> ($23/meal): Choose one entree, one side, plus optional soup and dessert.</li>
-            <li>Orders must be submitted by <strong>Sunday 12:00 PM</strong> for the following week. Residents are billed directly.</li>
+            <li><strong>Breakfast</strong> (${MEAL_PRICES.breakfast}/meal): Choose one main and one side. Some mains (e.g. bagels) require specifying bagel type.</li>
+            <li><strong>Lunch</strong> (${MEAL_PRICES.lunch}/meal): Choose one entree and one side.</li>
+            <li><strong>Dinner</strong> (${MEAL_PRICES.dinner}/meal): Choose one entree, one side, plus optional soup and dessert.</li>
+            <li>Orders must be submitted by <strong>Sunday 12:00 PM</strong> for the following week. Residents are billed monthly.</li>
           </ul>
           {showEditLink && user?.role === 'admin' && (
             <p className="nh-menu-edit-link">
@@ -93,7 +96,7 @@ const NursingHomeMenu = ({ showInstructions = true, showEditLink = false }) => {
         >
           All Meals
         </button>
-        {['breakfast', 'lunch', 'dinner'].map(m => (
+        {['breakfast', 'lunch', 'dinner'].map((m) => (
           <button
             key={m}
             type="button"
@@ -107,10 +110,12 @@ const NursingHomeMenu = ({ showInstructions = true, showEditLink = false }) => {
 
       {activeMeal === 'all' ? (
         <div className="nh-menu-sections">
-          {['breakfast', 'lunch', 'dinner'].map(mealType => {
+          {['breakfast', 'lunch', 'dinner'].map((mealType) => {
             const mealGroup = grouped[mealType];
             if (!mealGroup) return null;
-            const categories = Object.keys(mealGroup).filter(cat => Array.isArray(mealGroup[cat]) && mealGroup[cat].length > 0);
+            const categories = Object.keys(mealGroup).filter(
+              (cat) => Array.isArray(mealGroup[cat]) && mealGroup[cat].length > 0
+            );
             if (categories.length === 0) return null;
             return (
               <section key={mealType} className="nh-menu-section">
@@ -118,11 +123,11 @@ const NursingHomeMenu = ({ showInstructions = true, showEditLink = false }) => {
                   <span>{MEAL_LABELS[mealType]}</span>
                   <span className="nh-menu-section-price">${MEAL_PRICES[mealType] || 0}</span>
                 </h3>
-                {categories.map(cat => (
+                {categories.map((cat) => (
                   <div key={cat} className="nh-menu-category">
                     <h4>{CATEGORY_LABELS[cat] || cat}</h4>
                     <ul>
-                      {mealGroup[cat].filter(i => i.isActive !== false).map(item => (
+                      {mealGroup[cat].filter((i) => i.isActive !== false).map((item) => (
                         <li key={item.id}>
                           <span className="nh-menu-item-name">{item.name}</span>
                           {item.description && <span className="nh-menu-item-desc"> — {item.description}</span>}
@@ -145,13 +150,13 @@ const NursingHomeMenu = ({ showInstructions = true, showEditLink = false }) => {
               <span className="nh-menu-section-price">${MEAL_PRICES[activeMeal] || 0}</span>
             </h3>
             {Object.entries(grouped[activeMeal] || {}).map(([cat, catItems]) => {
-              const list = Array.isArray(catItems) ? catItems.filter(i => i.isActive !== false) : [];
+              const list = Array.isArray(catItems) ? catItems.filter((i) => i.isActive !== false) : [];
               if (list.length === 0) return null;
               return (
                 <div key={cat} className="nh-menu-category">
                   <h4>{CATEGORY_LABELS[cat] || cat}</h4>
                   <ul>
-                    {list.map(item => (
+                    {list.map((item) => (
                       <li key={item.id}>
                         <span className="nh-menu-item-name">{item.name}</span>
                         {item.description && <span className="nh-menu-item-desc"> — {item.description}</span>}

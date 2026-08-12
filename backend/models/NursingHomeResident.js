@@ -69,6 +69,12 @@ module.exports = (sequelize, DataTypes) => {
       field: 'payment_method_id',
       comment: 'Stripe payment method ID for automatic weekly billing'
     },
+    stripeCustomerId: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: 'stripe_customer_id',
+      comment: 'Stripe customer ID for resident billing'
+    },
     isActive: {
       type: DataTypes.BOOLEAN,
       allowNull: false,

@@ -1,23 +1,57 @@
 import api from '../lib/api';
 import logger from '../utils/logger';
 
+/** Normalize API list payloads: array, or { data: array }, or nested { data: { data: array } }. */
+export const unwrapList = (payload) => {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.data?.data)) return payload.data.data;
+  return [];
+};
+
+/** Normalize single-entity payloads: entity, or { data: entity }. */
+export const unwrapData = (payload) => {
+  if (payload == null) return null;
+  if (Array.isArray(payload)) return payload;
+  if (
+    payload.data !== undefined &&
+    typeof payload.data === 'object' &&
+    (payload.success !== undefined || payload.id == null)
+  ) {
+    return payload.data;
+  }
+  return payload;
+};
+
+/** Menu list payload: { items, grouped } whether nested under data or not. */
+export const unwrapMenuPayload = (payload) => {
+  const inner = payload?.items || payload?.grouped ? payload : payload?.data;
+  if (!inner) return { items: [], grouped: {} };
+  return {
+    items: Array.isArray(inner.items) ? inner.items : [],
+    grouped: inner.grouped && typeof inner.grouped === 'object' ? inner.grouped : {}
+  };
+};
+
 export const fetchResidents = async (params = {}) => {
   try {
     const queryParams = new URLSearchParams(params).toString();
     const endpoint = `/nursing-homes/residents${queryParams ? `?${queryParams}` : ''}`;
     const response = await api.get(endpoint);
-    return response;
+    return {
+      data: unwrapList(response),
+      pagination: response?.pagination ?? null,
+      success: response?.success !== false
+    };
   } catch (error) {
-    if (error.response?.status === 404) {
-      logger.warn('Nursing home residents endpoint not found (404). Redeploy backend so /api/nursing-homes uses admin routes first.');
+    if (error.response?.status === 404 || error.message?.includes('not found')) {
+      logger.warn('Nursing home residents endpoint not found (404).');
       const page = parseInt(params.page, 10) || 1;
       const limit = parseInt(params.limit, 10) || 50;
       return {
-        data: {
-          success: true,
-          data: [],
-          pagination: { total: 0, page, limit, totalPages: 0 }
-        }
+        success: true,
+        data: [],
+        pagination: { total: 0, page, limit, totalPages: 0 }
       };
     }
     logger.error('Error fetching residents:', error);
@@ -28,7 +62,7 @@ export const fetchResidents = async (params = {}) => {
 export const fetchResident = async (id) => {
   try {
     const response = await api.get(`/nursing-homes/residents/${id}`);
-    return response.data;
+    return unwrapData(response);
   } catch (error) {
     logger.error(`Error fetching resident ${id}:`, error);
     throw error;
@@ -40,7 +74,7 @@ export const fetchMenuItems = async (params = {}) => {
     const queryParams = new URLSearchParams(params).toString();
     const endpoint = `/nursing-homes/menu${queryParams ? `?${queryParams}` : ''}`;
     const response = await api.get(endpoint);
-    return response.data;
+    return unwrapMenuPayload(response);
   } catch (error) {
     logger.error('Error fetching menu items:', error);
     throw error;
@@ -52,7 +86,11 @@ export const fetchResidentOrders = async (params = {}) => {
     const queryParams = new URLSearchParams(params).toString();
     const endpoint = `/nursing-homes/resident-orders${queryParams ? `?${queryParams}` : ''}`;
     const response = await api.get(endpoint);
-    return response;
+    return {
+      data: unwrapList(response),
+      pagination: response?.pagination ?? null,
+      success: response?.success !== false
+    };
   } catch (error) {
     logger.error('Error fetching resident orders:', error);
     throw error;
@@ -62,7 +100,7 @@ export const fetchResidentOrders = async (params = {}) => {
 export const fetchResidentOrder = async (id) => {
   try {
     const response = await api.get(`/nursing-homes/resident-orders/${id}`);
-    return response.data;
+    return unwrapData(response);
   } catch (error) {
     logger.error(`Error fetching resident order ${id}:`, error);
     throw error;
@@ -72,7 +110,7 @@ export const fetchResidentOrder = async (id) => {
 export const createResidentOrder = async (orderData) => {
   try {
     const response = await api.post('/nursing-homes/resident-orders', orderData);
-    return response.data;
+    return unwrapData(response);
   } catch (error) {
     logger.error('Error creating resident order:', error);
     throw error;
@@ -82,9 +120,19 @@ export const createResidentOrder = async (orderData) => {
 export const updateResidentOrder = async (id, orderData) => {
   try {
     const response = await api.put(`/nursing-homes/resident-orders/${id}`, orderData);
-    return response.data;
+    return unwrapData(response);
   } catch (error) {
     logger.error(`Error updating resident order ${id}:`, error);
+    throw error;
+  }
+};
+
+export const submitResidentOrder = async (id, data = {}) => {
+  try {
+    const response = await api.post(`/nursing-homes/resident-orders/${id}/submit`, data);
+    return unwrapData(response);
+  } catch (error) {
+    logger.error(`Error submitting order ${id}:`, error);
     throw error;
   }
 };
@@ -92,7 +140,7 @@ export const updateResidentOrder = async (id, orderData) => {
 export const submitAndPayOrder = async (id, paymentData) => {
   try {
     const response = await api.post(`/nursing-homes/resident-orders/${id}/submit-and-pay`, paymentData);
-    return response.data;
+    return unwrapData(response);
   } catch (error) {
     logger.error(`Error submitting and paying order ${id}:`, error);
     throw error;
@@ -101,10 +149,7 @@ export const submitAndPayOrder = async (id, paymentData) => {
 
 export const exportResidentOrder = async (id) => {
   try {
-    const response = await api.get(`/nursing-homes/resident-orders/${id}/export`, {
-      responseType: 'blob'
-    });
-    return response.data;
+    return await api.getBlob(`/nursing-homes/resident-orders/${id}/export`);
   } catch (error) {
     logger.error(`Error exporting resident order ${id}:`, error);
     throw error;
@@ -114,7 +159,7 @@ export const exportResidentOrder = async (id) => {
 export const fetchResidentOrderRefunds = async (residentOrderId) => {
   try {
     const response = await api.get(`/nursing-homes/resident-orders/${residentOrderId}/refunds`);
-    return response.data;
+    return unwrapList(response);
   } catch (error) {
     logger.error(`Error fetching refunds for resident order ${residentOrderId}:`, error);
     throw error;
@@ -124,7 +169,7 @@ export const fetchResidentOrderRefunds = async (residentOrderId) => {
 export const processResidentOrderRefund = async (residentOrderId, refundData) => {
   try {
     const response = await api.post(`/nursing-homes/resident-orders/${residentOrderId}/refund`, refundData);
-    return response.data;
+    return unwrapData(response);
   } catch (error) {
     logger.error(`Error processing refund for resident order ${residentOrderId}:`, error);
     throw error;
@@ -134,9 +179,19 @@ export const processResidentOrderRefund = async (residentOrderId, refundData) =>
 export const fetchFacility = async (id) => {
   try {
     const response = await api.get(`/nursing-homes/facilities/${id}`);
-    return response.data;
+    return unwrapData(response);
   } catch (error) {
     logger.error(`Error fetching facility ${id}:`, error);
+    throw error;
+  }
+};
+
+export const fetchFacilityBySlug = async (slug) => {
+  try {
+    const response = await api.get(`/nursing-homes/facilities/by-slug/${encodeURIComponent(slug)}`);
+    return unwrapData(response);
+  } catch (error) {
+    logger.error(`Error fetching facility by slug ${slug}:`, error);
     throw error;
   }
 };
@@ -144,10 +199,10 @@ export const fetchFacility = async (id) => {
 export const fetchStaffForFacility = async (facilityId) => {
   try {
     const response = await api.get(`/nursing-homes/facilities/${facilityId}/staff`);
-    return response?.data ?? { success: true, data: [] };
+    return unwrapList(response);
   } catch (error) {
-    if (error.response?.status === 404) {
-      return { success: true, data: [] };
+    if (error.response?.status === 404 || error.message?.includes('not found')) {
+      return [];
     }
     logger.error(`Error fetching staff for facility ${facilityId}:`, error);
     throw error;
@@ -158,7 +213,7 @@ export const fetchCurrentFacility = async (facilityId = null) => {
   try {
     const query = facilityId ? `?facilityId=${encodeURIComponent(facilityId)}` : '';
     const response = await api.get(`/nursing-homes/facilities/current${query}`);
-    return response.data;
+    return unwrapData(response);
   } catch (error) {
     logger.error('Error fetching current facility:', error);
     throw error;
@@ -170,10 +225,13 @@ export const fetchFacilitiesList = async (params = {}) => {
     const queryParams = new URLSearchParams(params).toString();
     const endpoint = `/nursing-homes/facilities${queryParams ? `?${queryParams}` : ''}`;
     const response = await api.get(endpoint);
-    return { data: response?.data ?? [], success: response?.success !== false, pagination: response?.pagination ?? { total: 0, page: 1, limit: 50, totalPages: 0 } };
+    return {
+      data: unwrapList(response),
+      success: response?.success !== false,
+      pagination: response?.pagination ?? { total: 0, page: 1, limit: 50, totalPages: 0 }
+    };
   } catch (error) {
-    if (error.response?.status === 404) {
-      logger.warn('Nursing home facilities endpoint not found (404). Redeploy backend so /api/nursing-homes uses admin routes first.');
+    if (error.response?.status === 404 || error.message?.includes('not found')) {
       return { data: [], success: true, pagination: { total: 0, page: 1, limit: 50, totalPages: 0 } };
     }
     logger.error('Error fetching facilities list:', error);
@@ -184,7 +242,7 @@ export const fetchFacilitiesList = async (params = {}) => {
 export const createFacility = async (data) => {
   try {
     const response = await api.post('/nursing-homes/facilities', data);
-    return response.data;
+    return unwrapData(response);
   } catch (error) {
     logger.error('Error creating facility:', error);
     throw error;
@@ -194,7 +252,7 @@ export const createFacility = async (data) => {
 export const updateFacility = async (id, data) => {
   try {
     const response = await api.put(`/nursing-homes/facilities/${id}`, data);
-    return response.data;
+    return unwrapData(response);
   } catch (error) {
     logger.error('Error updating facility:', error);
     throw error;
@@ -204,7 +262,7 @@ export const updateFacility = async (id, data) => {
 export const deleteFacility = async (id) => {
   try {
     const response = await api.delete(`/nursing-homes/facilities/${id}`);
-    return response.data;
+    return unwrapData(response);
   } catch (error) {
     logger.error('Error deleting facility:', error);
     throw error;
@@ -214,7 +272,7 @@ export const deleteFacility = async (id) => {
 export const createResident = async (data) => {
   try {
     const response = await api.post('/nursing-homes/residents', data);
-    return response.data;
+    return unwrapData(response);
   } catch (error) {
     logger.error('Error creating resident:', error);
     throw error;
@@ -224,7 +282,7 @@ export const createResident = async (data) => {
 export const updateResident = async (id, data) => {
   try {
     const response = await api.put(`/nursing-homes/residents/${id}`, data);
-    return response.data;
+    return unwrapData(response);
   } catch (error) {
     logger.error('Error updating resident:', error);
     throw error;
@@ -234,7 +292,7 @@ export const updateResident = async (id, data) => {
 export const deleteResident = async (id) => {
   try {
     const response = await api.delete(`/nursing-homes/residents/${id}`);
-    return response.data;
+    return unwrapData(response);
   } catch (error) {
     logger.error('Error deactivating resident:', error);
     throw error;
@@ -244,9 +302,29 @@ export const deleteResident = async (id) => {
 export const assignResidentToStaff = async (residentId, assignedUserId) => {
   try {
     const response = await api.post(`/nursing-homes/residents/${residentId}/assign`, { assignedUserId });
-    return response.data;
+    return unwrapData(response);
   } catch (error) {
     logger.error('Error assigning resident:', error);
+    throw error;
+  }
+};
+
+export const saveResidentPaymentMethod = async (residentId, data) => {
+  try {
+    const response = await api.post(`/nursing-homes/residents/${residentId}/payment-method`, data);
+    return unwrapData(response);
+  } catch (error) {
+    logger.error('Error saving resident payment method:', error);
+    throw error;
+  }
+};
+
+export const runMonthlyBilling = async (facilityId, options = {}) => {
+  try {
+    const response = await api.post(`/nursing-homes/facilities/${facilityId}/billing/run-monthly`, options);
+    return unwrapData(response) ?? response;
+  } catch (error) {
+    logger.error('Error running monthly billing:', error);
     throw error;
   }
 };
@@ -254,7 +332,7 @@ export const assignResidentToStaff = async (residentId, assignedUserId) => {
 export const createStaff = async (facilityId, data) => {
   try {
     const response = await api.post(`/nursing-homes/facilities/${facilityId}/staff`, data);
-    return response.data;
+    return unwrapData(response);
   } catch (error) {
     logger.error('Error creating staff:', error);
     throw error;
@@ -264,7 +342,7 @@ export const createStaff = async (facilityId, data) => {
 export const updateStaff = async (facilityId, userId, data) => {
   try {
     const response = await api.put(`/nursing-homes/facilities/${facilityId}/staff/${userId}`, data);
-    return response.data;
+    return unwrapData(response);
   } catch (error) {
     logger.error('Error updating staff:', error);
     throw error;
@@ -274,7 +352,7 @@ export const updateStaff = async (facilityId, userId, data) => {
 export const deleteStaff = async (facilityId, userId) => {
   try {
     const response = await api.delete(`/nursing-homes/facilities/${facilityId}/staff/${userId}`);
-    return response.data;
+    return unwrapData(response);
   } catch (error) {
     logger.error('Error removing staff:', error);
     throw error;
@@ -284,9 +362,16 @@ export const deleteStaff = async (facilityId, userId) => {
 export const bulkCreateStaff = async (facilityId, staffList) => {
   try {
     const response = await api.post(`/nursing-homes/facilities/${facilityId}/staff/bulk`, { staff: staffList });
-    return response.data;
+    return unwrapData(response) ?? response;
   } catch (error) {
     logger.error('Error bulk creating staff:', error);
     throw error;
   }
+};
+
+/** Build portal path under facility slug. */
+export const nhPath = (facilitySlug, suffix = '') => {
+  const base = facilitySlug ? `/nursing-homes/${facilitySlug}` : '/nursing-homes';
+  if (!suffix) return base;
+  return `${base}/${String(suffix).replace(/^\//, '')}`;
 };

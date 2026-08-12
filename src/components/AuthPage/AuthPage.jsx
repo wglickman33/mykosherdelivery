@@ -47,7 +47,14 @@ const AuthPage = () => {
 
   useEffect(() => {
     if (user) {
-      console.log('AuthPage - User already authenticated, redirecting to home');
+      if (user.role === 'nursing_home_user' || user.role === 'nursing_home_admin') {
+        navigate('/nursing-homes', { replace: true });
+        return;
+      }
+      if (user.role === 'restaurant_owner') {
+        navigate('/owner', { replace: true });
+        return;
+      }
       navigate('/home', { replace: true });
     }
   }, [user, navigate]);
@@ -183,8 +190,14 @@ const AuthPage = () => {
         setSubmitStatus('success');
         
         if (result.user || result.success) {
-          console.log(`${mode} successful, navigating to homepage`);
-          navigate('/home', { replace: true });
+          const role = result.user?.role;
+          if (role === 'nursing_home_user' || role === 'nursing_home_admin') {
+            navigate('/nursing-homes', { replace: true });
+          } else if (role === 'restaurant_owner') {
+            navigate('/owner', { replace: true });
+          } else {
+            navigate('/home', { replace: true });
+          }
         }
       }
       

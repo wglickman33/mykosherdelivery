@@ -263,6 +263,12 @@
         color: #1e293b;
         font-size: 1.25rem;
         margin: 0;
+
+        .meal-price {
+          color: #64748b;
+          font-weight: 600;
+          font-size: 1rem;
+        }
       }
 
       .clear-btn {
@@ -299,6 +305,22 @@
       color: #dc2626;
       font-size: 0.875rem;
       font-weight: 600;
+    }
+
+    .none-option {
+      margin-bottom: 1rem;
+
+      .none-item {
+        width: 100%;
+        text-align: left;
+        cursor: pointer;
+      }
+    }
+
+    .category-hint {
+      font-weight: 400;
+      color: #64748b;
+      font-size: 0.85em;
     }
 
     .search-box {
@@ -589,6 +611,9 @@
 
     .summary-actions {
       margin-bottom: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
 
       .save-draft-btn {
         width: 100%;
@@ -603,12 +628,20 @@
         transition: all 0.2s;
 
         &:hover:not(:disabled) {
-          background: #7e22ce;
+          background: #334155;
         }
 
         &:disabled {
           background: #cbd5e1;
           cursor: not-allowed;
+        }
+
+        &.submit-order-btn {
+          background: #0f766e;
+
+          &:hover:not(:disabled) {
+            background: #0d9488;
+          }
         }
       }
 
