@@ -62,8 +62,8 @@ export const ROLE_LABELS = {
   [USER_ROLES.USER]: 'User',
   [USER_ROLES.ADMIN]: 'Admin',
   [USER_ROLES.RESTAURANT_OWNER]: 'Restaurant Owner',
-  [USER_ROLES.NURSING_HOME_ADMIN]: 'Nursing Home Admin',
-  [USER_ROLES.NURSING_HOME_USER]: 'Nursing Home User'
+  [USER_ROLES.NURSING_HOME_ADMIN]: 'Nursing Home Staff',
+  [USER_ROLES.NURSING_HOME_USER]: 'Nursing Home Resident'
 };
 
 export const ROLE_COLORS = {

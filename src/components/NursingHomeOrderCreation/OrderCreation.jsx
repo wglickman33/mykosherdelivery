@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   fetchResident,
+  fetchResidentOrders,
   fetchMenuItems,
   createResidentOrder,
   submitResidentOrder,
@@ -9,6 +10,7 @@ import {
   nhPath
 } from '../../services/nursingHomeService';
 import { useNursingHomeFacility } from '../../context/NursingHomeFacilityContext';
+import { useAuth } from '../../hooks/useAuth';
 import { NH_CONFIG } from '../../config/constants';
 import {
   getNextMondayDateString,
@@ -16,10 +18,14 @@ import {
   formatNhDeadline,
   validateWeeklyMeals,
   mealHasItems,
-  isNoneMeal
+  isNoneMeal,
+  isStaffPlacedOrder,
+  formatAssignedStaffContact,
+  ADMIN_ALREADY_ORDERED_MESSAGE
 } from '../../utils/nursingHomeOrderUtils';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
+import NhAdminOrderedModal from '../NursingHomeShared/NhAdminOrderedModal';
 import MealForm from './MealForm';
 import OrderSummary from './OrderSummary';
 import './OrderCreation.scss';
@@ -30,6 +36,8 @@ const OrderCreation = () => {
   const { residentId, facilitySlug: slugParam } = useParams();
   const navigate = useNavigate();
   const { facility: contextFacility } = useNursingHomeFacility();
+  const { user } = useAuth();
+  const isNhUser = user?.role === 'nursing_home_user';
 
   const [resident, setResident] = useState(null);
   const [facility, setFacility] = useState(contextFacility || null);
@@ -37,23 +45,27 @@ const OrderCreation = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [adminConflict, setAdminConflict] = useState(null);
 
   const [selectedDay, setSelectedDay] = useState('Monday');
   const [selectedMealType, setSelectedMealType] = useState('breakfast');
   const [meals, setMeals] = useState({});
 
   const facilitySlug = slugParam || facility?.slug || contextFacility?.slug;
+  const weekStart = getNextMondayDateString();
 
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
+      setAdminConflict(null);
 
-      const [residentData, breakfastRes, lunchRes, dinnerRes] = await Promise.all([
+      const [residentData, breakfastRes, lunchRes, dinnerRes, ordersRes] = await Promise.all([
         fetchResident(residentId),
         fetchMenuItems({ mealType: 'breakfast', isActive: true }),
         fetchMenuItems({ mealType: 'lunch', isActive: true }),
-        fetchMenuItems({ mealType: 'dinner', isActive: true })
+        fetchMenuItems({ mealType: 'dinner', isActive: true }),
+        fetchResidentOrders({ residentId, weekStartDate: weekStart, limit: 5 }).catch(() => ({ data: [] }))
       ]);
 
       setResident(residentData || null);
@@ -70,13 +82,30 @@ const OrderCreation = () => {
         lunch: Array.isArray(lunchRes?.items) ? lunchRes.items : [],
         dinner: Array.isArray(dinnerRes?.items) ? dinnerRes.items : []
       });
+
+      const existing = (ordersRes?.data || []).find(
+        (o) => o.weekStartDate === weekStart && o.status !== 'cancelled'
+      );
+      if (existing && isNhUser && isStaffPlacedOrder(existing, residentData, user?.id)) {
+        setAdminConflict({
+          message: ADMIN_ALREADY_ORDERED_MESSAGE,
+          orderId: existing.id,
+          contactLabel: formatAssignedStaffContact(residentData?.assignedUser)
+        });
+      } else if (existing && existing.status !== 'draft') {
+        navigate(nhPath(facilitySlug || contextFacility?.slug, `orders/${existing.id}`), { replace: true });
+        return;
+      } else if (existing?.status === 'draft' && (!isNhUser || !isStaffPlacedOrder(existing, residentData, user?.id))) {
+        navigate(nhPath(facilitySlug || contextFacility?.slug, `orders/${existing.id}/edit`), { replace: true });
+        return;
+      }
     } catch (err) {
       console.error('Error loading data:', err);
       setError(err.response?.data?.message || err.message || 'Failed to load data');
     } finally {
       setLoading(false);
     }
-  }, [residentId, contextFacility]);
+  }, [residentId, contextFacility, weekStart, isNhUser, user?.id, facilitySlug, navigate]);
 
   useEffect(() => {
     loadData();
@@ -102,7 +131,7 @@ const OrderCreation = () => {
     Object.values(meals).filter((meal) => mealHasItems(meal) || isNoneMeal(meal));
 
   const buildOrderPayload = () => {
-    const weekStartDate = getNextMondayDateString();
+    const weekStartDate = weekStart;
     const weekEndDate = addDaysToDateString(weekStartDate, 6);
     return {
       residentId,
@@ -120,10 +149,30 @@ const OrderCreation = () => {
     };
   };
 
+  const handleOrderError = (err) => {
+    const code = err.response?.data?.code || err.response?.data?.error;
+    const message = err.response?.data?.message || err.message || 'Failed to save order';
+    if (code === 'ADMIN_ALREADY_ORDERED' || (err.response?.status === 409 && code !== 'ORDER_WEEK_EXISTS')) {
+      setAdminConflict({
+        message: message || ADMIN_ALREADY_ORDERED_MESSAGE,
+        orderId: err.response?.data?.data?.orderId,
+        contactLabel: formatAssignedStaffContact(resident?.assignedUser)
+      });
+      setError(null);
+      return;
+    }
+    if (code === 'ORDER_WEEK_EXISTS' && err.response?.data?.data?.orderId) {
+      navigate(nhPath(facilitySlug, `orders/${err.response.data.data.orderId}`));
+      return;
+    }
+    setError(message);
+  };
+
   const handleSaveDraft = async () => {
     try {
       setSaving(true);
       setError(null);
+      setAdminConflict(null);
 
       const mealArray = buildMealArray();
       if (mealArray.length === 0) {
@@ -145,7 +194,7 @@ const OrderCreation = () => {
       }
     } catch (err) {
       console.error('Error saving order:', err);
-      setError(err.response?.data?.message || err.message || 'Failed to save order');
+      handleOrderError(err);
     } finally {
       setSaving(false);
     }
@@ -155,6 +204,7 @@ const OrderCreation = () => {
     try {
       setSaving(true);
       setError(null);
+      setAdminConflict(null);
 
       const mealArray = buildMealArray();
       if (!mealArray.some((m) => mealHasItems(m))) {
@@ -179,7 +229,7 @@ const OrderCreation = () => {
       navigate(nhPath(facilitySlug, `orders/${orderId}/confirmation`));
     } catch (err) {
       console.error('Error submitting order:', err);
-      setError(err.response?.data?.message || err.message || 'Failed to submit order');
+      handleOrderError(err);
     } finally {
       setSaving(false);
     }
@@ -232,7 +282,7 @@ const OrderCreation = () => {
             ← Back
           </button>
           <div className="header-info">
-            <h1>Create Weekly Order</h1>
+            <h1>{isNhUser ? 'Create My Weekly Order' : 'Create Weekly Order'}</h1>
             <p className="resident-name">
               {resident?.name}
               {resident?.roomNumber && ` — Room ${resident.roomNumber}`}
@@ -246,6 +296,11 @@ const OrderCreation = () => {
       </div>
 
       {error && <div className="error-banner">{error}</div>}
+      {!resident?.paymentMethodId && (
+        <div className="error-banner" style={{ background: '#fffbeb', color: '#92400e', borderColor: '#fcd34d' }}>
+          No card on file for this resident. Orders submit for monthly billing — ask staff to save a card if needed.
+        </div>
+      )}
 
       <div className="order-content">
         <div className="meal-selector">
@@ -302,10 +357,25 @@ const OrderCreation = () => {
           resident={resident}
           onSaveDraft={handleSaveDraft}
           onSubmit={handleSubmit}
-          saving={saving}
+          saving={saving || Boolean(adminConflict)}
           totalMeals={getTotalMeals()}
         />
       </div>
+
+      <NhAdminOrderedModal
+        open={Boolean(adminConflict)}
+        message={adminConflict?.message}
+        contactLabel={adminConflict?.contactLabel}
+        onClose={() => {
+          setAdminConflict(null);
+          navigate(nhPath(facilitySlug, 'dashboard'));
+        }}
+        onViewOrder={
+          adminConflict?.orderId
+            ? () => navigate(nhPath(facilitySlug, `orders/${adminConflict.orderId}`))
+            : null
+        }
+      />
     </div>
   );
 };

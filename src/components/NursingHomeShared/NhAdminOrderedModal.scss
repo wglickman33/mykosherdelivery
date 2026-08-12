@@ -1,0 +1,45 @@
+@use '../../styles/design-system' as *;
+
+.nh-admin-ordered-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.nh-admin-ordered-modal {
+  width: min(100%, 420px);
+  background: #fff;
+  border-radius: $border-radius-md;
+  padding: 1.5rem;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.18);
+
+  h2 {
+    margin: 0 0 0.75rem;
+    font-size: 1.25rem;
+    color: $slate-800;
+  }
+
+  p {
+    margin: 0 0 1rem;
+    color: $slate-600;
+    line-height: 1.55;
+  }
+
+  &__contact {
+    margin-bottom: 1.25rem !important;
+    font-size: 0.9rem;
+    color: $slate-700 !important;
+    font-weight: 500;
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+  }
+}

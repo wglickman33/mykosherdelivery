@@ -23,6 +23,16 @@ module.exports = (sequelize, DataTypes) => {
         key: 'id'
       }
     },
+    userId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: 'user_id',
+      references: {
+        model: 'profiles',
+        key: 'id'
+      },
+      comment: 'Login profile (nursing_home_user) for resident self-service ordering'
+    },
     name: {
       type: DataTypes.STRING,
       allowNull: false
@@ -101,6 +111,10 @@ module.exports = (sequelize, DataTypes) => {
       },
       {
         fields: ['assigned_user_id']
+      },
+      {
+        fields: ['user_id'],
+        unique: true
       }
     ]
   });
@@ -114,6 +128,11 @@ module.exports = (sequelize, DataTypes) => {
     NursingHomeResident.belongsTo(models.Profile, {
       foreignKey: 'assignedUserId',
       as: 'assignedUser'
+    });
+
+    NursingHomeResident.belongsTo(models.Profile, {
+      foreignKey: 'userId',
+      as: 'userAccount'
     });
     
     NursingHomeResident.hasMany(models.NursingHomeResidentOrder, {

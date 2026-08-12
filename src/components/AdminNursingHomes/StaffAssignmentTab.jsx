@@ -11,10 +11,6 @@ import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import './AdminNursingHomes.scss';
 
-/**
- * Assigns facility staff (e.g. Jason Smith) to residents (e.g. Abraham Smith).
- * Residents and users are different records — this links them for the dashboard "Mine" filter.
- */
 const StaffAssignmentTab = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
@@ -115,7 +111,7 @@ const StaffAssignmentTab = () => {
       </div>
 
       <p className="tab-hint" style={{ margin: '0 0 1rem', color: '#64748b', fontSize: '0.9rem' }}>
-        Assign a staff user to each resident for the portal &quot;Mine&quot; filter. Residents (meal recipients) are not the same as staff login accounts.
+        Assign each resident to a nursing home staff member (NH Admin) for the portal &quot;Mine&quot; filter.
       </p>
 
       {error && (
@@ -135,7 +131,7 @@ const StaffAssignmentTab = () => {
       ) : staff.length === 0 ? (
         <div className="content-placeholder">
           <p>
-            No staff found for this facility. Add Jason (or other NH users) under the Staff tab or Admin Users with this facility assigned, then come back here to link them to residents.
+            No staff found for this facility. Add staff under the Staff tab (or Admin Users as Nursing Home Staff), then assign them to residents here.
           </p>
         </div>
       ) : (

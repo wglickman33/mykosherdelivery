@@ -416,7 +416,7 @@ const AdminLayout = () => {
                   key={f.id}
                   type="button"
                   className="nav-item nav-item--community"
-                  onClick={() => navigate(`/nursing-homes/dashboard?facilityId=${f.id}`)}
+                  onClick={() => navigate(f.slug ? `/nursing-homes/${f.slug}/dashboard` : `/nursing-homes/dashboard?facilityId=${f.id}`)}
                 >
                   <span className="nav-icon">
                     <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
@@ -476,7 +476,7 @@ const AdminLayout = () => {
               <div className="user-info">
                 <span className="user-name">{user.firstName} {user.lastName}</span>
                 <span className="user-role">
-                  {user.role === 'admin' ? 'Super Admin' : user.role === 'nursing_home_admin' ? 'NH Admin' : user.role}
+                  {user.role === 'admin' ? 'Super Admin' : user.role === 'nursing_home_admin' ? 'Staff' : user.role === 'nursing_home_user' ? 'Resident' : user.role}
                 </span>
               </div>
             )}

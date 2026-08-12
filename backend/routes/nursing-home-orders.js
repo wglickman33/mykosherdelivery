@@ -171,19 +171,32 @@ const paymentLimiter = rateLimit({
   legacyHeaders: false
 });
 
+function toDateOnlyString(value) {
+  if (!value) return null;
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString().slice(0, 10);
+  }
+  const raw = String(value).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10);
+  const parsed = new Date(raw);
+  if (!Number.isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 10);
+  return null;
+}
+
 const validateQueryParams = [
   query('page').optional().isInt({ min: 1 }).toInt(),
-  query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
+  query('limit').optional().isInt({ min: 1, max: 500 }).toInt(),
   query('residentId').optional().isUUID(),
+  query('facilityId').optional().isUUID(),
   query('status').optional().isIn(Object.values(NH_CONFIG.STATUSES)),
   query('paymentStatus').optional().isIn(Object.values(NH_CONFIG.PAYMENT_STATUSES)),
-  query('weekStartDate').optional().isISO8601().toDate()
+  query('weekStartDate').optional().isISO8601().customSanitizer((v) => toDateOnlyString(v) || v)
 ];
 
 const validateResidentOrder = [
   body('residentId').isUUID(),
-  body('weekStartDate').isISO8601().toDate(),
-  body('weekEndDate').isISO8601().toDate(),
+  body('weekStartDate').isISO8601().customSanitizer((v) => toDateOnlyString(v) || v),
+  body('weekEndDate').isISO8601().customSanitizer((v) => toDateOnlyString(v) || v),
   body('meals').isArray({ min: NH_CONFIG.MEALS.MIN_ITEMS_PER_MEAL, max: NH_CONFIG.MEALS.MAX_MEALS_PER_WEEK }),
   body('meals.*.day').isIn(NH_CONFIG.MEALS.DAYS),
   body('meals.*.mealType').isIn(NH_CONFIG.MEALS.TYPES),
@@ -224,18 +237,6 @@ const MEAL_PRICES = {
   lunch: 21.00,
   dinner: 23.00
 };
-
-function toDateOnlyString(value) {
-  if (!value) return null;
-  if (value instanceof Date && !Number.isNaN(value.getTime())) {
-    return value.toISOString().slice(0, 10);
-  }
-  const raw = String(value).trim();
-  if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10);
-  const parsed = new Date(raw);
-  if (!Number.isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 10);
-  return null;
-}
 
 function calculateDeadline(weekStartDate) {
   // Orders for a week starting Monday are due the previous Sunday at 12:00 America/New_York
@@ -307,7 +308,6 @@ function normCat(category) {
   return String(category || '').toLowerCase();
 }
 
-/** Enforce breakfast/lunch/dinner composition (matches portal MealForm rules). */
 function itemNeedsBagelType(item) {
   if (item?.requiresBagelType === true) return true;
   const name = item?.name != null ? String(item.name) : '';
@@ -386,18 +386,67 @@ function validateMealsComposition(meals) {
 function canAccessFacilityResident(user, resident) {
   if (!resident) return false;
   if (user.role === 'admin') return true;
-  if (user.role === 'nursing_home_admin' || user.role === 'nursing_home_user') {
+  if (user.role === 'nursing_home_admin') {
     return resident.facilityId === user.nursingHomeFacilityId;
+  }
+  if (user.role === 'nursing_home_user') {
+    return resident.userId === user.id;
   }
   return false;
 }
 
 function assertFacilityOrderAccess(user, order) {
   if (user.role === 'admin') return true;
-  if (user.role === 'nursing_home_admin' || user.role === 'nursing_home_user') {
+  if (user.role === 'nursing_home_admin') {
     return order.facilityId === user.nursingHomeFacilityId;
   }
+  if (user.role === 'nursing_home_user') {
+    const linkedUserId = order.resident?.userId;
+    if (linkedUserId == null) return false;
+    return linkedUserId === user.id;
+  }
   return false;
+}
+
+async function findResidentForNhUser(userId) {
+  return NursingHomeResident.findOne({
+    where: { userId, isActive: true },
+    include: [{ model: NursingHomeFacility, as: 'facility' }]
+  });
+}
+
+async function findActiveWeekOrder(residentId, weekStartDate) {
+  const dateOnly = toDateOnlyString(weekStartDate) || String(weekStartDate || '').slice(0, 10);
+  const orders = await NursingHomeResidentOrder.findAll({
+    where: {
+      residentId,
+      status: { [Op.ne]: 'cancelled' }
+    },
+    order: [['updatedAt', 'DESC']],
+    limit: 40
+  });
+  return orders.find((o) => toDateOnlyString(o.weekStartDate) === dateOnly) || null;
+}
+
+function nhUserStaffOrderConflict(order, user) {
+  if (!order || user?.role !== 'nursing_home_user') return null;
+  if (order.createdByUserId === user.id) return null;
+  return {
+    code: 'ADMIN_ALREADY_ORDERED',
+    message:
+      'A facility administrator has already placed an order for you this week. Contact them with any questions.'
+  };
+}
+
+function isUniqueWeekViolation(error) {
+  const name = error?.name || '';
+  const msg = String(error?.message || error?.original?.message || '');
+  return (
+    name === 'SequelizeUniqueConstraintError' &&
+    (msg.includes('nursing_home_resident_orders_resident_week_unique') ||
+      msg.includes('resident_week') ||
+      (msg.includes('resident_id') && msg.includes('week_start_date')))
+  );
 }
 
 async function calculateOrderTotalsFromDB(meals) {
@@ -479,7 +528,7 @@ router.get('/resident-orders', requireNursingHomeUser, validateQueryParams, asyn
     }
 
     const page = Math.max(parseInt(req.query.page) || 1, 1);
-    const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 100);
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 500);
     const offset = (page - 1) * limit;
     const { residentId, status, paymentStatus, weekStartDate } = req.query;
 
@@ -498,7 +547,15 @@ router.get('/resident-orders', requireNursingHomeUser, validateQueryParams, asyn
         }
       }
     } else if (req.user.role === 'nursing_home_user') {
-      where.facilityId = req.user.nursingHomeFacilityId;
+      const myResident = await findResidentForNhUser(req.user.id);
+      if (!myResident) {
+        return res.json({
+          success: true,
+          data: [],
+          pagination: { total: 0, page: 1, limit: parseInt(limit) || 20, totalPages: 0 }
+        });
+      }
+      where.residentId = myResident.id;
     }
 
     if (req.user.role === 'nursing_home_admin') {
@@ -538,7 +595,7 @@ router.get('/resident-orders', requireNursingHomeUser, validateQueryParams, asyn
         {
           model: Profile,
           as: 'createdBy',
-          attributes: ['id', 'firstName', 'lastName']
+          attributes: ['id', 'firstName', 'lastName', 'role']
         }
       ]
     });
@@ -590,11 +647,65 @@ router.post('/resident-orders', requireNursingHomeUser, validateResidentOrder, a
       });
     }
 
+    if (!resident.isActive) {
+      return res.status(400).json({
+        success: false,
+        code: 'RESIDENT_INACTIVE',
+        error: 'RESIDENT_INACTIVE',
+        message: 'This resident is inactive and cannot receive orders'
+      });
+    }
+
     if (!canAccessFacilityResident(req.user, resident)) {
       return res.status(403).json({
         success: false,
         error: 'Access denied'
       });
+    }
+
+    const weekStart = toDateOnlyString(weekStartDate) || weekStartDate;
+    const weekEnd = toDateOnlyString(weekEndDate) || weekEndDate;
+
+    if (req.user.role === 'nursing_home_user' && resident.userId !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied',
+        message: 'You can only order for yourself'
+      });
+    }
+
+    const existing = await findActiveWeekOrder(residentId, weekStart);
+
+    if (existing) {
+      if (req.user.role === 'nursing_home_user') {
+        const conflict = nhUserStaffOrderConflict(existing, req.user);
+        if (conflict) {
+          return res.status(409).json({
+            success: false,
+            code: conflict.code,
+            error: conflict.code,
+            message: conflict.message,
+            data: { orderId: existing.id, status: existing.status }
+          });
+        }
+        if (existing.status !== 'draft') {
+          return res.status(409).json({
+            success: false,
+            code: 'ORDER_WEEK_EXISTS',
+            error: 'ORDER_WEEK_EXISTS',
+            message: 'You already have an order for this week. Open it from your dashboard.',
+            data: { orderId: existing.id, status: existing.status }
+          });
+        }
+      } else if (existing.status !== 'draft') {
+        return res.status(409).json({
+          success: false,
+          code: 'ORDER_WEEK_EXISTS',
+          error: 'ORDER_WEEK_EXISTS',
+          message: 'An order already exists for this resident this week. Open the existing order to view or edit.',
+          data: { orderId: existing.id, status: existing.status }
+        });
+      }
     }
 
     const compositionErrors = validateMealsComposition(meals);
@@ -607,43 +718,86 @@ router.post('/resident-orders', requireNursingHomeUser, validateResidentOrder, a
       });
     }
 
-    const deadline = calculateDeadline(weekStartDate);
+    const deadline = calculateDeadline(weekStart);
     const totals = await calculateOrderTotalsFromDB(meals);
-    const orderNumber = generateOrderNumber();
 
-    const order = await NursingHomeResidentOrder.create({
-      residentId,
-      facilityId: resident.facilityId,
-      createdByUserId: req.user.id,
-      orderNumber,
-      weekStartDate,
-      weekEndDate,
-      meals,
-      status: 'draft',
-      totalMeals: totals.totalMeals,
-      subtotal: totals.subtotal,
-      tax: totals.tax,
-      total: totals.total,
-      paymentStatus: 'pending',
-      deliveryAddress,
-      deadline,
-      residentName: resident.name,
-      roomNumber: resident.roomNumber,
-      billingEmail: billingEmail || resident.billingEmail,
-      billingName: billingName || resident.billingName
-    });
+    if (existing && existing.status === 'draft') {
+      await existing.update({
+        meals,
+        weekEndDate: weekEnd,
+        totalMeals: totals.totalMeals,
+        subtotal: totals.subtotal,
+        tax: totals.tax,
+        total: totals.total,
+        deliveryAddress: deliveryAddress || existing.deliveryAddress,
+        deadline,
+        billingEmail: billingEmail || resident.billingEmail || existing.billingEmail,
+        billingName: billingName || resident.billingName || existing.billingName,
+        residentName: resident.name,
+        roomNumber: resident.roomNumber
+      });
 
-    logger.info('Resident order created', {
-      orderId: order.id,
-      orderNumber: order.orderNumber,
-      residentId,
-      createdBy: req.user.id
-    });
+      logger.info('Resident order upserted (existing draft)', {
+        orderId: existing.id,
+        orderNumber: existing.orderNumber,
+        residentId,
+        updatedBy: req.user.id
+      });
 
-    res.status(201).json({
-      success: true,
-      data: order
-    });
+      return res.status(200).json({
+        success: true,
+        data: existing,
+        upserted: true
+      });
+    }
+
+    try {
+      const order = await NursingHomeResidentOrder.create({
+        residentId,
+        facilityId: resident.facilityId,
+        createdByUserId: req.user.id,
+        orderNumber: generateOrderNumber(),
+        weekStartDate: weekStart,
+        weekEndDate: weekEnd,
+        meals,
+        status: 'draft',
+        totalMeals: totals.totalMeals,
+        subtotal: totals.subtotal,
+        tax: totals.tax,
+        total: totals.total,
+        paymentStatus: 'pending',
+        deliveryAddress,
+        deadline,
+        residentName: resident.name,
+        roomNumber: resident.roomNumber,
+        billingEmail: billingEmail || resident.billingEmail,
+        billingName: billingName || resident.billingName
+      });
+
+      logger.info('Resident order created', {
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        residentId,
+        createdBy: req.user.id
+      });
+
+      return res.status(201).json({
+        success: true,
+        data: order
+      });
+    } catch (createError) {
+      if (isUniqueWeekViolation(createError)) {
+        const raced = await findActiveWeekOrder(residentId, weekStart);
+        return res.status(409).json({
+          success: false,
+          code: 'ORDER_WEEK_EXISTS',
+          error: 'ORDER_WEEK_EXISTS',
+          message: 'An order already exists for this resident this week.',
+          data: raced ? { orderId: raced.id, status: raced.status } : undefined
+        });
+      }
+      throw createError;
+    }
   } catch (error) {
     logger.error('Error creating resident order:', error);
     res.status(500).json({
@@ -678,6 +832,26 @@ router.put('/resident-orders/:id', requireNursingHomeUser, validateOrderUpdate, 
         success: false,
         error: 'Access denied'
       });
+    }
+
+    if (req.user.role === 'nursing_home_user') {
+      const myResident = await findResidentForNhUser(req.user.id);
+      if (!myResident || order.residentId !== myResident.id) {
+        return res.status(403).json({
+          success: false,
+          error: 'Access denied'
+        });
+      }
+      const conflict = nhUserStaffOrderConflict(order, req.user);
+      if (conflict) {
+        return res.status(409).json({
+          success: false,
+          code: conflict.code,
+          error: conflict.code,
+          message: conflict.message,
+          data: { orderId: order.id, status: order.status }
+        });
+      }
     }
 
     if (order.status !== 'draft') {
@@ -749,8 +923,24 @@ router.get('/resident-orders/:id', requireNursingHomeUser, async (req, res) => {
 
     const order = await NursingHomeResidentOrder.findByPk(id, {
       include: [
-        { model: NursingHomeResident, as: 'resident', attributes: ['id', 'name', 'roomNumber', 'facilityId'] },
-        { model: NursingHomeFacility, as: 'facility', attributes: ['id', 'name', 'address'] }
+        {
+          model: NursingHomeResident,
+          as: 'resident',
+          attributes: ['id', 'name', 'roomNumber', 'facilityId', 'userId'],
+          include: [
+            {
+              model: Profile,
+              as: 'assignedUser',
+              attributes: ['id', 'firstName', 'lastName', 'email', 'phone']
+            }
+          ]
+        },
+        { model: NursingHomeFacility, as: 'facility', attributes: ['id', 'name', 'address'] },
+        {
+          model: Profile,
+          as: 'createdBy',
+          attributes: ['id', 'firstName', 'lastName', 'role']
+        }
       ]
     });
 
@@ -791,6 +981,17 @@ router.post('/resident-orders/:id/submit', requireNursingHomeUser, async (req, r
       return res.status(403).json({
         success: false,
         error: 'Access denied'
+      });
+    }
+
+    const staffLock = nhUserStaffOrderConflict(order, req.user);
+    if (staffLock) {
+      return res.status(409).json({
+        success: false,
+        code: staffLock.code,
+        error: staffLock.code,
+        message: staffLock.message,
+        data: { orderId: order.id, status: order.status }
       });
     }
 
@@ -877,6 +1078,17 @@ router.post('/resident-orders/:id/submit-and-pay', paymentLimiter, requireNursin
       return res.status(403).json({
         success: false,
         error: 'Access denied'
+      });
+    }
+
+    const staffLockPay = nhUserStaffOrderConflict(order, req.user);
+    if (staffLockPay) {
+      return res.status(409).json({
+        success: false,
+        code: staffLockPay.code,
+        error: staffLockPay.code,
+        message: staffLockPay.message,
+        data: { orderId: order.id, status: order.status }
       });
     }
 

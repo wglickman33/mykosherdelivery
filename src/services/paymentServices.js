@@ -256,7 +256,7 @@ export const sendOrderConfirmationEmail = async (orderData) => {
 
 const money = (n) => `$${parseFloat(n || 0).toFixed(2)}`;
 
-/** Build line-item HTML for NH monthly billing EmailJS template ({{{order_items_html}}}). */
+/** Build line-item HTML for NH monthly billing EmailJS template. */
 export const buildNhBillingItemsHtml = (weeks = []) => {
   if (!Array.isArray(weeks) || weeks.length === 0) {
     return '<p style="margin:0;color:#666;">Meal orders billed for this period.</p>';
@@ -288,10 +288,6 @@ export const buildNhBillingItemsHtml = (weeks = []) => {
     .join('');
 };
 
-/**
- * Nursing-home monthly billing receipt via EmailJS.
- * Requires VITE_EMAILJS_PUBLIC_KEY, VITE_EMAILJS_SERVICE_ID, VITE_EMAILJS_NH_BILLING_TEMPLATE_ID.
- */
 export const sendNhMonthlyBillingEmail = async (billingData = {}) => {
   try {
     const emailjsConfig = {

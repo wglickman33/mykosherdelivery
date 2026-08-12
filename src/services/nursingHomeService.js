@@ -69,6 +69,16 @@ export const fetchResident = async (id) => {
   }
 };
 
+export const fetchMyResident = async () => {
+  try {
+    const response = await api.get('/nursing-homes/residents/me');
+    return unwrapData(response);
+  } catch (error) {
+    logger.error('Error fetching linked resident profile:', error);
+    throw error;
+  }
+};
+
 export const fetchMenuItems = async (params = {}) => {
   try {
     const queryParams = new URLSearchParams(params).toString();

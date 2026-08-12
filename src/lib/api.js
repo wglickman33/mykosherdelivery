@@ -164,6 +164,7 @@ class ApiClient {
         const errorData = await response.json().catch(() => ({}));
         const errorMessage =
           errorData.message ||
+          (Array.isArray(errorData.details) && errorData.details[0]?.msg) ||
           errorData.error ||
           `HTTP ${response.status}: ${response.statusText}`;
         logger.error(`API Error [${requestId}]`, {

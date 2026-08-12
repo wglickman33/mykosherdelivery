@@ -186,6 +186,14 @@ module.exports = (sequelize, DataTypes) => {
       },
       {
         fields: ['week_start_date', 'week_end_date']
+      },
+      {
+        unique: true,
+        fields: ['resident_id', 'week_start_date'],
+        name: 'nursing_home_resident_orders_resident_week_unique',
+        where: {
+          status: { [require('sequelize').Op.ne]: 'cancelled' }
+        }
       }
     ]
   });

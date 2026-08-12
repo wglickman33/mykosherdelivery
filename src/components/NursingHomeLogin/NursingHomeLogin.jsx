@@ -1,10 +1,13 @@
-import LoginForm from '../LoginForm/LoginForm';
 import { USER_ROLES } from '../../config/constants';
 import { fetchCurrentFacility, nhPath } from '../../services/nursingHomeService';
+import LoginForm from '../LoginForm/LoginForm';
 import './NursingHomeLogin.scss';
 
 const NursingHomeLogin = () => {
-  const getRedirectPath = async () => {
+  const getRedirectPath = async (role) => {
+    if (role === USER_ROLES.ADMIN) {
+      return '/nursing-homes';
+    }
     try {
       const facility = await fetchCurrentFacility();
       if (facility?.slug) {
@@ -14,7 +17,7 @@ const NursingHomeLogin = () => {
         return `/nursing-homes/dashboard?facilityId=${facility.id}`;
       }
     } catch {
-      /* NhFacilityRedirect shows the not-assigned empty state */
+      /* NhFacilityRedirect shows not-assigned */
     }
     return '/nursing-homes';
   };

@@ -5,11 +5,6 @@ import { isNoneMeal } from '../../utils/nursingHomeOrderUtils';
 
 const normCat = (c) => String(c || '').toLowerCase();
 
-/**
- * Meal picker for one day/mealType.
- * onUpdate(day, mealType, items, bagelType, none)
- * — when None is selected: onUpdate(day, mealType, [], null, true)
- */
 const MealForm = ({ day, mealType, menuItems, currentMeal, onUpdate, resident }) => {
   const [selectedItems, setSelectedItems] = useState([]);
   const [bagelType, setBagelType] = useState('');
@@ -315,7 +310,6 @@ MealForm.propTypes = {
   mealType: PropTypes.string.isRequired,
   menuItems: PropTypes.array.isRequired,
   currentMeal: PropTypes.object,
-  /** (day, mealType, items, bagelType, none) — none=true clears items */
   onUpdate: PropTypes.func.isRequired,
   resident: PropTypes.object
 };

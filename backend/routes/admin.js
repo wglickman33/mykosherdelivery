@@ -347,7 +347,7 @@ router.put('/users/:userId', requireAdmin, [
       if (!facilityVal) {
         return res.status(400).json({
           error: 'Validation failed',
-          message: 'Nursing Home Admin and Nursing Home User roles require a facility to be assigned.'
+          message: 'Nursing Home Staff and Nursing Home Resident roles require a facility to be assigned.'
         });
       }
     }
@@ -730,7 +730,7 @@ router.post('/users', requireAdmin, [
     if (role && nursingHomeRoles.includes(String(role).trim()) && !nursingHomeFacilityId) {
       return res.status(400).json({
         error: 'Validation failed',
-        message: 'Nursing Home Admin and Nursing Home User roles require a facility to be assigned.'
+        message: 'Nursing Home Staff and Nursing Home Resident roles require a facility to be assigned.'
       });
     }
 

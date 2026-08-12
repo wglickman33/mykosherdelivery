@@ -181,9 +181,9 @@ const NursingHomeLayout = () => {
             <button
               type="button"
               className="nh-facility-blocked__btn nh-facility-blocked__btn--primary"
-              onClick={() => navigate('/admin/nursing-homes')}
+              onClick={() => navigate(user.role === 'admin' ? '/nursing-homes' : '/admin/nursing-homes')}
             >
-              Back to Admin
+              {user.role === 'admin' ? 'Select a community' : 'Back to Admin'}
             </button>
           </div>
         </div>
@@ -195,9 +195,9 @@ const NursingHomeLayout = () => {
     user.role === 'admin'
       ? 'Super Admin'
       : user.role === 'nursing_home_admin'
-        ? 'NH Admin'
+        ? 'Staff'
         : user.role === 'nursing_home_user'
-          ? 'NH User'
+          ? 'Resident'
           : user.role;
 
   const showAdminBack = user.role === 'admin' || user.role === 'nursing_home_admin';
@@ -254,9 +254,9 @@ const NursingHomeLayout = () => {
               <button
                 type="button"
                 className="admin-sidebar__community-back"
-                onClick={() => navigate('/admin/nursing-homes')}
-                aria-label="Return to MKD Admin"
-                title="Return to MKD Admin"
+                onClick={() => navigate(user.role === 'admin' ? '/nursing-homes' : '/admin/nursing-homes')}
+                aria-label={user.role === 'admin' ? 'Change community' : 'Return to MKD Admin'}
+                title={user.role === 'admin' ? 'Change community' : 'Return to MKD Admin'}
               >
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
                   <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />

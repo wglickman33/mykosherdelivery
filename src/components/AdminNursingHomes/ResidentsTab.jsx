@@ -32,7 +32,10 @@ const emptyForm = {
   notes: '',
   billingEmail: '',
   billingName: '',
-  billingPhone: ''
+  billingPhone: '',
+  createLogin: true,
+  email: '',
+  password: ''
 };
 
 function SaveCardForm({ billingInfo, onSuccess, onError, disabled }) {
@@ -166,7 +169,10 @@ const ResidentsTab = () => {
       notes: r.notes || '',
       billingEmail: r.billingEmail || '',
       billingName: r.billingName || '',
-      billingPhone: r.billingPhone || ''
+      billingPhone: r.billingPhone || '',
+      createLogin: !r.userId && !r.userAccount,
+      email: r.userAccount?.email || '',
+      password: ''
     });
     setCardError(null);
     setCardSuccess(null);
@@ -193,6 +199,18 @@ const ResidentsTab = () => {
       setError('Facility is required');
       return;
     }
+    const hasExistingLogin = Boolean(editingResident?.userId || editingResident?.userAccount);
+    const wantsLogin = form.createLogin && !hasExistingLogin;
+    if (wantsLogin) {
+      if (!form.email.trim()) {
+        setError('Login email is required when creating a resident login');
+        return;
+      }
+      if (!form.password || form.password.length < 8) {
+        setError('Login password must be at least 8 characters');
+        return;
+      }
+    }
     try {
       setSubmitting(true);
       setError(null);
@@ -207,6 +225,13 @@ const ResidentsTab = () => {
         billingName: form.billingName.trim() || null,
         billingPhone: form.billingPhone.trim() || null
       };
+      if (wantsLogin) {
+        payload.createLogin = true;
+        payload.email = form.email.trim();
+        payload.password = form.password;
+      } else if (hasExistingLogin && form.password && form.password.length >= 8) {
+        payload.password = form.password;
+      }
       if (editingResident) {
         await updateResident(editingResident.id, payload);
       } else {
@@ -281,6 +306,10 @@ const ResidentsTab = () => {
           Add Resident
         </button>
       </div>
+      <p className="tab-hint" style={{ margin: '0 0 1rem', color: '#64748b', fontSize: '0.9rem' }}>
+        Residents are meal recipients. Optionally create a login so they can place their own weekly orders.
+        Staff (nursing home admins) are managed separately and cannot be created here.
+      </p>
 
       {isAdmin && facilities.length > 0 && (
         <div className="filters-row">
@@ -329,6 +358,7 @@ const ResidentsTab = () => {
                 {isAdmin && <th>Facility</th>}
                 <th>Name</th>
                 <th>Room</th>
+                <th>Login</th>
                 <th>Dietary / Allergies</th>
                 <th>Card</th>
                 <th aria-label="Actions" />
@@ -340,6 +370,11 @@ const ResidentsTab = () => {
                   {isAdmin && <td>{r.facility ? r.facility.name : facilityName(r.facilityId)}</td>}
                   <td>{r.name}</td>
                   <td>{r.roomNumber || '—'}</td>
+                  <td>
+                    {r.userAccount?.email || r.userId
+                      ? (r.userAccount?.email || 'Linked')
+                      : 'No login'}
+                  </td>
                   <td>
                     {[r.dietaryRestrictions, r.allergies].filter(Boolean).join(' · ') || '—'}
                   </td>
@@ -520,6 +555,64 @@ const ResidentsTab = () => {
                       placeholder="555-123-4567"
                     />
                   </div>
+
+                  {(editingResident?.userAccount || editingResident?.userId) ? (
+                    <div className="admin-nursing-homes__form-group admin-nursing-homes__form-group--full">
+                      <label>Resident login</label>
+                      <p className="tab-hint" style={{ margin: '0 0 0.75rem', color: '#64748b', fontSize: '0.9rem' }}>
+                        Login linked: {editingResident.userAccount?.email || 'Active account'}
+                      </p>
+                      <label>Reset password (optional)</label>
+                      <input
+                        type="password"
+                        value={form.password}
+                        onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
+                        placeholder="Leave blank to keep current password"
+                        minLength={8}
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      <div className="admin-nursing-homes__form-group admin-nursing-homes__form-group--full">
+                        <label className="residents-tab__login-toggle">
+                          <input
+                            type="checkbox"
+                            checked={form.createLogin}
+                            onChange={(e) => setForm((prev) => ({ ...prev, createLogin: e.target.checked }))}
+                          />
+                          <span>Create portal login for this resident</span>
+                        </label>
+                        <p className="tab-hint" style={{ margin: '0.35rem 0 0', color: '#64748b', fontSize: '0.85rem' }}>
+                          Lets them place their own weekly meal orders. Staff can still order for them.
+                        </p>
+                      </div>
+                      {form.createLogin && (
+                        <>
+                          <div className="admin-nursing-homes__form-group admin-nursing-homes__form-group--full">
+                            <label>Login email *</label>
+                            <input
+                              type="email"
+                              value={form.email}
+                              onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
+                              placeholder="resident@example.com"
+                              required={form.createLogin}
+                            />
+                          </div>
+                          <div className="admin-nursing-homes__form-group admin-nursing-homes__form-group--full">
+                            <label>Login password *</label>
+                            <input
+                              type="password"
+                              value={form.password}
+                              onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
+                              placeholder="Min 8 characters"
+                              minLength={8}
+                              required={form.createLogin}
+                            />
+                          </div>
+                        </>
+                      )}
+                    </>
+                  )}
                 </div>
                 <div className="admin-nursing-homes__form-actions">
                   <button type="button" onClick={() => !submitting && !cardSaving && setModalOpen(false)} disabled={submitting || cardSaving}>Cancel</button>

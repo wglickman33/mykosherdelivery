@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { fetchCurrentFacility, fetchFacilitiesList, nhPath } from '../../services/nursingHomeService';
+import { fetchCurrentFacility, nhPath } from '../../services/nursingHomeService';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import FacilitiesTab from './FacilitiesTab';
 import MenuTab from './MenuTab';
@@ -22,6 +22,10 @@ const AdminNursingHomes = () => {
 
   const openResidentPortal = async () => {
     if (portalOpening) return;
+    if (isSuperAdmin) {
+      navigate('/nursing-homes');
+      return;
+    }
     setPortalOpening(true);
     try {
       const facility = await fetchCurrentFacility();
@@ -33,21 +37,9 @@ const AdminNursingHomes = () => {
         navigate(`/nursing-homes/dashboard?facilityId=${facility.id}`);
         return;
       }
+      navigate('/nursing-homes');
     } catch {
-      /* fall through to list */
-    }
-    try {
-      const { data } = await fetchFacilitiesList({ limit: 1, isActive: 'true' });
-      const first = data?.[0];
-      if (first?.slug) {
-        navigate(nhPath(first.slug, 'dashboard'));
-      } else if (first?.id) {
-        navigate(`/nursing-homes/dashboard?facilityId=${first.id}`);
-      } else if (isSuperAdmin) {
-        setActiveTab('facilities');
-      }
-    } catch {
-      if (isSuperAdmin) setActiveTab('facilities');
+      navigate('/nursing-homes');
     } finally {
       setPortalOpening(false);
     }

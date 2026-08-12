@@ -174,6 +174,14 @@ describe('Nursing home facility portal flows', () => {
   });
 
   test('rejects invalid meal composition on create', async () => {
+    const disposable = await NursingHomeResident.create({
+      facilityId: fx.facility.id,
+      name: `Invalid Meal ${fx.suffix}`,
+      roomNumber: '311',
+      isActive: true
+    });
+    fx.residentIds.push(disposable.id);
+
     const monday = new Date();
     const day = monday.getUTCDay();
     const add = day === 0 ? 1 : (8 - day) % 7 || 7;
@@ -187,7 +195,7 @@ describe('Nursing home facility portal flows', () => {
       .post('/api/nursing-homes/resident-orders')
       .set(fx.staffAuth)
       .send({
-        residentId: fx.resident.id,
+        residentId: disposable.id,
         weekStartDate: weekStart,
         weekEndDate: weekEnd,
         meals: [
@@ -280,7 +288,7 @@ describe('Nursing home facility portal flows', () => {
 
     await request(app)
       .delete(`/api/nursing-homes/facilities/${fx.facility.id}/staff/${fx.staff.id}`)
-      .set(fx.adminAuth)
+      .set(fx.platformAdminAuth)
       .expect(200);
 
     await fx.resident.reload();
@@ -289,7 +297,7 @@ describe('Nursing home facility portal flows', () => {
     // Restore staff so later tests (if any) and cleanup stay coherent
     const { Profile } = require('../../models');
     await Profile.update(
-      { role: 'nursing_home_user', nursingHomeFacilityId: fx.facility.id },
+      { role: 'nursing_home_admin', nursingHomeFacilityId: fx.facility.id },
       { where: { id: fx.staff.id } }
     );
   });
@@ -348,5 +356,405 @@ describe('Nursing home facility portal flows', () => {
     if (res.body.data?.id) fx.orderIds.push(res.body.data.id);
 
     await menuItem.destroy();
+  });
+
+  test('NH admin can create resident with login; NH user can self-order', async () => {
+    const email = `resident-login-${fx.suffix}@example.com`;
+    const create = await request(app)
+      .post('/api/nursing-homes/residents')
+      .set(fx.adminAuth)
+      .send({
+        facilityId: fx.facility.id,
+        name: `Self Serve ${fx.suffix}`,
+        roomNumber: '404',
+        createLogin: true,
+        email,
+        password: 'TestPass123!'
+      })
+      .expect(201);
+
+    expect(create.body.data.userId).toBeTruthy();
+    expect(create.body.data.userAccount?.email).toBe(email);
+    expect(create.body.data.userAccount?.role).toBe('nursing_home_user');
+    fx.residentIds.push(create.body.data.id);
+    fx.profileIds.push(create.body.data.userId);
+
+    const { authHeaderFor } = require('../helpers/nhFixture');
+    const userAuth = authHeaderFor(create.body.data.userId);
+
+    const me = await request(app)
+      .get('/api/nursing-homes/residents/me')
+      .set(userAuth)
+      .expect(200);
+    expect(me.body.data.id).toBe(create.body.data.id);
+
+    const monday = new Date();
+    const day = monday.getUTCDay();
+    const add = day === 0 ? 1 : (8 - day) % 7 || 7;
+    monday.setUTCDate(monday.getUTCDate() + add);
+    const weekStart = monday.toISOString().slice(0, 10);
+    const sunday = new Date(monday);
+    sunday.setUTCDate(monday.getUTCDate() + 6);
+    const weekEnd = sunday.toISOString().slice(0, 10);
+
+    const selfOrder = await request(app)
+      .post('/api/nursing-homes/resident-orders')
+      .set(userAuth)
+      .send({
+        residentId: create.body.data.id,
+        weekStartDate: weekStart,
+        weekEndDate: weekEnd,
+        meals: [
+          { day: 'Wednesday', mealType: 'breakfast', none: true, items: [] },
+          { day: 'Wednesday', mealType: 'lunch', none: true, items: [] }
+        ],
+        deliveryAddress: fx.facility.address
+      });
+
+    expect([200, 201]).toContain(selfOrder.status);
+    if (selfOrder.body.data?.id) fx.orderIds.push(selfOrder.body.data.id);
+    expect(selfOrder.body.data.createdByUserId).toBe(create.body.data.userId);
+  });
+
+  test('NH admin cannot create staff; platform admin can', async () => {
+    const denied = await request(app)
+      .post(`/api/nursing-homes/facilities/${fx.facility.id}/staff`)
+      .set(fx.adminAuth)
+      .send({
+        email: `blocked-staff-${fx.suffix}@example.com`,
+        password: 'TestPass123!',
+        firstName: 'Blocked',
+        lastName: 'Staff'
+      })
+      .expect(403);
+
+    expect(denied.body.message || denied.body.error).toMatch(/platform admin/i);
+
+    const allowed = await request(app)
+      .post(`/api/nursing-homes/facilities/${fx.facility.id}/staff`)
+      .set(fx.platformAdminAuth)
+      .send({
+        email: `ok-staff-${fx.suffix}@example.com`,
+        password: 'TestPass123!',
+        firstName: 'Ok',
+        lastName: 'Staff'
+      })
+      .expect(201);
+
+    expect(allowed.body.data.role).toBe('nursing_home_admin');
+    fx.profileIds.push(allowed.body.data.id);
+  });
+
+  test('when staff ordered for resident, NH user gets ADMIN_ALREADY_ORDERED', async () => {
+    const email = `conflict-login-${fx.suffix}@example.com`;
+    const create = await request(app)
+      .post('/api/nursing-homes/residents')
+      .set(fx.adminAuth)
+      .send({
+        facilityId: fx.facility.id,
+        name: `Conflict Resident ${fx.suffix}`,
+        roomNumber: '505',
+        createLogin: true,
+        email,
+        password: 'TestPass123!'
+      })
+      .expect(201);
+
+    fx.residentIds.push(create.body.data.id);
+    fx.profileIds.push(create.body.data.userId);
+
+    const monday = new Date();
+    const day = monday.getUTCDay();
+    const add = day === 0 ? 1 : (8 - day) % 7 || 7;
+    monday.setUTCDate(monday.getUTCDate() + add);
+    const weekStart = monday.toISOString().slice(0, 10);
+    const sunday = new Date(monday);
+    sunday.setUTCDate(monday.getUTCDate() + 6);
+    const weekEnd = sunday.toISOString().slice(0, 10);
+
+    const staffOrder = await request(app)
+      .post('/api/nursing-homes/resident-orders')
+      .set(fx.staffAuth)
+      .send({
+        residentId: create.body.data.id,
+        weekStartDate: weekStart,
+        weekEndDate: weekEnd,
+        meals: [
+          { day: 'Thursday', mealType: 'breakfast', none: true, items: [] },
+          { day: 'Thursday', mealType: 'lunch', none: true, items: [] }
+        ],
+        deliveryAddress: fx.facility.address
+      });
+
+    expect([200, 201]).toContain(staffOrder.status);
+    if (staffOrder.body.data?.id) fx.orderIds.push(staffOrder.body.data.id);
+
+    const { authHeaderFor } = require('../helpers/nhFixture');
+    const userAuth = authHeaderFor(create.body.data.userId);
+
+    const conflict = await request(app)
+      .post('/api/nursing-homes/resident-orders')
+      .set(userAuth)
+      .send({
+        residentId: create.body.data.id,
+        weekStartDate: weekStart,
+        weekEndDate: weekEnd,
+        meals: [
+          { day: 'Friday', mealType: 'breakfast', none: true, items: [] },
+          { day: 'Friday', mealType: 'lunch', none: true, items: [] }
+        ],
+        deliveryAddress: fx.facility.address
+      })
+      .expect(409);
+
+    expect(conflict.body.code).toBe('ADMIN_ALREADY_ORDERED');
+    expect(conflict.body.message).toMatch(/administrator has already placed/i);
+  });
+
+  test('NH user cannot order for another resident', async () => {
+    const email = `solo-login-${fx.suffix}@example.com`;
+    const create = await request(app)
+      .post('/api/nursing-homes/residents')
+      .set(fx.adminAuth)
+      .send({
+        facilityId: fx.facility.id,
+        name: `Solo ${fx.suffix}`,
+        roomNumber: '606',
+        createLogin: true,
+        email,
+        password: 'TestPass123!'
+      })
+      .expect(201);
+
+    fx.residentIds.push(create.body.data.id);
+    fx.profileIds.push(create.body.data.userId);
+
+    const { authHeaderFor } = require('../helpers/nhFixture');
+    const userAuth = authHeaderFor(create.body.data.userId);
+
+    const monday = new Date();
+    const day = monday.getUTCDay();
+    const add = day === 0 ? 1 : (8 - day) % 7 || 7;
+    monday.setUTCDate(monday.getUTCDate() + add);
+    const weekStart = monday.toISOString().slice(0, 10);
+    const sunday = new Date(monday);
+    sunday.setUTCDate(monday.getUTCDate() + 6);
+    const weekEnd = sunday.toISOString().slice(0, 10);
+
+    await request(app)
+      .post('/api/nursing-homes/resident-orders')
+      .set(userAuth)
+      .send({
+        residentId: fx.resident.id,
+        weekStartDate: weekStart,
+        weekEndDate: weekEnd,
+        meals: [{ day: 'Monday', mealType: 'breakfast', none: true, items: [] }],
+        deliveryAddress: fx.facility.address
+      })
+      .expect(403);
+  });
+
+  test('staff upserts draft instead of creating a second week order', async () => {
+    const monday = new Date();
+    const day = monday.getUTCDay();
+    const add = day === 0 ? 1 : (8 - day) % 7 || 7;
+    monday.setUTCDate(monday.getUTCDate() + add);
+    const weekStart = monday.toISOString().slice(0, 10);
+    const sunday = new Date(monday);
+    sunday.setUTCDate(monday.getUTCDate() + 6);
+    const weekEnd = sunday.toISOString().slice(0, 10);
+
+    const create = await request(app)
+      .post('/api/nursing-homes/residents')
+      .set(fx.adminAuth)
+      .send({
+        facilityId: fx.facility.id,
+        name: `Upsert Resident ${fx.suffix}`,
+        roomNumber: '707',
+        createLogin: true,
+        email: `upsert-${fx.suffix}@example.com`,
+        password: 'TestPass123!'
+      })
+      .expect(201);
+    fx.residentIds.push(create.body.data.id);
+    fx.profileIds.push(create.body.data.userId);
+
+    const first = await request(app)
+      .post('/api/nursing-homes/resident-orders')
+      .set(fx.staffAuth)
+      .send({
+        residentId: create.body.data.id,
+        weekStartDate: weekStart,
+        weekEndDate: weekEnd,
+        meals: [
+          { day: 'Monday', mealType: 'breakfast', none: true, items: [] },
+          { day: 'Monday', mealType: 'lunch', none: true, items: [] }
+        ],
+        deliveryAddress: fx.facility.address
+      });
+    expect([200, 201]).toContain(first.status);
+    fx.orderIds.push(first.body.data.id);
+
+    const second = await request(app)
+      .post('/api/nursing-homes/resident-orders')
+      .set(fx.staffAuth)
+      .send({
+        residentId: create.body.data.id,
+        weekStartDate: weekStart,
+        weekEndDate: weekEnd,
+        meals: [
+          { day: 'Tuesday', mealType: 'breakfast', none: true, items: [] },
+          { day: 'Tuesday', mealType: 'lunch', none: true, items: [] }
+        ],
+        deliveryAddress: fx.facility.address
+      })
+      .expect(200);
+
+    expect(second.body.upserted).toBe(true);
+    expect(second.body.data.id).toBe(first.body.data.id);
+  });
+
+  test('NH user cannot submit a staff-created draft', async () => {
+    const create = await request(app)
+      .post('/api/nursing-homes/residents')
+      .set(fx.adminAuth)
+      .send({
+        facilityId: fx.facility.id,
+        name: `Submit Lock ${fx.suffix}`,
+        roomNumber: '808',
+        createLogin: true,
+        email: `submit-lock-${fx.suffix}@example.com`,
+        password: 'TestPass123!'
+      })
+      .expect(201);
+    fx.residentIds.push(create.body.data.id);
+    fx.profileIds.push(create.body.data.userId);
+
+    const monday = new Date();
+    const day = monday.getUTCDay();
+    const add = day === 0 ? 1 : (8 - day) % 7 || 7;
+    monday.setUTCDate(monday.getUTCDate() + add);
+    const weekStart = monday.toISOString().slice(0, 10);
+    const sunday = new Date(monday);
+    sunday.setUTCDate(monday.getUTCDate() + 6);
+    const weekEnd = sunday.toISOString().slice(0, 10);
+
+    const staffOrder = await request(app)
+      .post('/api/nursing-homes/resident-orders')
+      .set(fx.staffAuth)
+      .send({
+        residentId: create.body.data.id,
+        weekStartDate: weekStart,
+        weekEndDate: weekEnd,
+        meals: [
+          { day: 'Monday', mealType: 'breakfast', none: true, items: [] },
+          { day: 'Monday', mealType: 'lunch', none: true, items: [] }
+        ],
+        deliveryAddress: fx.facility.address
+      });
+    expect([200, 201]).toContain(staffOrder.status);
+    fx.orderIds.push(staffOrder.body.data.id);
+
+    const { authHeaderFor } = require('../helpers/nhFixture');
+    const userAuth = authHeaderFor(create.body.data.userId);
+
+    const submit = await request(app)
+      .post(`/api/nursing-homes/resident-orders/${staffOrder.body.data.id}/submit`)
+      .set(userAuth)
+      .expect(409);
+
+    expect(submit.body.code).toBe('ADMIN_ALREADY_ORDERED');
+  });
+
+  test('deactivating resident revokes linked login', async () => {
+    const { Profile } = require('../../models');
+    const create = await request(app)
+      .post('/api/nursing-homes/residents')
+      .set(fx.adminAuth)
+      .send({
+        facilityId: fx.facility.id,
+        name: `Deactivate Login ${fx.suffix}`,
+        roomNumber: '909',
+        createLogin: true,
+        email: `deactivate-login-${fx.suffix}@example.com`,
+        password: 'TestPass123!'
+      })
+      .expect(201);
+
+    const residentId = create.body.data.id;
+    const userId = create.body.data.userId;
+    fx.residentIds.push(residentId);
+    fx.profileIds.push(userId);
+
+    await request(app)
+      .delete(`/api/nursing-homes/residents/${residentId}`)
+      .set(fx.adminAuth)
+      .expect(200);
+
+    const resident = await NursingHomeResident.findByPk(residentId);
+    expect(resident.isActive).toBe(false);
+    expect(resident.userId).toBeNull();
+
+    const profile = await Profile.findByPk(userId);
+    expect(profile).toBeTruthy();
+    expect(profile.role).toBe('user');
+    expect(profile.nursingHomeFacilityId).toBeNull();
+  });
+
+  test('staff cannot create another order when week order is already submitted', async () => {
+    const monday = new Date();
+    const day = monday.getUTCDay();
+    const add = day === 0 ? 1 : (8 - day) % 7 || 7;
+    monday.setUTCDate(monday.getUTCDate() + add);
+    const weekStart = monday.toISOString().slice(0, 10);
+    const sunday = new Date(monday);
+    sunday.setUTCDate(monday.getUTCDate() + 6);
+    const weekEnd = sunday.toISOString().slice(0, 10);
+
+    const disposable = await NursingHomeResident.create({
+      facilityId: fx.facility.id,
+      name: `Submitted Week ${fx.suffix}`,
+      roomNumber: '910',
+      isActive: true
+    });
+    fx.residentIds.push(disposable.id);
+
+    const created = await request(app)
+      .post('/api/nursing-homes/resident-orders')
+      .set(fx.staffAuth)
+      .send({
+        residentId: disposable.id,
+        weekStartDate: weekStart,
+        weekEndDate: weekEnd,
+        meals: [
+          { day: 'Monday', mealType: 'breakfast', none: true, items: [] },
+          { day: 'Monday', mealType: 'lunch', none: true, items: [] }
+        ],
+        deliveryAddress: fx.facility.address
+      });
+    expect([200, 201]).toContain(created.status);
+    fx.orderIds.push(created.body.data.id);
+
+    await request(app)
+      .post(`/api/nursing-homes/resident-orders/${created.body.data.id}/submit`)
+      .set(fx.staffAuth)
+      .expect(200);
+
+    const blocked = await request(app)
+      .post('/api/nursing-homes/resident-orders')
+      .set(fx.staffAuth)
+      .send({
+        residentId: disposable.id,
+        weekStartDate: weekStart,
+        weekEndDate: weekEnd,
+        meals: [
+          { day: 'Tuesday', mealType: 'breakfast', none: true, items: [] },
+          { day: 'Tuesday', mealType: 'lunch', none: true, items: [] }
+        ],
+        deliveryAddress: fx.facility.address
+      })
+      .expect(409);
+
+    expect(blocked.body.code).toBe('ORDER_WEEK_EXISTS');
   });
 });

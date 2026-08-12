@@ -10,11 +10,29 @@ import { useAuth } from '../../hooks/useAuth';
 import {
   getNextMondayDateString,
   getOrderStatusPill,
-  formatNhDeadline
+  formatNhDeadline,
+  isStaffPlacedOrder,
+  formatAssignedStaffContact,
+  ADMIN_ALREADY_ORDERED_MESSAGE
 } from '../../utils/nursingHomeOrderUtils';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
+import NhAdminOrderedModal from '../NursingHomeShared/NhAdminOrderedModal';
 import './NursingHomeDashboard.scss';
+
+const assigneeLabel = (resident) => {
+  const u = resident?.assignedUser;
+  if (!u) return 'Unassigned';
+  const name = [u.firstName, u.lastName].filter(Boolean).join(' ').trim();
+  return name || u.email || 'Assigned';
+};
+
+const placedByLabel = (order, resident) => {
+  if (!order) return null;
+  if (isStaffPlacedOrder(order, resident)) return 'Placed by staff';
+  if (order.createdBy || order.createdByUserId) return 'Placed by resident';
+  return null;
+};
 
 const NursingHomeDashboard = () => {
   const { facilitySlug: slugParam } = useParams();
@@ -23,16 +41,18 @@ const NursingHomeDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  const role = user?.role;
+  const isPlatformAdmin = role === 'admin';
+  const isNhAdmin = role === 'nursing_home_admin';
+  const isNhUser = role === 'nursing_home_user';
+  const canToggleFilter = isNhAdmin || isPlatformAdmin;
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [residents, setResidents] = useState([]);
   const [orders, setOrders] = useState([]);
-  const [filter, setFilter] = useState('mine');
-
-  const isStaff =
-    user?.role === 'nursing_home_admin' ||
-    user?.role === 'nursing_home_user' ||
-    user?.role === 'admin';
+  const [filter, setFilter] = useState(isNhUser ? 'mine' : isNhAdmin ? 'mine' : 'all');
+  const [adminOrderedModal, setAdminOrderedModal] = useState(null);
 
   const weekStart = useMemo(() => getNextMondayDateString(), []);
 
@@ -59,10 +79,10 @@ const NursingHomeDashboard = () => {
   }, [loadDashboardData]);
 
   useEffect(() => {
-    // Prefer assigned residents for NH users; admins default to all
-    if (user?.role === 'nursing_home_user') setFilter('mine');
+    if (isNhUser) setFilter('mine');
+    else if (isNhAdmin) setFilter('mine');
     else setFilter('all');
-  }, [user?.role]);
+  }, [isNhUser, isNhAdmin]);
 
   const orderByResident = useMemo(() => {
     const map = new Map();
@@ -84,30 +104,51 @@ const NursingHomeDashboard = () => {
   }, [orders, weekStart]);
 
   const visibleResidents = useMemo(() => {
-    if (filter === 'all' || !user?.id) return residents;
-    return residents.filter((r) => r.assignedUserId === user.id);
-  }, [residents, filter, user?.id]);
+    if (isNhUser) return residents;
+    if (filter === 'mine' && user?.id) {
+      return residents.filter((r) => r.assignedUserId === user.id);
+    }
+    return residents;
+  }, [residents, filter, user?.id, isNhUser]);
 
   const stats = useMemo(() => {
     let ordered = 0;
     let drafts = 0;
     let needs = 0;
+    let unassigned = 0;
     visibleResidents.forEach((r) => {
       const pill = getOrderStatusPill(orderByResident.get(r.id));
       if (pill.key === 'ordered' || pill.key === 'pending') ordered += 1;
       else if (pill.key === 'draft') drafts += 1;
       else needs += 1;
     });
+    if (isNhAdmin || isPlatformAdmin) {
+      unassigned = residents.filter((r) => !r.assignedUserId).length;
+    }
     return {
       total: visibleResidents.length,
       ordered,
       drafts,
-      needs
+      needs,
+      unassigned,
+      facilityTotal: residents.length
     };
-  }, [visibleResidents, orderByResident]);
+  }, [visibleResidents, orderByResident, residents, isNhAdmin, isPlatformAdmin]);
+
+  const isStaffPlacedForResident = (order, resident) =>
+    isStaffPlacedOrder(order, resident, user?.id);
 
   const openOrder = (resident) => {
     const order = orderByResident.get(resident.id);
+    if (isNhUser && order && isStaffPlacedForResident(order, resident)) {
+      setAdminOrderedModal({
+        resident,
+        order,
+        message: ADMIN_ALREADY_ORDERED_MESSAGE,
+        contactLabel: formatAssignedStaffContact(resident?.assignedUser)
+      });
+      return;
+    }
     if (order?.status === 'draft') {
       navigate(nhPath(facilitySlug, `orders/${order.id}/edit`));
       return;
@@ -120,7 +161,23 @@ const NursingHomeDashboard = () => {
   };
 
   const communityName = facility?.name;
-  const dashboardTitle = !communityName ? 'Dashboard' : `${communityName} Dashboard`;
+  const dashboardTitle = isNhUser
+    ? 'My Meal Orders'
+    : isNhAdmin
+      ? `${communityName || 'Facility'} — Staff Dashboard`
+      : `${communityName || 'Facility'} — Admin Dashboard`;
+
+  const dashboardSubtitle = isNhUser
+    ? `Place your weekly meal order. Week of ${weekStart}. Deadline: ${formatNhDeadline()}.`
+    : isNhAdmin
+      ? `Manage residents assigned to you in this facility. Week of ${weekStart}. Deadline: ${formatNhDeadline()}.`
+      : `Full facility overview. Week of ${weekStart}. Deadline: ${formatNhDeadline()}.`;
+
+  const listHeading = isNhUser
+    ? 'Your order'
+    : filter === 'mine'
+      ? 'Residents assigned to you'
+      : 'All facility residents';
 
   if (loading) {
     return (
@@ -145,27 +202,37 @@ const NursingHomeDashboard = () => {
   }
 
   return (
-    <div className="nursing-home-dashboard">
+    <div className={`nursing-home-dashboard nursing-home-dashboard--${role || 'unknown'}`}>
       <div className="dashboard-header">
         <div className="header-content">
           <h1>{dashboardTitle}</h1>
-          <p>
-            Upcoming week starting {weekStart}. Order deadline: {formatNhDeadline()}.
-          </p>
+          <p>{dashboardSubtitle}</p>
         </div>
-        <button
-          type="button"
-          className="btn-primary"
-          onClick={() => navigate(nhPath(facilitySlug, 'orders'))}
-        >
-          View all orders
-        </button>
+        <div className="dashboard-header__actions">
+          {isPlatformAdmin && (
+            <button type="button" className="btn-secondary" onClick={() => navigate('/nursing-homes')}>
+              Change community
+            </button>
+          )}
+          {(isNhAdmin || isPlatformAdmin) && (
+            <button type="button" className="btn-secondary" onClick={() => navigate('/admin/nursing-homes')}>
+              Facility admin
+            </button>
+          )}
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => navigate(nhPath(facilitySlug, 'orders'))}
+          >
+            {isNhUser ? 'My orders' : 'View orders'}
+          </button>
+        </div>
       </div>
 
       <div className="metrics-grid">
         <div className="metric-card residents">
           <div className="metric-content">
-            <h3>Residents</h3>
+            <h3>{isNhUser ? 'Your profile' : filter === 'mine' ? 'My residents' : 'Residents'}</h3>
             <p className="metric-value">{stats.total}</p>
           </div>
         </div>
@@ -181,19 +248,27 @@ const NursingHomeDashboard = () => {
             <p className="metric-value">{stats.needs}</p>
           </div>
         </div>
+        {(isNhAdmin || isPlatformAdmin) && (
+          <div className="metric-card unassigned">
+            <div className="metric-content">
+              <h3>Unassigned</h3>
+              <p className="metric-value">{stats.unassigned}</p>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="dashboard-residents">
         <div className="dashboard-residents__toolbar">
-          <h2>Residents</h2>
-          {isStaff && (
+          <h2>{listHeading}</h2>
+          {canToggleFilter && (
             <div className="filter-toggle" role="group" aria-label="Resident filter">
               <button
                 type="button"
                 className={filter === 'all' ? 'active' : ''}
                 onClick={() => setFilter('all')}
               >
-                All
+                All{isNhAdmin || isPlatformAdmin ? ` (${stats.facilityTotal})` : ''}
               </button>
               <button
                 type="button"
@@ -208,17 +283,22 @@ const NursingHomeDashboard = () => {
 
         {visibleResidents.length === 0 ? (
           <p className="empty-residents">
-            {filter === 'mine'
-              ? 'No residents assigned to you. Switch to All or ask an admin to assign residents.'
-              : 'No residents found for this facility.'}
+            {isNhUser
+              ? 'No resident profile is linked to your login yet. Contact your facility administrator.'
+              : filter === 'mine'
+                ? 'No residents are assigned to you yet. Ask a facility admin to assign residents under Staff Assignment.'
+                : 'No residents found for this facility.'}
           </p>
         ) : (
           <ul className="resident-list">
             {visibleResidents.map((resident) => {
               const order = orderByResident.get(resident.id);
               const pill = getOrderStatusPill(order);
-              const cta =
-                pill.key === 'draft'
+              const byLabel = placedByLabel(order, resident);
+              const staffLocked = isNhUser && order && isStaffPlacedForResident(order, resident);
+              const cta = staffLocked
+                ? 'Already ordered'
+                : pill.key === 'draft'
                   ? 'Edit order'
                   : pill.key === 'ordered' || pill.key === 'pending'
                     ? 'View order'
@@ -229,6 +309,12 @@ const NursingHomeDashboard = () => {
                     <span className="resident-row__name">{resident.name}</span>
                     {resident.roomNumber && (
                       <span className="resident-row__room">Room {resident.roomNumber}</span>
+                    )}
+                    {(isNhAdmin || isPlatformAdmin) && filter === 'all' && (
+                      <span className="resident-row__assignee">{assigneeLabel(resident)}</span>
+                    )}
+                    {(isNhAdmin || isPlatformAdmin) && byLabel && (
+                      <span className="resident-row__placed-by">{byLabel}</span>
                     )}
                   </div>
                   <span className={`status-pill status-pill--${pill.key}`}>{pill.label}</span>
@@ -245,6 +331,24 @@ const NursingHomeDashboard = () => {
           </ul>
         )}
       </div>
+
+      {adminOrderedModal && (
+        <NhAdminOrderedModal
+          open
+          message={adminOrderedModal.message || ADMIN_ALREADY_ORDERED_MESSAGE}
+          contactLabel={adminOrderedModal.contactLabel}
+          onClose={() => setAdminOrderedModal(null)}
+          onViewOrder={
+            adminOrderedModal.order?.id
+              ? () => {
+                  const id = adminOrderedModal.order.id;
+                  setAdminOrderedModal(null);
+                  navigate(nhPath(facilitySlug, `orders/${id}`));
+                }
+              : null
+          }
+        />
+      )}
     </div>
   );
 };

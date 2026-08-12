@@ -9,17 +9,22 @@ import {
 } from '../../services/nursingHomeService';
 import { useNursingHomeFacility } from '../../context/NursingHomeFacilityContext';
 import { NH_CONFIG } from '../../config/constants';
+import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
+import ErrorMessage from '../ErrorMessage/ErrorMessage';
+import NhAdminOrderedModal from '../NursingHomeShared/NhAdminOrderedModal';
+import MealForm from './MealForm';
+import OrderSummary from './OrderSummary';
+import './OrderCreation.scss';
+import { useAuth } from '../../hooks/useAuth';
 import {
   formatNhDeadline,
   validateWeeklyMeals,
   mealHasItems,
-  isNoneMeal
+  isNoneMeal,
+  isStaffPlacedOrder,
+  formatAssignedStaffContact,
+  ADMIN_ALREADY_ORDERED_MESSAGE
 } from '../../utils/nursingHomeOrderUtils';
-import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
-import ErrorMessage from '../ErrorMessage/ErrorMessage';
-import MealForm from './MealForm';
-import OrderSummary from './OrderSummary';
-import './OrderCreation.scss';
 
 const DAYS_OF_WEEK = NH_CONFIG.MEALS.DAYS;
 
@@ -31,7 +36,9 @@ const OrderEdit = () => {
   const { orderId, facilitySlug: slugParam } = useParams();
   const navigate = useNavigate();
   const { facility: contextFacility } = useNursingHomeFacility();
+  const { user } = useAuth();
   const facilitySlug = slugParam || contextFacility?.slug;
+  const isNhUser = user?.role === 'nursing_home_user';
 
   const [order, setOrder] = useState(null);
   const [resident, setResident] = useState(null);
@@ -39,6 +46,7 @@ const OrderEdit = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [adminConflict, setAdminConflict] = useState(null);
 
   const [selectedDay, setSelectedDay] = useState('Monday');
   const [selectedMealType, setSelectedMealType] = useState('breakfast');
@@ -71,6 +79,16 @@ const OrderEdit = () => {
         roomNumber: orderData.roomNumber
       };
       setResident(residentData);
+
+      if (isNhUser && isStaffPlacedOrder(orderData, residentData, user?.id)) {
+        setAdminConflict({
+          message: ADMIN_ALREADY_ORDERED_MESSAGE,
+          orderId: orderData.id,
+          contactLabel: formatAssignedStaffContact(residentData?.assignedUser)
+        });
+        setLoading(false);
+        return;
+      }
 
       const [breakfastRes, lunchRes, dinnerRes] = await Promise.all([
         fetchMenuItems({ mealType: 'breakfast', isActive: true }),
@@ -112,11 +130,26 @@ const OrderEdit = () => {
     } finally {
       setLoading(false);
     }
-  }, [orderId]);
+  }, [orderId, isNhUser, user?.id]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const handleOrderError = (err) => {
+    const code = err.response?.data?.code || err.response?.data?.error;
+    const message = err.response?.data?.message || err.response?.data?.error || err.message || 'Request failed';
+    if (code === 'ADMIN_ALREADY_ORDERED') {
+      setAdminConflict({
+        message: message || ADMIN_ALREADY_ORDERED_MESSAGE,
+        orderId,
+        contactLabel: formatAssignedStaffContact(resident?.assignedUser)
+      });
+      setError(null);
+      return;
+    }
+    setError(message);
+  };
 
   const handleMealUpdate = (day, mealType, items, bagelType = null, none = false) => {
     const key = getMealKey(day, mealType);
@@ -165,7 +198,7 @@ const OrderEdit = () => {
       }
     } catch (err) {
       console.error('Error updating order:', err);
-      setError(err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to update order');
+      handleOrderError(err);
     } finally {
       setSaving(false);
     }
@@ -204,7 +237,7 @@ const OrderEdit = () => {
       navigate(nhPath(facilitySlug, `orders/${id}/confirmation`));
     } catch (err) {
       console.error('Error submitting order:', err);
-      setError(err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to submit order');
+      handleOrderError(err);
     } finally {
       setSaving(false);
     }
@@ -333,6 +366,21 @@ const OrderEdit = () => {
           totalMeals={getTotalMeals()}
         />
       </div>
+
+      <NhAdminOrderedModal
+        open={Boolean(adminConflict)}
+        message={adminConflict?.message}
+        contactLabel={adminConflict?.contactLabel}
+        onClose={() => {
+          setAdminConflict(null);
+          navigate(nhPath(facilitySlug, 'dashboard'));
+        }}
+        onViewOrder={
+          adminConflict?.orderId
+            ? () => navigate(nhPath(facilitySlug, `orders/${adminConflict.orderId}`))
+            : null
+        }
+      />
     </div>
   );
 };

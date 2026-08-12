@@ -69,7 +69,7 @@ async function createNhFixture(label = 'nh') {
     password: passwordHash,
     firstName: 'Test',
     lastName: 'Staff',
-    role: 'nursing_home_user',
+    role: 'nursing_home_admin',
     nursingHomeFacilityId: facility.id
   });
   created.profileIds.push(staff.id);
@@ -110,8 +110,12 @@ async function createNhFixture(label = 'nh') {
       await NursingHomeResident.destroy({ where: { facilityId: created.facilityIds } });
       if (created.profileIds.length) {
         await NursingHomeResident.update(
-          { assignedUserId: null },
+          { assignedUserId: null, userId: null },
           { where: { assignedUserId: created.profileIds } }
+        );
+        await NursingHomeResident.update(
+          { userId: null },
+          { where: { userId: created.profileIds } }
         );
         if (UserLoginActivity) {
           await UserLoginActivity.destroy({ where: { userId: created.profileIds } });

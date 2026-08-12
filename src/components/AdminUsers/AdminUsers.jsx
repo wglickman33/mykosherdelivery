@@ -15,8 +15,8 @@ const USER_ROLES_FILTER = [
   { value: USER_ROLES.USER, label: 'Users' },
   { value: USER_ROLES.ADMIN, label: 'Admins' },
   { value: USER_ROLES.RESTAURANT_OWNER, label: 'Restaurant Owners' },
-  { value: USER_ROLES.NURSING_HOME_ADMIN, label: 'Nursing Home Admins' },
-  { value: USER_ROLES.NURSING_HOME_USER, label: 'Nursing Home Users' }
+  { value: USER_ROLES.NURSING_HOME_ADMIN, label: 'Nursing Home Staff' },
+  { value: USER_ROLES.NURSING_HOME_USER, label: 'Nursing Home Residents' }
 ];
 
 const ROLE_BADGE_COLORS = {
@@ -131,7 +131,7 @@ const AdminUsers = () => {
     const isNursingHomeRole = formData.role === USER_ROLES.NURSING_HOME_ADMIN || formData.role === USER_ROLES.NURSING_HOME_USER;
     const hasFacility = formData.nursing_home_facility_id != null && String(formData.nursing_home_facility_id).trim() !== '';
     if (isNursingHomeRole && !hasFacility) {
-      showNotification('Please assign a facility for Nursing Home Admin or Nursing Home User.', 'error');
+      showNotification('Please assign a facility for Nursing Home Staff or Nursing Home Resident.', 'error');
       return;
     }
     setSaving(true);
@@ -188,7 +188,7 @@ const AdminUsers = () => {
     const isNursingHomeRole = formData.role === USER_ROLES.NURSING_HOME_ADMIN || formData.role === USER_ROLES.NURSING_HOME_USER;
     const hasFacility = formData.nursingHomeFacilityId != null && String(formData.nursingHomeFacilityId).trim() !== '';
     if (isNursingHomeRole && !hasFacility) {
-      showNotification('Please assign a facility for Nursing Home Admin or Nursing Home User.', 'error');
+      showNotification('Please assign a facility for Nursing Home Staff or Nursing Home Resident.', 'error');
       return;
     }
     const payload = {
@@ -383,13 +383,13 @@ const AdminUsers = () => {
           </span>
         </div>
         <div className="stat-card">
-          <span className="stat-label">Nursing Home Admins</span>
+          <span className="stat-label">Nursing Home Staff</span>
           <span className="stat-value">
             {roleCount(USER_ROLES.NURSING_HOME_ADMIN)}
           </span>
         </div>
         <div className="stat-card">
-          <span className="stat-label">Nursing Home Users</span>
+          <span className="stat-label">Nursing Home Residents</span>
           <span className="stat-value">
             {roleCount(USER_ROLES.NURSING_HOME_USER)}
           </span>

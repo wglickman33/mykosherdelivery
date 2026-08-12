@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   fetchResidentOrder,
@@ -7,23 +7,34 @@ import {
   nhPath
 } from '../../services/nursingHomeService';
 import { useNursingHomeFacility } from '../../context/NursingHomeFacilityContext';
+import { useAuth } from '../../hooks/useAuth';
 import { NH_CONFIG } from '../../config/constants';
-import { isNoneMeal, mealHasItems } from '../../utils/nursingHomeOrderUtils';
+import {
+  isNoneMeal,
+  mealHasItems,
+  isStaffPlacedOrder,
+  formatAssignedStaffContact,
+  ADMIN_ALREADY_ORDERED_MESSAGE
+} from '../../utils/nursingHomeOrderUtils';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
+import NhAdminOrderedModal from '../NursingHomeShared/NhAdminOrderedModal';
 import './OrderDetails.scss';
 
 const OrderDetails = () => {
   const { orderId, facilitySlug: slugParam } = useParams();
   const navigate = useNavigate();
   const { facility: contextFacility } = useNursingHomeFacility();
+  const { user } = useAuth();
   const facilitySlug = slugParam || contextFacility?.slug;
+  const isNhUser = user?.role === 'nursing_home_user';
 
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [exporting, setExporting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [adminConflict, setAdminConflict] = useState(null);
 
   const ordersListPath = nhPath(facilitySlug, 'orders');
 
@@ -63,8 +74,20 @@ const OrderDetails = () => {
     }
   };
 
+  const staffLocked = useMemo(
+    () => isNhUser && isStaffPlacedOrder(order, order?.resident, user?.id),
+    [isNhUser, order, user?.id]
+  );
+
   const handleSubmit = async () => {
     if (!order?.id) return;
+    if (staffLocked) {
+      setAdminConflict({
+        message: ADMIN_ALREADY_ORDERED_MESSAGE,
+        contactLabel: formatAssignedStaffContact(order?.resident?.assignedUser)
+      });
+      return;
+    }
     try {
       setSubmitting(true);
       setError(null);
@@ -72,6 +95,14 @@ const OrderDetails = () => {
       const id = submitted?.id || order.id;
       navigate(nhPath(facilitySlug, `orders/${id}/confirmation`));
     } catch (err) {
+      const code = err.response?.data?.code || err.response?.data?.error;
+      if (code === 'ADMIN_ALREADY_ORDERED') {
+        setAdminConflict({
+          message: err.response?.data?.message || ADMIN_ALREADY_ORDERED_MESSAGE,
+          contactLabel: formatAssignedStaffContact(order?.resident?.assignedUser)
+        });
+        return;
+      }
       setError(err.response?.data?.message || err.message || 'Failed to submit order');
     } finally {
       setSubmitting(false);
@@ -79,6 +110,7 @@ const OrderDetails = () => {
   };
 
   const isDraft = order?.status === 'draft';
+  const canMutate = isDraft && !staffLocked;
   const residentName = order?.residentName ?? order?.resident?.name;
   const roomNumber = order?.roomNumber ?? order?.resident?.roomNumber;
   const mealsByDay = (order?.meals || []).reduce((acc, m) => {
@@ -123,7 +155,7 @@ const OrderDetails = () => {
             >
               {exporting ? 'Exporting…' : 'Export'}
             </button>
-            {isDraft && (
+            {canMutate && (
               <>
                 <button
                   type="button"
@@ -147,6 +179,16 @@ const OrderDetails = () => {
       </header>
 
       {error && <ErrorMessage message={error} type="error" onDismiss={() => setError(null)} />}
+      {staffLocked && (
+        <ErrorMessage
+          message={
+            formatAssignedStaffContact(order?.resident?.assignedUser)
+              ? `${ADMIN_ALREADY_ORDERED_MESSAGE} Contact: ${formatAssignedStaffContact(order.resident.assignedUser)}.`
+              : ADMIN_ALREADY_ORDERED_MESSAGE
+          }
+          type="info"
+        />
+      )}
 
       <section className="details-card">
         <h2>Resident</h2>
@@ -226,6 +268,13 @@ const OrderDetails = () => {
           </p>
         </section>
       )}
+
+      <NhAdminOrderedModal
+        open={Boolean(adminConflict)}
+        message={adminConflict?.message}
+        contactLabel={adminConflict?.contactLabel}
+        onClose={() => setAdminConflict(null)}
+      />
     </div>
   );
 };

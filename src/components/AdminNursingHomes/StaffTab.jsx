@@ -33,7 +33,6 @@ const StaffTab = () => {
     password: '',
     firstName: '',
     lastName: '',
-    role: 'nursing_home_user',
     phone: ''
   });
 
@@ -111,7 +110,6 @@ const StaffTab = () => {
       password: '',
       firstName: '',
       lastName: '',
-      role: 'nursing_home_user',
       phone: ''
     });
     setError(null);
@@ -125,7 +123,6 @@ const StaffTab = () => {
       password: '',
       firstName: u.firstName || '',
       lastName: u.lastName || '',
-      role: u.role || 'nursing_home_user',
       phone: u.phone || ''
     });
     setError(null);
@@ -158,7 +155,7 @@ const StaffTab = () => {
         await updateStaff(fid, editingUser.id, {
           firstName: form.firstName.trim(),
           lastName: form.lastName.trim(),
-          role: form.role,
+          role: 'nursing_home_admin',
           phone: form.phone.trim() || undefined
         });
       } else {
@@ -167,7 +164,7 @@ const StaffTab = () => {
           password: form.password,
           firstName: form.firstName.trim(),
           lastName: form.lastName.trim(),
-          role: form.role,
+          role: 'nursing_home_admin',
           phone: form.phone.trim() || undefined
         });
       }
@@ -216,7 +213,7 @@ const StaffTab = () => {
       email: r.email || r.mail,
       firstName: r.firstname || r['first_name'] || r.first || '',
       lastName: r.lastname || r['last_name'] || r.last || '',
-      role: (r.role || 'nursing_home_user').toLowerCase().includes('admin') ? 'nursing_home_admin' : 'nursing_home_user',
+      role: 'nursing_home_admin',
       password: r.password || undefined,
       phone: r.phone || r.phone_number || undefined
     })).filter(s => s.email && s.firstName && s.lastName);
@@ -233,7 +230,7 @@ const StaffTab = () => {
       const rows = parseCSV(text);
       const staffList = mapCSVToStaff(rows);
       if (staffList.length === 0) {
-        setError('No valid rows. CSV should have headers: email, firstName, lastName, role (optional).');
+        setError('No valid rows. CSV should have headers: email, firstName, lastName. Optional: password, phone.');
         setSubmitting(false);
         return;
       }
@@ -266,20 +263,28 @@ const StaffTab = () => {
               ))}
             </select>
           )}
-          <button type="button" className="btn-secondary" onClick={() => setUploadOpen(true)} disabled={!currentFacilityId}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="17 8 12 3 7 8" />
-              <line x1="12" y1="3" x2="12" y2="15" />
-            </svg>
-            Upload
-          </button>
-          <button type="button" className="btn-primary" onClick={handleOpenAdd} disabled={!currentFacilityId}>
-            Add Staff
-          </button>
+          {isAdmin && (
+            <>
+              <button type="button" className="btn-secondary" onClick={() => setUploadOpen(true)} disabled={!currentFacilityId}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+                Upload
+              </button>
+              <button type="button" className="btn-primary" onClick={handleOpenAdd} disabled={!currentFacilityId}>
+                Add Staff
+              </button>
+            </>
+          )}
         </div>
       </div>
 
+      <p className="tab-hint" style={{ margin: '0 0 1rem', color: '#64748b', fontSize: '0.9rem' }}>
+        Staff are nursing home admin accounts who manage the portal. Meal recipients with optional logins belong on the Residents tab.
+        {!isAdmin && ' Only platform admins can add or edit staff accounts.'}
+      </p>
       {error && !modalOpen && !deleteConfirm && !uploadOpen && (
         <ErrorMessage message={error} type="error" onDismiss={() => setError(null)} />
       )}
@@ -299,17 +304,21 @@ const StaffTab = () => {
       ) : staff.length === 0 ? (
         <div className="content-placeholder">
           <p>No staff for this facility yet.</p>
-          <button type="button" className="btn-primary" onClick={handleOpenAdd}>
-            Add Staff
-          </button>
-          <button type="button" className="btn-secondary" onClick={() => setUploadOpen(true)}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="17 8 12 3 7 8" />
-              <line x1="12" y1="3" x2="12" y2="15" />
-            </svg>
-            Upload
-          </button>
+          {isAdmin && (
+            <>
+              <button type="button" className="btn-primary" onClick={handleOpenAdd}>
+                Add Staff
+              </button>
+              <button type="button" className="btn-secondary" onClick={() => setUploadOpen(true)}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+                Upload
+              </button>
+            </>
+          )}
         </div>
       ) : (
         <div className="table-wrap">
@@ -320,7 +329,7 @@ const StaffTab = () => {
                 <th>Email</th>
                 <th>Role</th>
                 <th>Phone</th>
-                <th aria-label="Actions" />
+                {isAdmin && <th aria-label="Actions" />}
               </tr>
             </thead>
             <tbody>
@@ -328,18 +337,20 @@ const StaffTab = () => {
                 <tr key={u.id}>
                   <td>{[u.firstName, u.lastName].filter(Boolean).join(' ')}</td>
                   <td>{u.email}</td>
-                  <td>{u.role === 'nursing_home_admin' ? 'Admin' : 'User'}</td>
+                  <td>Staff</td>
                   <td>{u.phone || '—'}</td>
-                  <td>
-                    <div className="user-actions">
-                      <button type="button" className="edit-btn" onClick={() => handleOpenEdit(u)}>
-                        Edit
-                      </button>
-                      <button type="button" className="delete-btn" onClick={() => handleDeleteClick(u)}>
-                        Delete
-                      </button>
-                    </div>
-                  </td>
+                  {isAdmin && (
+                    <td>
+                      <div className="user-actions">
+                        <button type="button" className="edit-btn" onClick={() => handleOpenEdit(u)}>
+                          Edit
+                        </button>
+                        <button type="button" className="delete-btn" onClick={() => handleDeleteClick(u)}>
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -347,7 +358,7 @@ const StaffTab = () => {
         </div>
       )}
 
-      {deleteConfirm && (
+      {isAdmin && deleteConfirm && (
         <div className="admin-nursing-homes__overlay" onClick={() => !submitting && setDeleteConfirm(null)}>
           <div className="admin-nursing-homes__modal admin-nursing-homes__modal--delete" onClick={(e) => e.stopPropagation()}>
             <div className="admin-nursing-homes__modal-header">
@@ -369,7 +380,7 @@ const StaffTab = () => {
         </div>
       )}
 
-      {modalOpen && (
+      {isAdmin && modalOpen && (
         <div className="admin-nursing-homes__overlay" onClick={() => !submitting && setModalOpen(false)}>
           <div className="admin-nursing-homes__modal admin-nursing-homes__modal--form" onClick={(e) => e.stopPropagation()}>
             <div className="admin-nursing-homes__modal-header">
@@ -423,16 +434,6 @@ const StaffTab = () => {
                       required
                     />
                   </div>
-                  <div className="admin-nursing-homes__form-group">
-                    <label>Role</label>
-                    <select
-                      value={form.role}
-                      onChange={(e) => setForm(prev => ({ ...prev, role: e.target.value }))}
-                    >
-                      <option value="nursing_home_user">User</option>
-                      <option value="nursing_home_admin">Admin</option>
-                    </select>
-                  </div>
                   <div className="admin-nursing-homes__form-group admin-nursing-homes__form-group--full">
                     <label>Phone</label>
                     <input
@@ -454,7 +455,7 @@ const StaffTab = () => {
         </div>
       )}
 
-      {uploadOpen && (
+      {isAdmin && uploadOpen && (
         <div className="admin-nursing-homes__overlay" onClick={() => !submitting && setUploadOpen(false)}>
           <div className="admin-nursing-homes__modal admin-nursing-homes__modal--form" onClick={(e) => e.stopPropagation()}>
             <div className="admin-nursing-homes__modal-header">
@@ -463,7 +464,7 @@ const StaffTab = () => {
             </div>
             <div className="admin-nursing-homes__modal-content">
               <p style={{ margin: '0 0 16px 0', color: 'rgba(6, 23, 87, 0.7)', lineHeight: 1.6, fontSize: '0.9rem' }}>
-                Upload a CSV with columns: <strong>email</strong>, <strong>firstName</strong>, <strong>lastName</strong>, <strong>role</strong> (nursing_home_user or nursing_home_admin). Optional: password, phone.
+                Upload a CSV with columns: <strong>email</strong>, <strong>firstName</strong>, <strong>lastName</strong>. Optional: password, phone. All rows are created as nursing home staff (not residents).
               </p>
               {error && <ErrorMessage message={error} type="error" onDismiss={() => setError(null)} />}
               <form onSubmit={handleUploadSubmit}>

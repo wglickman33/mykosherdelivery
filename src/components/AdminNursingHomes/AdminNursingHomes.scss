@@ -296,6 +296,19 @@
       color: var(--color-text-secondary, #666);
     }
 
+    .residents-tab__login-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 600;
+      cursor: pointer;
+
+      input {
+        width: auto;
+        margin: 0;
+      }
+    }
+
     .residents-tab__card-element {
       margin-bottom: 0.75rem;
       padding: 0.75rem;

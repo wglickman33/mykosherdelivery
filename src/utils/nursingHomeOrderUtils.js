@@ -18,7 +18,6 @@ export const isNoneMeal = (meal) =>
 export const mealHasItems = (meal) =>
   meal && !isNoneMeal(meal) && Array.isArray(meal.items) && meal.items.length > 0;
 
-/** Validate a single day/meal selection. Returns error string or null. */
 const itemNeedsBagelType = (item) => {
   if (item?.requiresBagelType === true) return true;
   const name = item?.name != null ? String(item.name) : '';
@@ -190,3 +189,28 @@ export const getOrderStatusPill = (order) => {
   }
   return { key: 'needs', label: 'Needs order' };
 };
+
+/** True when order was placed by staff/admin rather than the resident login. */
+export const isStaffPlacedOrder = (order, resident, currentUserId = null) => {
+  if (!order) return false;
+  const creator = order.createdBy;
+  const creatorId = order.createdByUserId || creator?.id;
+  if (!creatorId) return false;
+  if (currentUserId && creatorId === currentUserId) return false;
+  if (resident?.userId && creatorId === resident.userId) return false;
+  if (creator?.role === 'nursing_home_user') return false;
+  if (creator?.role === 'nursing_home_admin' || creator?.role === 'admin') return true;
+  // Creator differs from the linked resident login → treat as staff-placed
+  return Boolean(resident?.userId && creatorId !== resident.userId);
+};
+
+export const formatAssignedStaffContact = (assignedUser) => {
+  if (!assignedUser) return null;
+  const name = [assignedUser.firstName, assignedUser.lastName].filter(Boolean).join(' ').trim();
+  const parts = [name || null, assignedUser.email || null, assignedUser.phone || null].filter(Boolean);
+  return parts.length ? parts.join(' · ') : null;
+};
+
+export const ADMIN_ALREADY_ORDERED_MESSAGE =
+  'A facility administrator has already placed an order for you this week. Contact them with any questions.';
+

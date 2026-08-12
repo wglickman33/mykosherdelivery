@@ -135,6 +135,11 @@ module.exports = (sequelize, DataTypes) => {
       foreignKey: 'assignedUserId',
       as: 'assignedResidents'
     });
+
+    Profile.hasOne(models.NursingHomeResident, {
+      foreignKey: 'userId',
+      as: 'residentAccount'
+    });
     
     Profile.hasMany(models.NursingHomeOrder, {
       foreignKey: 'createdByUserId',
