@@ -14,9 +14,9 @@ const defaultAddress = {
 };
 
 const formatPhone = (raw) => {
-  if (!raw) return '—';
+  if (!raw) return '-';
   const digits = String(raw).replace(/\D/g, '').slice(0, 10);
-  if (digits.length < 10) return digits.length ? digits : '—';
+  if (digits.length < 10) return digits.length ? digits : '-';
   return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
 };
 
@@ -176,9 +176,9 @@ const FacilitiesTab = () => {
 
   const addressLine = (f) => {
     const a = f.address;
-    if (!a) return '—';
+    if (!a) return '-';
     const parts = [a.street, a.city, a.state, a.zip_code].filter(Boolean);
-    return parts.length ? parts.join(', ') : '—';
+    return parts.length ? parts.join(', ') : '-';
   };
 
   return (
@@ -254,10 +254,10 @@ const FacilitiesTab = () => {
                     </div>
                   </td>
                   <td>
-                    <code className="facility-slug-cell">{f.slug || '—'}</code>
+                    <code className="facility-slug-cell">{f.slug || '-'}</code>
                   </td>
                   <td>{addressLine(f)}</td>
-                  <td>{f.contactEmail || '—'}</td>
+                  <td>{f.contactEmail || '-'}</td>
                   <td className="facility-phone-cell">{formatPhone(f.contactPhone)}</td>
                   <td>
                     <span className={`facility-status ${f.isActive === false ? 'facility-status--inactive' : 'facility-status--active'}`}>
@@ -367,7 +367,7 @@ const FacilitiesTab = () => {
                     />
                   </div>
                   <div className="admin-nursing-homes__form-group admin-nursing-homes__form-group--full">
-                    <label>Slug {editingFacility && !editingFacility.slug ? '(missing — set one)' : '(optional override)'}</label>
+                    <label>Slug {editingFacility && !editingFacility.slug ? '(missing - set one)' : '(optional override)'}</label>
                     <input
                       type="text"
                       value={form.slug}

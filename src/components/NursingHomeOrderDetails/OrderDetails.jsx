@@ -201,7 +201,7 @@ const OrderDetails = () => {
         <div className="detail-rows">
           <div className="detail-row">
             <span>Week</span>
-            <span>{order?.weekStartDate} – {order?.weekEndDate}</span>
+            <span>{order?.weekStartDate} - {order?.weekEndDate}</span>
           </div>
           <div className="detail-row">
             <span>Status</span>
@@ -246,7 +246,7 @@ const OrderDetails = () => {
                       ? 'None'
                       : mealHasItems(meal)
                         ? `${meal.items.length} items`
-                        : '—'}
+                        : '-'}
                   </span>
                 </div>
               ))}

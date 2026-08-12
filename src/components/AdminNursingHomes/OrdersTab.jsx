@@ -122,7 +122,7 @@ const OrdersTab = () => {
   };
 
   const formatDate = (d) => {
-    if (!d) return '—';
+    if (!d) return '-';
     const date = new Date(d);
     return date.toLocaleDateString();
   };
@@ -312,14 +312,14 @@ const OrdersTab = () => {
                   orders.map((o) => (
                     <tr key={o.id}>
                       {isAdmin && (
-                        <td>{o.facility ? o.facility.name : '—'}</td>
+                        <td>{o.facility ? o.facility.name : '-'}</td>
                       )}
-                      <td>{o.resident ? o.resident.name : '—'}</td>
-                      <td>{o.resident?.roomNumber || '—'}</td>
-                      <td>{o.weekStartDate ? formatDate(o.weekStartDate) : '—'}</td>
-                      <td>{statusLabels[o.status] || o.status || '—'}</td>
-                      <td>{o.paymentStatus || '—'}</td>
-                      <td>{o.total != null ? formatCurrency(o.total) : '—'}</td>
+                      <td>{o.resident ? o.resident.name : '-'}</td>
+                      <td>{o.resident?.roomNumber || '-'}</td>
+                      <td>{o.weekStartDate ? formatDate(o.weekStartDate) : '-'}</td>
+                      <td>{statusLabels[o.status] || o.status || '-'}</td>
+                      <td>{o.paymentStatus || '-'}</td>
+                      <td>{o.total != null ? formatCurrency(o.total) : '-'}</td>
                       <td>
                         <button
                           type="button"
@@ -372,19 +372,19 @@ const OrdersTab = () => {
                 <h3>Details</h3>
                 <dl className="orders-tab__detail-list">
                   <dt>Resident</dt>
-                  <dd>{selectedOrder.resident?.name ?? selectedOrder.residentName ?? '—'}</dd>
+                  <dd>{selectedOrder.resident?.name ?? selectedOrder.residentName ?? '-'}</dd>
                   <dt>Room</dt>
-                  <dd>{selectedOrder.resident?.roomNumber ?? '—'}</dd>
+                  <dd>{selectedOrder.resident?.roomNumber ?? '-'}</dd>
                   <dt>Week</dt>
                   <dd>
                     {selectedOrder.weekStartDate && selectedOrder.weekEndDate
-                      ? `${formatDate(selectedOrder.weekStartDate)} – ${formatDate(selectedOrder.weekEndDate)}`
-                      : '—'}
+                      ? `${formatDate(selectedOrder.weekStartDate)} - ${formatDate(selectedOrder.weekEndDate)}`
+                      : '-'}
                   </dd>
                   <dt>Status</dt>
                   <dd>{statusLabels[selectedOrder.status] || selectedOrder.status}</dd>
                   <dt>Payment</dt>
-                  <dd>{selectedOrder.paymentStatus || '—'}</dd>
+                  <dd>{selectedOrder.paymentStatus || '-'}</dd>
                   <dt>Total</dt>
                   <dd>{formatCurrency(selectedOrder.total)}</dd>
                 </dl>

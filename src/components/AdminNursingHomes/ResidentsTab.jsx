@@ -369,16 +369,16 @@ const ResidentsTab = () => {
                 <tr key={r.id}>
                   {isAdmin && <td>{r.facility ? r.facility.name : facilityName(r.facilityId)}</td>}
                   <td>{r.name}</td>
-                  <td>{r.roomNumber || '—'}</td>
+                  <td>{r.roomNumber || '-'}</td>
                   <td>
                     {r.userAccount?.email || r.userId
                       ? (r.userAccount?.email || 'Linked')
                       : 'No login'}
                   </td>
                   <td>
-                    {[r.dietaryRestrictions, r.allergies].filter(Boolean).join(' · ') || '—'}
+                    {[r.dietaryRestrictions, r.allergies].filter(Boolean).join(' · ') || '-'}
                   </td>
-                  <td>{r.paymentMethodId ? 'On file' : '—'}</td>
+                  <td>{r.paymentMethodId ? 'On file' : '-'}</td>
                   <td>
                     <div className="user-actions">
                       <button type="button" className="edit-btn" onClick={() => handleOpenEdit(r)}>

@@ -136,7 +136,7 @@ export const getNhOrderDeadline = (timeZone = 'America/New_York') => {
   const cur = getPartsInTz(now, timeZone);
   let daysUntilSunday = (7 - cur.weekday) % 7;
   if (daysUntilSunday === 0 && (cur.hour > 12 || (cur.hour === 12 && cur.minute >= 0))) {
-    // If it's Sunday after/at noon, deadline was today — still show today's noon for display;
+    // If it's Sunday after/at noon, deadline was today - still show today's noon for display;
     // submit will be blocked by backend. If past noon, next week's Sunday.
     if (cur.hour > 12 || (cur.hour === 12 && cur.minute > 0)) {
       daysUntilSunday = 7;
@@ -145,10 +145,10 @@ export const getNhOrderDeadline = (timeZone = 'America/New_York') => {
   const target = new Date(now.getTime() + daysUntilSunday * 24 * 60 * 60 * 1000);
   // Build a Date representing that calendar day at 12:00 ET approximately
   const targetParts = getPartsInTz(target, timeZone);
-  // Use noon ET via ISO-ish construction: treat as local noon adjusted — good enough for display
+  // Use noon ET via ISO-ish construction: treat as local noon adjusted - good enough for display
   const display = new Date(
     Date.UTC(targetParts.year, targetParts.month - 1, targetParts.day, 17, 0, 0)
-  ); // 12:00 ET ≈ 17:00 UTC (EST) — DST may shift; UI uses toLocaleString with timeZone
+  ); // 12:00 ET ≈ 17:00 UTC (EST) - DST may shift; UI uses toLocaleString with timeZone
   return display;
 };
 

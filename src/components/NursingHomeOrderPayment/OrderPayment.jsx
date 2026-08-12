@@ -13,7 +13,7 @@ import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import './OrderPayment.scss';
 
 /**
- * Legacy payment route — staff no longer charge cards at checkout.
+ * Legacy payment route - staff no longer charge cards at checkout.
  * Draft orders are submitted via submitResidentOrder; billing is monthly to the resident card.
  */
 const OrderPayment = () => {
@@ -114,7 +114,7 @@ const OrderPayment = () => {
         <div className="payment-content">
           <div className="order-review">
             <p>
-              This order has already been submitted. Billing is handled monthly on the resident&apos;s card —
+              This order has already been submitted. Billing is handled monthly on the resident&apos;s card -
               no staff payment is needed at checkout.
             </p>
             <p>
@@ -181,7 +181,7 @@ const OrderPayment = () => {
                           ? 'None'
                           : mealHasItems(meal)
                             ? `${meal.items.length} items`
-                            : '—'}
+                            : '-'}
                       </span>
                     </div>
                   ))}
@@ -228,7 +228,7 @@ const OrderPayment = () => {
           <div className="payment-info">
             <h4>Important Information</h4>
             <ul>
-              <li>No card charge is taken here — billing is monthly to the resident</li>
+              <li>No card charge is taken here - billing is monthly to the resident</li>
               <li>Orders can be modified until Sunday 12:00 PM ET</li>
               <li>A confirmation is shown after submit</li>
             </ul>

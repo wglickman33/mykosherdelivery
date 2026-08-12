@@ -297,7 +297,7 @@ const OrderEdit = () => {
             <h1>Edit Weekly Order</h1>
             <p className="resident-name">
               {resident?.name}
-              {resident?.roomNumber && ` — Room ${resident.roomNumber}`}
+              {resident?.roomNumber && ` - Room ${resident.roomNumber}`}
             </p>
           </div>
         </div>

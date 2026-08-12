@@ -138,9 +138,9 @@ const NursingHomeOrders = () => {
               orders.map((order) => (
                 <tr key={order.id}>
                   <td>{order.orderNumber}</td>
-                  <td>{order.resident?.name ?? order.residentName ?? '—'}</td>
+                  <td>{order.resident?.name ?? order.residentName ?? '-'}</td>
                   <td>
-                    {order.weekStartDate} – {order.weekEndDate}
+                    {order.weekStartDate} - {order.weekEndDate}
                   </td>
                   <td>
                     <span className={`status-badge status-${order.status}`}>{order.status}</span>

@@ -17,6 +17,11 @@ const { body, validationResult } = require('express-validator');
 const logger = require('../utils/logger');
 const { createAdminNotification } = require('../utils/adminNotifications');
 const { logAdminAction } = require('../utils/auditLog');
+const {
+  ensureResidentForNhUserProfile,
+  syncFacilityResidentLogins,
+  syncAllOrphanNhUserResidents
+} = require('../utils/nhResidentLoginSync');
 
 const router = express.Router();
 
@@ -719,6 +724,20 @@ router.get('/residents', requireNursingHomeUser, async (req, res) => {
     const { page = 1, limit = 50, search = '', facilityId, assignedUserId, isActive } = req.query;
     const offset = (page - 1) * limit;
 
+    // Link orphan nursing_home_user logins (e.g. created via Admin Users) to resident rows
+    try {
+      if (req.user.role === 'admin') {
+        if (facilityId) await syncFacilityResidentLogins(facilityId);
+        else await syncAllOrphanNhUserResidents();
+      } else if (req.user.role === 'nursing_home_admin' && req.user.nursingHomeFacilityId) {
+        await syncFacilityResidentLogins(req.user.nursingHomeFacilityId);
+      } else if (req.user.role === 'nursing_home_user') {
+        await ensureResidentForNhUserProfile(req.user);
+      }
+    } catch (syncErr) {
+      logger.warn('NH resident login sync skipped:', syncErr.message);
+    }
+
     const where = {};
 
     if (req.user.role === 'nursing_home_user') {
@@ -820,12 +839,48 @@ router.get('/residents/me', requireNursingHomeUser, async (req, res) => {
     });
 
     if (!resident) {
-      return res.status(404).json({
-        success: false,
-        code: 'NO_RESIDENT_PROFILE',
-        error: 'NO_RESIDENT_PROFILE',
-        message: 'No resident profile is linked to this account. Contact your facility administrator.'
+      try {
+        await ensureResidentForNhUserProfile(req.user);
+      } catch (syncErr) {
+        logger.warn('Failed to auto-link resident for /residents/me:', syncErr.message);
+      }
+      const linked = await NursingHomeResident.findOne({
+        where: { userId: req.user.id },
+        include: [
+          {
+            model: NursingHomeFacility,
+            as: 'facility',
+            attributes: ['id', 'name', 'slug', 'address']
+          },
+          {
+            model: Profile,
+            as: 'assignedUser',
+            attributes: ['id', 'firstName', 'lastName', 'email', 'phone']
+          },
+          {
+            model: Profile,
+            as: 'userAccount',
+            attributes: ['id', 'email', 'firstName', 'lastName', 'role']
+          }
+        ]
       });
+      if (!linked) {
+        return res.status(404).json({
+          success: false,
+          code: 'NO_RESIDENT_PROFILE',
+          error: 'NO_RESIDENT_PROFILE',
+          message: 'No resident profile is linked to this account. Contact your facility administrator.'
+        });
+      }
+      if (!linked.isActive) {
+        return res.status(403).json({
+          success: false,
+          code: 'RESIDENT_INACTIVE',
+          error: 'RESIDENT_INACTIVE',
+          message: 'Your resident profile is inactive. Contact your facility administrator.'
+        });
+      }
+      return res.json({ success: true, data: linked });
     }
 
     if (!resident.isActive) {

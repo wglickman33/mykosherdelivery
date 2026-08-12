@@ -130,7 +130,7 @@ const NursingHomeMenu = ({ showInstructions = true, showEditLink = false }) => {
                       {mealGroup[cat].filter((i) => i.isActive !== false).map((item) => (
                         <li key={item.id}>
                           <span className="nh-menu-item-name">{item.name}</span>
-                          {item.description && <span className="nh-menu-item-desc"> — {item.description}</span>}
+                          {item.description && <span className="nh-menu-item-desc"> - {item.description}</span>}
                           {item.requiresBagelType && <span className="nh-menu-item-tag">Bagel type required</span>}
                           {item.excludesSide && <span className="nh-menu-item-tag">No side</span>}
                         </li>
@@ -159,7 +159,7 @@ const NursingHomeMenu = ({ showInstructions = true, showEditLink = false }) => {
                     {list.map((item) => (
                       <li key={item.id}>
                         <span className="nh-menu-item-name">{item.name}</span>
-                        {item.description && <span className="nh-menu-item-desc"> — {item.description}</span>}
+                        {item.description && <span className="nh-menu-item-desc"> - {item.description}</span>}
                         {item.requiresBagelType && <span className="nh-menu-item-tag">Bagel type required</span>}
                         {item.excludesSide && <span className="nh-menu-item-tag">No side</span>}
                       </li>

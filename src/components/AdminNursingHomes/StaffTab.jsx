@@ -338,7 +338,7 @@ const StaffTab = () => {
                   <td>{[u.firstName, u.lastName].filter(Boolean).join(' ')}</td>
                   <td>{u.email}</td>
                   <td>Staff</td>
-                  <td>{u.phone || '—'}</td>
+                  <td>{u.phone || '-'}</td>
                   {isAdmin && (
                     <td>
                       <div className="user-actions">

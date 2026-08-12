@@ -164,8 +164,8 @@ const NursingHomeDashboard = () => {
   const dashboardTitle = isNhUser
     ? 'My Meal Orders'
     : isNhAdmin
-      ? `${communityName || 'Facility'} — Staff Dashboard`
-      : `${communityName || 'Facility'} — Admin Dashboard`;
+      ? `${communityName || 'Facility'} - Staff Dashboard`
+      : `${communityName || 'Facility'} - Admin Dashboard`;
 
   const dashboardSubtitle = isNhUser
     ? `Place your weekly meal order. Week of ${weekStart}. Deadline: ${formatNhDeadline()}.`

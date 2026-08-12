@@ -285,7 +285,7 @@ const OrderCreation = () => {
             <h1>{isNhUser ? 'Create My Weekly Order' : 'Create Weekly Order'}</h1>
             <p className="resident-name">
               {resident?.name}
-              {resident?.roomNumber && ` — Room ${resident.roomNumber}`}
+              {resident?.roomNumber && ` - Room ${resident.roomNumber}`}
             </p>
           </div>
         </div>
@@ -298,7 +298,7 @@ const OrderCreation = () => {
       {error && <div className="error-banner">{error}</div>}
       {!resident?.paymentMethodId && (
         <div className="error-banner" style={{ background: '#fffbeb', color: '#92400e', borderColor: '#fcd34d' }}>
-          No card on file for this resident. Orders submit for monthly billing — ask staff to save a card if needed.
+          No card on file for this resident. Orders submit for monthly billing - ask staff to save a card if needed.
         </div>
       )}
 

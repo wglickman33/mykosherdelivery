@@ -163,7 +163,7 @@ const MealForm = ({ day, mealType, menuItems, currentMeal, onUpdate, resident })
     <div className="meal-form">
       <div className="meal-form-header">
         <h3>
-          {day} — {mealType.charAt(0).toUpperCase() + mealType.slice(1)}
+          {day} - {mealType.charAt(0).toUpperCase() + mealType.slice(1)}
           <span className="meal-price"> ${mealPrice.toFixed(2)}</span>
         </h3>
         {(selectedItems.length > 0 || isNone) && (

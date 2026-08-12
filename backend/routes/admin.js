@@ -16,6 +16,7 @@ const { body, param, validationResult } = require('express-validator');
 const { VALID_PROFILE_ROLES } = require('../config/constants');
 const logger = require('../utils/logger');
 const { isMissingColumnError, getProfileById, getProfilesForAdminList, countProfilesRaw, updateProfileSafe, profileExistsWithEmail } = require('../utils/profileFallback');
+const { ensureResidentForNhUserProfile } = require('../utils/nhResidentLoginSync');
 const jwt = require('jsonwebtoken');
 const { appEvents } = require('../utils/events');
 const { logAdminAction } = require('../utils/auditLog');
@@ -583,6 +584,13 @@ router.put('/users/:userId', requireAdmin, [
       logger.warn('Failed to create user update notification:', notifError);
     }
 
+    try {
+      const synced = await Profile.findByPk(userId);
+      if (synced) await ensureResidentForNhUserProfile(synced);
+    } catch (syncErr) {
+      logger.warn('Failed to sync NH resident for user update:', syncErr.message);
+    }
+
     const transformedUser = {
       id: newValues.id,
       first_name: newValues.firstName,
@@ -774,6 +782,12 @@ router.post('/users', requireAdmin, [
       });
     } catch (notifError) {
       logger.warn('Failed to create user creation notification:', notifError);
+    }
+
+    try {
+      await ensureResidentForNhUserProfile(user);
+    } catch (syncErr) {
+      logger.warn('Failed to sync NH resident for user create:', syncErr.message);
     }
 
     const userData = user.toJSON();

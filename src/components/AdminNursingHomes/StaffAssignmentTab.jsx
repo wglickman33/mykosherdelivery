@@ -149,7 +149,7 @@ const StaffAssignmentTab = () => {
               {residents.map((r) => (
                 <tr key={r.id}>
                   <td>{r.name}</td>
-                  <td>{r.roomNumber || '—'}</td>
+                  <td>{r.roomNumber || '-'}</td>
                   <td>
                     <select
                       value={r.assignedUserId || ''}

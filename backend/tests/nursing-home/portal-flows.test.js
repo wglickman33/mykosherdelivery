@@ -701,6 +701,31 @@ describe('Nursing home facility portal flows', () => {
     expect(profile.nursingHomeFacilityId).toBeNull();
   });
 
+  test('admin users nursing_home_user gets auto-linked resident row', async () => {
+    const { Profile } = require('../../models');
+    const bcrypt = require('bcryptjs');
+    const passwordHash = await bcrypt.hash('TestPass123!', 10);
+    const orphan = await Profile.create({
+      email: `orphan-resident-${fx.suffix}@example.com`,
+      password: passwordHash,
+      firstName: 'Jason',
+      lastName: 'Orphan',
+      role: 'nursing_home_user',
+      nursingHomeFacilityId: fx.facility.id
+    });
+    fx.profileIds.push(orphan.id);
+
+    const list = await request(app)
+      .get(`/api/nursing-homes/residents?facilityId=${fx.facility.id}&isActive=true&limit=200`)
+      .set(fx.platformAdminAuth)
+      .expect(200);
+
+    const match = (list.body.data || []).find((r) => r.userId === orphan.id);
+    expect(match).toBeTruthy();
+    expect(match.name).toMatch(/Jason/);
+    fx.residentIds.push(match.id);
+  });
+
   test('staff cannot create another order when week order is already submitted', async () => {
     const monday = new Date();
     const day = monday.getUTCDay();
