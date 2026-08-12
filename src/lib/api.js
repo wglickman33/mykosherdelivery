@@ -103,13 +103,27 @@ class ApiClient {
       }
 
       if (response.status === 403) {
-        logger.warn("Access forbidden for current user");
-        throw new Error("You do not have permission to access this resource.");
+        const errorData = await response.json().catch(() => ({}));
+        logger.warn("Access forbidden for current user", errorData);
+        const err = new Error(
+          errorData.message ||
+            errorData.error ||
+            "You do not have permission to access this resource."
+        );
+        if (errorData.code) err.code = errorData.code;
+        throw err;
       }
 
       if (response.status === 404) {
-        logger.warn(`Resource not found: ${endpoint}`);
-        throw new Error("The requested resource was not found.");
+        const errorData = await response.json().catch(() => ({}));
+        logger.warn(`Resource not found: ${endpoint}`, errorData);
+        const err = new Error(
+          errorData.message ||
+            errorData.error ||
+            "The requested resource was not found."
+        );
+        if (errorData.code) err.code = errorData.code;
+        throw err;
       }
 
       if (response.status === 429) {
@@ -150,12 +164,15 @@ class ApiClient {
         const errorData = await response.json().catch(() => ({}));
         const errorMessage =
           errorData.message ||
+          errorData.error ||
           `HTTP ${response.status}: ${response.statusText}`;
         logger.error(`API Error [${requestId}]`, {
           status: response.status,
           message: errorMessage,
         });
-        throw new Error(errorMessage);
+        const err = new Error(errorMessage);
+        if (errorData.code) err.code = errorData.code;
+        throw err;
       }
 
       if (response.status === 204) {

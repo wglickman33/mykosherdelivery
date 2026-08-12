@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { fetchCurrentFacility, fetchFacilitiesList, nhPath } from '../../services/nursingHomeService';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import FacilitiesTab from './FacilitiesTab';
 import MenuTab from './MenuTab';
@@ -15,8 +16,42 @@ const AdminNursingHomes = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('residents');
   const [loading] = useState(false);
+  const [portalOpening, setPortalOpening] = useState(false);
 
   const isSuperAdmin = user?.role === 'admin';
+
+  const openResidentPortal = async () => {
+    if (portalOpening) return;
+    setPortalOpening(true);
+    try {
+      const facility = await fetchCurrentFacility();
+      if (facility?.slug) {
+        navigate(nhPath(facility.slug, 'dashboard'));
+        return;
+      }
+      if (facility?.id) {
+        navigate(`/nursing-homes/dashboard?facilityId=${facility.id}`);
+        return;
+      }
+    } catch {
+      /* fall through to list */
+    }
+    try {
+      const { data } = await fetchFacilitiesList({ limit: 1, isActive: 'true' });
+      const first = data?.[0];
+      if (first?.slug) {
+        navigate(nhPath(first.slug, 'dashboard'));
+      } else if (first?.id) {
+        navigate(`/nursing-homes/dashboard?facilityId=${first.id}`);
+      } else if (isSuperAdmin) {
+        setActiveTab('facilities');
+      }
+    } catch {
+      if (isSuperAdmin) setActiveTab('facilities');
+    } finally {
+      setPortalOpening(false);
+    }
+  };
 
   const tabs = [
     { id: 'residents', label: 'Residents', roles: ['admin', 'nursing_home_admin'] },
@@ -45,9 +80,10 @@ const AdminNursingHomes = () => {
         <button
           type="button"
           className="page-header__portal-link"
-          onClick={() => navigate('/nursing-homes/dashboard')}
+          onClick={openResidentPortal}
+          disabled={portalOpening}
         >
-          Resident Portal →
+          {portalOpening ? 'Opening…' : 'Resident Portal →'}
         </button>
       </div>
 

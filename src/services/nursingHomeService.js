@@ -289,15 +289,20 @@ export const updateResident = async (id, data) => {
   }
 };
 
-export const deleteResident = async (id) => {
+export const deleteResident = async (id, { permanent = false } = {}) => {
   try {
-    const response = await api.delete(`/nursing-homes/residents/${id}`);
-    return unwrapData(response);
+    const qs = permanent ? '?permanent=true' : '';
+    const response = await api.delete(`/nursing-homes/residents/${id}${qs}`);
+    return unwrapData(response) ?? response;
   } catch (error) {
-    logger.error('Error deactivating resident:', error);
+    logger.error(`Error ${permanent ? 'deleting' : 'deactivating'} resident ${id}:`, error);
     throw error;
   }
 };
+
+export const deactivateResident = async (id) => deleteResident(id, { permanent: false });
+
+export const permanentlyDeleteResident = async (id) => deleteResident(id, { permanent: true });
 
 export const assignResidentToStaff = async (residentId, assignedUserId) => {
   try {

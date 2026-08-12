@@ -8,6 +8,7 @@ const {
   NursingHomeMenuItem,
   NursingHomeInvoice,
   NursingHomeOrder,
+  NursingHomeRefund,
   Profile
 } = require('../models');
 const { QueryTypes, Op } = require('sequelize');
@@ -104,39 +105,57 @@ router.get('/facilities', requireAdmin, async (req, res) => {
   }
 });
 
+const NOT_ASSIGNED_MESSAGE =
+  'You are not assigned to a facility yet. Contact your administrator.';
+
+const sendNotAssigned = (res) =>
+  res.status(403).json({
+    success: false,
+    code: 'NOT_ASSIGNED',
+    error: 'NOT_ASSIGNED',
+    message: NOT_ASSIGNED_MESSAGE
+  });
+
 router.get('/facilities/current', requireNursingHomeUser, async (req, res) => {
   try {
     const { facilityId: queryFacilityId } = req.query;
     let facility = null;
 
     if (req.user.role === 'admin') {
-      if (!queryFacilityId) {
-        return res.status(400).json({
-          success: false,
-          error: 'facilityId query is required for admin'
+      if (queryFacilityId) {
+        facility = await NursingHomeFacility.findByPk(queryFacilityId);
+        if (facility && facility.isActive === false) {
+          facility = null;
+        }
+      } else {
+        facility = await NursingHomeFacility.findOne({
+          where: { isActive: true },
+          order: [['name', 'ASC']]
         });
       }
-      facility = await NursingHomeFacility.findByPk(queryFacilityId);
-    } else if (req.user.role === 'nursing_home_admin' && req.user.nursingHomeFacilityId) {
-      facility = await NursingHomeFacility.findByPk(req.user.nursingHomeFacilityId);
+    } else if (req.user.role === 'nursing_home_admin') {
+      if (req.user.nursingHomeFacilityId) {
+        facility = await NursingHomeFacility.findByPk(req.user.nursingHomeFacilityId);
+      }
     } else if (req.user.role === 'nursing_home_user') {
       if (req.user.nursingHomeFacilityId) {
         facility = await NursingHomeFacility.findByPk(req.user.nursingHomeFacilityId);
       }
       if (!facility) {
         const resident = await NursingHomeResident.findOne({
-          where: { assignedUserId: req.user.id },
+          where: { assignedUserId: req.user.id, isActive: true },
           include: [{ model: NursingHomeFacility, as: 'facility' }]
         });
         facility = resident?.facility || null;
       }
     }
 
+    if (facility && facility.isActive === false) {
+      facility = null;
+    }
+
     if (!facility) {
-      return res.status(404).json({
-        success: false,
-        error: 'Facility not found'
-      });
+      return sendNotAssigned(res);
     }
 
     res.json({
@@ -161,7 +180,17 @@ router.get('/facilities/by-slug/:slug', requireNursingHomeUser, async (req, res)
     if (!facility) {
       return res.status(404).json({
         success: false,
-        error: 'Facility not found'
+        error: 'Facility not found',
+        message: 'Facility not found'
+      });
+    }
+
+    if (!facility.isActive) {
+      return res.status(403).json({
+        success: false,
+        code: 'FACILITY_INACTIVE',
+        error: 'FACILITY_INACTIVE',
+        message: 'This facility is inactive. Contact your administrator.'
       });
     }
 
@@ -172,7 +201,8 @@ router.get('/facilities/by-slug/:slug', requireNursingHomeUser, async (req, res)
       ) {
         return res.status(403).json({
           success: false,
-          error: 'Access denied'
+          error: 'Access denied',
+          message: 'Access denied'
         });
       }
     }
@@ -461,12 +491,7 @@ function requireFacilityStaffAdmin(req, res, next) {
   return res.status(403).json({ success: false, error: 'Access denied' });
 }
 
-function requireAdminOrNursingHomeAdmin(req, res, next) {
-  if (req.user.role === 'admin' || req.user.role === 'nursing_home_admin') return next();
-  return res.status(403).json({ success: false, error: 'Access denied' });
-}
-
-router.post('/facilities/:facilityId/staff', requireAdminOrNursingHomeAdmin, requireFacilityStaffAdmin, [
+router.post('/facilities/:facilityId/staff', requireNursingHomeAdmin, requireFacilityStaffAdmin, [
   body('email').isEmail().normalizeEmail(),
   body('password').isLength({ min: 8, max: 128 }).withMessage('Password must be 8–128 characters'),
   body('firstName').notEmpty().trim(),
@@ -522,7 +547,7 @@ router.post('/facilities/:facilityId/staff', requireAdminOrNursingHomeAdmin, req
   }
 });
 
-router.put('/facilities/:facilityId/staff/:userId', requireAdminOrNursingHomeAdmin, requireFacilityStaffAdmin, [
+router.put('/facilities/:facilityId/staff/:userId', requireNursingHomeAdmin, requireFacilityStaffAdmin, [
   body('firstName').optional().notEmpty().trim(),
   body('lastName').optional().notEmpty().trim(),
   body('role').optional().isIn(['nursing_home_user', 'nursing_home_admin']),
@@ -563,7 +588,7 @@ router.put('/facilities/:facilityId/staff/:userId', requireAdminOrNursingHomeAdm
   }
 });
 
-router.delete('/facilities/:facilityId/staff/:userId', requireAdminOrNursingHomeAdmin, requireFacilityStaffAdmin, async (req, res) => {
+router.delete('/facilities/:facilityId/staff/:userId', requireNursingHomeAdmin, requireFacilityStaffAdmin, async (req, res) => {
   try {
     const { facilityId, userId } = req.params;
     const user = await Profile.findByPk(userId);
@@ -576,6 +601,10 @@ router.delete('/facilities/:facilityId/staff/:userId', requireAdminOrNursingHome
     const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email;
     const userOldValues = user.toJSON();
     delete userOldValues.password;
+    await NursingHomeResident.update(
+      { assignedUserId: null },
+      { where: { assignedUserId: userId } }
+    );
     await user.update({ nursingHomeFacilityId: null, role: 'user' });
     await createAdminNotification({
       type: 'nh.staff.removed',
@@ -594,7 +623,7 @@ router.delete('/facilities/:facilityId/staff/:userId', requireAdminOrNursingHome
   }
 });
 
-router.post('/facilities/:facilityId/staff/bulk', requireAdminOrNursingHomeAdmin, requireFacilityStaffAdmin, [
+router.post('/facilities/:facilityId/staff/bulk', requireNursingHomeAdmin, requireFacilityStaffAdmin, [
   body('staff').isArray(),
   body('staff.*.email').isEmail().normalizeEmail(),
   body('staff.*.firstName').notEmpty().trim(),
@@ -619,7 +648,17 @@ router.post('/facilities/:facilityId/staff/bulk', requireAdminOrNursingHomeAdmin
     const bcrypt = require('bcryptjs');
     const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS) || 12;
     const results = { created: [], skipped: [], errors: [] };
-    const defaultPassword = process.env.NURSING_HOME_DEFAULT_STAFF_PASSWORD || 'ChangeMe123!';
+    const defaultPassword = process.env.NURSING_HOME_DEFAULT_STAFF_PASSWORD;
+    if (!defaultPassword) {
+      const missingPassword = staffList.some((row) => !row.password);
+      if (missingPassword) {
+        return res.status(400).json({
+          success: false,
+          error: 'NURSING_HOME_DEFAULT_STAFF_PASSWORD is not configured',
+          message: 'Set NURSING_HOME_DEFAULT_STAFF_PASSWORD or provide a password for each staff row'
+        });
+      }
+    }
 
     for (const row of staffList) {
       try {
@@ -629,6 +668,10 @@ router.post('/facilities/:facilityId/staff/bulk', requireAdminOrNursingHomeAdmin
           continue;
         }
         const password = row.password || defaultPassword;
+        if (!password) {
+          results.errors.push({ email: row.email, message: 'Password required' });
+          continue;
+        }
         const hashedPassword = await bcrypt.hash(password, saltRounds);
         const user = await Profile.create({
           email: row.email,
@@ -891,7 +934,10 @@ router.put('/residents/:id', requireNursingHomeAdmin, [
   body('billingEmail').optional({ nullable: true }).isEmail().normalizeEmail(),
   body('billingName').optional({ nullable: true }).isString().trim().isLength({ max: 200 }),
   body('billingPhone').optional({ nullable: true }).isString().trim(),
-  body('assignedUserId').optional().isUUID(),
+  body('assignedUserId').optional({ nullable: true }).custom((val) => {
+    if (val === null || val === '' || val === undefined) return true;
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(val));
+  }),
   body('isActive').optional().isBoolean()
 ], async (req, res) => {
   try {
@@ -905,7 +951,10 @@ router.put('/residents/:id', requireNursingHomeAdmin, [
     }
 
     const { id } = req.params;
-    const updateData = req.body;
+    const updateData = { ...req.body };
+    if (Object.prototype.hasOwnProperty.call(updateData, 'assignedUserId') && updateData.assignedUserId === '') {
+      updateData.assignedUserId = null;
+    }
 
     const resident = await NursingHomeResident.findByPk(id);
     if (!resident) {
@@ -1026,6 +1075,10 @@ router.post('/residents/:id/assign', requireNursingHomeAdmin, [
 router.delete('/residents/:id', requireNursingHomeAdmin, async (req, res) => {
   try {
     const { id } = req.params;
+    const permanent =
+      req.query.permanent === 'true' ||
+      req.query.hard === 'true' ||
+      req.body?.permanent === true;
 
     const resident = await NursingHomeResident.findByPk(id);
     if (!resident) {
@@ -1044,6 +1097,38 @@ router.delete('/residents/:id', requireNursingHomeAdmin, async (req, res) => {
 
     const residentName = resident.name;
     const residentOldValues = resident.toJSON();
+    const facilityId = resident.facilityId;
+
+    if (permanent) {
+      // Remove dependent orders/refunds so test and admin cleanup don't leave orphans
+      const orders = await NursingHomeResidentOrder.findAll({
+        where: { residentId: id },
+        attributes: ['id']
+      });
+      const orderIds = orders.map((o) => o.id);
+      if (orderIds.length > 0 && NursingHomeRefund) {
+        await NursingHomeRefund.destroy({ where: { residentOrderId: { [Op.in]: orderIds } } });
+      }
+      await NursingHomeResidentOrder.destroy({ where: { residentId: id } });
+      await resident.destroy();
+      await createAdminNotification({
+        type: 'nh.resident.deleted',
+        title: 'Nursing home: Resident deleted',
+        message: `"${residentName}" was permanently deleted`,
+        ref: { kind: 'nh_resident', id, facilityId }
+      });
+      await logAdminAction(req.user.id, 'DELETE', 'nh_residents', id, residentOldValues, null, req);
+      logger.info('Resident permanently deleted', {
+        residentId: id,
+        deletedBy: req.user.id
+      });
+      return res.json({
+        success: true,
+        message: 'Resident deleted permanently',
+        permanent: true
+      });
+    }
+
     await resident.update({ isActive: false });
     await createAdminNotification({
       type: 'nh.resident.deactivated',
@@ -1059,19 +1144,20 @@ router.delete('/residents/:id', requireNursingHomeAdmin, async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Resident deactivated successfully'
+      message: 'Resident deactivated successfully',
+      permanent: false
     });
   } catch (error) {
-    logger.error('Error deactivating resident:', error);
+    logger.error('Error deleting/deactivating resident:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to deactivate resident',
+      error: 'Failed to delete resident',
       message: error.message
     });
   }
 });
 
-router.post('/residents/:id/payment-method', requireAdminOrNursingHomeAdmin, [
+router.post('/residents/:id/payment-method', requireNursingHomeAdmin, [
   body('paymentMethodId').notEmpty().isString().trim(),
   body('billingEmail').optional().isEmail().normalizeEmail(),
   body('billingName').optional().isString().trim().isLength({ min: 1, max: 200 }),

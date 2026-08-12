@@ -5,13 +5,16 @@ import {
   fetchFacilitiesList,
   fetchStaffForFacility,
   assignResidentToStaff,
-  updateResident,
-  unwrapList
+  updateResident
 } from '../../services/nursingHomeService';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import './AdminNursingHomes.scss';
 
+/**
+ * Assigns facility staff (e.g. Jason Smith) to residents (e.g. Abraham Smith).
+ * Residents and users are different records — this links them for the dashboard "Mine" filter.
+ */
 const StaffAssignmentTab = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
@@ -29,11 +32,14 @@ const StaffAssignmentTab = () => {
       const res = await fetchFacilitiesList({ limit: 200 });
       const list = res?.data || [];
       setFacilities(list);
-      if (!selectedFacilityId && list.length) setSelectedFacilityId(list[0].id);
+      setSelectedFacilityId((prev) => {
+        if (prev && list.some((f) => f.id === prev)) return prev;
+        return list[0]?.id || '';
+      });
     } catch {
       setFacilities([]);
     }
-  }, [isAdmin, selectedFacilityId]);
+  }, [isAdmin]);
 
   const loadResidentsAndStaff = useCallback(async (facilityId) => {
     if (!facilityId) {
@@ -49,8 +55,8 @@ const StaffAssignmentTab = () => {
         fetchResidents({ facilityId, limit: 200, isActive: 'true' }),
         fetchStaffForFacility(facilityId)
       ]);
-      setResidents(unwrapList(resRes));
-      setStaff(Array.isArray(staffRes) ? staffRes : unwrapList(staffRes));
+      setResidents(Array.isArray(resRes?.data) ? resRes.data : []);
+      setStaff(Array.isArray(staffRes) ? staffRes : []);
     } catch (err) {
       setError(err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to load data');
       setResidents([]);
@@ -99,12 +105,18 @@ const StaffAssignmentTab = () => {
             className="facility-select"
           >
             <option value="">Select facility</option>
-            {facilities.map(f => (
-              <option key={f.id} value={f.id}>{f.name}</option>
+            {facilities.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.name}
+              </option>
             ))}
           </select>
         )}
       </div>
+
+      <p className="tab-hint" style={{ margin: '0 0 1rem', color: '#64748b', fontSize: '0.9rem' }}>
+        Assign a staff user to each resident for the portal &quot;Mine&quot; filter. Residents (meal recipients) are not the same as staff login accounts.
+      </p>
 
       {error && (
         <ErrorMessage message={error} type="error" onDismiss={() => setError(null)} />
@@ -120,6 +132,12 @@ const StaffAssignmentTab = () => {
         <div className="content-placeholder">
           <p>No residents in this facility. Add residents in the Residents tab first.</p>
         </div>
+      ) : staff.length === 0 ? (
+        <div className="content-placeholder">
+          <p>
+            No staff found for this facility. Add Jason (or other NH users) under the Staff tab or Admin Users with this facility assigned, then come back here to link them to residents.
+          </p>
+        </div>
       ) : (
         <div className="table-wrap">
           <table className="data-table" role="grid">
@@ -127,8 +145,8 @@ const StaffAssignmentTab = () => {
               <tr>
                 <th>Resident</th>
                 <th>Room</th>
-                <th>Assigned to</th>
-                <th aria-label="Actions" />
+                <th>Assigned staff</th>
+                <th aria-label="Status" />
               </tr>
             </thead>
             <tbody>
@@ -141,17 +159,17 @@ const StaffAssignmentTab = () => {
                       value={r.assignedUserId || ''}
                       onChange={(e) => handleAssign(r.id, e.target.value || null)}
                       disabled={assigningId === r.id}
+                      aria-label={`Assign staff for ${r.name}`}
                     >
                       <option value="">Unassigned</option>
-                      {staff.map(s => (
+                      {staff.map((s) => (
                         <option key={s.id} value={s.id}>
                           {[s.firstName, s.lastName].filter(Boolean).join(' ')} ({s.email})
                         </option>
                       ))}
                     </select>
-                    {assigningId === r.id && <span className="assigning-label">Saving…</span>}
                   </td>
-                  <td />
+                  <td>{assigningId === r.id ? <span className="assigning-label">Saving…</span> : null}</td>
                 </tr>
               ))}
             </tbody>

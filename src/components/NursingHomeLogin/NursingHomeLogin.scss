@@ -1,15 +1,17 @@
+@use '../../styles/design-system' as *;
+
 .nursing-home-login {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+  background: linear-gradient(160deg, $slate-50 0%, $nh-primary-light 100%);
   padding: 2rem;
 
   .login-container {
     background: white;
     border-radius: 16px;
-    box-shadow: 0 10px 40px rgba(147, 51, 234, 0.1);
+    box-shadow: 0 10px 40px rgba(71, 85, 105, 0.1);
     padding: 3rem;
     max-width: 450px;
     width: 100%;
@@ -22,7 +24,7 @@
     h1 {
       font-size: 2rem;
       font-weight: 700;
-      color: #475569;
+      color: $nh-primary;
       margin: 0 0 0.5rem 0;
     }
 
@@ -61,13 +63,13 @@
         border: 2px solid #e5e7eb;
         border-radius: 8px;
         font-size: 1rem;
-        transition: all 0.2s ease;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
         box-sizing: border-box;
 
         &:focus {
           outline: none;
-          border-color: #a855f7;
-          box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.1);
+          border-color: $nh-primary;
+          box-shadow: 0 0 0 3px rgba(71, 85, 105, 0.15);
         }
 
         &:disabled {
@@ -80,27 +82,21 @@
     .login-btn {
       width: 100%;
       padding: 1rem;
-      background: #475569;
+      background: $nh-primary;
       color: white;
       border: none;
       border-radius: 8px;
       font-size: 1rem;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: background-color 0.2s ease;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 0.5rem;
 
       &:hover:not(:disabled) {
-        background: #7e22ce;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(147, 51, 234, 0.3);
-      }
-
-      &:active:not(:disabled) {
-        transform: translateY(0);
+        background: $nh-primary-hover;
       }
 
       &:disabled {

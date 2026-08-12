@@ -10,8 +10,11 @@ const NursingHomeLogin = () => {
       if (facility?.slug) {
         return nhPath(facility.slug, 'dashboard');
       }
+      if (facility?.id) {
+        return `/nursing-homes/dashboard?facilityId=${facility.id}`;
+      }
     } catch {
-      /* fall through */
+      /* NhFacilityRedirect shows the not-assigned empty state */
     }
     return '/nursing-homes';
   };

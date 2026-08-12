@@ -19,6 +19,14 @@ export const mealHasItems = (meal) =>
   meal && !isNoneMeal(meal) && Array.isArray(meal.items) && meal.items.length > 0;
 
 /** Validate a single day/meal selection. Returns error string or null. */
+const itemNeedsBagelType = (item) => {
+  if (item?.requiresBagelType === true) return true;
+  const name = item?.name != null ? String(item.name) : '';
+  return /bagel/i.test(name) && !/type/i.test(name);
+};
+
+const mainsExcludeSide = (mains) => mains.some((i) => i.excludesSide === true);
+
 export const validateMealSelection = (mealType, meal) => {
   if (!meal || isNoneMeal(meal)) return null;
   const items = meal.items || [];
@@ -28,24 +36,45 @@ export const validateMealSelection = (mealType, meal) => {
   const sides = items.filter((i) => normCat(i.category) === 'side');
   const soups = items.filter((i) => normCat(i.category) === 'soup');
   const desserts = items.filter((i) => normCat(i.category) === 'dessert');
+  const skipSide = mainsExcludeSide(mains);
 
   if (mealType === 'breakfast') {
     if (mains.length !== 1) return 'Breakfast requires exactly one main';
-    if (sides.length !== 1) return 'Breakfast requires exactly one side';
-    const needsBagel = mains.some((i) => /bagel/i.test(i.name) && !/type/i.test(i.name));
+    if (skipSide) {
+      if (sides.length > 0) return 'This main does not include a side';
+    } else if (sides.length !== 1) {
+      return 'Breakfast requires exactly one side';
+    }
+    const needsBagel = mains.some(itemNeedsBagelType);
     if (needsBagel && !meal.bagelType) return 'Select a bagel type for breakfast';
-    if (soups.length || desserts.length) return 'Breakfast only allows one main and one side';
+    if (soups.length || desserts.length) {
+      return skipSide
+        ? 'Breakfast only allows one main when side is excluded'
+        : 'Breakfast only allows one main and one side';
+    }
   }
 
   if (mealType === 'lunch') {
     if (mains.length !== 1) return 'Lunch requires exactly one entree';
-    if (sides.length !== 1) return 'Lunch requires exactly one side';
-    if (soups.length || desserts.length) return 'Lunch only allows one entree and one side';
+    if (skipSide) {
+      if (sides.length > 0) return 'This entree does not include a side';
+    } else if (sides.length !== 1) {
+      return 'Lunch requires exactly one side';
+    }
+    if (soups.length || desserts.length) {
+      return skipSide
+        ? 'Lunch only allows one entree when side is excluded'
+        : 'Lunch only allows one entree and one side';
+    }
   }
 
   if (mealType === 'dinner') {
     if (mains.length !== 1) return 'Dinner requires exactly one entree';
-    if (sides.length !== 1) return 'Dinner requires exactly one side';
+    if (skipSide) {
+      if (sides.length > 0) return 'This entree does not include a side';
+    } else if (sides.length !== 1) {
+      return 'Dinner requires exactly one side';
+    }
     if (soups.length > 1) return 'Dinner allows at most one soup';
     if (desserts.length > 1) return 'Dinner allows at most one dessert';
   }

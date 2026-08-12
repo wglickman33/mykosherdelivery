@@ -7,9 +7,9 @@ import {
   fetchFacilitiesList,
   createResident,
   updateResident,
-  deleteResident,
-  saveResidentPaymentMethod,
-  unwrapList
+  deactivateResident,
+  permanentlyDeleteResident,
+  saveResidentPaymentMethod
 } from '../../services/nursingHomeService';
 import { stripePromise, createPaymentMethod } from '../../services/paymentServices';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
@@ -101,7 +101,7 @@ const ResidentsTab = () => {
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingResident, setEditingResident] = useState(null);
-  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [actionConfirm, setActionConfirm] = useState(null); // { resident, mode: 'deactivate' | 'delete' }
   const [submitting, setSubmitting] = useState(false);
   const [cardSaving, setCardSaving] = useState(false);
   const [cardError, setCardError] = useState(null);
@@ -126,7 +126,7 @@ const ResidentsTab = () => {
       if (isAdmin && facilityFilter) params.facilityId = facilityFilter;
       if (search.trim()) params.search = search.trim();
       const res = await fetchResidents(params);
-      setResidents(unwrapList(res));
+      setResidents(Array.isArray(res?.data) ? res.data : []);
     } catch (err) {
       setError(err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to load residents');
       setResidents([]);
@@ -245,17 +245,27 @@ const ResidentsTab = () => {
     }
   };
 
-  const handleDeleteClick = (r) => setDeleteConfirm(r);
-  const handleDeleteConfirm = async () => {
-    if (!deleteConfirm) return;
+  const handleDeactivateClick = (r) => setActionConfirm({ resident: r, mode: 'deactivate' });
+  const handleDeleteClick = (r) => setActionConfirm({ resident: r, mode: 'delete' });
+  const handleActionConfirm = async () => {
+    if (!actionConfirm?.resident) return;
+    const { resident, mode } = actionConfirm;
     try {
       setSubmitting(true);
       setError(null);
-      await deleteResident(deleteConfirm.id);
-      setDeleteConfirm(null);
+      if (mode === 'delete') {
+        await permanentlyDeleteResident(resident.id);
+      } else {
+        await deactivateResident(resident.id);
+      }
+      setActionConfirm(null);
       loadResidents();
     } catch (err) {
-      setError(err.response?.data?.message || err.response?.data?.error || 'Failed to deactivate resident');
+      setError(
+        err.response?.data?.message ||
+          err.response?.data?.error ||
+          (mode === 'delete' ? 'Failed to delete resident' : 'Failed to deactivate resident')
+      );
     } finally {
       setSubmitting(false);
     }
@@ -298,7 +308,7 @@ const ResidentsTab = () => {
         </div>
       )}
 
-      {error && !modalOpen && !deleteConfirm && (
+      {error && !modalOpen && !actionConfirm && (
         <ErrorMessage message={error} type="error" onDismiss={() => setError(null)} />
       )}
 
@@ -335,12 +345,15 @@ const ResidentsTab = () => {
                   </td>
                   <td>{r.paymentMethodId ? 'On file' : '—'}</td>
                   <td>
-                    <div className="row-actions">
-                      <button type="button" className="btn-secondary btn-sm" onClick={() => handleOpenEdit(r)}>
+                    <div className="user-actions">
+                      <button type="button" className="edit-btn" onClick={() => handleOpenEdit(r)}>
                         Edit
                       </button>
-                      <button type="button" className="btn-danger btn-sm" onClick={() => handleDeleteClick(r)}>
+                      <button type="button" className="deactivate-btn" onClick={() => handleDeactivateClick(r)}>
                         Deactivate
+                      </button>
+                      <button type="button" className="delete-btn" onClick={() => handleDeleteClick(r)}>
+                        Delete
                       </button>
                     </div>
                   </td>
@@ -351,21 +364,48 @@ const ResidentsTab = () => {
         </div>
       )}
 
-      {deleteConfirm && (
-        <div className="admin-nursing-homes__overlay" onClick={() => !submitting && setDeleteConfirm(null)}>
+      {actionConfirm && (
+        <div className="admin-nursing-homes__overlay" onClick={() => !submitting && setActionConfirm(null)}>
           <div className="admin-nursing-homes__modal admin-nursing-homes__modal--delete" onClick={(e) => e.stopPropagation()}>
             <div className="admin-nursing-homes__modal-header">
-              <h2>Deactivate resident</h2>
-              <button type="button" className="admin-nursing-homes__modal-close" onClick={() => setDeleteConfirm(null)} disabled={submitting} aria-label="Close">×</button>
+              <h2>{actionConfirm.mode === 'delete' ? 'Confirm Delete' : 'Confirm Deactivate'}</h2>
+              <button
+                type="button"
+                className="admin-nursing-homes__modal-close"
+                onClick={() => setActionConfirm(null)}
+                disabled={submitting}
+                aria-label="Close"
+              >
+                ×
+              </button>
             </div>
             <div className="admin-nursing-homes__modal-content">
-              <p style={{ margin: '0 0 20px 0', color: 'rgba(6, 23, 87, 0.7)', lineHeight: 1.6 }}>
-                Deactivate &quot;{deleteConfirm.name}&quot;? They will no longer appear in active lists.
-              </p>
+              {actionConfirm.mode === 'delete' ? (
+                <p style={{ margin: '0 0 20px 0', color: 'rgba(6, 23, 87, 0.7)', lineHeight: 1.6 }}>
+                  Permanently delete &quot;{actionConfirm.resident.name}&quot;? This cannot be undone and will remove their orders from this facility.
+                </p>
+              ) : (
+                <p style={{ margin: '0 0 20px 0', color: 'rgba(6, 23, 87, 0.7)', lineHeight: 1.6 }}>
+                  Deactivate &quot;{actionConfirm.resident.name}&quot;? They will no longer appear in active lists.
+                </p>
+              )}
               <div className="admin-nursing-homes__form-actions">
-                <button type="button" onClick={() => setDeleteConfirm(null)} disabled={submitting}>Cancel</button>
-                <button type="button" className="btn-danger" onClick={handleDeleteConfirm} disabled={submitting}>
-                  {submitting ? 'Deactivating…' : 'Deactivate'}
+                <button type="button" onClick={() => setActionConfirm(null)} disabled={submitting}>
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className={actionConfirm.mode === 'delete' ? 'admin-nursing-homes__delete-confirm-btn' : 'btn-danger'}
+                  onClick={handleActionConfirm}
+                  disabled={submitting}
+                >
+                  {submitting
+                    ? actionConfirm.mode === 'delete'
+                      ? 'Deleting…'
+                      : 'Deactivating…'
+                    : actionConfirm.mode === 'delete'
+                      ? 'Delete Resident'
+                      : 'Deactivate'}
                 </button>
               </div>
             </div>

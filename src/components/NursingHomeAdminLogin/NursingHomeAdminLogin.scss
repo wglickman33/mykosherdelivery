@@ -1,15 +1,17 @@
+@use '../../styles/design-system' as *;
+
 .nursing-home-admin-login {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(160deg, $slate-50 0%, $nh-primary-light 100%);
   padding: 2rem;
 
   .login-container {
     background: white;
     border-radius: 16px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 10px 40px rgba(71, 85, 105, 0.1);
     padding: 3rem;
     max-width: 450px;
     width: 100%;
@@ -22,7 +24,7 @@
     h1 {
       font-size: 2rem;
       font-weight: 700;
-      color: #1a1a1a;
+      color: $nh-primary;
       margin: 0 0 0.5rem 0;
     }
 
@@ -59,11 +61,12 @@
         border: 2px solid #e5e7eb;
         border-radius: 8px;
         font-size: 1rem;
-        transition: border-color 0.2s;
+        transition: border-color 0.2s, box-shadow 0.2s;
 
         &:focus {
           outline: none;
-          border-color: #667eea;
+          border-color: $nh-primary;
+          box-shadow: 0 0 0 3px rgba(71, 85, 105, 0.15);
         }
 
         &:disabled {
@@ -76,17 +79,17 @@
     .login-btn {
       width: 100%;
       padding: 0.875rem;
-      background: #667eea;
+      background: $nh-primary;
       color: white;
       border: none;
       border-radius: 8px;
       font-size: 1rem;
       font-weight: 600;
       cursor: pointer;
-      transition: background 0.2s;
+      transition: background-color 0.2s;
 
       &:hover:not(:disabled) {
-        background: #5568d3;
+        background: $nh-primary-hover;
       }
 
       &:disabled {

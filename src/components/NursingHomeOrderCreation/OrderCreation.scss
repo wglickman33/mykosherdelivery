@@ -163,7 +163,7 @@
           background: $indigo-600;
           color: $white;
           border-color: $indigo-600;
-          box-shadow: $shadow-purple;
+          box-shadow: 0 2px 8px rgba(71, 85, 105, 0.12);
         }
 
         &:focus-visible {
@@ -224,7 +224,7 @@
           border-color: $indigo-600;
           color: $indigo-600;
           background: $indigo-50;
-          box-shadow: $shadow-purple;
+          box-shadow: 0 2px 8px rgba(71, 85, 105, 0.12);
         }
 
         &:focus-visible {
@@ -342,7 +342,7 @@
     }
 
     .selected-items-summary {
-      background: #faf5ff;
+      background: $slate-50;
       padding: 1rem;
       border-radius: 8px;
       margin-bottom: 1rem;
@@ -445,12 +445,12 @@
 
             &:hover {
               border-color: #475569;
-              background: #faf5ff;
+              background: $slate-50;
             }
 
             &.selected {
               border-color: #475569;
-              background: #faf5ff;
+              background: $slate-50;
             }
 
             .item-info {
@@ -588,7 +588,7 @@
 
     .summary-totals {
       padding: 1rem;
-      background: #faf5ff;
+      background: $slate-50;
       border-radius: 8px;
       margin-bottom: 1.5rem;
 

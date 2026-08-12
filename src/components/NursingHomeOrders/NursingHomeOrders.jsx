@@ -33,7 +33,7 @@ const NursingHomeOrders = () => {
       const [ordersRes, residentsRes] = await Promise.all([
         fetchResidentOrders(params),
         residents.length === 0
-          ? fetchResidents(facility?.id ? { facilityId: facility.id, limit: 200 } : { limit: 200 })
+          ? fetchResidents(facility?.id ? { facilityId: facility.id, limit: 200, isActive: 'true' } : { limit: 200, isActive: 'true' })
           : Promise.resolve(null)
       ]);
 

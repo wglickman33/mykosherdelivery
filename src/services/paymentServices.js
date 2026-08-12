@@ -289,18 +289,25 @@ export const buildNhBillingItemsHtml = (weeks = []) => {
 };
 
 /**
- * Nursing-home monthly billing receipt via EmailJS template_q1irb2l (MKD-styled).
- * Env: VITE_EMAILJS_NH_BILLING_TEMPLATE_ID (defaults to template_q1irb2l).
+ * Nursing-home monthly billing receipt via EmailJS.
+ * Requires VITE_EMAILJS_PUBLIC_KEY, VITE_EMAILJS_SERVICE_ID, VITE_EMAILJS_NH_BILLING_TEMPLATE_ID.
  */
 export const sendNhMonthlyBillingEmail = async (billingData = {}) => {
   try {
     const emailjsConfig = {
-      publicKey: import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'YOUR_EMAILJS_PUBLIC_KEY',
-      serviceId: import.meta.env.VITE_EMAILJS_SERVICE_ID || 'YOUR_EMAILJS_SERVICE_ID',
-      templateId:
-        import.meta.env.VITE_EMAILJS_NH_BILLING_TEMPLATE_ID ||
-        'template_q1irb2l'
+      publicKey: import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
+      serviceId: import.meta.env.VITE_EMAILJS_SERVICE_ID,
+      templateId: import.meta.env.VITE_EMAILJS_NH_BILLING_TEMPLATE_ID
     };
+
+    if (!emailjsConfig.publicKey || !emailjsConfig.serviceId || !emailjsConfig.templateId) {
+      console.warn('⚠️ EmailJS NH billing not configured — set VITE_EMAILJS_PUBLIC_KEY, VITE_EMAILJS_SERVICE_ID, VITE_EMAILJS_NH_BILLING_TEMPLATE_ID');
+      return {
+        success: false,
+        error: 'EmailJS nursing-home billing template is not configured',
+        note: 'Set VITE_EMAILJS_NH_BILLING_TEMPLATE_ID (and public key / service id) in the frontend environment'
+      };
+    }
 
     const toEmail = billingData.billingEmail || billingData.toEmail || billingData.customerEmail;
     if (!toEmail) {
@@ -348,12 +355,6 @@ export const sendNhMonthlyBillingEmail = async (billingData = {}) => {
       'cost.tax': money(billingData.tax ?? 0),
       'cost.total': money(billingData.amount ?? billingData.total)
     };
-
-    if (emailjsConfig.publicKey === 'YOUR_EMAILJS_PUBLIC_KEY') {
-      console.warn('⚠️ EmailJS not configured - skipping NH billing email');
-      console.log('📧 NH billing email would send:', templateParams);
-      return { success: true, note: 'Email simulated - configure EmailJS for real emails' };
-    }
 
     const { default: emailjs } = await import('@emailjs/browser');
     const response = await emailjs.send(

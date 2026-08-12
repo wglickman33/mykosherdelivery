@@ -20,6 +20,12 @@
       font-weight: $font-weight-semibold;
       color: $gray-600;
       margin-bottom: $spacing-lg;
+      transition: background-color 0.15s ease, color 0.15s ease;
+
+      &:hover {
+        background: $gray-200;
+        color: $gray-800;
+      }
     }
 
     .header-row {
@@ -126,5 +132,13 @@
       color: $gray-700;
       margin: 0;
     }
+  }
+
+  .btn-primary {
+    @include button-primary;
+  }
+
+  .btn-secondary {
+    @include button-secondary;
   }
 }

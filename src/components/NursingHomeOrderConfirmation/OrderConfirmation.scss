@@ -47,4 +47,12 @@
     flex-direction: column;
     gap: $spacing-md;
   }
+
+  .btn-primary {
+    @include button-primary;
+  }
+
+  .btn-secondary {
+    @include button-secondary;
+  }
 }

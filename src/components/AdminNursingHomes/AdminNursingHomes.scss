@@ -148,14 +148,14 @@
       border-radius: 8px;
       font-weight: 500;
       cursor: pointer;
-      transition: background 0.2s, transform 0.1s;
+      transition: background 0.2s;
 
       &:hover:not(:disabled) {
         background: #334155;
       }
 
       &:active:not(:disabled) {
-        transform: translateY(1px);
+        background: #1e293b;
       }
 
       &:disabled {
@@ -370,6 +370,49 @@
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
+      }
+
+      .user-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+
+        button {
+          padding: 6px 12px;
+          border-radius: 6px;
+          font-size: 0.8rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          border: none;
+
+          &.edit-btn {
+            background: #fef3c7;
+            color: #92400e;
+
+            &:hover {
+              background: #fde68a;
+            }
+          }
+
+          &.deactivate-btn {
+            background: #e0e7ff;
+            color: #3730a3;
+
+            &:hover {
+              background: #c7d2fe;
+            }
+          }
+
+          &.delete-btn {
+            background: #fee2e2;
+            color: #991b1b;
+
+            &:hover {
+              background: #fecaca;
+            }
+          }
+        }
       }
 
       .assigning-label {
@@ -771,6 +814,18 @@
             color: #1e293b;
             font-size: 0.9rem;
             cursor: pointer;
+            transition: border-color 0.15s ease, background-color 0.15s ease;
+
+            &:hover {
+              border-color: #cbd5e1;
+              background: #f8fafc;
+            }
+
+            &:focus {
+              outline: none;
+              border-color: #94a3b8;
+              background: #fff;
+            }
           }
         }
 
@@ -960,6 +1015,37 @@
           border-color: #dc2626;
         }
       }
+
+      .facility-btn-reactivate {
+        background: #ecfdf5;
+        color: #047857;
+        border: 1px solid #a7f3d0;
+
+        &:hover {
+          background: #059669;
+          color: #fff;
+          border-color: #059669;
+        }
+      }
+    }
+
+    .facility-status {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+
+      &--active {
+        background: #ecfdf5;
+        color: #047857;
+      }
+
+      &--inactive {
+        background: #f1f5f9;
+        color: #64748b;
+      }
     }
 
     .admin-nursing-homes__overlay {
@@ -1116,6 +1202,15 @@
         &:hover:not(:disabled) {
           background: #dc2626;
           border-color: #dc2626;
+        }
+      }
+      .admin-nursing-homes__delete-confirm-btn {
+        background: #dc2626;
+        color: #fff;
+        border-color: #dc2626;
+        &:hover:not(:disabled) {
+          background: #b91c1c;
+          border-color: #b91c1c;
         }
       }
       button:disabled {

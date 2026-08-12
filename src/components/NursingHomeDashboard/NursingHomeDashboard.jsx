@@ -42,7 +42,7 @@ const NursingHomeDashboard = () => {
       setError(null);
       const params = facility?.id ? { facilityId: facility.id } : {};
       const [residentsRes, ordersRes] = await Promise.all([
-        fetchResidents({ ...params, limit: 200 }),
+        fetchResidents({ ...params, limit: 200, isActive: 'true' }),
         fetchResidentOrders({ ...params, limit: 200 })
       ]);
       setResidents(Array.isArray(residentsRes?.data) ? residentsRes.data : []);

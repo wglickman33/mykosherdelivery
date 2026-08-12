@@ -113,6 +113,20 @@ const FacilitiesTab = () => {
     }
   };
 
+  const handleReactivate = async (f) => {
+    try {
+      setSubmitting(true);
+      setError(null);
+      await updateFacility(f.id, { isActive: true });
+      load();
+      window.dispatchEvent(new CustomEvent('mkd-communities-refresh'));
+    } catch (err) {
+      setError(err.response?.data?.message || err.response?.data?.error || 'Failed to reactivate facility');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleChange = (field, value) => {
     if (field.startsWith('address.')) {
       const key = field.split('.')[1];
@@ -210,6 +224,7 @@ const FacilitiesTab = () => {
                 <col className="col-address" />
                 <col className="col-email" />
                 <col className="col-phone" />
+                <col className="col-status" />
                 <col className="col-actions" />
               </colgroup>
               <thead>
@@ -219,12 +234,13 @@ const FacilitiesTab = () => {
                   <th>Address</th>
                   <th>Email</th>
                   <th>Phone</th>
+                  <th>Status</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {pagedFacilities.map((f) => (
-                <tr key={f.id}>
+                <tr key={f.id} className={f.isActive === false ? 'facility-row--inactive' : undefined}>
                   <td>
                     <div className="facility-name-cell">
                       {f.logoUrl ? (
@@ -243,29 +259,49 @@ const FacilitiesTab = () => {
                   <td>{addressLine(f)}</td>
                   <td>{f.contactEmail || '—'}</td>
                   <td className="facility-phone-cell">{formatPhone(f.contactPhone)}</td>
+                  <td>
+                    <span className={`facility-status ${f.isActive === false ? 'facility-status--inactive' : 'facility-status--active'}`}>
+                      {f.isActive === false ? 'Inactive' : 'Active'}
+                    </span>
+                  </td>
                   <td className="facility-actions-cell">
                     <div className="facility-actions">
-                      <button
-                        type="button"
-                        className="facility-btn facility-btn-enter btn-sm"
-                        onClick={() => navigate(`/nursing-homes/dashboard?facilityId=${f.id}`)}
-                      >
-                        Enter
-                      </button>
-                      <button
-                        type="button"
-                        className="facility-btn facility-btn-menu btn-sm"
-                        onClick={() => navigate(`/nursing-homes/menu?facilityId=${f.id}`)}
-                        title="View menu"
-                      >
-                        Menu
-                      </button>
+                      {f.isActive !== false && (
+                        <>
+                          <button
+                            type="button"
+                            className="facility-btn facility-btn-enter btn-sm"
+                            onClick={() => navigate(f.slug ? `/nursing-homes/${f.slug}/dashboard` : `/nursing-homes/dashboard?facilityId=${f.id}`)}
+                          >
+                            Enter
+                          </button>
+                          <button
+                            type="button"
+                            className="facility-btn facility-btn-menu btn-sm"
+                            onClick={() => navigate(f.slug ? `/nursing-homes/${f.slug}/menu` : `/nursing-homes/menu?facilityId=${f.id}`)}
+                            title="View menu"
+                          >
+                            Menu
+                          </button>
+                        </>
+                      )}
                       <button type="button" className="facility-btn facility-btn-edit btn-sm" onClick={() => handleOpenEdit(f)}>
                         Edit
                       </button>
-                      <button type="button" className="facility-btn facility-btn-deactivate btn-sm" onClick={() => handleDeleteClick(f)}>
-                        Deactivate
-                      </button>
+                      {f.isActive === false ? (
+                        <button
+                          type="button"
+                          className="facility-btn facility-btn-reactivate btn-sm"
+                          onClick={() => handleReactivate(f)}
+                          disabled={submitting}
+                        >
+                          Reactivate
+                        </button>
+                      ) : (
+                        <button type="button" className="facility-btn facility-btn-deactivate btn-sm" onClick={() => handleDeleteClick(f)}>
+                          Deactivate
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -296,7 +332,7 @@ const FacilitiesTab = () => {
             </div>
             <div className="admin-nursing-homes__modal-content">
               <p style={{ margin: '0 0 20px 0', color: 'rgba(6, 23, 87, 0.7)', lineHeight: 1.6 }}>
-                Deactivate &quot;{deleteConfirm.name}&quot;? Staff and residents will need to be reassigned. This can be reverted later by editing the facility.
+                Deactivate &quot;{deleteConfirm.name}&quot;? The facility portal will be locked until you reactivate it.
               </p>
               <div className="admin-nursing-homes__form-actions">
                 <button type="button" onClick={() => setDeleteConfirm(null)} disabled={submitting}>Cancel</button>

@@ -50,6 +50,11 @@ const MealForm = ({ day, mealType, menuItems, currentMeal, onUpdate, resident })
     const isSoup = cat === 'soup';
     const isDessert = cat === 'dessert';
 
+    const currentMains = items.filter((i) => ['main', 'entree'].includes(normCat(i.category)));
+    if (isSide && currentMains.some((i) => i.excludesSide === true)) {
+      return items;
+    }
+
     let next = items.filter((i) => {
       const c = normCat(i.category);
       if (isMainLike && (c === 'main' || c === 'entree')) return false;
@@ -77,8 +82,15 @@ const MealForm = ({ day, mealType, menuItems, currentMeal, onUpdate, resident })
       id: incoming.id,
       name: incoming.name,
       category: incoming.category,
-      price: incoming.price
+      price: incoming.price,
+      excludesSide: !!incoming.excludesSide,
+      requiresBagelType: !!incoming.requiresBagelType
     }];
+
+    if (isMainLike && incoming.excludesSide) {
+      next = next.filter((i) => normCat(i.category) !== 'side');
+    }
+
     return next;
   };
 
@@ -97,7 +109,8 @@ const MealForm = ({ day, mealType, menuItems, currentMeal, onUpdate, resident })
 
     setSelectedItems(newItems);
     const nextBagel = newItems.some((i) =>
-      i.name.toLowerCase().includes('bagel') && !i.name.toLowerCase().includes('type')
+      i.requiresBagelType === true ||
+      (i.name.toLowerCase().includes('bagel') && !i.name.toLowerCase().includes('type'))
     ) ? bagelType : '';
     if (!nextBagel) setBagelType('');
     emitUpdate(newItems, nextBagel || null, false);
@@ -116,8 +129,12 @@ const MealForm = ({ day, mealType, menuItems, currentMeal, onUpdate, resident })
   };
 
   const needsBagelType = !isNone && selectedItems.some((item) =>
-    item.name.toLowerCase().includes('bagel') &&
-    !item.name.toLowerCase().includes('type')
+    item.requiresBagelType === true ||
+    (item.name.toLowerCase().includes('bagel') && !item.name.toLowerCase().includes('type'))
+  );
+
+  const sideExcluded = selectedItems.some((i) =>
+    ['main', 'entree'].includes(normCat(i.category)) && i.excludesSide === true
   );
 
   const filteredItems = (menuItems || []).filter((item) =>
@@ -141,9 +158,11 @@ const MealForm = ({ day, mealType, menuItems, currentMeal, onUpdate, resident })
     ? ['main', 'entree', 'side', 'soup', 'dessert']
     : ['main', 'entree', 'side'];
 
-  const visibleCategories = sortedCategories.filter((cat) =>
-    allowedCategories.includes(normCat(cat))
-  );
+  const visibleCategories = sortedCategories.filter((cat) => {
+    const n = normCat(cat);
+    if (sideExcluded && n === 'side') return false;
+    return allowedCategories.includes(n);
+  });
 
   return (
     <div className="meal-form">
@@ -216,6 +235,11 @@ const MealForm = ({ day, mealType, menuItems, currentMeal, onUpdate, resident })
                   </span>
                 ))}
               </div>
+            )}
+            {sideExcluded && (
+              <p className="no-selection" style={{ marginTop: '0.5rem' }}>
+                This main does not include a side.
+              </p>
             )}
           </div>
 

@@ -331,12 +331,12 @@ const StaffTab = () => {
                   <td>{u.role === 'nursing_home_admin' ? 'Admin' : 'User'}</td>
                   <td>{u.phone || '—'}</td>
                   <td>
-                    <div className="row-actions">
-                      <button type="button" className="btn-secondary btn-sm" onClick={() => handleOpenEdit(u)}>
+                    <div className="user-actions">
+                      <button type="button" className="edit-btn" onClick={() => handleOpenEdit(u)}>
                         Edit
                       </button>
-                      <button type="button" className="btn-danger btn-sm" onClick={() => handleDeleteClick(u)}>
-                        Remove
+                      <button type="button" className="delete-btn" onClick={() => handleDeleteClick(u)}>
+                        Delete
                       </button>
                     </div>
                   </td>
@@ -351,17 +351,17 @@ const StaffTab = () => {
         <div className="admin-nursing-homes__overlay" onClick={() => !submitting && setDeleteConfirm(null)}>
           <div className="admin-nursing-homes__modal admin-nursing-homes__modal--delete" onClick={(e) => e.stopPropagation()}>
             <div className="admin-nursing-homes__modal-header">
-              <h2>Remove staff</h2>
+              <h2>Confirm Delete</h2>
               <button type="button" className="admin-nursing-homes__modal-close" onClick={() => setDeleteConfirm(null)} disabled={submitting} aria-label="Close">×</button>
             </div>
             <div className="admin-nursing-homes__modal-content">
               <p style={{ margin: '0 0 20px 0', color: 'rgba(6, 23, 87, 0.7)', lineHeight: 1.6 }}>
-                Remove {deleteConfirm.firstName} {deleteConfirm.lastName} from this facility? They will no longer have access.
+                Remove {deleteConfirm.firstName} {deleteConfirm.lastName} from this facility? They will lose nursing-home portal access for this facility. This does not delete their login from Admin Users.
               </p>
               <div className="admin-nursing-homes__form-actions">
                 <button type="button" onClick={() => setDeleteConfirm(null)} disabled={submitting}>Cancel</button>
-                <button type="button" className="btn-danger" onClick={handleDeleteConfirm} disabled={submitting}>
-                  {submitting ? 'Removing…' : 'Remove'}
+                <button type="button" className="admin-nursing-homes__delete-confirm-btn" onClick={handleDeleteConfirm} disabled={submitting}>
+                  {submitting ? 'Removing…' : 'Delete from Facility'}
                 </button>
               </div>
             </div>

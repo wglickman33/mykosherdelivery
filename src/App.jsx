@@ -166,6 +166,16 @@ function AuthenticatedApp() {
       logger.debug('App.jsx - Authenticated user on landing/auth, redirecting to /home');
       return <Navigate to="/home" replace />;
     }
+    // Keep NH staff out of consumer app routes (direct /home, /restaurants, etc.)
+    if (
+      isNursingHomeRole(user.role) &&
+      !pathname.startsWith('/nursing-homes') &&
+      !pathname.startsWith('/admin') &&
+      isAppRoute
+    ) {
+      logger.debug('App.jsx - Nursing home role on consumer app route, redirecting to /nursing-homes');
+      return <Navigate to="/nursing-homes" replace />;
+    }
     return renderApp();
   }
 

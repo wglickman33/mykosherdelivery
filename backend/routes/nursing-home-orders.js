@@ -225,9 +225,28 @@ const MEAL_PRICES = {
   dinner: 23.00
 };
 
+function toDateOnlyString(value) {
+  if (!value) return null;
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString().slice(0, 10);
+  }
+  const raw = String(value).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10);
+  const parsed = new Date(raw);
+  if (!Number.isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 10);
+  return null;
+}
+
 function calculateDeadline(weekStartDate) {
   // Orders for a week starting Monday are due the previous Sunday at 12:00 America/New_York
-  const start = new Date(`${weekStartDate}T12:00:00Z`);
+  const dateOnly = toDateOnlyString(weekStartDate);
+  if (!dateOnly) {
+    throw new Error('Invalid weekStartDate for deadline calculation');
+  }
+  const start = new Date(`${dateOnly}T12:00:00Z`);
+  if (Number.isNaN(start.getTime())) {
+    throw new Error('Invalid weekStartDate for deadline calculation');
+  }
   const sundayUtcGuess = new Date(start);
   sundayUtcGuess.setUTCDate(start.getUTCDate() - 1);
 
@@ -282,6 +301,86 @@ function isNoneMeal(meal) {
     const name = item.name != null ? String(item.name).toLowerCase() : '';
     return id === 'none' || name === 'none';
   });
+}
+
+function normCat(category) {
+  return String(category || '').toLowerCase();
+}
+
+/** Enforce breakfast/lunch/dinner composition (matches portal MealForm rules). */
+function itemNeedsBagelType(item) {
+  if (item?.requiresBagelType === true) return true;
+  const name = item?.name != null ? String(item.name) : '';
+  return /bagel/i.test(name) && !/type/i.test(name);
+}
+
+function mainsExcludeSide(mains) {
+  return mains.some((i) => i.excludesSide === true);
+}
+
+function validateMealComposition(meal) {
+  if (isNoneMeal(meal)) return null;
+  const mealType = meal.mealType;
+  const items = Array.isArray(meal.items) ? meal.items : [];
+  const mains = items.filter((i) => ['main', 'entree'].includes(normCat(i.category)));
+  const sides = items.filter((i) => normCat(i.category) === 'side');
+  const soups = items.filter((i) => normCat(i.category) === 'soup');
+  const desserts = items.filter((i) => normCat(i.category) === 'dessert');
+  const skipSide = mainsExcludeSide(mains);
+
+  if (mealType === 'breakfast') {
+    if (mains.length !== 1) return 'Breakfast requires exactly one main';
+    if (skipSide) {
+      if (sides.length > 0) return 'This main does not include a side';
+    } else if (sides.length !== 1) {
+      return 'Breakfast requires exactly one side';
+    }
+    const needsBagel = mains.some(itemNeedsBagelType);
+    if (needsBagel && !meal.bagelType) return 'Select a bagel type for breakfast';
+    if (soups.length || desserts.length) {
+      return skipSide
+        ? 'Breakfast only allows one main when side is excluded'
+        : 'Breakfast only allows one main and one side';
+    }
+  }
+
+  if (mealType === 'lunch') {
+    if (mains.length !== 1) return 'Lunch requires exactly one entree';
+    if (skipSide) {
+      if (sides.length > 0) return 'This entree does not include a side';
+    } else if (sides.length !== 1) {
+      return 'Lunch requires exactly one side';
+    }
+    if (soups.length || desserts.length) {
+      return skipSide
+        ? 'Lunch only allows one entree when side is excluded'
+        : 'Lunch only allows one entree and one side';
+    }
+  }
+
+  if (mealType === 'dinner') {
+    if (mains.length !== 1) return 'Dinner requires exactly one entree';
+    if (skipSide) {
+      if (sides.length > 0) return 'This entree does not include a side';
+    } else if (sides.length !== 1) {
+      return 'Dinner requires exactly one side';
+    }
+    if (soups.length > 1) return 'Dinner allows at most one soup';
+    if (desserts.length > 1) return 'Dinner allows at most one dessert';
+  }
+
+  return null;
+}
+
+function validateMealsComposition(meals) {
+  const errors = [];
+  (meals || []).forEach((meal) => {
+    const err = validateMealComposition(meal);
+    if (err) {
+      errors.push(`${meal.day || ''} ${meal.mealType || ''}: ${err}`.trim());
+    }
+  });
+  return errors;
 }
 
 function canAccessFacilityResident(user, resident) {
@@ -498,6 +597,16 @@ router.post('/resident-orders', requireNursingHomeUser, validateResidentOrder, a
       });
     }
 
+    const compositionErrors = validateMealsComposition(meals);
+    if (compositionErrors.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid meal selection',
+        message: compositionErrors[0],
+        details: compositionErrors
+      });
+    }
+
     const deadline = calculateDeadline(weekStartDate);
     const totals = await calculateOrderTotalsFromDB(meals);
     const orderNumber = generateOrderNumber();
@@ -590,6 +699,15 @@ router.put('/resident-orders/:id', requireNursingHomeUser, validateOrderUpdate, 
 
     const updateData = {};
     if (meals) {
+      const compositionErrors = validateMealsComposition(meals);
+      if (compositionErrors.length > 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid meal selection',
+          message: compositionErrors[0],
+          details: compositionErrors
+        });
+      }
       updateData.meals = meals;
       const totals = await calculateOrderTotalsFromDB(meals);
       updateData.totalMeals = totals.totalMeals;

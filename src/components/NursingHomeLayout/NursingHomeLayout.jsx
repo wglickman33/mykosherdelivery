@@ -173,11 +173,20 @@ const NursingHomeLayout = () => {
       return <Navigate to="/nursing-homes" replace />;
     }
     return (
-      <div className="nh-auth-loading">
-        <p>Facility not found or access denied.</p>
-        <button type="button" onClick={() => navigate('/admin/nursing-homes')}>
-          Back to Admin
-        </button>
+      <div className="nh-facility-blocked">
+        <div className="nh-facility-blocked__card">
+          <h1>Facility access</h1>
+          <p>This facility was not found, is inactive, or you do not have access.</p>
+          <div className="nh-facility-blocked__actions">
+            <button
+              type="button"
+              className="nh-facility-blocked__btn nh-facility-blocked__btn--primary"
+              onClick={() => navigate('/admin/nursing-homes')}
+            >
+              Back to Admin
+            </button>
+          </div>
+        </div>
       </div>
     );
   }

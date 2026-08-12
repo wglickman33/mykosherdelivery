@@ -25,6 +25,7 @@
     "test": "jest --detectOpenHandles --forceExit",
     "test:watch": "jest --watch --detectOpenHandles",
     "test:coverage": "jest --coverage --detectOpenHandles --forceExit",
+    "test:nh": "jest --detectOpenHandles --forceExit tests/nursing-home",
     "lint": "eslint . --ext .js",
     "lint:fix": "eslint . --ext .js --fix",
     "security:audit": "npm audit",

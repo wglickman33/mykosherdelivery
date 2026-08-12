@@ -1,5 +1,6 @@
 import api from '../lib/api';
 import logger from '../utils/logger';
+import { unwrapData, unwrapMenuPayload } from './nursingHomeService';
 
 export const fetchNursingHomeMenu = async (filters = {}) => {
   try {
@@ -17,9 +18,7 @@ export const fetchNursingHomeMenu = async (filters = {}) => {
     const queryString = params.toString();
     const url = queryString ? `/nursing-homes/menu?${queryString}` : '/nursing-homes/menu';
     const response = await api.get(url);
-    const body = response?.data ?? response;
-    const items = Array.isArray(body?.data?.items) ? body.data.items : (Array.isArray(body?.items) ? body.items : []);
-    const grouped = body?.data?.grouped ?? body?.grouped ?? {};
+    const { items, grouped } = unwrapMenuPayload(response);
     if (import.meta.env.DEV) {
       console.debug('[DEBUG] NH menu: response shape and extracted items count', { itemsLength: items.length });
     }
@@ -36,12 +35,12 @@ export const fetchNursingHomeMenu = async (filters = {}) => {
 export const createNursingHomeMenuItem = async (menuItemData) => {
   try {
     const response = await api.post('/nursing-homes/menu', menuItemData);
-    return { success: true, data: response.data.data };
+    return { success: true, data: unwrapData(response) };
   } catch (error) {
     logger.error('Error creating nursing home menu item:', error);
-    return { 
-      success: false, 
-      error: error.response?.data?.error || 'Failed to create menu item' 
+    return {
+      success: false,
+      error: error.response?.data?.error || error.message || 'Failed to create menu item'
     };
   }
 };
@@ -49,12 +48,12 @@ export const createNursingHomeMenuItem = async (menuItemData) => {
 export const updateNursingHomeMenuItem = async (id, menuItemData) => {
   try {
     const response = await api.put(`/nursing-homes/menu/${id}`, menuItemData);
-    return { success: true, data: response.data.data };
+    return { success: true, data: unwrapData(response) };
   } catch (error) {
     logger.error('Error updating nursing home menu item:', error);
-    return { 
-      success: false, 
-      error: error.response?.data?.error || 'Failed to update menu item' 
+    return {
+      success: false,
+      error: error.response?.data?.error || error.message || 'Failed to update menu item'
     };
   }
 };
@@ -62,12 +61,12 @@ export const updateNursingHomeMenuItem = async (id, menuItemData) => {
 export const deleteNursingHomeMenuItem = async (id) => {
   try {
     const response = await api.delete(`/nursing-homes/menu/${id}`);
-    return { success: true, data: response.data };
+    return { success: true, data: unwrapData(response) ?? response };
   } catch (error) {
     logger.error('Error deleting nursing home menu item:', error);
-    return { 
-      success: false, 
-      error: error.response?.data?.error || 'Failed to delete menu item' 
+    return {
+      success: false,
+      error: error.response?.data?.error || error.message || 'Failed to delete menu item'
     };
   }
 };
