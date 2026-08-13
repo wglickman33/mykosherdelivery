@@ -142,6 +142,24 @@ router.get('/', optionalAuth, listRestaurantsQueryValidation, async (req, res) =
   }
 });
 
+// Public endpoint — no auth required, used by checkout for guests.
+// Must be registered before /:id so "delivery-zones" is not treated as an id.
+router.get('/delivery-zones', async (req, res) => {
+  try {
+    const deliveryZones = await DeliveryZone.findAll({
+      where: { available: true },
+      order: [['state', 'ASC'], ['city', 'ASC'], ['zipCode', 'ASC']]
+    });
+    res.json(deliveryZones);
+  } catch (error) {
+    console.error('Error fetching delivery zones (public):', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: 'Failed to fetch delivery zones'
+    });
+  }
+});
+
 router.get('/:id', optionalAuth, async (req, res) => {
   try {
     const restaurantId = resolveRestaurantId(req.params.id);
@@ -431,23 +449,6 @@ router.get('/:id/menu/:itemId', async (req, res) => {
     res.status(500).json({
       error: 'Internal server error',
       message: 'Failed to fetch menu item'
-    });
-  }
-});
-
-// Public endpoint — no auth required, used by checkout for guests
-router.get('/delivery-zones', async (req, res) => {
-  try {
-    const deliveryZones = await DeliveryZone.findAll({
-      where: { available: true },
-      order: [['state', 'ASC'], ['city', 'ASC'], ['zipCode', 'ASC']]
-    });
-    res.json(deliveryZones);
-  } catch (error) {
-    console.error('Error fetching delivery zones (public):', error);
-    res.status(500).json({
-      error: 'Internal server error',
-      message: 'Failed to fetch delivery zones'
     });
   }
 });
