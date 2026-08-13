@@ -332,3 +332,13 @@ export const formatAssignedStaffContact = (assignedUser) => {
 export const ADMIN_ALREADY_ORDERED_MESSAGE =
   'A facility administrator has already placed an order for you this week. Contact them with any questions.';
 
+/** Fixed NH order deadline countdown — Sunday 12:00 America/New_York (not AdminSettings). */
+export const NH_ORDER_COUNTDOWN_SETTINGS = {
+  targetDay: 0,
+  targetTime: '12:00',
+  resetDay: 1,
+  resetTime: '00:00',
+  timezone: 'America/New_York',
+  targetDayName: 'Sunday',
+  resetDayName: 'Monday'
+};

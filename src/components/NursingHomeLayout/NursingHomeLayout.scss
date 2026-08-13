@@ -183,16 +183,23 @@
 
   .nav-item {
     color: rgba(255, 255, 255, 0.75);
+
     &:hover {
       background: rgba(255, 255, 255, 0.1);
       color: $white;
     }
+
     &.active {
-      background: rgba($nh-primary, 0.25);
-      color: $nh-primary-light;
-      border-right-color: $nh-primary;
+      background: rgba($nh-accent, 0.18);
+      color: $white;
+      border-right: 3px solid $nh-accent;
+
       &::before {
-        background: $nh-primary;
+        background: $nh-accent;
+      }
+
+      .nav-icon {
+        color: $nh-accent;
       }
     }
   }

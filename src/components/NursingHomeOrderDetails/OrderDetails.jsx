@@ -11,7 +11,6 @@ import { useAuth } from '../../hooks/useAuth';
 import { NH_CONFIG } from '../../config/constants';
 import {
   isNoneMeal,
-  mealHasItems,
   isStaffPlacedOrder,
   formatAssignedStaffContact,
   ADMIN_ALREADY_ORDERED_MESSAGE
@@ -197,7 +196,7 @@ const OrderDetails = () => {
       </section>
 
       <section className="details-card">
-        <h2>Week &amp; totals</h2>
+        <h2>Week overview</h2>
         <div className="detail-rows">
           <div className="detail-row">
             <span>Week</span>
@@ -215,19 +214,10 @@ const OrderDetails = () => {
             <span>Total meals</span>
             <span>{order?.totalMeals}</span>
           </div>
-          <div className="detail-row">
-            <span>Subtotal</span>
-            <span>${parseFloat(order?.subtotal || 0).toFixed(2)}</span>
-          </div>
-          <div className="detail-row">
-            <span>Tax</span>
-            <span>${parseFloat(order?.tax || 0).toFixed(2)}</span>
-          </div>
-          <div className="detail-row total">
-            <span>Total</span>
-            <span>${parseFloat(order?.total || 0).toFixed(2)}</span>
-          </div>
         </div>
+        <p className="billing-note">
+          Charges appear on the monthly invoice. Item prices are not shown here.
+        </p>
       </section>
 
       <section className="details-card">
@@ -238,18 +228,29 @@ const OrderDetails = () => {
           return (
             <div key={day} className="day-block">
               <h3>{day}</h3>
-              {meals.map((meal, i) => (
-                <div key={i} className="meal-row">
-                  <span className="meal-type">{meal.mealType}</span>
-                  <span>
-                    {isNoneMeal(meal)
-                      ? 'None'
-                      : mealHasItems(meal)
-                        ? `${meal.items.length} items`
-                        : '-'}
-                  </span>
-                </div>
-              ))}
+              {meals.map((meal, i) => {
+                const none = isNoneMeal(meal);
+                return (
+                  <div key={i} className="meal-row meal-row--detail">
+                    <div className="meal-row__head">
+                      <span className="meal-type">{meal.mealType}</span>
+                      <span className="meal-status">{none ? 'Skipped' : 'Selected'}</span>
+                    </div>
+                    {none ? (
+                      <p className="meal-item-name">None</p>
+                    ) : (
+                      (meal.items || []).map((item) => (
+                        <p key={item.id || item.name} className="meal-item-name">
+                          {item.name}
+                        </p>
+                      ))
+                    )}
+                    {meal.bagelType && !none && (
+                      <p className="bagel-note">Bagel: {meal.bagelType}</p>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           );
         })}

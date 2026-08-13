@@ -74,6 +74,12 @@
       margin: 0;
     }
 
+    .billing-note {
+      margin: $spacing-md 0 0;
+      font-size: $font-size-sm;
+      color: $gray-600;
+    }
+
     .detail-rows {
       display: flex;
       flex-direction: column;
@@ -124,6 +130,36 @@
         .meal-type {
           text-transform: capitalize;
           color: $gray-600;
+        }
+
+        &.meal-row--detail {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: $spacing-xs;
+
+          .meal-row__head {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            gap: $spacing-sm;
+          }
+
+          .meal-status {
+            color: $gray-500;
+            font-size: $font-size-sm;
+          }
+
+          .meal-item-name {
+            margin: 0;
+            font-weight: $font-weight-semibold;
+            color: $gray-800;
+          }
+
+          .bagel-note {
+            margin: 0;
+            font-size: $font-size-sm;
+            color: $gray-600;
+          }
         }
       }
     }

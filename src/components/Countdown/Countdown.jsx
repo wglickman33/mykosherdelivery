@@ -4,8 +4,8 @@ import "./Countdown.scss";
 import { getCountdownSettings } from "../../services/countdownService";
 import { isInPastDuePeriod, getNextTargetDate as computeNextTargetDate, getTimeInTimezone } from "../../utils/countdownUtils";
 
-const Countdown = ({ variant = "default", className = "" }) => {
-  const [settings, setSettings] = useState({
+const Countdown = ({ variant = "default", className = "", fixedSettings = null }) => {
+  const [settings, setSettings] = useState(fixedSettings || {
     targetDay: 4,
     targetTime: '18:00',
     resetDay: 6,
@@ -99,6 +99,11 @@ const Countdown = ({ variant = "default", className = "" }) => {
   }, [settings, getNextTargetDate]);
 
   useEffect(() => {
+    if (fixedSettings) {
+      setSettings(fixedSettings);
+      return undefined;
+    }
+
     const loadSettings = async () => {
       try {
         const fetchedSettings = await getCountdownSettings();
@@ -107,9 +112,10 @@ const Countdown = ({ variant = "default", className = "" }) => {
         console.error('Failed to load countdown settings, using defaults:', error);
       }
     };
-    
+
     loadSettings();
-  }, []);
+    return undefined;
+  }, [fixedSettings]);
 
   useEffect(() => {
     if (settings.targetDay !== undefined) {
@@ -232,6 +238,15 @@ const Countdown = ({ variant = "default", className = "" }) => {
 Countdown.propTypes = {
   variant: PropTypes.string,
   className: PropTypes.string,
+  fixedSettings: PropTypes.shape({
+    targetDay: PropTypes.number,
+    targetTime: PropTypes.string,
+    resetDay: PropTypes.number,
+    resetTime: PropTypes.string,
+    timezone: PropTypes.string,
+    targetDayName: PropTypes.string,
+    resetDayName: PropTypes.string
+  })
 };
 
 export default Countdown;

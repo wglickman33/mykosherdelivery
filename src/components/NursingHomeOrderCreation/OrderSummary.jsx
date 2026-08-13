@@ -4,8 +4,7 @@ import {
   calculateNhOrderTotals,
   isNoneMeal,
   mealHasItems,
-  isDayComplete,
-  NH_MEAL_PRICES
+  isDayComplete
 } from '../../utils/nursingHomeOrderUtils';
 
 const MEAL_ORDER = ['breakfast', 'lunch', 'dinner'];
@@ -18,7 +17,11 @@ const OrderSummary = ({
   saving,
   totalMeals,
   onJumpToMeal,
-  highlight
+  highlight,
+  dockNextLabel,
+  dockNextDisabled,
+  onDockNext,
+  showDockSubmit
 }) => {
   const totals = calculateNhOrderTotals(meals);
   const days = NH_CONFIG.MEALS.DAYS;
@@ -73,24 +76,28 @@ const OrderSummary = ({
     </div>
   ) : null;
 
+  const progressBlock = (
+    <div className="summary-progress" aria-label="Order progress">
+      <div className="summary-progress__row">
+        <span>{filledSlots} of 21 slots</span>
+        <span>{completedDays} days done</span>
+      </div>
+      <div className="summary-progress__bar" role="presentation">
+        <div
+          className="summary-progress__fill"
+          style={{ width: `${Math.min(100, (filledSlots / 21) * 100)}%` }}
+        />
+      </div>
+    </div>
+  );
+
   return (
     <>
       <aside className={`order-summary ${highlight ? 'order-summary--highlight' : ''}`}>
         <div className="summary-header">
           <h2>Order Summary</h2>
           <p className="resident-info">{resident?.name}</p>
-          <div className="summary-progress" aria-label="Order progress">
-            <div className="summary-progress__row">
-              <span>{filledSlots} of 21 slots</span>
-              <span>{completedDays} days done</span>
-            </div>
-            <div className="summary-progress__bar" role="presentation">
-              <div
-                className="summary-progress__fill"
-                style={{ width: `${Math.min(100, (filledSlots / 21) * 100)}%` }}
-              />
-            </div>
-          </div>
+          {progressBlock}
         </div>
 
         {actions}
@@ -117,7 +124,6 @@ const OrderSummary = ({
                       </div>
                       {dayMeals.map((meal) => {
                         const none = isNoneMeal(meal);
-                        const price = none ? 0 : (NH_MEAL_PRICES[meal.mealType] ?? 0);
                         return (
                           <button
                             key={`${meal.day}-${meal.mealType}`}
@@ -128,7 +134,7 @@ const OrderSummary = ({
                           >
                             <div className="meal-type-label">
                               <span className="meal-type-name">{meal.mealType}</span>
-                              <span className="item-price">{none ? 'Skipped' : `$${price.toFixed(2)}`}</span>
+                              <span className="meal-status-label">{none ? 'Skipped' : 'Selected'}</span>
                             </div>
                             <div className="meal-items">
                               {none ? (
@@ -156,22 +162,10 @@ const OrderSummary = ({
                 })}
               </div>
 
-              <div className="summary-totals">
+              <div className="summary-totals summary-totals--count-only">
                 <div className="total-row">
-                  <span>Meals</span>
+                  <span>Meals ordered</span>
                   <span>{totals.mealCount}</span>
-                </div>
-                <div className="total-row">
-                  <span>Subtotal</span>
-                  <span>${totals.subtotal.toFixed(2)}</span>
-                </div>
-                <div className="total-row">
-                  <span>Tax (8.875%)</span>
-                  <span>${totals.tax.toFixed(2)}</span>
-                </div>
-                <div className="total-row grand-total">
-                  <span>Total</span>
-                  <span>${totals.total.toFixed(2)}</span>
                 </div>
               </div>
             </>
@@ -188,14 +182,11 @@ const OrderSummary = ({
         </div>
       </aside>
 
-      <div className="order-summary-mobile-dock" aria-label="Order totals">
-        <div className="order-summary-mobile-dock__meta">
-          <span className="order-summary-mobile-dock__total">${totals.total.toFixed(2)}</span>
-          <span className="order-summary-mobile-dock__count">
-            {totals.mealCount} meal{totals.mealCount === 1 ? '' : 's'} · {completedDays}/7 days
-          </span>
+      <div className="order-summary-mobile-dock" aria-label="Order progress">
+        <div className="order-summary-mobile-dock__progress">
+          {progressBlock}
         </div>
-        {onSubmit && (
+        {showDockSubmit ? (
           <button
             type="button"
             className="summary-btn summary-btn--primary"
@@ -203,6 +194,15 @@ const OrderSummary = ({
             disabled={saving || totalMeals === 0}
           >
             {saving ? '…' : 'Submit'}
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="summary-btn summary-btn--primary"
+            onClick={onDockNext}
+            disabled={dockNextDisabled}
+          >
+            {dockNextLabel || 'Next'}
           </button>
         )}
       </div>
@@ -218,7 +218,11 @@ OrderSummary.propTypes = {
   saving: PropTypes.bool.isRequired,
   totalMeals: PropTypes.number.isRequired,
   onJumpToMeal: PropTypes.func,
-  highlight: PropTypes.bool
+  highlight: PropTypes.bool,
+  dockNextLabel: PropTypes.string,
+  dockNextDisabled: PropTypes.bool,
+  onDockNext: PropTypes.func,
+  showDockSubmit: PropTypes.bool
 };
 
 export default OrderSummary;

@@ -557,6 +557,13 @@ const AdminOrders = () => {
   return (
     <div className="admin-orders">
       <div className="orders-header">
+        <button
+          type="button"
+          className="back-to-orders"
+          onClick={() => navigate('/admin/orders')}
+        >
+          ← Back to orders
+        </button>
         <div className="header-content">
           <h1>Order Management</h1>
           <p>Monitor and manage all customer orders in real-time</p>
@@ -574,7 +581,7 @@ const AdminOrders = () => {
               </svg>
             </button>
             <div className="export-dropdown-menu">
-              <button 
+              <button
                 className="export-option"
                 onClick={() => {
                   exportIndividualOrders();
@@ -583,7 +590,7 @@ const AdminOrders = () => {
               >
                 Individual Orders Breakdown
               </button>
-              <button 
+              <button
                 className="export-option"
                 onClick={() => {
                   exportTotalledItems();
@@ -592,7 +599,7 @@ const AdminOrders = () => {
               >
                 Totalled Items by Restaurant
               </button>
-              <button 
+              <button
                 className="export-option"
                 onClick={() => {
                   exportPerRestaurant();
@@ -819,7 +826,7 @@ const AdminOrders = () => {
                           <button
                             className="edit-btn"
                             onClick={() => {
-                              navigate(`/admin/orders/${order.id}`);
+                              navigate(`/admin/orders/customer/${order.id}`);
                             }}
                           >
                             Edit

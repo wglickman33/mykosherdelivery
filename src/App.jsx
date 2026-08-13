@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import Header from "./components/Header/HeaderAuth";
 import Sidebar from "./components/Sidebar/Sidebar";
@@ -28,6 +28,9 @@ import AdminLogin from "./components/AdminLogin/AdminLogin";
 import AdminLayout from "./components/AdminLayout/AdminLayout";
 import AdminDashboard from "./components/AdminDashboard/AdminDashboard";
 import AdminOrders from "./components/AdminOrders/AdminOrders";
+import AdminOrdersChooser from "./components/AdminOrders/AdminOrdersChooser";
+import AdminNursingHomeOrders from "./components/AdminOrders/AdminNursingHomeOrders";
+import AdminNursingHomeOrderDetail from "./components/AdminOrders/AdminNursingHomeOrderDetail";
 import AdminOrderEdit from "./components/AdminOrderEdit/AdminOrderEdit";
 import AdminUsers from "./components/AdminUsers/AdminUsers";
 import AdminRestaurants from "./components/AdminRestaurants/AdminRestaurants";
@@ -63,7 +66,6 @@ import { useAuth } from "./hooks/useAuth";
 import { useScrollToTop } from "./hooks/useScrollToTop";
 import logger from "./utils/logger";
 import "./App.scss";
-
 import HelpPage from "./components/HelpPage/HelpPage";
 import NursingHomeLogin from "./components/NursingHomeLogin/NursingHomeLogin";
 import NursingHomeAdminLogin from "./components/NursingHomeAdminLogin/NursingHomeAdminLogin";
@@ -85,6 +87,11 @@ import OwnerLayout from "./components/OwnerLayout/OwnerLayout";
 import OwnerDashboard from "./components/OwnerDashboard/OwnerDashboard";
 import OwnerMenu from "./components/OwnerMenu/OwnerMenu";
 import OwnerOrders from "./components/OwnerOrders/OwnerOrders";
+
+const LegacyAdminOrderRedirect = () => {
+  const { orderId } = useParams();
+  return <Navigate to={`/admin/orders/customer/${orderId}`} replace />;
+};
 
 const isNursingHomeRole = (role) =>
   role === "nursing_home_user" || role === "nursing_home_admin";
@@ -285,8 +292,12 @@ function AuthenticatedApp() {
           <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
           <Route path="/admin/*" element={<AdminLayout />}>
             <Route path="dashboard" element={<AdminDashboard />} />
-            <Route path="orders" element={<AdminOrders />} />
-            <Route path="orders/:orderId" element={<AdminOrderEdit />} />
+            <Route path="orders" element={<AdminOrdersChooser />} />
+            <Route path="orders/customer" element={<AdminOrders />} />
+            <Route path="orders/customer/:orderId" element={<AdminOrderEdit />} />
+            <Route path="orders/nursing-homes" element={<AdminNursingHomeOrders />} />
+            <Route path="orders/nursing-homes/:orderId" element={<AdminNursingHomeOrderDetail />} />
+            <Route path="orders/:orderId" element={<LegacyAdminOrderRedirect />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="restaurants" element={<AdminRestaurants />} />
             <Route path="restaurants/menus" element={<AdminRestaurants />} />

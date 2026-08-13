@@ -32,7 +32,6 @@ export default function useWeeklyMealBuilder(initialMeals = {}) {
   const [isDirty, setIsDirty] = useState(false);
   const [highlightSummary, setHighlightSummary] = useState(false);
   const [copyOpen, setCopyOpen] = useState(false);
-  const [copyTargets, setCopyTargets] = useState([]);
 
   const replaceMeals = useCallback((nextMeals, { markDirty = true } = {}) => {
     setMeals(nextMeals || {});
@@ -109,15 +108,23 @@ export default function useWeeklyMealBuilder(initialMeals = {}) {
   }, []);
 
   const advanceToNextSlot = useCallback(() => {
+    const scrollToWorkArea = () => {
+      requestAnimationFrame(() => {
+        document.getElementById('nh-meal-work-area')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    };
+
     const mealIndex = NH_MEAL_TYPES.indexOf(selectedMealType);
     if (mealIndex < NH_MEAL_TYPES.length - 1) {
       setSelectedMealType(NH_MEAL_TYPES[mealIndex + 1]);
+      scrollToWorkArea();
       return;
     }
     const dayIndex = DAYS_OF_WEEK.indexOf(selectedDay);
     if (dayIndex < DAYS_OF_WEEK.length - 1) {
       setSelectedDay(DAYS_OF_WEEK[dayIndex + 1]);
       setSelectedMealType('breakfast');
+      scrollToWorkArea();
       return;
     }
     setHighlightSummary(true);
@@ -153,28 +160,57 @@ export default function useWeeklyMealBuilder(initialMeals = {}) {
   const dayIsComplete = useCallback((day) => isDayComplete(meals, day), [meals]);
   const dayProgress = useCallback((day) => getDayProgress(meals, day), [meals]);
 
-  const sourceDayCopyable = dayIsComplete(selectedDay);
+  const completedDays = useMemo(
+    () => DAYS_OF_WEEK.filter((day) => isDayComplete(meals, day)),
+    [meals]
+  );
+
+  const suggestedCopySourceDay = useMemo(() => {
+    const idx = DAYS_OF_WEEK.indexOf(selectedDay);
+    for (let i = idx - 1; i >= 0; i -= 1) {
+      if (isDayComplete(meals, DAYS_OF_WEEK[i])) return DAYS_OF_WEEK[i];
+    }
+    const other = completedDays.find((d) => d !== selectedDay);
+    return other || null;
+  }, [meals, selectedDay, completedDays]);
+
+  const copyButtonLabel = suggestedCopySourceDay
+    ? `Copy ${suggestedCopySourceDay}`
+    : 'Copy a day';
+
+  const canOpenCopy = Boolean(suggestedCopySourceDay) || completedDays.some((d) => d !== selectedDay);
+
+  const targetDayHasMeals = useMemo(
+    () => NH_MEAL_TYPES.some((mealType) => isMealSlotComplete(meals[getMealKey(selectedDay, mealType)])),
+    [meals, selectedDay]
+  );
 
   const openCopyPanel = useCallback(() => {
-    setCopyTargets(DAYS_OF_WEEK.filter((d) => d !== selectedDay));
+    if (!canOpenCopy) return;
     setCopyOpen(true);
-  }, [selectedDay]);
+  }, [canOpenCopy]);
 
-  const applyCopyDay = useCallback(() => {
-    if (!sourceDayCopyable || copyTargets.length === 0) return;
-    setMeals((prev) => copyDayToDays(prev, selectedDay, copyTargets));
+  const applyCopyFromDay = useCallback((sourceDay) => {
+    if (!sourceDay || sourceDay === selectedDay) {
+      setCopyOpen(false);
+      return;
+    }
+    setMeals((prev) => copyDayToDays(prev, sourceDay, [selectedDay]));
     setDrafts((prev) => {
       const next = { ...prev };
-      copyTargets.forEach((day) => {
-        NH_MEAL_TYPES.forEach((mealType) => {
-          delete next[getMealKey(day, mealType)];
-        });
+      NH_MEAL_TYPES.forEach((mealType) => {
+        delete next[getMealKey(selectedDay, mealType)];
       });
       return next;
     });
     setIsDirty(true);
     setCopyOpen(false);
-  }, [copyTargets, selectedDay, sourceDayCopyable]);
+    setSelectedMealType('breakfast');
+    requestAnimationFrame(() => {
+      document.getElementById('nh-meal-work-area')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.getElementById('nh-meal-next')?.focus();
+    });
+  }, [selectedDay]);
 
   useEffect(() => {
     const onBeforeUnload = (event) => {
@@ -218,13 +254,15 @@ export default function useWeeklyMealBuilder(initialMeals = {}) {
     buildMealArray,
     dayIsComplete,
     dayProgress,
-    sourceDayCopyable,
+    completedDays,
+    suggestedCopySourceDay,
+    copyButtonLabel,
+    canOpenCopy,
+    targetDayHasMeals,
     copyOpen,
     setCopyOpen,
-    copyTargets,
-    setCopyTargets,
     openCopyPanel,
-    applyCopyDay,
+    applyCopyFromDay,
     highlightSummary
   };
 }

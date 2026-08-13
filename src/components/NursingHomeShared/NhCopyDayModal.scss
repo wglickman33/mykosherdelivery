@@ -1,0 +1,143 @@
+@use '../../styles/design-system' as *;
+
+.nh-copy-day-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.nh-copy-day-modal {
+  width: min(100%, 480px);
+  max-height: min(90vh, 640px);
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.18);
+
+  h2 {
+    margin: 0 0 0.5rem;
+    font-size: 1.25rem;
+    color: $slate-800;
+  }
+
+  &__lead {
+    margin: 0 0 1rem;
+    color: $gray-600;
+    line-height: 1.5;
+    font-size: 0.9375rem;
+  }
+
+  &__day-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+  }
+
+  &__day-btn {
+    min-height: 44px;
+    padding: 0.5rem 0.9rem;
+    border-radius: 10px;
+    border: 1px solid $nh-primary-border;
+    background: $white;
+    color: $slate-800;
+    font-weight: $font-weight-semibold;
+    cursor: pointer;
+
+    &:hover {
+      background: $nh-primary-light;
+    }
+
+    &.selected {
+      background: $nh-primary;
+      border-color: $nh-primary;
+      color: $white;
+    }
+  }
+
+  &__preview {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    margin-bottom: 1.25rem;
+  }
+
+  &__preview-meal {
+    padding: 0.75rem 0.85rem;
+    background: $nh-primary-light;
+    border-radius: 10px;
+    border: 1px solid $nh-primary-border;
+
+    h3 {
+      margin: 0 0 0.35rem;
+      font-size: 0.875rem;
+      text-transform: capitalize;
+      color: $nh-primary;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 1.1rem;
+      color: $slate-800;
+      font-size: 0.9rem;
+      line-height: 1.45;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.65rem;
+  }
+
+  &__btn {
+    min-height: 44px;
+    border-radius: 8px;
+    padding: 0.6rem 1rem;
+    font-size: 0.9375rem;
+    font-weight: $font-weight-semibold;
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease;
+
+    &--secondary {
+      background: $white;
+      color: $nh-primary;
+      border: 1px solid $nh-primary-border;
+
+      &:hover {
+        background: $nh-primary-light;
+      }
+    }
+
+    &--primary {
+      background: $nh-primary;
+      color: $white;
+
+      &:hover:not(:disabled) {
+        background: $nh-primary-hover;
+      }
+
+      &:disabled {
+        background: $gray-300;
+        cursor: not-allowed;
+      }
+    }
+
+    &--danger {
+      background: #b91c1c;
+      color: $white;
+
+      &:hover {
+        background: #991b1b;
+      }
+    }
+  }
+}

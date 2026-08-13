@@ -14,17 +14,19 @@ import { useAuth } from '../../hooks/useAuth';
 import {
   getNextMondayDateString,
   addDaysToDateString,
-  formatNhDeadline,
   validateWeeklyMeals,
   mealHasItems,
   isStaffPlacedOrder,
   formatAssignedStaffContact,
-  ADMIN_ALREADY_ORDERED_MESSAGE
+  ADMIN_ALREADY_ORDERED_MESSAGE,
+  NH_ORDER_COUNTDOWN_SETTINGS
 } from '../../utils/nursingHomeOrderUtils';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import NhAdminOrderedModal from '../NursingHomeShared/NhAdminOrderedModal';
 import NhConfirmModal from '../NursingHomeShared/NhConfirmModal';
+import NhCopyDayModal from '../NursingHomeShared/NhCopyDayModal';
+import Countdown from '../Countdown/Countdown';
 import MealForm from './MealForm';
 import OrderSummary from './OrderSummary';
 import useWeeklyMealBuilder from './useWeeklyMealBuilder';
@@ -45,6 +47,12 @@ const OrderCreation = () => {
   const [saving, setSaving] = useState(false);
   const [adminConflict, setAdminConflict] = useState(null);
   const [leaveModalOpen, setLeaveModalOpen] = useState(false);
+  const [nextController, setNextController] = useState({
+    canContinue: false,
+    nextLabel: 'Next',
+    isLastSlot: false,
+    runNext: null
+  });
 
   const mealBuilder = useWeeklyMealBuilder();
   const {
@@ -69,13 +77,15 @@ const OrderCreation = () => {
     totalMeals,
     buildMealArray,
     dayProgress,
-    sourceDayCopyable,
+    completedDays,
+    suggestedCopySourceDay,
+    copyButtonLabel,
+    canOpenCopy,
+    targetDayHasMeals,
     copyOpen,
     setCopyOpen,
-    copyTargets,
-    setCopyTargets,
     openCopyPanel,
-    applyCopyDay,
+    applyCopyFromDay,
     isDirty,
     highlightSummary
   } = mealBuilder;
@@ -295,10 +305,9 @@ const OrderCreation = () => {
             </p>
           </div>
         </div>
-        <div className="deadline-warning">
-          <span className="deadline-label">Deadline:</span>
-          <span className="deadline-time">{formatNhDeadline()}</span>
-        </div>
+      </div>
+      <div className="nh-order-countdown">
+        <Countdown variant="nursingHome" fixedSettings={NH_ORDER_COUNTDOWN_SETTINGS} />
       </div>
 
       {error && <div className="error-banner">{error}</div>}
@@ -312,7 +321,7 @@ const OrderCreation = () => {
       )}
 
       <div className="order-content">
-        <div className="meal-selector">
+        <div className="meal-selector" id="nh-meal-work-area">
           <div className="day-selector">
             <div className="section-heading-row">
               <h3>Select Day</h3>
@@ -320,10 +329,10 @@ const OrderCreation = () => {
                 type="button"
                 className="copy-day-btn"
                 onClick={openCopyPanel}
-                disabled={!sourceDayCopyable}
-                title={sourceDayCopyable ? `Copy ${selectedDay} to other days` : `Finish all three meals on ${selectedDay} first`}
+                disabled={!canOpenCopy}
+                title={canOpenCopy ? copyButtonLabel : 'Finish at least one other day first'}
               >
-                Copy {selectedDay}…
+                {copyButtonLabel}…
               </button>
             </div>
             <div className="day-buttons">
@@ -363,41 +372,6 @@ const OrderCreation = () => {
                 );
               })}
             </div>
-
-            {copyOpen && (
-              <div className="copy-day-panel" role="region" aria-label="Copy day">
-                <p className="copy-day-panel__title">
-                  Apply <strong>{selectedDay}</strong> meals to:
-                </p>
-                <div className="copy-day-panel__targets">
-                  {DAYS_OF_WEEK.filter((d) => d !== selectedDay).map((day) => {
-                    const checked = copyTargets.includes(day);
-                    return (
-                      <label key={day} className="copy-day-check">
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => {
-                            setCopyTargets((prev) => (
-                              checked ? prev.filter((d) => d !== day) : [...prev, day]
-                            ));
-                          }}
-                        />
-                        {day}
-                      </label>
-                    );
-                  })}
-                </div>
-                <div className="copy-day-panel__actions">
-                  <button type="button" className="copy-day-apply" onClick={applyCopyDay} disabled={copyTargets.length === 0}>
-                    Apply
-                  </button>
-                  <button type="button" className="copy-day-cancel" onClick={() => setCopyOpen(false)}>
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
 
           <div className="meal-type-selector">
@@ -432,6 +406,7 @@ const OrderCreation = () => {
             onAdvance={advanceToNextSlot}
             nextLabel={nextLabel}
             isLastSlot={isLastSlot}
+            onNextController={setNextController}
             resident={resident}
           />
         </div>
@@ -445,8 +420,23 @@ const OrderCreation = () => {
           totalMeals={totalMeals}
           onJumpToMeal={jumpToMeal}
           highlight={highlightSummary}
+          dockNextLabel={nextController.nextLabel}
+          dockNextDisabled={!nextController.canContinue}
+          onDockNext={() => nextController.runNext?.()}
+          showDockSubmit={Boolean(isLastSlot && totalMeals > 0 && committedMeal)}
         />
       </div>
+
+      <NhCopyDayModal
+        open={copyOpen}
+        completedDays={completedDays.filter((d) => d !== selectedDay)}
+        suggestedSourceDay={suggestedCopySourceDay}
+        targetDay={selectedDay}
+        meals={meals}
+        targetHasMeals={targetDayHasMeals}
+        onClose={() => setCopyOpen(false)}
+        onConfirmCopy={applyCopyFromDay}
+      />
 
       <NhConfirmModal
         open={leaveModalOpen}

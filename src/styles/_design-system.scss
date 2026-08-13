@@ -11,26 +11,27 @@ $slate-700: #334155;
 $slate-800: #1e293b;
 $slate-900: #0f172a;
 
-$nh-primary: #475569;
-$nh-primary-hover: #334155;
-$nh-primary-light: #f1f5f9;
-$nh-primary-border: #cbd5e1;
+$nh-primary: #061757;
+$nh-primary-hover: #0a2a7a;
+$nh-primary-light: #e8f4fe;
+$nh-primary-border: #b7dffc;
+$nh-accent: #5fb4f9;
 $nh-slate-800: #1e293b;
 $nh-slate-900: #0f172a;
-/* Distinct slate for NH sidebar (dark grey slate vs admin navy) */
-$nh-sidebar-from: #2a323d;
-$nh-sidebar-to: #1a1f28;
+/* Match MKD admin navy */
+$nh-sidebar-from: #061757;
+$nh-sidebar-to: #04103a;
 
-$indigo-50: #f8fafc;
-$indigo-100: #f1f5f9;
-$indigo-200: #e2e8f0;
-$indigo-300: #cbd5e1;
-$indigo-400: #94a3b8;
-$indigo-500: #64748b;
-$indigo-600: #475569;
-$indigo-700: #334155;
-$indigo-800: #1e293b;
-$indigo-900: #0f172a;
+$indigo-50: #f0f6ff;
+$indigo-100: #e8f4fe;
+$indigo-200: #b7dffc;
+$indigo-300: #7cc8fb;
+$indigo-400: #5fb4f9;
+$indigo-500: #3d8fd4;
+$indigo-600: #061757;
+$indigo-700: #0a2a7a;
+$indigo-800: #04103a;
+$indigo-900: #020a24;
 
 $purple-50: #faf5ff;
 $purple-100: #f3e8ff;
@@ -245,7 +246,7 @@ $z-tooltip: 1070;
   &:focus {
     outline: none;
     border-color: $nh-primary;
-    box-shadow: 0 0 0 3px rgba(71, 85, 105, 0.15);
+    box-shadow: 0 0 0 3px rgba(95, 180, 249, 0.25);
   }
 
   &:disabled {

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import {
   fetchResidentOrders,
@@ -24,6 +25,7 @@ const statusLabels = {
 const formatCurrency = (n) => `$${parseFloat(n || 0).toFixed(2)}`;
 
 const OrdersTab = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
   const [facilities, setFacilities] = useState([]);
@@ -219,16 +221,30 @@ const OrdersTab = () => {
     <div className="orders-tab">
       <div className="tab-header">
         <h2>Nursing Home Orders</h2>
-        {selectedFacilityId && (
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={handleRunMonthlyBilling}
-            disabled={billingRunning}
-          >
-            {billingRunning ? 'Running…' : 'Run monthly billing'}
-          </button>
-        )}
+        <div className="tab-header__actions">
+          {isAdmin && (
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => {
+                const qs = facilityFilter ? `?facilityId=${encodeURIComponent(facilityFilter)}` : '';
+                navigate(`/admin/orders/nursing-homes${qs}`);
+              }}
+            >
+              Open in Admin Orders
+            </button>
+          )}
+          {selectedFacilityId && (
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={handleRunMonthlyBilling}
+              disabled={billingRunning}
+            >
+              {billingRunning ? 'Running…' : 'Run monthly billing'}
+            </button>
+          )}
+        </div>
       </div>
 
       {isAdmin && facilities.length > 0 && (

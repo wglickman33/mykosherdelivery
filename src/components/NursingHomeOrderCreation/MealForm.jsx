@@ -39,6 +39,7 @@ const MealForm = ({
   onAdvance,
   nextLabel,
   isLastSlot,
+  onNextController,
   resident
 }) => {
   const hydrated = hydrateFromMeal(initialMeal);
@@ -64,18 +65,6 @@ const MealForm = ({
       none: isNone
     });
   }, [selectedItems, bagelType, isNone, day, mealType, onDraftChange]);
-
-  useEffect(() => {
-    const onKeyDown = (event) => {
-      if (!(event.metaKey || event.ctrlKey) || event.key !== 'Enter') return;
-      const tag = event.target?.tagName;
-      if (tag === 'TEXTAREA') return;
-      event.preventDefault();
-      nextBtnRef.current?.click();
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
 
   const replaceByCategory = (items, incoming) => {
     const cat = normCat(incoming.category);
@@ -200,6 +189,30 @@ const MealForm = ({
     onAdvance();
   };
 
+  const handleNextRef = useRef(handleNext);
+  handleNextRef.current = handleNext;
+
+  useEffect(() => {
+    onNextController?.({
+      canContinue,
+      nextLabel,
+      isLastSlot: !!isLastSlot,
+      runNext: () => handleNextRef.current()
+    });
+  }, [canContinue, nextLabel, isLastSlot, onNextController]);
+
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if (!(event.metaKey || event.ctrlKey) || event.key !== 'Enter') return;
+      const tag = event.target?.tagName;
+      if (tag === 'TEXTAREA') return;
+      event.preventDefault();
+      nextBtnRef.current?.click();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
   const sideExcluded = selectedItems.some((i) =>
     ['main', 'entree'].includes(normCat(i.category)) && i.excludesSide === true
   );
@@ -238,6 +251,23 @@ const MealForm = ({
     return hints.find((h) => h.category === n);
   };
 
+  const skipToggle = (
+    <button
+      type="button"
+      className={`skip-meal-toggle ${isNone ? 'active' : ''}`}
+      onClick={handleSelectNone}
+      aria-pressed={isNone}
+    >
+      <span className="skip-meal-toggle__radio" aria-hidden="true">
+        {isNone ? '✓' : ''}
+      </span>
+      <span className="skip-meal-toggle__copy">
+        <span className="skip-meal-toggle__title">Skip this meal</span>
+        <span className="skip-meal-toggle__sub">Marked as None for this slot</span>
+      </span>
+    </button>
+  );
+
   return (
     <div className="meal-form">
       <div className="meal-form-header">
@@ -271,27 +301,15 @@ const MealForm = ({
         </div>
       )}
 
-      <button
-        type="button"
-        className={`skip-meal-toggle ${isNone ? 'active' : ''}`}
-        onClick={handleSelectNone}
-        aria-pressed={isNone}
-      >
-        <span className="skip-meal-toggle__radio" aria-hidden="true">
-          {isNone ? '✓' : ''}
-        </span>
-        <span className="skip-meal-toggle__copy">
-          <span className="skip-meal-toggle__title">Skip this meal</span>
-          <span className="skip-meal-toggle__sub">No charge · marked as None</span>
-        </span>
-      </button>
-
       {isNone ? (
-        <div className="skip-meal-confirmed">
-          <p>
-            {day} {mealLabel} will be skipped. Continue when you&apos;re ready.
-          </p>
-        </div>
+        <>
+          <div className="skip-meal-confirmed">
+            <p>
+              {day} {mealLabel} will be skipped. Continue when you&apos;re ready.
+            </p>
+          </div>
+          {skipToggle}
+        </>
       ) : (
         <>
           <div className="search-box">
@@ -410,6 +428,8 @@ const MealForm = ({
               );
             })}
           </div>
+
+          {skipToggle}
         </>
       )}
 
@@ -419,6 +439,7 @@ const MealForm = ({
         <button
           ref={nextBtnRef}
           type="button"
+          id="nh-meal-next"
           className="meal-next-btn"
           onClick={handleNext}
           disabled={!canContinue}
@@ -448,6 +469,7 @@ MealForm.propTypes = {
   onAdvance: PropTypes.func.isRequired,
   nextLabel: PropTypes.string.isRequired,
   isLastSlot: PropTypes.bool,
+  onNextController: PropTypes.func,
   resident: PropTypes.object
 };
 

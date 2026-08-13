@@ -531,7 +531,7 @@ const AdminOrderEdit = () => {
         <div className="error-container">
           <h2>Error</h2>
           <p>{error || 'Order not found'}</p>
-          <button onClick={() => navigate('/admin/orders')} className="back-btn">
+          <button onClick={() => navigate('/admin/orders/customer')} className="back-btn">
             Back to Orders
           </button>
         </div>
@@ -548,7 +548,7 @@ const AdminOrderEdit = () => {
       <div className="order-edit-header">
         <div className="header-content">
           <button 
-            onClick={() => navigate('/admin/orders')} 
+            onClick={() => navigate('/admin/orders/customer')} 
             className="back-btn"
           >
             ← Back to Orders

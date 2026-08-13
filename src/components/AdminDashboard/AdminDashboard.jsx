@@ -329,7 +329,7 @@ const AdminDashboard = () => {
           <div className="activity-card">
             <div className="activity-header">
               <h3>Recent Orders</h3>
-              <button className="view-all-btn" onClick={() => navigate('/admin/orders')}>View All</button>
+              <button className="view-all-btn" onClick={() => navigate('/admin/orders/customer')}>View All</button>
             </div>
             <div className="activity-list">
               {dashboardData.recentOrders.map((order) => (

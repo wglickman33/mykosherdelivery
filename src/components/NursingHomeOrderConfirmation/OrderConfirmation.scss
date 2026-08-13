@@ -4,55 +4,161 @@
   min-height: 100vh;
   background: $gray-50;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   padding: $spacing-2xl;
+
+  @include respond-to(sm) {
+    padding: $spacing-lg;
+  }
 }
 
 .confirmation-card {
   background: $white;
   border-radius: $border-radius-lg;
   padding: $spacing-2xl;
-  max-width: 480px;
+  max-width: 640px;
   width: 100%;
   box-shadow: $shadow-base;
-  text-align: center;
+  text-align: left;
 
-  h1 {
-    color: $indigo-600;
-    font-size: $font-size-3xl;
-    margin: 0 0 $spacing-md 0;
+  .confirmation-hero {
+    text-align: center;
+    margin-bottom: $spacing-xl;
+    padding-bottom: $spacing-lg;
+    border-bottom: 1px solid $gray-200;
+
+    h1 {
+      color: #061757;
+      font-size: $font-size-3xl;
+      margin: 0 0 $spacing-sm 0;
+    }
+
+    .order-number {
+      font-size: $font-size-lg;
+      font-weight: $font-weight-semibold;
+      color: $gray-700;
+      margin: 0 0 $spacing-sm 0;
+    }
+
+    .confirmation-lede {
+      color: $gray-600;
+      margin: 0;
+      font-size: $font-size-base;
+    }
   }
 
-  .order-number {
-    font-size: $font-size-lg;
-    color: $gray-700;
-    margin: 0 0 $spacing-sm 0;
-  }
+  .confirmation-meta {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+    margin-bottom: $spacing-lg;
 
-  .total {
-    font-size: $font-size-xl;
-    font-weight: $font-weight-bold;
-    margin: 0 0 $spacing-lg 0;
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+      gap: $spacing-md;
+      font-size: $font-size-base;
+      color: $gray-700;
+
+      span:first-child {
+        color: $gray-500;
+        font-weight: $font-weight-medium;
+      }
+
+      span:last-child {
+        font-weight: $font-weight-semibold;
+        text-align: right;
+      }
+    }
   }
 
   .receipt-note {
     color: $gray-600;
     font-size: $font-size-sm;
     margin: 0 0 $spacing-xl 0;
+    padding: $spacing-md;
+    background: rgba(95, 180, 249, 0.1);
+    border-radius: $border-radius-md;
+    border-left: 3px solid #5fb4f9;
+  }
+
+  .confirmation-meals {
+    margin-bottom: $spacing-xl;
+
+    h2 {
+      font-size: $font-size-xl;
+      color: #061757;
+      margin: 0 0 $spacing-md 0;
+    }
+
+    .day-block {
+      margin-bottom: $spacing-lg;
+
+      h3 {
+        font-size: $font-size-base;
+        color: #061757;
+        margin: 0 0 $spacing-sm 0;
+        padding-bottom: $spacing-xs;
+        border-bottom: 1px solid $gray-200;
+      }
+    }
+
+    .meal-block {
+      margin-bottom: $spacing-md;
+      padding-left: $spacing-sm;
+    }
+
+    .meal-heading {
+      display: flex;
+      justify-content: space-between;
+      gap: $spacing-sm;
+      margin-bottom: $spacing-xs;
+
+      .meal-type {
+        text-transform: capitalize;
+        font-weight: $font-weight-semibold;
+        color: $gray-800;
+      }
+
+      .meal-status {
+        font-size: $font-size-sm;
+        color: $gray-500;
+      }
+    }
+
+    .meal-item {
+      margin: 0;
+      font-size: $font-size-base;
+      font-weight: $font-weight-semibold;
+      color: $gray-800;
+      line-height: 1.4;
+    }
+
+    .bagel-note {
+      margin: $spacing-xs 0 0;
+      font-size: $font-size-sm;
+      color: $gray-600;
+    }
   }
 
   .confirmation-actions {
     display: flex;
     flex-direction: column;
     gap: $spacing-md;
+
+    @media (min-width: 480px) {
+      flex-direction: row;
+    }
   }
 
   .btn-primary {
     @include button-primary;
+    flex: 1;
   }
 
   .btn-secondary {
     @include button-secondary;
+    flex: 1;
   }
 }

@@ -142,8 +142,6 @@ router.get('/', optionalAuth, listRestaurantsQueryValidation, async (req, res) =
   }
 });
 
-// Public endpoint — no auth required, used by checkout for guests.
-// Must be registered before /:id so "delivery-zones" is not treated as an id.
 router.get('/delivery-zones', async (req, res) => {
   try {
     const deliveryZones = await DeliveryZone.findAll({
