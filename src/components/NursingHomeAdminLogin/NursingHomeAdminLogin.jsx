@@ -12,6 +12,7 @@ const NursingHomeAdminLogin = () => {
       errorMessage="Invalid credentials for nursing home admin portal"
       footerText="Need help? Contact MKD support"
       className="nursing-home-admin-login"
+      forgotPasswordPath="/forgot-password?returnTo=/nursing-homes/admin/login"
     />
   );
 };

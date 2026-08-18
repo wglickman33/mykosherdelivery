@@ -9,7 +9,14 @@ import {
 } from '../../services/nursingHomeService';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
+import Pagination from '../Pagination/Pagination';
 import './AdminNursingHomes.scss';
+
+const staffOptionLabel = (s) => {
+  const name = [s.firstName, s.lastName].filter(Boolean).join(' ').trim();
+  if (name && s.email) return `${name} (${s.email})`;
+  return name || s.email || 'Staff';
+};
 
 const StaffAssignmentTab = () => {
   const { user } = useAuth();
@@ -21,6 +28,8 @@ const StaffAssignmentTab = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [assigningId, setAssigningId] = useState(null);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
 
   const loadFacilities = useCallback(async () => {
     if (!isAdmin) return;
@@ -89,6 +98,14 @@ const StaffAssignmentTab = () => {
   };
 
   const currentFacilityId = isAdmin ? selectedFacilityId : user?.nursingHomeFacilityId;
+  const total = residents.length;
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const safePage = Math.max(1, Math.min(page, totalPages));
+  const pagedResidents = residents.slice((safePage - 1) * limit, safePage * limit);
+
+  useEffect(() => {
+    setPage(1);
+  }, [selectedFacilityId, currentFacilityId]);
 
   return (
     <div className="staff-assignment-tab">
@@ -135,41 +152,72 @@ const StaffAssignmentTab = () => {
           </p>
         </div>
       ) : (
-        <div className="table-wrap">
-          <table className="data-table" role="grid">
-            <thead>
-              <tr>
-                <th>Resident</th>
-                <th>Room</th>
-                <th>Assigned staff</th>
-                <th aria-label="Status" />
-              </tr>
-            </thead>
-            <tbody>
-              {residents.map((r) => (
-                <tr key={r.id}>
-                  <td>{r.name}</td>
-                  <td>{r.roomNumber || '-'}</td>
-                  <td>
-                    <select
-                      value={r.assignedUserId || ''}
-                      onChange={(e) => handleAssign(r.id, e.target.value || null)}
-                      disabled={assigningId === r.id}
-                      aria-label={`Assign staff for ${r.name}`}
-                    >
-                      <option value="">Unassigned</option>
-                      {staff.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {[s.firstName, s.lastName].filter(Boolean).join(' ')} ({s.email})
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td>{assigningId === r.id ? <span className="assigning-label">Saving…</span> : null}</td>
+        <div className="nh-mgmt-table-container">
+          <div className="nh-mgmt-table-scroll">
+            <table className="nh-mgmt-table staff-assignment-tab__table" role="grid">
+              <colgroup>
+                <col className="col-resident" />
+                <col className="col-room" />
+                <col className="col-assigned" />
+                <col className="col-status" />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>Resident</th>
+                  <th>Room</th>
+                  <th>Assigned staff</th>
+                  <th>Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {pagedResidents.map((r) => {
+                  const assigned = Boolean(r.assignedUserId);
+                  return (
+                    <tr key={r.id}>
+                      <td className="nh-mgmt-table__name">{r.name}</td>
+                      <td>{r.roomNumber || '—'}</td>
+                      <td>
+                        <select
+                          className="staff-assignment-tab__select"
+                          value={r.assignedUserId || ''}
+                          onChange={(e) => handleAssign(r.id, e.target.value || null)}
+                          disabled={assigningId === r.id}
+                          aria-label={`Assign staff for ${r.name}`}
+                        >
+                          <option value="">Unassigned</option>
+                          {staff.map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {staffOptionLabel(s)}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>
+                        {assigningId === r.id ? (
+                          <span className="assigning-label">Saving…</span>
+                        ) : assigned ? (
+                          <span className="assignment-pill assignment-pill--assigned">Assigned</span>
+                        ) : (
+                          <span className="assignment-pill assignment-pill--unassigned">Unassigned</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <div className="nh-mgmt-table-pagination pagination-footer">
+            <Pagination
+              page={safePage}
+              totalPages={totalPages}
+              rowsPerPage={limit}
+              total={total}
+              onPageChange={setPage}
+              onRowsPerPageChange={(n) => { setLimit(n); setPage(1); }}
+              rowsPerPageOptions={[10, 20, 50]}
+            />
+          </div>
         </div>
       )}
     </div>

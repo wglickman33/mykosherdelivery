@@ -1,14 +1,12 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { fetchResidentOrder, nhPath } from '../../services/nursingHomeService';
 import { useNursingHomeFacility } from '../../context/NursingHomeFacilityContext';
-import { NH_CONFIG } from '../../config/constants';
-import { isNoneMeal, mealHasItems } from '../../utils/nursingHomeOrderUtils';
+import { formatNhWeekRange } from '../../utils/nursingHomeOrderUtils';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
+import NhMealsByDay from '../NursingHomeShared/NhMealsByDay';
 import './OrderConfirmation.scss';
-
-const MEAL_ORDER = ['breakfast', 'lunch', 'dinner'];
 
 const OrderConfirmation = () => {
   const { orderId, facilitySlug: slugParam } = useParams();
@@ -35,21 +33,6 @@ const OrderConfirmation = () => {
     })();
     return () => { cancelled = true; };
   }, [orderId]);
-
-  const mealsByDay = useMemo(() => {
-    const byDay = {};
-    (order?.meals || []).forEach((meal) => {
-      if (!mealHasItems(meal) && !isNoneMeal(meal)) return;
-      if (!byDay[meal.day]) byDay[meal.day] = [];
-      byDay[meal.day].push(meal);
-    });
-    Object.keys(byDay).forEach((day) => {
-      byDay[day].sort(
-        (a, b) => MEAL_ORDER.indexOf(a.mealType) - MEAL_ORDER.indexOf(b.mealType)
-      );
-    });
-    return byDay;
-  }, [order]);
 
   if (loading) {
     return (
@@ -101,8 +84,7 @@ const OrderConfirmation = () => {
           <div className="meta-row">
             <span>Week</span>
             <span>
-              {order.weekStartDate}
-              {order.weekEndDate ? ` – ${order.weekEndDate}` : ''}
+              {formatNhWeekRange(order.weekStartDate, order.weekEndDate)}
             </span>
           </div>
           <div className="meta-row">
@@ -117,41 +99,7 @@ const OrderConfirmation = () => {
           No payment is charged at submit.
         </p>
 
-        <section className="confirmation-meals" aria-label="Meals by day">
-          <h2>Your week</h2>
-          {NH_CONFIG.MEALS.DAYS.map((day) => {
-            const dayMeals = mealsByDay[day];
-            if (!dayMeals?.length) return null;
-            return (
-              <div key={day} className="day-block">
-                <h3>{day}</h3>
-                {dayMeals.map((meal) => {
-                  const none = isNoneMeal(meal);
-                  return (
-                    <div key={`${meal.day}-${meal.mealType}`} className="meal-block">
-                      <div className="meal-heading">
-                        <span className="meal-type">{meal.mealType}</span>
-                        <span className="meal-status">{none ? 'Skipped' : 'Selected'}</span>
-                      </div>
-                      {none ? (
-                        <p className="meal-item">None</p>
-                      ) : (
-                        (meal.items || []).map((item) => (
-                          <p key={item.id || item.name} className="meal-item">
-                            {item.name}
-                          </p>
-                        ))
-                      )}
-                      {meal.bagelType && !none && (
-                        <p className="bagel-note">Bagel: {meal.bagelType}</p>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })}
-        </section>
+        <NhMealsByDay meals={order.meals} title="Your week" />
 
         <div className="confirmation-actions">
           <button

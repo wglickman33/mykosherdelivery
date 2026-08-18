@@ -17,7 +17,7 @@
   background: $white;
   border-radius: $border-radius-lg;
   padding: $spacing-2xl;
-  max-width: 640px;
+  max-width: 960px;
   width: 100%;
   box-shadow: $shadow-base;
   text-align: left;
@@ -83,63 +83,8 @@
     border-left: 3px solid #5fb4f9;
   }
 
-  .confirmation-meals {
+  .nh-meals-by-day {
     margin-bottom: $spacing-xl;
-
-    h2 {
-      font-size: $font-size-xl;
-      color: #061757;
-      margin: 0 0 $spacing-md 0;
-    }
-
-    .day-block {
-      margin-bottom: $spacing-lg;
-
-      h3 {
-        font-size: $font-size-base;
-        color: #061757;
-        margin: 0 0 $spacing-sm 0;
-        padding-bottom: $spacing-xs;
-        border-bottom: 1px solid $gray-200;
-      }
-    }
-
-    .meal-block {
-      margin-bottom: $spacing-md;
-      padding-left: $spacing-sm;
-    }
-
-    .meal-heading {
-      display: flex;
-      justify-content: space-between;
-      gap: $spacing-sm;
-      margin-bottom: $spacing-xs;
-
-      .meal-type {
-        text-transform: capitalize;
-        font-weight: $font-weight-semibold;
-        color: $gray-800;
-      }
-
-      .meal-status {
-        font-size: $font-size-sm;
-        color: $gray-500;
-      }
-    }
-
-    .meal-item {
-      margin: 0;
-      font-size: $font-size-base;
-      font-weight: $font-weight-semibold;
-      color: $gray-800;
-      line-height: 1.4;
-    }
-
-    .bagel-note {
-      margin: $spacing-xs 0 0;
-      font-size: $font-size-sm;
-      color: $gray-600;
-    }
   }
 
   .confirmation-actions {

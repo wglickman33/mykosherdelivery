@@ -1,0 +1,126 @@
+@use '../../styles/design-system' as *;
+
+.nh-meals-by-day {
+  &__title {
+    margin: 0 0 1rem;
+    font-size: 1.1rem;
+    color: $nh-primary;
+  }
+
+  &__empty {
+    margin: 0;
+    color: $gray-600;
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+}
+
+.nh-meals-day {
+  border: 1px solid $gray-200;
+  border-radius: 12px;
+  overflow: hidden;
+  background: $white;
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    background: $nh-primary;
+    color: $white;
+    padding: 0.6rem 1rem;
+
+    h3 {
+      margin: 0;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: $white;
+      letter-spacing: 0.01em;
+    }
+
+    span {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: $nh-accent;
+      white-space: nowrap;
+    }
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+.nh-meal-slot {
+  padding: 0.85rem 1rem 1rem;
+  border-right: 1px solid $gray-200;
+  min-width: 0;
+
+  &:last-child {
+    border-right: none;
+  }
+
+  @media (max-width: 768px) {
+    border-right: none;
+    border-bottom: 1px solid $gray-200;
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  &--skipped {
+    background: #f8fafc;
+  }
+
+  &__type {
+    display: block;
+    margin: 0 0 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: $nh-primary;
+  }
+
+  &__skipped {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 500;
+    font-style: italic;
+    color: $gray-500;
+  }
+
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+  }
+
+  li {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: $gray-800;
+    line-height: 1.35;
+  }
+
+  .item-note {
+    display: block;
+    margin-top: 0.1rem;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: $gray-600;
+  }
+}

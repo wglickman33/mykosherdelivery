@@ -1,8 +1,7 @@
-@use 'sass:color';
 @use '../../styles/design-system' as *;
 
 .nursing-home-order-details {
-  max-width: 800px;
+  max-width: 1040px;
   margin: 0 auto;
   padding: $spacing-2xl;
   min-height: 100vh;
@@ -37,7 +36,7 @@
     }
 
     h1 {
-      color: $indigo-600;
+      color: $nh-primary;
       font-size: $font-size-3xl;
       margin: 0;
     }
@@ -65,7 +64,7 @@
 
     .resident-name {
       font-weight: $font-weight-semibold;
-      color: $indigo-600;
+      color: $nh-primary;
       margin: 0 0 $spacing-xs 0;
     }
 
@@ -103,70 +102,33 @@
     .status-badge {
       display: inline-block;
       padding: $spacing-xs $spacing-sm;
-      border-radius: $border-radius-md;
+      border-radius: 999px;
       font-size: $font-size-sm;
-      text-transform: capitalize;
+      font-weight: $font-weight-semibold;
 
       &.status-draft { background: $gray-200; color: $gray-700; }
-      &.status-pending { background: $warning-light; color: color.adjust($warning, $lightness: -10%); }
-      &.status-paid, &.status-submitted { background: $success-light; color: $success; }
-    }
-
-    .day-block {
-      margin-bottom: $spacing-lg;
-
-      h3 {
-        font-size: $font-size-base;
-        color: $indigo-600;
-        margin: 0 0 $spacing-sm 0;
-      }
-
-      .meal-row {
-        display: flex;
-        justify-content: space-between;
-        padding: $spacing-xs 0;
-        font-size: $font-size-sm;
-
-        .meal-type {
-          text-transform: capitalize;
-          color: $gray-600;
-        }
-
-        &.meal-row--detail {
-          flex-direction: column;
-          align-items: flex-start;
-          gap: $spacing-xs;
-
-          .meal-row__head {
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
-            gap: $spacing-sm;
-          }
-
-          .meal-status {
-            color: $gray-500;
-            font-size: $font-size-sm;
-          }
-
-          .meal-item-name {
-            margin: 0;
-            font-weight: $font-weight-semibold;
-            color: $gray-800;
-          }
-
-          .bagel-note {
-            margin: 0;
-            font-size: $font-size-sm;
-            color: $gray-600;
-          }
-        }
-      }
+      &.status-pending,
+      &.status-pending_monthly { background: $nh-primary-light; color: $nh-primary; }
+      &.status-paid,
+      &.status-submitted,
+      &.status-confirmed,
+      &.status-completed { background: $success-light; color: $success; }
+      &.status-failed,
+      &.status-cancelled,
+      &.status-refunded { background: $error-light; color: $error; }
     }
 
     .address {
       color: $gray-700;
       margin: 0;
+    }
+  }
+
+  .nh-meals-by-day {
+    margin-bottom: $spacing-lg;
+
+    &__title {
+      padding: 0 0.15rem;
     }
   }
 

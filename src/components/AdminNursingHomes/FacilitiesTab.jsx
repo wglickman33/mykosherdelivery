@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchFacilitiesList, createFacility, updateFacility, deleteFacility } from '../../services/nursingHomeService';
+import { fetchFacilitiesList, createFacility, updateFacility, deactivateFacility, permanentlyDeleteFacility } from '../../services/nursingHomeService';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import Pagination from '../Pagination/Pagination';
@@ -27,7 +27,7 @@ const FacilitiesTab = () => {
   const [error, setError] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingFacility, setEditingFacility] = useState(null);
-  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [actionConfirm, setActionConfirm] = useState(null); // { facility, mode: 'deactivate' | 'delete' }
   const [submitting, setSubmitting] = useState(false);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
@@ -93,21 +93,29 @@ const FacilitiesTab = () => {
     setModalOpen(true);
   };
 
-  const handleDeleteClick = (f) => {
-    setDeleteConfirm(f);
-  };
+  const handleDeactivateClick = (f) => setActionConfirm({ facility: f, mode: 'deactivate' });
+  const handleDeleteClick = (f) => setActionConfirm({ facility: f, mode: 'delete' });
 
-  const handleDeleteConfirm = async () => {
-    if (!deleteConfirm) return;
+  const handleActionConfirm = async () => {
+    if (!actionConfirm?.facility) return;
+    const { facility, mode } = actionConfirm;
     try {
       setSubmitting(true);
       setError(null);
-      await deleteFacility(deleteConfirm.id);
-      setDeleteConfirm(null);
+      if (mode === 'delete') {
+        await permanentlyDeleteFacility(facility.id);
+      } else {
+        await deactivateFacility(facility.id);
+      }
+      setActionConfirm(null);
       load();
       window.dispatchEvent(new CustomEvent('mkd-communities-refresh'));
     } catch (err) {
-      setError(err.response?.data?.message || err.response?.data?.error || 'Failed to deactivate facility');
+      setError(
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        (mode === 'delete' ? 'Failed to delete facility' : 'Failed to deactivate facility')
+      );
     } finally {
       setSubmitting(false);
     }
@@ -201,7 +209,7 @@ const FacilitiesTab = () => {
         </div>
       </div>
 
-      {error && !modalOpen && (
+      {error && !modalOpen && !actionConfirm && (
         <ErrorMessage message={error} type="error" onDismiss={() => setError(null)} />
       )}
 
@@ -298,10 +306,21 @@ const FacilitiesTab = () => {
                           Reactivate
                         </button>
                       ) : (
-                        <button type="button" className="facility-btn facility-btn-deactivate btn-sm" onClick={() => handleDeleteClick(f)}>
+                        <button
+                          type="button"
+                          className="facility-btn facility-btn-deactivate btn-sm"
+                          onClick={() => handleDeactivateClick(f)}
+                        >
                           Deactivate
                         </button>
                       )}
+                      <button
+                        type="button"
+                        className="facility-btn facility-btn-delete btn-sm"
+                        onClick={() => handleDeleteClick(f)}
+                      >
+                        Delete
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -323,21 +342,49 @@ const FacilitiesTab = () => {
         </div>
       )}
 
-      {deleteConfirm && (
-        <div className="admin-nursing-homes__overlay" onClick={() => !submitting && setDeleteConfirm(null)}>
+      {actionConfirm && (
+        <div className="admin-nursing-homes__overlay" onClick={() => !submitting && setActionConfirm(null)}>
           <div className="admin-nursing-homes__modal admin-nursing-homes__modal--delete" onClick={(e) => e.stopPropagation()}>
             <div className="admin-nursing-homes__modal-header">
-              <h2>Deactivate facility</h2>
-              <button type="button" className="admin-nursing-homes__modal-close" onClick={() => setDeleteConfirm(null)} disabled={submitting} aria-label="Close">×</button>
+              <h2>{actionConfirm.mode === 'delete' ? 'Confirm Delete' : 'Deactivate facility'}</h2>
+              <button
+                type="button"
+                className="admin-nursing-homes__modal-close"
+                onClick={() => setActionConfirm(null)}
+                disabled={submitting}
+                aria-label="Close"
+              >
+                ×
+              </button>
             </div>
             <div className="admin-nursing-homes__modal-content">
-              <p style={{ margin: '0 0 20px 0', color: 'rgba(6, 23, 87, 0.7)', lineHeight: 1.6 }}>
-                Deactivate &quot;{deleteConfirm.name}&quot;? The facility portal will be locked until you reactivate it.
-              </p>
+              {error && <ErrorMessage message={error} type="error" onDismiss={() => setError(null)} />}
+              {actionConfirm.mode === 'delete' ? (
+                <p style={{ margin: '0 0 20px 0', color: 'rgba(6, 23, 87, 0.7)', lineHeight: 1.6 }}>
+                  Permanently delete &quot;{actionConfirm.facility.name}&quot;? This cannot be undone. Residents, orders, invoices, and resident logins for this facility will be removed. Staff accounts will be unlinked, not deleted.
+                </p>
+              ) : (
+                <p style={{ margin: '0 0 20px 0', color: 'rgba(6, 23, 87, 0.7)', lineHeight: 1.6 }}>
+                  Deactivate &quot;{actionConfirm.facility.name}&quot;? The facility portal will be locked until you reactivate it.
+                </p>
+              )}
               <div className="admin-nursing-homes__form-actions">
-                <button type="button" onClick={() => setDeleteConfirm(null)} disabled={submitting}>Cancel</button>
-                <button type="button" className="btn-danger" onClick={handleDeleteConfirm} disabled={submitting}>
-                  {submitting ? 'Deactivating…' : 'Deactivate'}
+                <button type="button" onClick={() => setActionConfirm(null)} disabled={submitting}>
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className={actionConfirm.mode === 'delete' ? 'admin-nursing-homes__delete-confirm-btn' : 'btn-danger'}
+                  onClick={handleActionConfirm}
+                  disabled={submitting}
+                >
+                  {submitting
+                    ? actionConfirm.mode === 'delete'
+                      ? 'Deleting…'
+                      : 'Deactivating…'
+                    : actionConfirm.mode === 'delete'
+                      ? 'Delete Facility'
+                      : 'Deactivate'}
                 </button>
               </div>
             </div>

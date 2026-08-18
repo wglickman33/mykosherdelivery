@@ -11,6 +11,20 @@ export const NH_TAX_RATE = 0.08875;
 
 const normCat = (c) => String(c || '').toLowerCase();
 
+export const NH_CATEGORY_LABELS = {
+  main: 'Mains',
+  side: 'Sides',
+  entree: 'Entrees',
+  soup: 'Soups',
+  dessert: 'Desserts'
+};
+
+export const formatNhCategoryLabel = (category) => {
+  const key = String(category || '').toLowerCase();
+  if (!key) return '';
+  return NH_CATEGORY_LABELS[key] || `${key.charAt(0).toUpperCase()}${key.slice(1)}`;
+};
+
 export const isNoneMeal = (meal) =>
   Boolean(meal) && (
     meal.none === true ||
@@ -280,6 +294,87 @@ export const formatNhDeadline = (date = getNhOrderDeadline()) =>
     minute: '2-digit',
     timeZoneName: 'short'
   });
+
+/** Format a DATEONLY YYYY-MM-DD string without timezone shift. */
+export const formatNhDate = (isoDate, { weekday = 'long' } = {}) => {
+  if (!isoDate) return '—';
+  const match = String(isoDate).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return String(isoDate);
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  if (Number.isNaN(date.getTime())) return String(isoDate);
+  const opts = { month: 'short', day: 'numeric', year: 'numeric' };
+  if (weekday) opts.weekday = weekday;
+  return date.toLocaleDateString('en-US', opts);
+};
+
+export const formatNhWeekRange = (start, end) => {
+  const startLabelFull = formatNhDate(start, { weekday: false });
+  if (!end) return startLabelFull;
+  const startMatch = String(start || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const endMatch = String(end || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (startMatch && endMatch && startMatch[1] === endMatch[1]) {
+    const startDate = new Date(Number(startMatch[1]), Number(startMatch[2]) - 1, Number(startMatch[3]));
+    return `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${formatNhDate(end, { weekday: false })}`;
+  }
+  return `${startLabelFull} – ${formatNhDate(end, { weekday: false })}`;
+};
+
+export const NH_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+export const NH_STATUS_LABELS = {
+  draft: 'Draft',
+  submitted: 'Submitted',
+  confirmed: 'Confirmed',
+  paid: 'Paid',
+  in_progress: 'In progress',
+  completed: 'Completed',
+  cancelled: 'Cancelled',
+  refunded: 'Refunded'
+};
+
+export const NH_PAYMENT_LABELS = {
+  pending: 'Pending',
+  pending_monthly: 'Billed monthly',
+  paid: 'Paid',
+  failed: 'Failed',
+  refunded: 'Refunded'
+};
+
+export const formatNhEnumLabel = (value, map = {}) => {
+  if (value == null || value === '') return '—';
+  const key = String(value).toLowerCase();
+  if (map[key]) return map[key];
+  return String(value)
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+};
+
+export const formatNhStatusLabel = (status) => formatNhEnumLabel(status, NH_STATUS_LABELS);
+export const formatNhPaymentLabel = (status) => formatNhEnumLabel(status, NH_PAYMENT_LABELS);
+
+export const getNhMealItemLines = (meal) => {
+  if (!meal || isNoneMeal(meal)) return [];
+  return (meal.items || [])
+    .filter((item) => item && item.id !== 'none' && item.name !== 'None')
+    .map((item) => ({
+      name: item.name,
+      note: meal.bagelType && itemNeedsBagelType(item) ? meal.bagelType : null,
+      category: item.category || null
+    }));
+};
+
+export const groupNhMealsByDay = (meals) => {
+  const list = Array.isArray(meals) ? meals : [];
+  return NH_DAYS.map((day) => {
+    const slots = NH_MEAL_TYPES.map((mealType) => {
+      const meal = list.find((m) => m.day === day && m.mealType === mealType) || null;
+      return { mealType, meal };
+    });
+    const selectedCount = slots.filter(({ meal }) => mealHasItems(meal)).length;
+    const hasAny = slots.some(({ meal }) => meal && (mealHasItems(meal) || isNoneMeal(meal)));
+    return { day, slots, selectedCount, hasAny };
+  }).filter((d) => d.hasAny);
+};
 
 export const getNextMondayDateString = (timeZone = 'America/New_York') => {
   const now = new Date();

@@ -5,6 +5,7 @@ import { useAuth } from '../../hooks/useAuth';
 import {
   fetchResidents,
   fetchFacilitiesList,
+  fetchStaffForFacility,
   createResident,
   updateResident,
   deactivateResident,
@@ -14,6 +15,7 @@ import {
 import { stripePromise, createPaymentMethod } from '../../services/paymentServices';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
+import Pagination from '../Pagination/Pagination';
 import './AdminNursingHomes.scss';
 
 const cardElementOptions = {
@@ -21,6 +23,12 @@ const cardElementOptions = {
     base: { fontSize: '16px', color: '#1e293b', '::placeholder': { color: '#94a3b8' } },
     invalid: { color: '#dc2626' }
   }
+};
+
+const formatAssignedStaffName = (user) => {
+  if (!user) return null;
+  const name = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
+  return name || user.email || null;
 };
 
 const emptyForm = {
@@ -101,7 +109,12 @@ const ResidentsTab = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [facilityFilter, setFacilityFilter] = useState('');
+  const [staffFilter, setStaffFilter] = useState('');
+  const [staffOptions, setStaffOptions] = useState([]);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
+  const [pagination, setPagination] = useState({ page: 1, total: 0, totalPages: 0 });
   const [modalOpen, setModalOpen] = useState(false);
   const [editingResident, setEditingResident] = useState(null);
   const [actionConfirm, setActionConfirm] = useState(null); // { resident, mode: 'deactivate' | 'delete' }
@@ -125,22 +138,68 @@ const ResidentsTab = () => {
     try {
       setLoading(true);
       setError(null);
-      const params = { page: 1, limit: 50, isActive: 'true' };
+      const params = { page, limit, isActive: 'true' };
       if (isAdmin && facilityFilter) params.facilityId = facilityFilter;
       if (search.trim()) params.search = search.trim();
+      if (staffFilter) params.assignedUserId = staffFilter;
       const res = await fetchResidents(params);
       setResidents(Array.isArray(res?.data) ? res.data : []);
+      setPagination(res?.pagination || { page, total: 0, totalPages: 0 });
     } catch (err) {
       setError(err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to load residents');
       setResidents([]);
     } finally {
       setLoading(false);
     }
-  }, [isAdmin, facilityFilter, search]);
+  }, [isAdmin, facilityFilter, search, staffFilter, page, limit]);
+
+  const loadStaffOptions = useCallback(async () => {
+    const facilityIds = isAdmin
+      ? (facilityFilter ? [facilityFilter] : facilities.map((f) => f.id))
+      : (user?.nursingHomeFacilityId ? [user.nursingHomeFacilityId] : []);
+    if (!facilityIds.length) {
+      setStaffOptions([]);
+      return;
+    }
+    try {
+      const lists = await Promise.all(
+        facilityIds.map(async (id) => {
+          const list = await fetchStaffForFacility(id);
+          const facilityName = facilities.find((f) => f.id === id)?.name;
+          return (Array.isArray(list) ? list : []).map((s) => ({
+            ...s,
+            facilityName
+          }));
+        })
+      );
+      const byId = new Map();
+      lists.flat().forEach((s) => {
+        if (s?.id && !byId.has(s.id)) byId.set(s.id, s);
+      });
+      setStaffOptions([...byId.values()].sort((a, b) => {
+        const an = formatAssignedStaffName(a) || '';
+        const bn = formatAssignedStaffName(b) || '';
+        return an.localeCompare(bn);
+      }));
+    } catch {
+      setStaffOptions([]);
+    }
+  }, [isAdmin, facilityFilter, facilities, user?.nursingHomeFacilityId]);
 
   useEffect(() => {
     loadFacilities();
   }, [loadFacilities]);
+
+  useEffect(() => {
+    loadStaffOptions();
+  }, [loadStaffOptions]);
+
+  useEffect(() => {
+    if (staffFilter && staffFilter !== 'unassigned' && staffOptions.length > 0
+      && !staffOptions.some((s) => s.id === staffFilter)) {
+      setStaffFilter('');
+    }
+  }, [staffFilter, staffOptions]);
 
   useEffect(() => {
     loadResidents();
@@ -311,31 +370,59 @@ const ResidentsTab = () => {
         Staff (nursing home admins) are managed separately and cannot be created here.
       </p>
 
-      {isAdmin && facilities.length > 0 && (
-        <div className="filters-row">
+      <div className="filters-row">
+        {isAdmin && facilities.length > 0 && (
           <label>
             <span>Facility</span>
             <select
               value={facilityFilter}
-              onChange={(e) => setFacilityFilter(e.target.value)}
+              onChange={(e) => {
+                setFacilityFilter(e.target.value);
+                setPage(1);
+              }}
             >
               <option value="">All facilities</option>
-              {facilities.map(f => (
+              {facilities.map((f) => (
                 <option key={f.id} value={f.id}>{f.name}</option>
               ))}
             </select>
           </label>
-          <label>
-            <span>Search</span>
-            <input
-              type="text"
-              placeholder="Search by name"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </label>
-        </div>
-      )}
+        )}
+        <label>
+          <span>Assigned staff</span>
+          <select
+            value={staffFilter}
+            onChange={(e) => {
+              setStaffFilter(e.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="">All</option>
+            <option value="unassigned">Unassigned</option>
+            {staffOptions.map((s) => {
+              const name = formatAssignedStaffName(s) || s.email || s.id;
+              const showFacility = isAdmin && !facilityFilter && s.facilityName;
+              return (
+                <option key={s.id} value={s.id}>
+                  {showFacility ? `${name} (${s.facilityName})` : name}
+                </option>
+              );
+            })}
+          </select>
+        </label>
+        <label>
+          <span>Search</span>
+          <input
+            type="text"
+            placeholder="Search by name"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+          />
+        </label>
+      </div>
 
       {error && !modalOpen && !actionConfirm && (
         <ErrorMessage message={error} type="error" onDismiss={() => setError(null)} />
@@ -345,31 +432,59 @@ const ResidentsTab = () => {
         <LoadingSpinner size="large" />
       ) : residents.length === 0 ? (
         <div className="content-placeholder">
-          <p>No residents found.</p>
+          <p>
+            {staffFilter || search || facilityFilter
+              ? 'No residents match these filters.'
+              : 'No residents found.'}
+          </p>
           <button type="button" className="btn-primary" onClick={handleOpenAdd}>
             Add Resident
           </button>
         </div>
       ) : (
-        <div className="table-wrap">
-          <table className="data-table" role="grid">
-            <thead>
-              <tr>
-                {isAdmin && <th>Facility</th>}
-                <th>Name</th>
-                <th>Room</th>
-                <th>Login</th>
-                <th>Dietary / Allergies</th>
-                <th>Card</th>
-                <th aria-label="Actions" />
-              </tr>
-            </thead>
-            <tbody>
-              {residents.map((r) => (
+        <div className="nh-mgmt-table-container">
+          <div className="nh-mgmt-table-scroll">
+            <table className="nh-mgmt-table residents-tab__table" role="grid">
+              <colgroup>
+                {isAdmin && <col className="col-facility" />}
+                <col className="col-name" />
+                <col className="col-room" />
+                <col className="col-assigned" />
+                <col className="col-login" />
+                <col className="col-dietary" />
+                <col className="col-card" />
+                <col className="col-actions" />
+              </colgroup>
+              <thead>
+                <tr>
+                  {isAdmin && <th>Facility</th>}
+                  <th>Name</th>
+                  <th>Room</th>
+                  <th>Assigned staff</th>
+                  <th>Login</th>
+                  <th>Dietary / Allergies</th>
+                  <th>Card</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {residents.map((r) => (
                 <tr key={r.id}>
                   {isAdmin && <td>{r.facility ? r.facility.name : facilityName(r.facilityId)}</td>}
-                  <td>{r.name}</td>
+                  <td className="nh-mgmt-table__name">{r.name}</td>
                   <td>{r.roomNumber || '-'}</td>
+                  <td>
+                    {formatAssignedStaffName(r.assignedUser) ? (
+                      <span
+                        className="assignment-pill assignment-pill--assigned"
+                        title={r.assignedUser?.email || undefined}
+                      >
+                        {formatAssignedStaffName(r.assignedUser)}
+                      </span>
+                    ) : (
+                      <span className="assignment-pill assignment-pill--unassigned">Unassigned</span>
+                    )}
+                  </td>
                   <td>
                     {r.userAccount?.email || r.userId
                       ? (r.userAccount?.email || 'Linked')
@@ -379,7 +494,7 @@ const ResidentsTab = () => {
                     {[r.dietaryRestrictions, r.allergies].filter(Boolean).join(' · ') || '-'}
                   </td>
                   <td>{r.paymentMethodId ? 'On file' : '-'}</td>
-                  <td>
+                  <td className="nh-mgmt-table__actions">
                     <div className="user-actions">
                       <button type="button" className="edit-btn" onClick={() => handleOpenEdit(r)}>
                         Edit
@@ -394,8 +509,20 @@ const ResidentsTab = () => {
                   </td>
                 </tr>
               ))}
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </div>
+          <div className="nh-mgmt-table-pagination pagination-footer">
+            <Pagination
+              page={page}
+              totalPages={Math.max(1, pagination.totalPages)}
+              rowsPerPage={limit}
+              total={pagination.total}
+              onPageChange={setPage}
+              onRowsPerPageChange={(n) => { setLimit(n); setPage(1); }}
+              rowsPerPageOptions={[10, 20, 50]}
+            />
+          </div>
         </div>
       )}
 

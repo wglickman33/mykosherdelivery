@@ -338,9 +338,9 @@ const OrderEdit = () => {
                 className="copy-day-btn"
                 onClick={openCopyPanel}
                 disabled={!canOpenCopy}
-                title={canOpenCopy ? copyButtonLabel : 'Finish at least one other day first'}
+                title={canOpenCopy ? 'Choose a completed day to copy onto this one' : 'Finish at least one other day first'}
               >
-                {copyButtonLabel}…
+                {copyButtonLabel}
               </button>
             </div>
             <div className="day-buttons">
@@ -417,20 +417,22 @@ const OrderEdit = () => {
           />
         </div>
 
-        <OrderSummary
-          meals={meals}
-          resident={resident}
-          onSaveDraft={handleSaveDraft}
-          onSubmit={handleSubmit}
-          saving={saving || Boolean(adminConflict)}
-          totalMeals={totalMeals}
-          onJumpToMeal={jumpToMeal}
-          highlight={highlightSummary}
-          dockNextLabel={nextController.nextLabel}
-          dockNextDisabled={!nextController.canContinue}
-          onDockNext={() => nextController.runNext?.()}
-          showDockSubmit={Boolean(isLastSlot && totalMeals > 0 && committedMeal)}
-        />
+        <div className="order-summary-rail">
+          <OrderSummary
+            meals={meals}
+            resident={resident}
+            onSaveDraft={handleSaveDraft}
+            onSubmit={handleSubmit}
+            saving={saving || Boolean(adminConflict)}
+            totalMeals={totalMeals}
+            onJumpToMeal={jumpToMeal}
+            highlight={highlightSummary}
+            dockNextLabel={nextController.nextLabel}
+            dockNextDisabled={!nextController.canContinue}
+            onDockNext={() => nextController.runNext?.()}
+            showDockSubmit={Boolean(isLastSlot && totalMeals > 0 && committedMeal)}
+          />
+        </div>
       </div>
 
       <NhCopyDayModal

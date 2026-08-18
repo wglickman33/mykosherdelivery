@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
@@ -14,7 +14,8 @@ const LoginForm = ({
   redirectPath,
   errorMessage = 'Invalid credentials',
   footerText,
-  className = ''
+  className = '',
+  forgotPasswordPath = null
 }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -108,6 +109,14 @@ const LoginForm = ({
             />
           </div>
 
+          {forgotPasswordPath && (
+            <div className="login-form-forgot">
+              <Link to={forgotPasswordPath} className="login-form-forgot-link">
+                Forgot your password?
+              </Link>
+            </div>
+          )}
+
           <button type="submit" className="login-btn" disabled={loading}>
             {loading ? (
               <span className="login-btn-content">
@@ -141,7 +150,8 @@ LoginForm.propTypes = {
   ]).isRequired,
   errorMessage: PropTypes.string,
   footerText: PropTypes.string,
-  className: PropTypes.string
+  className: PropTypes.string,
+  forgotPasswordPath: PropTypes.string
 };
 
 export default LoginForm;

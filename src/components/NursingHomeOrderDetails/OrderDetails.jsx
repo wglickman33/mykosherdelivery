@@ -8,16 +8,18 @@ import {
 } from '../../services/nursingHomeService';
 import { useNursingHomeFacility } from '../../context/NursingHomeFacilityContext';
 import { useAuth } from '../../hooks/useAuth';
-import { NH_CONFIG } from '../../config/constants';
 import {
-  isNoneMeal,
   isStaffPlacedOrder,
   formatAssignedStaffContact,
-  ADMIN_ALREADY_ORDERED_MESSAGE
+  ADMIN_ALREADY_ORDERED_MESSAGE,
+  formatNhWeekRange,
+  formatNhStatusLabel,
+  formatNhPaymentLabel
 } from '../../utils/nursingHomeOrderUtils';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import NhAdminOrderedModal from '../NursingHomeShared/NhAdminOrderedModal';
+import NhMealsByDay from '../NursingHomeShared/NhMealsByDay';
 import './OrderDetails.scss';
 
 const OrderDetails = () => {
@@ -112,11 +114,6 @@ const OrderDetails = () => {
   const canMutate = isDraft && !staffLocked;
   const residentName = order?.residentName ?? order?.resident?.name;
   const roomNumber = order?.roomNumber ?? order?.resident?.roomNumber;
-  const mealsByDay = (order?.meals || []).reduce((acc, m) => {
-    if (!acc[m.day]) acc[m.day] = [];
-    acc[m.day].push(m);
-    return acc;
-  }, {});
 
   if (loading) {
     return (
@@ -200,15 +197,19 @@ const OrderDetails = () => {
         <div className="detail-rows">
           <div className="detail-row">
             <span>Week</span>
-            <span>{order?.weekStartDate} - {order?.weekEndDate}</span>
+            <span>{formatNhWeekRange(order?.weekStartDate, order?.weekEndDate)}</span>
           </div>
           <div className="detail-row">
             <span>Status</span>
-            <span className={`status-badge status-${order?.status}`}>{order?.status}</span>
+            <span className={`status-badge status-${order?.status}`}>
+              {formatNhStatusLabel(order?.status)}
+            </span>
           </div>
           <div className="detail-row">
             <span>Payment</span>
-            <span className={`status-badge status-${order?.paymentStatus}`}>{order?.paymentStatus}</span>
+            <span className={`status-badge status-${order?.paymentStatus}`}>
+              {formatNhPaymentLabel(order?.paymentStatus)}
+            </span>
           </div>
           <div className="detail-row">
             <span>Total meals</span>
@@ -220,41 +221,7 @@ const OrderDetails = () => {
         </p>
       </section>
 
-      <section className="details-card">
-        <h2>Meals by day</h2>
-        {NH_CONFIG.MEALS.DAYS.map((day) => {
-          const meals = mealsByDay[day];
-          if (!meals?.length) return null;
-          return (
-            <div key={day} className="day-block">
-              <h3>{day}</h3>
-              {meals.map((meal, i) => {
-                const none = isNoneMeal(meal);
-                return (
-                  <div key={i} className="meal-row meal-row--detail">
-                    <div className="meal-row__head">
-                      <span className="meal-type">{meal.mealType}</span>
-                      <span className="meal-status">{none ? 'Skipped' : 'Selected'}</span>
-                    </div>
-                    {none ? (
-                      <p className="meal-item-name">None</p>
-                    ) : (
-                      (meal.items || []).map((item) => (
-                        <p key={item.id || item.name} className="meal-item-name">
-                          {item.name}
-                        </p>
-                      ))
-                    )}
-                    {meal.bagelType && !none && (
-                      <p className="bagel-note">Bagel: {meal.bagelType}</p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })}
-      </section>
+      <NhMealsByDay meals={order?.meals} />
 
       {order?.deliveryAddress && (
         <section className="details-card">

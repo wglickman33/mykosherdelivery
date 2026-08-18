@@ -9,20 +9,41 @@ import {
   runMonthlyBilling
 } from '../../services/nursingHomeService';
 import { sendNhMonthlyBillingEmail } from '../../services/paymentServices';
+import {
+  formatNhPaymentLabel,
+  formatNhStatusLabel,
+  formatNhWeekRange
+} from '../../utils/nursingHomeOrderUtils';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import Pagination from '../Pagination/Pagination';
+import NhMealsByDay from '../NursingHomeShared/NhMealsByDay';
 import './AdminNursingHomes.scss';
 
-const statusLabels = {
-  draft: 'Draft',
-  submitted: 'Submitted',
-  paid: 'Paid',
-  cancelled: 'Cancelled',
-  refunded: 'Refunded'
+const formatPlacedBy = (order) => {
+  const creator = order?.createdBy;
+  if (!creator) return order?.createdByUserId ? 'Staff / admin' : '—';
+  const name = [creator.firstName, creator.lastName].filter(Boolean).join(' ').trim();
+  if (name) return name;
+  if (creator.email) return creator.email;
+  if (creator.role === 'nursing_home_user') return 'Resident';
+  if (creator.role === 'nursing_home_admin') return 'Facility staff';
+  if (creator.role === 'admin') return 'Platform admin';
+  return creator.role || '—';
 };
 
 const formatCurrency = (n) => `$${parseFloat(n || 0).toFixed(2)}`;
+
+const STATUS_FILTERS = [
+  { value: '', label: 'All orders' },
+  { value: 'draft', label: 'Draft' },
+  { value: 'submitted', label: 'Submitted' },
+  { value: 'confirmed', label: 'Confirmed' },
+  { value: 'paid', label: 'Paid' },
+  { value: 'in_progress', label: 'In progress' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'cancelled', label: 'Cancelled' }
+];
 
 const OrdersTab = () => {
   const navigate = useNavigate();
@@ -123,11 +144,8 @@ const OrdersTab = () => {
     setRefunds([]);
   };
 
-  const formatDate = (d) => {
-    if (!d) return '-';
-    const date = new Date(d);
-    return date.toLocaleDateString();
-  };
+  const billedMonthlyCount = orders.filter((o) => o.paymentStatus === 'pending_monthly').length;
+  const submittedCount = orders.filter((o) => o.status === 'submitted').length;
 
   const orderTotal = parseFloat(selectedOrder?.total || 0);
   const totalRefunded = refunds
@@ -135,6 +153,16 @@ const OrdersTab = () => {
     .reduce((sum, r) => sum + parseFloat(r.amount || 0), 0);
   const remainingRefundable = orderTotal - totalRefunded;
   const canRefund = selectedOrder?.paymentStatus === 'paid' && remainingRefundable > 0;
+  const detailResident = selectedOrder?.resident?.name ?? selectedOrder?.residentName ?? '—';
+  const detailRoom = selectedOrder?.resident?.roomNumber ?? selectedOrder?.roomNumber;
+  const detailFacility = selectedOrder?.facility?.name;
+  const detailSubtitle = selectedOrder
+    ? [
+        detailFacility,
+        detailResident !== '—' ? detailResident : null,
+        detailRoom ? `Room ${detailRoom}` : null
+      ].filter(Boolean).join(' · ')
+    : '';
 
   const handleOpenRefundModal = () => {
     setRefundType('full');
@@ -219,9 +247,12 @@ const OrdersTab = () => {
 
   return (
     <div className="orders-tab">
-      <div className="tab-header">
-        <h2>Nursing Home Orders</h2>
-        <div className="tab-header__actions">
+      <div className="orders-tab__header">
+        <div className="orders-tab__header-content">
+          <h2>Nursing Home Orders</h2>
+          <p>Weekly resident meal orders and billing. Amounts roll into monthly invoices.</p>
+        </div>
+        <div className="orders-tab__header-actions">
           {isAdmin && (
             <button
               type="button"
@@ -245,13 +276,34 @@ const OrdersTab = () => {
             </button>
           )}
         </div>
+        <div className="orders-tab__header-stats">
+          <div className="orders-tab__stat-card">
+            <span className="orders-tab__stat-label">Total orders</span>
+            <span className="orders-tab__stat-value">{pagination.total || 0}</span>
+          </div>
+          <div className="orders-tab__stat-card">
+            <span className="orders-tab__stat-label">Submitted</span>
+            <span className="orders-tab__stat-value">{submittedCount}</span>
+          </div>
+          <div className="orders-tab__stat-card">
+            <span className="orders-tab__stat-label">Billed monthly</span>
+            <span className="orders-tab__stat-value">{billedMonthlyCount}</span>
+          </div>
+        </div>
       </div>
 
-      {isAdmin && facilities.length > 0 && (
-        <div className="filters-row">
-          <label>
-            <span>Facility</span>
-            <select value={facilityFilter} onChange={(e) => setFacilityFilter(e.target.value)}>
+      <div className="orders-tab__filters">
+        {isAdmin && (
+          <div className="orders-tab__filter-group">
+            <label htmlFor="nh-mgmt-orders-facility">Facility</label>
+            <select
+              id="nh-mgmt-orders-facility"
+              value={facilityFilter}
+              onChange={(e) => {
+                setFacilityFilter(e.target.value);
+                setPage(1);
+              }}
+            >
               <option value="">All facilities</option>
               {facilities.map((f) => (
                 <option key={f.id} value={f.id}>
@@ -259,19 +311,26 @@ const OrdersTab = () => {
                 </option>
               ))}
             </select>
-          </label>
-          <label>
-            <span>Status</span>
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-              <option value="">All</option>
-              <option value="draft">Draft</option>
-              <option value="submitted">Submitted</option>
-              <option value="paid">Paid</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
-          </label>
+          </div>
+        )}
+        <div className="orders-tab__filter-group">
+          <label htmlFor="nh-mgmt-orders-status">Status</label>
+          <select
+            id="nh-mgmt-orders-status"
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setPage(1);
+            }}
+          >
+            {STATUS_FILTERS.map((opt) => (
+              <option key={opt.value || 'all'} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
         </div>
-      )}
+      </div>
 
       {billingError && (
         <ErrorMessage message={billingError} type="error" onDismiss={() => setBillingError(null)} />
@@ -300,53 +359,94 @@ const OrdersTab = () => {
       )}
 
       {loading ? (
-        <LoadingSpinner size="large" />
+        <div className="orders-tab__loading">
+          <LoadingSpinner size="large" />
+          <p>Loading orders…</p>
+        </div>
       ) : (
-        <>
-          <div className="table-wrap">
-            <table className="data-table" role="grid">
+        <div className="orders-tab__table-container">
+          <div className="orders-tab__table-scroll">
+            <table className="orders-tab__table" role="grid">
+              <colgroup>
+                <col className="col-order" />
+                {isAdmin && <col className="col-facility" />}
+                <col className="col-resident" />
+                <col className="col-week" />
+                <col className="col-status" />
+                <col className="col-payment" />
+                <col className="col-total" />
+                <col className="col-actions" />
+              </colgroup>
               <thead>
                 <tr>
+                  <th>Order #</th>
                   {isAdmin && <th>Facility</th>}
                   <th>Resident</th>
-                  <th>Room</th>
                   <th>Week</th>
                   <th>Status</th>
                   <th>Payment</th>
                   <th>Total</th>
-                  <th aria-label="Actions" />
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {orders.length === 0 ? (
                   <tr>
-                    <td colSpan={isAdmin ? 8 : 7} className="orders-tab-empty-cell">
-                      No orders found.
+                    <td colSpan={isAdmin ? 8 : 7} className="orders-tab__empty-cell">
+                      No nursing home orders found.
                     </td>
                   </tr>
                 ) : (
-                  orders.map((o) => (
-                    <tr key={o.id}>
-                      {isAdmin && (
-                        <td>{o.facility ? o.facility.name : '-'}</td>
-                      )}
-                      <td>{o.resident ? o.resident.name : '-'}</td>
-                      <td>{o.resident?.roomNumber || '-'}</td>
-                      <td>{o.weekStartDate ? formatDate(o.weekStartDate) : '-'}</td>
-                      <td>{statusLabels[o.status] || o.status || '-'}</td>
-                      <td>{o.paymentStatus || '-'}</td>
-                      <td>{o.total != null ? formatCurrency(o.total) : '-'}</td>
-                      <td>
-                        <button
-                          type="button"
-                          className="link-btn"
-                          onClick={() => openDetail(o)}
+                  orders.map((o) => {
+                    const residentName = o.resident?.name || o.residentName || '—';
+                    const roomNumber = o.resident?.roomNumber || o.roomNumber;
+                    return (
+                      <tr key={o.id}>
+                        <td className="orders-tab__order-number" title={o.orderNumber || o.id}>
+                          {o.orderNumber || (o.id ? String(o.id).slice(0, 8) : '—')}
+                        </td>
+                        {isAdmin && (
+                          <td className="orders-tab__facility" title={o.facility?.name || '—'}>
+                            {o.facility?.name || '—'}
+                          </td>
+                        )}
+                        <td
+                          className="orders-tab__resident"
+                          title={[residentName, roomNumber ? `Room ${roomNumber}` : null].filter(Boolean).join(' · ')}
                         >
-                          View / Refund
-                        </button>
-                      </td>
-                    </tr>
-                  ))
+                          <div className="orders-tab__resident-name">{residentName}</div>
+                          {roomNumber ? (
+                            <div className="orders-tab__resident-meta">Room {roomNumber}</div>
+                          ) : null}
+                        </td>
+                        <td className="orders-tab__week" title={formatNhWeekRange(o.weekStartDate, o.weekEndDate)}>
+                          {formatNhWeekRange(o.weekStartDate, o.weekEndDate)}
+                        </td>
+                        <td>
+                          <span className={`nh-status-badge nh-status-badge--${o.status || 'draft'}`}>
+                            {formatNhStatusLabel(o.status)}
+                          </span>
+                        </td>
+                        <td>
+                          <span className={`nh-payment-badge nh-payment-badge--${o.paymentStatus || 'pending'}`}>
+                            {formatNhPaymentLabel(o.paymentStatus)}
+                          </span>
+                        </td>
+                        <td className="orders-tab__total">
+                          {o.total != null ? formatCurrency(o.total) : '—'}
+                        </td>
+                        <td className="orders-tab__actions">
+                          <button
+                            type="button"
+                            className="orders-tab__view-btn"
+                            onClick={() => openDetail(o)}
+                          >
+                            View
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -362,7 +462,7 @@ const OrdersTab = () => {
               rowsPerPageOptions={[10, 20, 30, 40, 50]}
             />
           </div>
-        </>
+        </div>
       )}
 
       {detailModalOpen && selectedOrder && (
@@ -374,64 +474,117 @@ const OrdersTab = () => {
           onClick={closeDetail}
         >
           <div
-            className="orders-tab__modal"
+            className="orders-tab__modal orders-tab__modal--detail"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="orders-tab__modal-header">
-              <h2 id="order-detail-title">Order {selectedOrder.orderNumber}</h2>
+              <div className="orders-tab__modal-heading">
+                <p className="orders-tab__modal-kicker">Nursing home order</p>
+                <h2 id="order-detail-title">{selectedOrder.orderNumber || 'Order'}</h2>
+                {detailSubtitle ? (
+                  <p className="orders-tab__modal-sub">{detailSubtitle}</p>
+                ) : null}
+                <div className="orders-tab__modal-badges">
+                  <span className={`nh-status-badge nh-status-badge--${selectedOrder.status || 'draft'}`}>
+                    {formatNhStatusLabel(selectedOrder.status)}
+                  </span>
+                  <span className={`nh-payment-badge nh-payment-badge--${selectedOrder.paymentStatus || 'pending'}`}>
+                    {formatNhPaymentLabel(selectedOrder.paymentStatus)}
+                  </span>
+                </div>
+              </div>
               <button type="button" className="orders-tab__modal-close" onClick={closeDetail} aria-label="Close">
                 ×
               </button>
             </div>
             <div className="orders-tab__modal-body">
-              <section className="orders-tab__detail-section">
-                <h3>Details</h3>
-                <dl className="orders-tab__detail-list">
-                  <dt>Resident</dt>
-                  <dd>{selectedOrder.resident?.name ?? selectedOrder.residentName ?? '-'}</dd>
-                  <dt>Room</dt>
-                  <dd>{selectedOrder.resident?.roomNumber ?? '-'}</dd>
-                  <dt>Week</dt>
-                  <dd>
-                    {selectedOrder.weekStartDate && selectedOrder.weekEndDate
-                      ? `${formatDate(selectedOrder.weekStartDate)} - ${formatDate(selectedOrder.weekEndDate)}`
-                      : '-'}
-                  </dd>
-                  <dt>Status</dt>
-                  <dd>{statusLabels[selectedOrder.status] || selectedOrder.status}</dd>
-                  <dt>Payment</dt>
-                  <dd>{selectedOrder.paymentStatus || '-'}</dd>
-                  <dt>Total</dt>
-                  <dd>{formatCurrency(selectedOrder.total)}</dd>
+              <section className="orders-tab__panel">
+                <h3>Overview</h3>
+                <dl className="orders-tab__meta">
+                  <div>
+                    <dt>Resident</dt>
+                    <dd>{detailResident}</dd>
+                  </div>
+                  <div>
+                    <dt>Room</dt>
+                    <dd>{detailRoom || '—'}</dd>
+                  </div>
+                  {detailFacility ? (
+                    <div>
+                      <dt>Facility</dt>
+                      <dd>{detailFacility}</dd>
+                    </div>
+                  ) : null}
+                  <div>
+                    <dt>Week</dt>
+                    <dd>
+                      {selectedOrder.weekStartDate
+                        ? formatNhWeekRange(selectedOrder.weekStartDate, selectedOrder.weekEndDate)
+                        : '—'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Meals</dt>
+                    <dd>
+                      {(selectedOrder.totalMeals ?? 0) === 1
+                        ? '1 meal'
+                        : `${selectedOrder.totalMeals ?? 0} meals`}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Placed by</dt>
+                    <dd>{formatPlacedBy(selectedOrder)}</dd>
+                  </div>
+                  <div className="orders-tab__meta-total">
+                    <dt>Total</dt>
+                    <dd>{formatCurrency(selectedOrder.total)}</dd>
+                  </div>
                 </dl>
               </section>
 
-              <section className="orders-tab__refunds-section">
+              <NhMealsByDay meals={selectedOrder.meals} />
+
+              <section className="orders-tab__panel">
                 <h3>Refunds</h3>
                 {refundsLoading ? (
                   <LoadingSpinner size="small" />
                 ) : (
                   <>
-                    <div className="orders-tab__refund-summary">
-                      <span>Order total: {formatCurrency(orderTotal)}</span>
-                      <span>Refunded: {formatCurrency(totalRefunded)}</span>
-                      <span>Remaining: {formatCurrency(remainingRefundable)}</span>
+                    <div className="orders-tab__metrics">
+                      <div className="orders-tab__metric">
+                        <span>Order total</span>
+                        <strong>{formatCurrency(orderTotal)}</strong>
+                      </div>
+                      <div className="orders-tab__metric">
+                        <span>Refunded</span>
+                        <strong>{formatCurrency(totalRefunded)}</strong>
+                      </div>
+                      <div className="orders-tab__metric">
+                        <span>Remaining</span>
+                        <strong>{formatCurrency(remainingRefundable)}</strong>
+                      </div>
                     </div>
-                    {refunds.length > 0 && (
+                    {refunds.length > 0 ? (
                       <ul className="orders-tab__refunds-list">
                         {refunds.map((r) => (
                           <li key={r.id} className="orders-tab__refund-item">
-                            <span className="orders-tab__refund-amount">{formatCurrency(r.amount)}</span>
-                            <span className={`orders-tab__refund-status orders-tab__refund-status--${r.status}`}>
-                              {r.status === 'processed' ? 'Processed' : r.status === 'pending' ? 'Pending' : 'Failed'}
-                            </span>
-                            <span className="orders-tab__refund-reason">{r.reason}</span>
+                            <div className="orders-tab__refund-item-top">
+                              <span className="orders-tab__refund-amount">{formatCurrency(r.amount)}</span>
+                              <span className={`orders-tab__refund-status orders-tab__refund-status--${r.status}`}>
+                                {r.status === 'processed' ? 'Processed' : r.status === 'pending' ? 'Pending' : 'Failed'}
+                              </span>
+                            </div>
+                            {r.reason ? (
+                              <span className="orders-tab__refund-reason">{r.reason}</span>
+                            ) : null}
                             <span className="orders-tab__refund-date">
                               {r.createdAt ? new Date(r.createdAt).toLocaleString() : ''}
                             </span>
                           </li>
                         ))}
                       </ul>
+                    ) : (
+                      <p className="orders-tab__refund-empty">No refunds on this order.</p>
                     )}
                     {canRefund && (
                       <div className="orders-tab__refund-actions">
@@ -446,6 +599,11 @@ const OrdersTab = () => {
                     )}
                     {selectedOrder.paymentStatus === 'paid' && remainingRefundable <= 0 && (
                       <p className="orders-tab__refund-note">This order has been fully refunded.</p>
+                    )}
+                    {selectedOrder.paymentStatus === 'pending_monthly' && (
+                      <p className="orders-tab__refund-note">
+                        This order is billed monthly. Refunds become available after payment is collected.
+                      </p>
                     )}
                   </>
                 )}
@@ -464,11 +622,17 @@ const OrdersTab = () => {
           onClick={() => !processingRefund && setRefundModalOpen(false)}
         >
           <div
-            className="orders-tab__modal orders-tab__refund-modal"
+            className="orders-tab__modal orders-tab__modal--refund"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="orders-tab__modal-header">
-              <h2 id="refund-modal-title">Process refund</h2>
+              <div className="orders-tab__modal-heading">
+                <p className="orders-tab__modal-kicker">Refund</p>
+                <h2 id="refund-modal-title">Process refund</h2>
+                <p className="orders-tab__modal-sub">
+                  Remaining refundable: {formatCurrency(remainingRefundable)}
+                </p>
+              </div>
               <button
                 type="button"
                 className="orders-tab__modal-close"
@@ -479,11 +643,8 @@ const OrdersTab = () => {
               </button>
             </div>
             <form onSubmit={handleSubmitRefund} className="orders-tab__refund-form">
-              <div className="orders-tab__refund-form-row">
-                <span>Remaining refundable: {formatCurrency(remainingRefundable)}</span>
-              </div>
-              <div className="orders-tab__refund-form-row">
-                <label>
+              <div className="orders-tab__refund-type">
+                <label className={refundType === 'full' ? 'is-selected' : undefined}>
                   <input
                     type="radio"
                     name="refundType"
@@ -496,7 +657,7 @@ const OrdersTab = () => {
                   />
                   Full refund
                 </label>
-                <label>
+                <label className={refundType === 'partial' ? 'is-selected' : undefined}>
                   <input
                     type="radio"
                     name="refundType"

@@ -8,6 +8,7 @@ const request = require('supertest');
 const app = require('../../app');
 const { createNhFixture } = require('../helpers/nhFixture');
 const {
+  NursingHomeFacility,
   NursingHomeResident,
   NursingHomeResidentOrder,
   NursingHomeMenuItem
@@ -68,6 +69,38 @@ describe('Nursing home facility portal flows', () => {
       .expect(200);
 
     expect(unassign.body.data.assignedUserId == null).toBe(true);
+  });
+
+  test('platform admin can filter residents by assigned staff or unassigned', async () => {
+    const unassigned = await request(app)
+      .get(`/api/nursing-homes/residents?facilityId=${fx.facility.id}&assignedUserId=unassigned`)
+      .set(fx.platformAdminAuth)
+      .expect(200);
+    expect((unassigned.body.data || []).some((r) => r.id === fx.resident.id)).toBe(true);
+
+    await request(app)
+      .post(`/api/nursing-homes/residents/${fx.resident.id}/assign`)
+      .set(fx.adminAuth)
+      .send({ assignedUserId: fx.staff.id })
+      .expect(200);
+
+    const stillUnassigned = await request(app)
+      .get(`/api/nursing-homes/residents?facilityId=${fx.facility.id}&assignedUserId=unassigned`)
+      .set(fx.platformAdminAuth)
+      .expect(200);
+    expect((stillUnassigned.body.data || []).some((r) => r.id === fx.resident.id)).toBe(false);
+
+    const byStaff = await request(app)
+      .get(`/api/nursing-homes/residents?facilityId=${fx.facility.id}&assignedUserId=${fx.staff.id}`)
+      .set(fx.platformAdminAuth)
+      .expect(200);
+    expect((byStaff.body.data || []).some((r) => r.id === fx.resident.id)).toBe(true);
+
+    await request(app)
+      .put(`/api/nursing-homes/residents/${fx.resident.id}`)
+      .set(fx.adminAuth)
+      .send({ assignedUserId: null })
+      .expect(200);
   });
 
   test('create draft order and submit without payment', async () => {
@@ -153,6 +186,50 @@ describe('Nursing home facility portal flows', () => {
     const gone = await NursingHomeResident.findByPk(disposable.id);
     expect(gone).toBeNull();
     fx.residentIds = fx.residentIds.filter((id) => id !== disposable.id);
+  });
+
+  test('platform admin can deactivate then permanently delete a facility', async () => {
+    const extra = await NursingHomeFacility.create({
+      name: `Disposable Facility ${fx.suffix}`,
+      slug: `disposable-facility-${fx.suffix}`,
+      address: {
+        street: '9 Dispose St',
+        city: 'Brooklyn',
+        state: 'NY',
+        zip_code: '11209'
+      },
+      isActive: true,
+      billingFrequency: 'monthly'
+    });
+    fx.facilityIds.push(extra.id);
+
+    const extraResident = await NursingHomeResident.create({
+      facilityId: extra.id,
+      name: `Facility Delete Resident ${fx.suffix}`,
+      roomNumber: '1',
+      isActive: true
+    });
+    fx.residentIds.push(extraResident.id);
+
+    const deactivate = await request(app)
+      .delete(`/api/nursing-homes/facilities/${extra.id}`)
+      .set(fx.platformAdminAuth)
+      .expect(200);
+
+    expect(deactivate.body.permanent).toBe(false);
+    await extra.reload();
+    expect(extra.isActive).toBe(false);
+
+    const hard = await request(app)
+      .delete(`/api/nursing-homes/facilities/${extra.id}?permanent=true`)
+      .set(fx.platformAdminAuth)
+      .expect(200);
+
+    expect(hard.body.permanent).toBe(true);
+    expect(await NursingHomeFacility.findByPk(extra.id)).toBeNull();
+    expect(await NursingHomeResident.findByPk(extraResident.id)).toBeNull();
+    fx.facilityIds = fx.facilityIds.filter((id) => id !== extra.id);
+    fx.residentIds = fx.residentIds.filter((id) => id !== extraResident.id);
   });
 
   test('staff can order for unassigned resident in same facility', async () => {

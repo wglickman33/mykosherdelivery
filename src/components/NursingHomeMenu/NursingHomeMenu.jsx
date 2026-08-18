@@ -4,12 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { fetchMenuItems } from '../../services/nursingHomeService';
 import { NH_CONFIG } from '../../config/constants';
+import { NH_CATEGORY_LABELS } from '../../utils/nursingHomeOrderUtils';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import './NursingHomeMenu.scss';
 
 const MEAL_LABELS = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner' };
 const MEAL_PRICES = NH_CONFIG.MEALS.PRICES;
-const CATEGORY_LABELS = { main: 'Mains', side: 'Sides', entree: 'Entrees', soup: 'Soups', dessert: 'Desserts' };
 
 const NursingHomeMenu = ({ showInstructions = true, showEditLink = false }) => {
   const { user } = useAuth();
@@ -125,7 +125,7 @@ const NursingHomeMenu = ({ showInstructions = true, showEditLink = false }) => {
                 </h3>
                 {categories.map((cat) => (
                   <div key={cat} className="nh-menu-category">
-                    <h4>{CATEGORY_LABELS[cat] || cat}</h4>
+                    <h4>{NH_CATEGORY_LABELS[cat] || cat}</h4>
                     <ul>
                       {mealGroup[cat].filter((i) => i.isActive !== false).map((item) => (
                         <li key={item.id}>
@@ -154,7 +154,7 @@ const NursingHomeMenu = ({ showInstructions = true, showEditLink = false }) => {
               if (list.length === 0) return null;
               return (
                 <div key={cat} className="nh-menu-category">
-                  <h4>{CATEGORY_LABELS[cat] || cat}</h4>
+                  <h4>{NH_CATEGORY_LABELS[cat] || cat}</h4>
                   <ul>
                     {list.map((item) => (
                       <li key={item.id}>

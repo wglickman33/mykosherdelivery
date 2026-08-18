@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { fetchResidentOrders, fetchResidents, nhPath } from '../../services/nursingHomeService';
+import {
+  formatNhWeekRange,
+  formatNhStatusLabel,
+  formatNhPaymentLabel
+} from '../../utils/nursingHomeOrderUtils';
 import { useNursingHomeFacility } from '../../context/NursingHomeFacilityContext';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
@@ -112,7 +117,8 @@ const NursingHomeOrders = () => {
       </div>
 
       <section className="orders-table-wrap">
-        <table className="orders-table" role="grid">
+        <div className="orders-table-scroll">
+          <table className="orders-table" role="grid">
           <thead>
             <tr>
               <th>Order #</th>
@@ -140,14 +146,16 @@ const NursingHomeOrders = () => {
                   <td>{order.orderNumber}</td>
                   <td>{order.resident?.name ?? order.residentName ?? '-'}</td>
                   <td>
-                    {order.weekStartDate} - {order.weekEndDate}
+                    {formatNhWeekRange(order.weekStartDate, order.weekEndDate)}
                   </td>
                   <td>
-                    <span className={`status-badge status-${order.status}`}>{order.status}</span>
+                    <span className={`status-badge status-${order.status}`}>
+                      {formatNhStatusLabel(order.status)}
+                    </span>
                   </td>
                   <td>
                     <span className={`status-badge status-${order.paymentStatus}`}>
-                      {order.paymentStatus}
+                      {formatNhPaymentLabel(order.paymentStatus)}
                     </span>
                   </td>
                   <td>${parseFloat(order.total || 0).toFixed(2)}</td>
@@ -174,6 +182,7 @@ const NursingHomeOrders = () => {
             )}
           </tbody>
         </table>
+        </div>
         <div className="orders-table-wrap__pagination pagination-footer">
           <Pagination
             page={pagination.page}

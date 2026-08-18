@@ -176,6 +176,20 @@ export const fetchResidentOrderRefunds = async (residentOrderId) => {
   }
 };
 
+export const deleteResidentOrder = async (id) => {
+  try {
+    const response = await api.delete(`/nursing-homes/resident-orders/${id}`);
+    return {
+      success: response?.success !== false,
+      message: response?.message,
+      error: response?.error
+    };
+  } catch (error) {
+    logger.error(`Error deleting resident order ${id}:`, error);
+    throw error;
+  }
+};
+
 export const processResidentOrderRefund = async (residentOrderId, refundData) => {
   try {
     const response = await api.post(`/nursing-homes/resident-orders/${residentOrderId}/refund`, refundData);
@@ -269,15 +283,20 @@ export const updateFacility = async (id, data) => {
   }
 };
 
-export const deleteFacility = async (id) => {
+export const deleteFacility = async (id, { permanent = false } = {}) => {
   try {
-    const response = await api.delete(`/nursing-homes/facilities/${id}`);
-    return unwrapData(response);
+    const qs = permanent ? '?permanent=true' : '';
+    const response = await api.delete(`/nursing-homes/facilities/${id}${qs}`);
+    return unwrapData(response) ?? response;
   } catch (error) {
-    logger.error('Error deleting facility:', error);
+    logger.error(`Error ${permanent ? 'deleting' : 'deactivating'} facility ${id}:`, error);
     throw error;
   }
 };
+
+export const deactivateFacility = async (id) => deleteFacility(id, { permanent: false });
+
+export const permanentlyDeleteFacility = async (id) => deleteFacility(id, { permanent: true });
 
 export const createResident = async (data) => {
   try {

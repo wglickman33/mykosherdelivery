@@ -174,9 +174,7 @@ export default function useWeeklyMealBuilder(initialMeals = {}) {
     return other || null;
   }, [meals, selectedDay, completedDays]);
 
-  const copyButtonLabel = suggestedCopySourceDay
-    ? `Copy ${suggestedCopySourceDay}`
-    : 'Copy a day';
+  const copyButtonLabel = 'Copy another day';
 
   const canOpenCopy = Boolean(suggestedCopySourceDay) || completedDays.some((d) => d !== selectedDay);
 

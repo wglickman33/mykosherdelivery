@@ -31,6 +31,7 @@ const NursingHomeLogin = () => {
       errorMessage="Invalid credentials for nursing home portal"
       footerText="Need help? Contact your facility administrator"
       className="nursing-home-login"
+      forgotPasswordPath="/forgot-password?returnTo=/nursing-homes/login"
     />
   );
 };

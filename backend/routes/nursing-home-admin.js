@@ -451,11 +451,17 @@ router.put('/facilities/:id', requireAdmin, [
 });
 
 router.delete('/facilities/:id', requireAdmin, async (req, res) => {
+  const transaction = await sequelize.transaction();
+  const permanent =
+    req.query.permanent === 'true' ||
+    req.query.hard === 'true' ||
+    req.body?.permanent === true;
   try {
     const { id } = req.params;
 
-    const facility = await NursingHomeFacility.findByPk(id);
+    const facility = await NursingHomeFacility.findByPk(id, { transaction });
     if (!facility) {
+      await transaction.rollback();
       return res.status(404).json({
         success: false,
         error: 'Facility not found'
@@ -464,14 +470,104 @@ router.delete('/facilities/:id', requireAdmin, async (req, res) => {
 
     const facilityName = facility.name;
     const facilityOldValues = facility.toJSON();
-    await facility.update({ isActive: false });
-    await createAdminNotification({
-      type: 'nh.facility.deactivated',
-      title: 'Nursing home: Facility deactivated',
-      message: `"${facilityName}" was deactivated`,
-      ref: { kind: 'nh_facility', id: facility.id, name: facilityName }
-    });
-    await logAdminAction(req.user.id, 'UPDATE', 'nh_facilities', facility.id, facilityOldValues, facility.toJSON(), req);
+
+    if (permanent) {
+      const residents = await NursingHomeResident.findAll({
+        where: { facilityId: id },
+        attributes: ['id', 'userId'],
+        transaction
+      });
+      const residentIds = residents.map((r) => r.id);
+      const linkedUserIds = [...new Set(residents.map((r) => r.userId).filter(Boolean))];
+
+      if (residentIds.length > 0) {
+        await NursingHomeResident.update(
+          { userId: null },
+          { where: { facilityId: id }, transaction }
+        );
+      }
+
+      const orders = await NursingHomeResidentOrder.findAll({
+        where: { facilityId: id },
+        attributes: ['id'],
+        transaction
+      });
+      const orderIds = orders.map((o) => o.id);
+      if (orderIds.length > 0 && NursingHomeRefund) {
+        await NursingHomeRefund.destroy({
+          where: { residentOrderId: { [Op.in]: orderIds } },
+          transaction
+        });
+      }
+      await NursingHomeResidentOrder.destroy({ where: { facilityId: id }, transaction });
+      await NursingHomeResident.destroy({ where: { facilityId: id }, transaction });
+
+      if (linkedUserIds.length > 0) {
+        await Profile.destroy({
+          where: {
+            id: { [Op.in]: linkedUserIds },
+            role: 'nursing_home_user'
+          },
+          transaction
+        });
+      }
+
+      await NursingHomeOrder.destroy({ where: { facilityId: id }, transaction });
+      await NursingHomeInvoice.destroy({ where: { facilityId: id }, transaction });
+
+      const staff = await Profile.findAll({
+        where: { nursingHomeFacilityId: id },
+        transaction
+      });
+      for (const profile of staff) {
+        if (profile.role === 'nursing_home_user') {
+          await profile.destroy({ transaction });
+        } else {
+          await profile.update({ nursingHomeFacilityId: null }, { transaction });
+        }
+      }
+
+      await facility.destroy({ transaction });
+      await transaction.commit();
+
+      try {
+        await createAdminNotification({
+          type: 'nh.facility.deleted',
+          title: 'Nursing home: Facility deleted',
+          message: `"${facilityName}" was permanently deleted`,
+          ref: { kind: 'nh_facility', id, name: facilityName }
+        });
+        await logAdminAction(req.user.id, 'DELETE', 'nh_facilities', id, facilityOldValues, null, req);
+      } catch (sideEffectErr) {
+        logger.error('Facility deleted but notification/audit failed', sideEffectErr);
+      }
+      logger.info('Nursing home facility permanently deleted', {
+        facilityId: id,
+        deletedBy: req.user.id,
+        residentsRemoved: residentIds.length
+      });
+
+      return res.json({
+        success: true,
+        message: 'Facility deleted permanently',
+        permanent: true
+      });
+    }
+
+    await facility.update({ isActive: false }, { transaction });
+    await transaction.commit();
+
+    try {
+      await createAdminNotification({
+        type: 'nh.facility.deactivated',
+        title: 'Nursing home: Facility deactivated',
+        message: `"${facilityName}" was deactivated`,
+        ref: { kind: 'nh_facility', id: facility.id, name: facilityName }
+      });
+      await logAdminAction(req.user.id, 'UPDATE', 'nh_facilities', facility.id, facilityOldValues, facility.toJSON(), req);
+    } catch (sideEffectErr) {
+      logger.error('Facility deactivated but notification/audit failed', sideEffectErr);
+    }
     logger.info('Nursing home facility deactivated', {
       facilityId: facility.id,
       deactivatedBy: req.user.id
@@ -479,13 +575,17 @@ router.delete('/facilities/:id', requireAdmin, async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Facility deactivated successfully'
+      message: 'Facility deactivated successfully',
+      permanent: false
     });
   } catch (error) {
-    logger.error('Error deactivating facility:', error);
+    if (!transaction.finished) {
+      await transaction.rollback();
+    }
+    logger.error('Error deleting facility:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to deactivate facility',
+      error: permanent ? 'Failed to delete facility' : 'Failed to deactivate facility',
       message: error.message
     });
   }
@@ -752,6 +852,11 @@ router.get('/residents', requireNursingHomeUser, async (req, res) => {
 
     if (assignedUserId === 'me' && req.user.role === 'nursing_home_admin') {
       where.assignedUserId = req.user.id;
+    } else if (
+      (assignedUserId === 'unassigned' || assignedUserId === 'none') &&
+      ['admin', 'nursing_home_admin'].includes(req.user.role)
+    ) {
+      where.assignedUserId = null;
     } else if (assignedUserId && ['admin', 'nursing_home_admin'].includes(req.user.role)) {
       where.assignedUserId = assignedUserId === 'me' ? req.user.id : assignedUserId;
     }

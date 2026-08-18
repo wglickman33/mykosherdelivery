@@ -15,7 +15,13 @@ import {
   getNhOrderDeadline,
   formatNhDeadline,
   getMealSelectionHints,
-  calculateNhOrderTotals
+  calculateNhOrderTotals,
+  formatNhDate,
+  formatNhWeekRange,
+  formatNhStatusLabel,
+  formatNhPaymentLabel,
+  getNhMealItemLines,
+  groupNhMealsByDay
 } from './nursingHomeOrderUtils.js';
 
 describe('isNoneMeal / slot complete', () => {
@@ -108,6 +114,28 @@ describe('deadline', () => {
     assert.equal(minute, '00');
     assert.equal(dayPeriod, 'PM');
     assert.match(formatNhDeadline(deadline), /12:00\sPM/);
+  });
+
+  test('formats DATEONLY week dates without ISO YYYY-MM-DD', () => {
+    assert.equal(formatNhDate('2026-08-17'), 'Monday, Aug 17, 2026');
+    assert.equal(formatNhWeekRange('2026-08-17', '2026-08-23'), 'Aug 17 – Aug 23, 2026');
+    assert.equal(formatNhStatusLabel('submitted'), 'Submitted');
+    assert.equal(formatNhPaymentLabel('pending_monthly'), 'Billed monthly');
+    assert.equal(formatNhPaymentLabel('paid'), 'Paid');
+    const lines = getNhMealItemLines({
+      bagelType: 'Everything',
+      items: [
+        { id: '1', name: '2 Eggs on Bagel', requiresBagelType: true },
+        { id: '2', name: 'Blueberry Muffin' }
+      ]
+    });
+    assert.equal(lines[0].note, 'Everything');
+    assert.equal(lines[1].note, null);
+    const days = groupNhMealsByDay([
+      { day: 'Monday', mealType: 'breakfast', items: [{ id: '1', name: 'Oatmeal' }] }
+    ]);
+    assert.equal(days.length, 1);
+    assert.equal(days[0].selectedCount, 1);
   });
 });
 

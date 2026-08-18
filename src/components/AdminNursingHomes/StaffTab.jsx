@@ -11,7 +11,17 @@ import {
 } from '../../services/nursingHomeService';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
+import Pagination from '../Pagination/Pagination';
 import './AdminNursingHomes.scss';
+
+const formatStaffPhone = (raw) => {
+  if (!raw) return '—';
+  const digits = String(raw).replace(/\D/g, '').slice(0, 10);
+  if (digits.length < 10) return digits.length ? digits : '—';
+  return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+};
+
+const staffDisplayName = (u) => [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email || 'Staff';
 
 const StaffTab = () => {
   const { user } = useAuth();
@@ -28,6 +38,8 @@ const StaffTab = () => {
   const [uploadFile, setUploadFile] = useState(null);
   const [uploadResult, setUploadResult] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
   const [form, setForm] = useState({
     email: '',
     password: '',
@@ -101,7 +113,15 @@ const StaffTab = () => {
     }
   }, [isAdmin, selectedFacilityId, facilities, user?.nursingHomeFacilityId, loadFacility]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [selectedFacilityId, currentFacilityId]);
+
   const staff = facility?.staff || [];
+  const total = staff.length;
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const safePage = Math.max(1, Math.min(page, totalPages));
+  const pagedStaff = staff.slice((safePage - 1) * limit, safePage * limit);
 
   const handleOpenAdd = () => {
     setEditingUser(null);
@@ -321,40 +341,62 @@ const StaffTab = () => {
           )}
         </div>
       ) : (
-        <div className="table-wrap">
-          <table className="data-table" role="grid">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Phone</th>
-                {isAdmin && <th aria-label="Actions" />}
-              </tr>
-            </thead>
-            <tbody>
-              {staff.map((u) => (
-                <tr key={u.id}>
-                  <td>{[u.firstName, u.lastName].filter(Boolean).join(' ')}</td>
-                  <td>{u.email}</td>
-                  <td>Staff</td>
-                  <td>{u.phone || '-'}</td>
-                  {isAdmin && (
-                    <td>
-                      <div className="user-actions">
-                        <button type="button" className="edit-btn" onClick={() => handleOpenEdit(u)}>
-                          Edit
-                        </button>
-                        <button type="button" className="delete-btn" onClick={() => handleDeleteClick(u)}>
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  )}
+        <div className="nh-mgmt-table-container">
+          <div className="nh-mgmt-table-scroll">
+            <table className="nh-mgmt-table staff-tab__table" role="grid">
+              <colgroup>
+                <col className="col-name" />
+                <col className="col-email" />
+                <col className="col-role" />
+                <col className="col-phone" />
+                {isAdmin && <col className="col-actions" />}
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Phone</th>
+                  {isAdmin && <th>Actions</th>}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {pagedStaff.map((u) => (
+                  <tr key={u.id}>
+                    <td className="nh-mgmt-table__name">{staffDisplayName(u)}</td>
+                    <td>{u.email}</td>
+                    <td>
+                      <span className="staff-role-badge">Staff</span>
+                    </td>
+                    <td>{formatStaffPhone(u.phone)}</td>
+                    {isAdmin && (
+                      <td className="nh-mgmt-table__actions">
+                        <div className="user-actions">
+                          <button type="button" className="edit-btn" onClick={() => handleOpenEdit(u)}>
+                            Edit
+                          </button>
+                          <button type="button" className="delete-btn" onClick={() => handleDeleteClick(u)}>
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="nh-mgmt-table-pagination pagination-footer">
+            <Pagination
+              page={safePage}
+              totalPages={totalPages}
+              rowsPerPage={limit}
+              total={total}
+              onPageChange={setPage}
+              onRowsPerPageChange={(n) => { setLimit(n); setPage(1); }}
+              rowsPerPageOptions={[10, 20, 50]}
+            />
+          </div>
         </div>
       )}
 

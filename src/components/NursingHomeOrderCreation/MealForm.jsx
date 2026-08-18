@@ -4,7 +4,8 @@ import { NH_CONFIG } from '../../config/constants';
 import {
   getMealSelectionHints,
   isNoneMeal,
-  validateMealSelection
+  validateMealSelection,
+  formatNhCategoryLabel
 } from '../../utils/nursingHomeOrderUtils';
 
 const normCat = (c) => String(c || '').toLowerCase();
@@ -283,8 +284,8 @@ const MealForm = ({
           </p>
         </div>
         {hasSelection && (
-          <button type="button" className="clear-btn" onClick={handleClearMeal}>
-            Clear this meal
+          <button type="button" className="clear-btn" onClick={handleClearMeal} aria-label="Clear this meal">
+            Clear<span className="clear-btn__rest"> this meal</span>
           </button>
         )}
       </div>
@@ -333,11 +334,6 @@ const MealForm = ({
                   </span>
                 ))}
               </div>
-              {sideExcluded && (
-                <p className="no-selection" style={{ marginTop: '0.5rem' }}>
-                  This main does not include a side.
-                </p>
-              )}
             </div>
           )}
 
@@ -358,7 +354,7 @@ const MealForm = ({
                   className={`category-section ${categoryHint ? 'category-section--needs' : ''}`}
                 >
                   <h4 className="category-title">
-                    {category.charAt(0).toUpperCase() + category.slice(1)}
+                    {formatNhCategoryLabel(category)}
                     {(normCat(category) === 'main' || normCat(category) === 'entree' || normCat(category) === 'side') && (
                       <span className="category-hint"> (choose one)</span>
                     )}
@@ -390,11 +386,8 @@ const MealForm = ({
                           >
                             <div className="item-info">
                               <span className="item-name">{item.name}</span>
-                              {item.description && (
-                                <span className="item-description">{item.description}</span>
-                              )}
-                              {showBagelPicker && !bagelType && (
-                                <span className="item-inline-hint">Choose a bagel type below</span>
+                              {item.excludesSide && (
+                                <span className="item-flag">No side included</span>
                               )}
                             </div>
                             {isSelected && <div className="checkmark">✓</div>}

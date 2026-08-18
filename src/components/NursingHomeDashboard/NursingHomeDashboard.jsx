@@ -11,13 +11,16 @@ import {
   getNextMondayDateString,
   getOrderStatusPill,
   formatNhDeadline,
+  formatNhDate,
   isStaffPlacedOrder,
   formatAssignedStaffContact,
-  ADMIN_ALREADY_ORDERED_MESSAGE
+  ADMIN_ALREADY_ORDERED_MESSAGE,
+  NH_ORDER_COUNTDOWN_SETTINGS
 } from '../../utils/nursingHomeOrderUtils';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import NhAdminOrderedModal from '../NursingHomeShared/NhAdminOrderedModal';
+import Countdown from '../Countdown/Countdown';
 import './NursingHomeDashboard.scss';
 
 const assigneeLabel = (resident) => {
@@ -167,39 +170,18 @@ const NursingHomeDashboard = () => {
       ? `${communityName || 'Facility'} - Staff Dashboard`
       : `${communityName || 'Facility'} - Admin Dashboard`;
 
+  const weekLabel = formatNhDate(weekStart);
   const dashboardSubtitle = isNhUser
-    ? `Place your weekly meal order. Week of ${weekStart}. Deadline: ${formatNhDeadline()}.`
+    ? `Place your weekly meal order. Week of ${weekLabel}. Deadline: ${formatNhDeadline()}.`
     : isNhAdmin
-      ? `Manage residents assigned to you in this facility. Week of ${weekStart}. Deadline: ${formatNhDeadline()}.`
-      : `Full facility overview. Week of ${weekStart}. Deadline: ${formatNhDeadline()}.`;
+      ? `Manage residents assigned to you in this facility. Week of ${weekLabel}. Deadline: ${formatNhDeadline()}.`
+      : `Full facility overview. Week of ${weekLabel}. Deadline: ${formatNhDeadline()}.`;
 
   const listHeading = isNhUser
     ? 'Your order'
     : filter === 'mine'
       ? 'Residents assigned to you'
       : 'All facility residents';
-
-  if (loading) {
-    return (
-      <div className="nursing-home-dashboard">
-        <div className="nh-dashboard-loading">
-          <LoadingSpinner size="large" />
-          <p>Loading dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="nursing-home-dashboard">
-        <ErrorMessage message={error} type="error" />
-        <button type="button" className="retry-btn" onClick={loadDashboardData}>
-          Try Again
-        </button>
-      </div>
-    );
-  }
 
   return (
     <div className={`nursing-home-dashboard nursing-home-dashboard--${role || 'unknown'}`}>
@@ -229,6 +211,24 @@ const NursingHomeDashboard = () => {
         </div>
       </div>
 
+      <div className="nh-dashboard-countdown">
+        <Countdown variant="nursingHome" fixedSettings={NH_ORDER_COUNTDOWN_SETTINGS} />
+      </div>
+
+      {loading ? (
+        <div className="nh-dashboard-loading">
+          <LoadingSpinner size="large" />
+          <p>Loading dashboard...</p>
+        </div>
+      ) : error ? (
+        <>
+          <ErrorMessage message={error} type="error" />
+          <button type="button" className="retry-btn" onClick={loadDashboardData}>
+            Try Again
+          </button>
+        </>
+      ) : (
+        <>
       <div className="metrics-grid">
         <div className="metric-card residents">
           <div className="metric-content">
@@ -348,6 +348,8 @@ const NursingHomeDashboard = () => {
               : null
           }
         />
+      )}
+        </>
       )}
     </div>
   );

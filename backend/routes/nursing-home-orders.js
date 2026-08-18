@@ -33,6 +33,85 @@ if (!stripe()) {
   logger.warn('STRIPE_SECRET_KEY not set; nursing home payment routes will fail');
 }
 
+const NH_EXPORT_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const NH_EXPORT_MEALS = ['breakfast', 'lunch', 'dinner'];
+
+function formatNhExportDate(value) {
+  if (!value) return '';
+  const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return String(value);
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+}
+
+function formatNhExportWeek(start, end) {
+  const a = formatNhExportDate(start);
+  const b = formatNhExportDate(end);
+  if (a && b) return `${a} – ${b}`;
+  return a || b || '';
+}
+
+function formatNhExportEnum(value, map) {
+  if (!value) return '';
+  return map[value] || String(value).replace(/_/g, ' ');
+}
+
+const NH_EXPORT_STATUS_LABELS = {
+  draft: 'Draft',
+  submitted: 'Submitted',
+  confirmed: 'Confirmed',
+  paid: 'Paid',
+  in_progress: 'In progress',
+  completed: 'Completed',
+  cancelled: 'Cancelled'
+};
+
+const NH_EXPORT_PAYMENT_LABELS = {
+  pending: 'Pending',
+  pending_monthly: 'Billed monthly',
+  paid: 'Paid',
+  failed: 'Failed',
+  refunded: 'Refunded'
+};
+
+function isSkippedExportMeal(meal) {
+  if (!meal) return true;
+  if (meal.none === true || meal.skipped === true) return true;
+  const items = Array.isArray(meal.items) ? meal.items : [];
+  if (items.some((i) => i?.id === 'none' || i?.name === 'None')) return true;
+  return items.length === 0;
+}
+
+function exportItemNeedsBagel(item) {
+  if (item?.requiresBagelType === true) return true;
+  const name = item?.name != null ? String(item.name) : '';
+  return /bagel/i.test(name) && !/type/i.test(name);
+}
+
+function formatMealExportCell(meal) {
+  if (isSkippedExportMeal(meal)) return 'Skipped';
+  const lines = (meal.items || [])
+    .filter((i) => i && i.id !== 'none' && i.name !== 'None')
+    .map((item) => {
+      const bagel = meal.bagelType && exportItemNeedsBagel(item) ? ` (${meal.bagelType})` : '';
+      return `• ${item.name}${bagel}`;
+    });
+  return lines.length ? lines.join('\n') : 'Skipped';
+}
+
+function styleExportHeaderRow(row) {
+  row.font = { bold: true, color: { argb: 'FFFFFFFF' }, name: 'Calibri', size: 11 };
+  row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF061757' } };
+  row.alignment = { vertical: 'middle', wrapText: true };
+  row.height = 22;
+}
+
 const router = express.Router();
 
 router.get('/residents', requireNursingHomeUser, async (req, res) => {
@@ -190,7 +269,8 @@ const validateQueryParams = [
   query('facilityId').optional().isUUID(),
   query('status').optional().isIn(Object.values(NH_CONFIG.STATUSES)),
   query('paymentStatus').optional().isIn(Object.values(NH_CONFIG.PAYMENT_STATUSES)),
-  query('weekStartDate').optional().isISO8601().customSanitizer((v) => toDateOnlyString(v) || v)
+  query('weekStartDate').optional().isISO8601().customSanitizer((v) => toDateOnlyString(v) || v),
+  query('orderNumber').optional().isString().trim().isLength({ min: 1, max: 64 })
 ];
 
 const validateResidentOrder = [
@@ -530,7 +610,7 @@ router.get('/resident-orders', requireNursingHomeUser, validateQueryParams, asyn
     const page = Math.max(parseInt(req.query.page) || 1, 1);
     const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 500);
     const offset = (page - 1) * limit;
-    const { residentId, status, paymentStatus, weekStartDate } = req.query;
+    const { residentId, status, paymentStatus, weekStartDate, orderNumber } = req.query;
 
     const where = {};
 
@@ -574,6 +654,12 @@ router.get('/resident-orders', requireNursingHomeUser, validateQueryParams, asyn
     }
     if (weekStartDate) {
       where.weekStartDate = weekStartDate;
+    }
+    if (orderNumber) {
+      const term = String(orderNumber).trim().replace(/[%_]/g, '');
+      if (term) {
+        where.orderNumber = { [Op.iLike]: `%${term}%` };
+      }
     }
 
     const { count, rows: orders } = await NursingHomeResidentOrder.findAndCountAll({
@@ -917,6 +1003,55 @@ router.put('/resident-orders/:id', requireNursingHomeUser, validateOrderUpdate, 
   }
 });
 
+router.delete('/resident-orders/:id', requireNursingHomeAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const order = await NursingHomeResidentOrder.findByPk(id);
+    if (!order) {
+      return res.status(404).json({ success: false, error: 'Order not found' });
+    }
+    if (req.user.role === 'nursing_home_admin' && order.facilityId !== req.user.nursingHomeFacilityId) {
+      return res.status(403).json({ success: false, error: 'Access denied' });
+    }
+
+    const oldValues = order.toJSON();
+    const refundCount = await NursingHomeRefund.count({ where: { residentOrderId: id } });
+    const hardDelete = (order.status === 'draft' || order.status === 'cancelled') && refundCount === 0;
+    if (hardDelete) {
+      await order.destroy();
+    } else if (order.status !== 'cancelled') {
+      await order.update({ status: 'cancelled' });
+    }
+    await logAdminAction(
+      req.user.id,
+      hardDelete ? 'DELETE' : 'UPDATE',
+      'nh_resident_orders',
+      id,
+      oldValues,
+      hardDelete ? null : order.toJSON(),
+      req
+    );
+
+    logger.info('Nursing home resident order deleted', {
+      orderId: id,
+      hardDelete,
+      deletedBy: req.user.id
+    });
+
+    res.json({
+      success: true,
+      message: hardDelete ? 'Order deleted successfully' : 'Order cancelled successfully'
+    });
+  } catch (error) {
+    logger.error('Error deleting resident order:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete order',
+      message: error.message
+    });
+  }
+});
+
 router.get('/resident-orders/:id', requireNursingHomeUser, async (req, res) => {
   try {
     const { id } = req.params;
@@ -1240,28 +1375,83 @@ router.get('/resident-orders/:id/export', requireNursingHomeUser, async (req, re
     }
 
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Meal Order');
+    workbook.creator = 'MyKosherDelivery';
+    const residentName = order.residentName || order.resident?.name || '';
+    const roomNumber = order.roomNumber || order.resident?.roomNumber || 'N/A';
+    const facilityName = order.facility?.name || '';
+    const meals = Array.isArray(order.meals) ? order.meals : [];
+    const mealFor = (day, mealType) => meals.find((m) => m.day === day && m.mealType === mealType) || null;
 
-    worksheet.addRow(['Weekly Meal Order']);
-    worksheet.addRow(['Resident:', order.residentName]);
-    worksheet.addRow(['Room:', order.roomNumber || 'N/A']);
-    worksheet.addRow(['Order Number:', order.orderNumber]);
-    worksheet.addRow(['Week:', `${order.weekStartDate} to ${order.weekEndDate}`]);
-    worksheet.addRow(['Total:', `$${order.total}`]);
-    worksheet.addRow(['Payment Status:', order.paymentStatus]);
-    worksheet.addRow([]);
-    worksheet.addRow(['Day', 'Meal Type', 'Items', 'Bagel Type', 'Price']);
+    const summary = workbook.addWorksheet('Order summary');
+    summary.columns = [{ width: 22 }, { width: 52 }];
+    summary.addRow(['Weekly meal order']);
+    summary.getRow(1).font = { bold: true, size: 16, color: { argb: 'FF061757' }, name: 'Calibri' };
+    summary.addRow([]);
+    const summaryRows = [
+      ['Facility', facilityName || '—'],
+      ['Resident', residentName || '—'],
+      ['Room', roomNumber],
+      ['Order number', order.orderNumber || ''],
+      ['Week', formatNhExportWeek(order.weekStartDate, order.weekEndDate)],
+      ['Status', formatNhExportEnum(order.status, NH_EXPORT_STATUS_LABELS)],
+      ['Payment', formatNhExportEnum(order.paymentStatus, NH_EXPORT_PAYMENT_LABELS)],
+      ['Meals ordered', order.totalMeals ?? meals.filter((m) => !isSkippedExportMeal(m)).length]
+    ];
+    summaryRows.forEach(([label, value]) => {
+      const row = summary.addRow([label, value]);
+      row.getCell(1).font = { bold: true, color: { argb: 'FF061757' } };
+      row.alignment = { vertical: 'middle' };
+    });
+    summary.addRow([]);
+    summary.addRow(['This sheet is a kitchen packing list. Item prices are billed on the monthly invoice.']);
+    summary.getRow(summary.rowCount).font = { italic: true, color: { argb: 'FF64748B' }, size: 10 };
 
-    order.meals.forEach(meal => {
-      const itemNames = meal.items.map(i => i.name).join(', ');
-      const mealPrice = meal.items.reduce((sum, i) => sum + (parseFloat(i.price) || 0), 0);
-      worksheet.addRow([
-        meal.day,
-        meal.mealType,
-        itemNames,
-        meal.bagelType || '',
-        `$${mealPrice.toFixed(2)}`
-      ]);
+    const weekly = workbook.addWorksheet('Weekly menu', { views: [{ state: 'frozen', ySplit: 1 }] });
+    weekly.columns = [
+      { width: 16 },
+      { width: 38 },
+      { width: 38 },
+      { width: 38 }
+    ];
+    const weeklyHeader = weekly.addRow(['Day', 'Breakfast', 'Lunch', 'Dinner']);
+    styleExportHeaderRow(weeklyHeader);
+    NH_EXPORT_DAYS.forEach((day) => {
+      const breakfast = formatMealExportCell(mealFor(day, 'breakfast'));
+      const lunch = formatMealExportCell(mealFor(day, 'lunch'));
+      const dinner = formatMealExportCell(mealFor(day, 'dinner'));
+      if (breakfast === 'Skipped' && lunch === 'Skipped' && dinner === 'Skipped') return;
+      const row = weekly.addRow([day, breakfast, lunch, dinner]);
+      row.alignment = { vertical: 'top', wrapText: true };
+      const lineCount = Math.max(
+        String(breakfast).split('\n').length,
+        String(lunch).split('\n').length,
+        String(dinner).split('\n').length,
+        2
+      );
+      row.height = Math.min(18 * lineCount + 8, 90);
+      row.getCell(1).font = { bold: true, color: { argb: 'FF061757' } };
+    });
+
+    const itemized = workbook.addWorksheet('Itemized meals', { views: [{ state: 'frozen', ySplit: 1 }] });
+    itemized.columns = [{ width: 16 }, { width: 14 }, { width: 42 }, { width: 18 }];
+    styleExportHeaderRow(itemized.addRow(['Day', 'Meal', 'Item', 'Notes']));
+    NH_EXPORT_DAYS.forEach((day) => {
+      NH_EXPORT_MEALS.forEach((mealType) => {
+        const meal = mealFor(day, mealType);
+        if (!meal) return;
+        const mealLabel = mealType.charAt(0).toUpperCase() + mealType.slice(1);
+        if (isSkippedExportMeal(meal)) {
+          const row = itemized.addRow([day, mealLabel, 'Skipped', '']);
+          row.getCell(3).font = { italic: true, color: { argb: 'FF64748B' } };
+          return;
+        }
+        (meal.items || [])
+          .filter((i) => i && i.id !== 'none' && i.name !== 'None')
+          .forEach((item) => {
+            const notes = meal.bagelType && exportItemNeedsBagel(item) ? meal.bagelType : '';
+            itemized.addRow([day, mealLabel, item.name, notes]);
+          });
+      });
     });
 
     const buffer = await workbook.xlsx.writeBuffer();

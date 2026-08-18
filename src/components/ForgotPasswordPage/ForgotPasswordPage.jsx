@@ -1,12 +1,18 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import emailjs from "@emailjs/browser";
 import logoImg from "../../assets/navyMKDLogo.png";
 import apiClient from "../../lib/api";
 import logger from "../../utils/logger";
 import "./ForgotPasswordPage.scss";
 
+const ALLOWED_RETURN_TO = ["/signin", "/nursing-homes/login", "/nursing-homes/admin/login"];
+
 const ForgotPasswordPage = () => {
+  const [searchParams] = useSearchParams();
+  const returnTo = ALLOWED_RETURN_TO.includes(searchParams.get("returnTo"))
+    ? searchParams.get("returnTo")
+    : "/signin";
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState(null); // null | 'loading' | 'sent' | 'error'
   const [errorMsg, setErrorMsg] = useState("");
@@ -25,7 +31,8 @@ const ForgotPasswordPage = () => {
       // Backend always returns success:true even if email not found (prevents enumeration).
       // Only send the email when a real token was returned.
       if (response?.token) {
-        const resetLink = `${window.location.origin}/reset-password?token=${response.token}`;
+        const returnQuery = returnTo !== "/signin" ? `&returnTo=${encodeURIComponent(returnTo)}` : "";
+        const resetLink = `${window.location.origin}/reset-password?token=${response.token}${returnQuery}`;
 
         const emailjsConfig = {
           serviceId: import.meta.env.VITE_EMAILJS_SERVICE_ID,
@@ -83,7 +90,7 @@ const ForgotPasswordPage = () => {
               <p className="forgot-password-page__hint">
                 Don&apos;t see it? Check your spam folder.
               </p>
-              <Link to="/signin" className="forgot-password-page__back-link">
+              <Link to={returnTo} className="forgot-password-page__back-link">
                 Back to Sign In
               </Link>
             </div>
@@ -135,7 +142,7 @@ const ForgotPasswordPage = () => {
               </form>
 
               <div className="forgot-password-page__footer">
-                <Link to="/signin" className="forgot-password-page__back-link">
+                <Link to={returnTo} className="forgot-password-page__back-link">
                   ← Back to Sign In
                 </Link>
               </div>

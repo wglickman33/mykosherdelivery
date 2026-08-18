@@ -7,7 +7,7 @@ import {
 } from '../../services/nursingHomeService';
 import { useNursingHomeFacility } from '../../context/NursingHomeFacilityContext';
 import { NH_CONFIG } from '../../config/constants';
-import { isNoneMeal, mealHasItems } from '../../utils/nursingHomeOrderUtils';
+import { isNoneMeal, mealHasItems, formatNhWeekRange } from '../../utils/nursingHomeOrderUtils';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import './OrderPayment.scss';
@@ -156,7 +156,7 @@ const OrderPayment = () => {
           <div className="order-details">
             <div className="detail-row">
               <span>Week:</span>
-              <span>{order?.weekStartDate} to {order?.weekEndDate}</span>
+              <span>{formatNhWeekRange(order?.weekStartDate, order?.weekEndDate)}</span>
             </div>
             <div className="detail-row">
               <span>Total Meals:</span>

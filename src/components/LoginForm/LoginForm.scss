@@ -87,6 +87,24 @@
     }
   }
 
+  .login-form-forgot {
+    text-align: right;
+    margin: -0.75rem 0 1.25rem;
+  }
+
+  .login-form-forgot-link {
+    color: $nh-primary;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.2s ease;
+
+    &:hover {
+      color: $nh-accent;
+      text-decoration: underline;
+    }
+  }
+
   .login-btn {
     width: 100%;
     padding: 1rem;

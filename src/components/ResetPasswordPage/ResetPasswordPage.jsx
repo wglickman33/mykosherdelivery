@@ -32,6 +32,11 @@ const ResetPasswordPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const token = searchParams.get("token");
+  const returnToParam = searchParams.get("returnTo");
+  const returnTo = ["/signin", "/nursing-homes/login", "/nursing-homes/admin/login"].includes(returnToParam)
+    ? returnToParam
+    : "/signin";
+  const forgotPath = returnTo === "/signin" ? "/forgot-password" : `/forgot-password?returnTo=${encodeURIComponent(returnTo)}`;
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -73,7 +78,7 @@ const ResetPasswordPage = () => {
 
       if (response?.success) {
         setStatus("success");
-        setTimeout(() => navigate("/signin"), 3000);
+        setTimeout(() => navigate(returnTo), 3000);
       } else {
         setStatus("error");
       }
@@ -102,7 +107,7 @@ const ResetPasswordPage = () => {
           <p className="reset-password-page__subtitle">
             This password reset link is no longer valid. Links expire after 1 hour and can only be used once.
           </p>
-          <Link to="/forgot-password" className="reset-password-page__submit reset-password-page__submit--link">
+          <Link to={forgotPath} className="reset-password-page__submit reset-password-page__submit--link">
             Request a new link
           </Link>
         </div>
@@ -122,7 +127,7 @@ const ResetPasswordPage = () => {
           <p className="reset-password-page__subtitle">
             Your password has been changed successfully. Redirecting you to sign in...
           </p>
-          <Link to="/signin" className="reset-password-page__back-link">
+          <Link to={returnTo} className="reset-password-page__back-link">
             Sign In now →
           </Link>
         </div>
@@ -221,7 +226,7 @@ const ResetPasswordPage = () => {
         </form>
 
         <div className="reset-password-page__footer">
-          <Link to="/signin" className="reset-password-page__back-link">
+          <Link to={returnTo} className="reset-password-page__back-link">
             ← Back to Sign In
           </Link>
         </div>
